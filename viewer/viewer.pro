@@ -1,4 +1,5 @@
-# Feel free to add more paths here. This should just give warnings without errors.
+# Feel free to add more paths here. This should just
+# give warnings without errors.
 
 QT       += core gui widgets
 
