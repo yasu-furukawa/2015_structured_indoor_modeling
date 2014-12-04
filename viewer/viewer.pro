@@ -28,7 +28,7 @@ qtHaveModule(opengl) {
     RESOURCES += \
         shaders.qrc
 
-    INCLUDEPATH += '/Users/furukawa/Google Drive/research/code/'
+    INCLUDEPATH += '/Users/furukawa/Google_Drive/research/code/'
 #    INCLUDEPATH += '/opt/X11/include'
 
      
