@@ -1,3 +1,5 @@
+# Feel free to add more paths here. This should just give warnings without errors.
+
 QT       += core gui widgets
 
 TARGET = viewer
@@ -30,7 +32,6 @@ qtHaveModule(opengl) {
 
     INCLUDEPATH += '/Users/furukawa/Google_Drive/research/code/'
 #    INCLUDEPATH += '/opt/X11/include'
-
      
 
      LIBS += '-F/Users/furukawa/Qt/5.3/clang_64/lib/QtOpenGL.framework/Versions/5/'
