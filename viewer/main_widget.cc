@@ -126,14 +126,17 @@ void MainWidget::SetMatrices() {
   glLoadIdentity();
   const double kMinDistance = 10;
   const double kMaxDistance = 40000;
-  const double kFieldOfView = 100.0;
-  gluPerspective(kFieldOfView, width() / static_cast<double>(height()), kMinDistance, kMaxDistance);
+  gluPerspective(navigation.GetFieldOfViewInDegrees(),
+                 width() / static_cast<double>(height()), kMinDistance, kMaxDistance);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
   const Vector3d center = navigation.GetCenter();
   const Vector3d direction = navigation.GetDirection();
+  cout << center[0] << ' ' << center[1] << ' ' << center[2] << "   "
+       << direction[0] << ' ' << direction[1] << ' ' << direction[2] << endl;
+
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],
             0, 0, 1);
@@ -291,6 +294,13 @@ void MainWidget::paintGL() {
     RenderFloorplan();
     break;
   }
+  case kPanoramaToAir:
+  case kAirToPanorama: {
+    RenderPanorama();
+    RenderPolygon();
+    // RenderFloorplan();
+    break;
+  }
   default: {
     ;
   }
@@ -332,8 +342,8 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
       navigation.PanoramaToAir();
       break;
     }
-    case kAir: {
-      navigation.AirToPanorama();
+    case kAir: {      
+      navigation.AirToPanorama(navigation.GetCameraPanorama().start_index);
       break;
     }
     default: {

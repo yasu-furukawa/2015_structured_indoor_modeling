@@ -36,6 +36,17 @@ struct CameraAir {
   Eigen::Vector3d end_direction;
 
   double progress;
+
+  Eigen::Vector3d GetCenter() const {
+    return ground_center - start_direction;
+  }
+};
+
+struct CameraBetweenPanoramaAndAir {
+  // "progress" is not used in camera_panorama and camera_air.
+  CameraPanorama camera_panorama;
+  CameraAir camera_air;
+  double progress;  
 };
 
 class Navigation {
@@ -48,7 +59,8 @@ class Navigation {
   CameraStatus GetCameraStatus() const;
   CameraPanorama GetCameraPanorama() const;
   CameraAir GetCameraAir() const;
-
+  CameraBetweenPanoramaAndAir GetCameraBetweenPanoramaAndAir() const;
+  
   void Init();
 
   void Tick();
@@ -59,25 +71,35 @@ class Navigation {
   void RotateOnGround(const double radian);
 
   void PanoramaToAir();
-  void AirToPanorama();
+  void AirToPanorama(const int panorama_index);
 
   double Progress() const;
+  double GetFieldOfViewInDegrees() const;
   
  private:
   void MoveToPanorama(const int target_panorama_index);
   void AllocateResources();
   void FreeResources();
   void SetMatrices();
+  // int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
   
   // Camera is at (center) and looks along (direction).
   CameraStatus camera_status;
   
   CameraPanorama camera_panorama;
   CameraAir camera_air;
-  int current_width;
-  int current_height;
+  CameraBetweenPanoramaAndAir camera_between_panorama_and_air;
+
+  // Z coordinate of the camera in the air.
+  double air_height;
+  // Angle of viewing in the air.
+  double air_angle;
 
   const std::vector<PanoramaRenderer>& panorama_renderers;
+  
+  // Screen dimension.
+  int current_width;
+  int current_height;
 };
 
 #endif  // NAVIGATION_H__
