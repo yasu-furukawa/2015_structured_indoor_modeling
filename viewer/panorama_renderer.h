@@ -23,6 +23,7 @@ class PanoramaRenderer : protected QGLFunctions {
   Eigen::Vector3d LocalToGlobal(const Eigen::Vector3d& local_xyz) const;
 
   const Eigen::Vector3d& GetCenter() const { return center; }
+  double GetAverageDistance() const { return average_distance; }
 
  private:
   void InitDepthMesh(const std::string& filename, const double phi_range);
@@ -38,6 +39,8 @@ class PanoramaRenderer : protected QGLFunctions {
   int depth_width;
   int depth_height;
   std::vector<Eigen::Vector3d> depth_mesh;
+  // Average distance in the depthmap.
+  double average_distance;
 
   // Camera position.
   Eigen::Vector3d center;

@@ -168,27 +168,24 @@ void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_ra
   
   depth_mesh.resize(depth_width * depth_height);
   depth_phi_per_pixel = phi_range / (double)depth_height;
-  
-  //????
-  //ofstream ofstr;
-  //ofstr.open("what.obj");
-  
+
+  average_distance = 0.0;
+  int denom = 0;
   for (int y = 0; y < depth_height; ++y) {
     for (int x = 0; x < depth_width; ++x) {
       double distance;
       ifstr >> distance;
-      //????
-      if (distance <= 0.0)
-        distance = 5000;
+      average_distance += distance;
+      ++denom;
       
       depth_mesh[y * depth_width + x] = LocalToGlobal(Unproject(Vector2d(x, y), distance));
-
-
-      //ofstr << "v " << depth_mesh[y * depth_width + x][0] << ' '
-      //<< depth_mesh[y * depth_width + x][1] << ' '
-      //<< depth_mesh[y * depth_width + x][2] << endl;
     }
   }
   ifstr.close();
-  //  ofstr.close();
+
+  if (denom == 0) {
+    cerr << "Impossible." << endl;
+    exit (1);
+  }
+  average_distance /= denom;
 }

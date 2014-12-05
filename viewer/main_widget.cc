@@ -149,7 +149,6 @@ void MainWidget::RenderFloorplan() {
   style.inner_style.fill_color   = Eigen::Vector3f(0.0f, 1.0f, 0.5f);
   style.inner_style.stroke_width = 1.0;
 
-  
   glClear(GL_DEPTH_BUFFER_BIT);
   floorplan_renderer.Render(style);
 }
@@ -274,15 +273,28 @@ void MainWidget::paintGL() {
   SetMatrices();
 
   switch (navigation.GetCameraStatus()) {
-  case kPanoramaStop:
+  case kPanorama: {
     RenderPanorama();
-    break;
-  case kPanoramaTransition:
-    RenderPanoramaTransition();
+    RenderPolygon();
+    // RenderFloorplan();
     break;
   }
-  RenderPolygon();
-  // RenderFloorplan();
+  case kPanoramaTransition: {
+    RenderPanoramaTransition();
+    RenderPolygon();
+    // RenderFloorplan();
+    break;
+  }
+  case kAir:
+  case kAirTransition: {
+    RenderPolygon();
+    RenderFloorplan();
+    break;
+  }
+  default: {
+    ;
+  }
+  }
 }
 
 //----------------------------------------------------------------------
@@ -298,21 +310,35 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *) {
 void MainWidget::keyPressEvent(QKeyEvent* e) {
   const double kRotationDegrees = 90.0 * M_PI / 180.0;
   if (e->key() == Qt::Key_Up) {
-    if (navigation.GetCameraStatus() == kPanoramaStop) {
+    if (navigation.GetCameraStatus() == kPanorama) {
       navigation.MoveForwardOnGround();
     }
   } else if (e->key() == Qt::Key_Down) {
-    if (navigation.GetCameraStatus() == kPanoramaStop) {
+    if (navigation.GetCameraStatus() == kPanorama) {
       navigation.MoveBackwardOnGround();
     }
   } else if (e->key() == Qt::Key_Left) {
-    if (navigation.GetCameraStatus() == kPanoramaStop) {
+    if (navigation.GetCameraStatus() == kPanorama) {
       
       navigation.RotateOnGround(kRotationDegrees);
     }
   } else if (e->key() == Qt::Key_Right) {
-    if (navigation.GetCameraStatus() == kPanoramaStop) {
+    if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotateOnGround(-kRotationDegrees);
+    }
+  } else if (e->key() == Qt::Key_A) {
+    switch (navigation.GetCameraStatus()) {
+    case kPanorama: {
+      navigation.PanoramaToAir();
+      break;
+    }
+    case kAir: {
+      navigation.AirToPanorama();
+      break;
+    }
+    default: {
+      break;
+    }
     }
   }
 }
@@ -330,8 +356,12 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
 }
 
 void MainWidget::timerEvent(QTimerEvent *) {
-  if (navigation.GetCameraStatus() == kPanoramaStop)
+  if (navigation.GetCameraStatus() != kPanoramaTransition &&
+      navigation.GetCameraStatus() != kAirTransition &&
+      navigation.GetCameraStatus() != kPanoramaToAir &&
+      navigation.GetCameraStatus() != kAirToPanorama) {
     return;
+  }
 
   navigation.Tick();
   updateGL();

@@ -9,29 +9,54 @@ Navigation::Navigation(const vector<PanoramaRenderer>& panorama_renderers)
 }
 
 Vector3d Navigation::GetCenter() const {
-  if (camera_status == kPanoramaStop)
+  switch (camera_status) {
+  case kPanorama: {
     return camera_on_ground.start_center;
-  else {
-    // Interpolation.
+  }
+  case kPanoramaTransition: {
     const double weight_start = (cos(camera_on_ground.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
-
     return weight_start * camera_on_ground.start_center +
       weight_end * camera_on_ground.end_center;
+  }
+  case kAir:
+  case kAirTransition: {
+    return camera_on_air.ground_center - camera_on_air.start_direction;
+  }
+  default: {
+    cerr << "Invalid camera_status." << endl;
+    exit (1);
+  }
   }
 }
 
 Vector3d Navigation::GetDirection() const {
-  if (camera_status == kPanoramaStop)
+  switch (camera_status) {
+  case kPanorama: {
     return camera_on_ground.start_direction;
-  else {
+  }
+  case kPanoramaTransition: {
     // Interpolation.
     const double weight_start = (cos(camera_on_ground.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
-
-    Vector3d direction = weight_start * camera_on_ground.start_direction +
+    const Vector3d direction = weight_start * camera_on_ground.start_direction +
       weight_end * camera_on_ground.end_direction;
     return direction.normalized();
+  }
+  case kAir: {
+    return camera_on_air.start_direction;
+  }
+  case kAirTransition: {
+    const double weight_start = (cos(camera_on_air.progress * M_PI) + 1.0) / 2.0;
+    const double weight_end = 1.0 - weight_start;
+    const Vector3d direction = weight_start * camera_on_air.start_direction +
+      weight_end * camera_on_air.end_direction;
+    return direction.normalized() * ((camera_on_air.start_direction.norm() + camera_on_air.end_direction.norm()) / 2.0);
+  }
+  default: {
+    cerr << "Invalid camera_status." << endl;
+    exit (1);
+  }
   }
 }
 
@@ -43,6 +68,10 @@ CameraOnGround Navigation::GetCameraOnGround() const {
   return camera_on_ground;
 }
 
+CameraOnAir Navigation::GetCameraOnAir() const {
+  return camera_on_air;
+}
+
 void Navigation::Init() {
   if (panorama_renderers.empty()) {
     cerr << "No panoramas." << endl;
@@ -50,25 +79,60 @@ void Navigation::Init() {
   }
 
   const int kStartIndex = 0;
-  camera_status = kPanoramaStop;
+  camera_status = kPanorama;
   camera_on_ground.start_index = kStartIndex;
   camera_on_ground.start_center = panorama_renderers[kStartIndex].GetCenter();
-  camera_on_ground.start_direction = Vector3d(1, 0, 0);
+  camera_on_ground.start_direction =
+    panorama_renderers[kStartIndex].GetAverageDistance() * Vector3d(1, 0, 0);
   camera_on_ground.progress = 0.0;
 }
 
 void Navigation::Tick() {
-  if (camera_status == kPanoramaTransition) {
+  switch (camera_status) {
+  case kPanoramaTransition: {
     const double kStepSize = 0.02;
     camera_on_ground.progress += kStepSize;
     if (camera_on_ground.progress >= 1.0) {
-      camera_status = kPanoramaStop;
+      camera_status = kPanorama;
 
       camera_on_ground.start_index = camera_on_ground.end_index;
       camera_on_ground.start_center = camera_on_ground.end_center;
       camera_on_ground.start_direction = camera_on_ground.end_direction;
       camera_on_ground.progress = 0.0;
     }
+    break;
+  }
+  case kAirTransition: {
+    const double kStepSize = 0.02;
+    camera_on_air.progress += kStepSize;
+    if (camera_on_air.progress >= 1.0) {
+      camera_status = kAir;
+
+      camera_on_air.start_direction = camera_on_air.end_direction;
+      camera_on_air.progress = 0.0;
+    }
+    break;
+  }
+  case kPanoramaToAir: {
+    /*
+    const double kStepSize = 0.02;
+    camera_on_air.progress += kStepSize;
+    if (camera_on_air.progress >= 1.0) {
+      camera_status = kAir;
+
+      camera_on_air.start_direction = camera_on_air.end_direction;
+      camera_on_air.progress = 0.0;
+    }
+    */
+    break;
+  }
+  case kAirToPanorama: {
+    //????
+    break;
+  }
+  default: {
+    break;
+  }
   }
 }
 
@@ -104,7 +168,8 @@ void Navigation::MoveToPanorama(const int target_panorama_index) {
   // Makes it more horizontal.
   sum[2] /= 2.0;
   sum.normalize();
-  camera_on_ground.end_direction = sum;
+  camera_on_ground.end_direction =
+    sum * panorama_renderers[target_panorama_index].GetAverageDistance();
 
   // Starts animation.
   camera_on_ground.progress = 0.0;
@@ -135,6 +200,25 @@ void Navigation::RotateOnGround(const double radian) {
   camera_status = kPanoramaTransition;  
 }
 
+void Navigation::PanoramaToAir() {
+  camera_status = kPanoramaToAir;
+  
+}
+
+void Navigation::AirToPanorama() {
+  camera_status = kAirToPanorama;
+
+}
+ 
 double Navigation::Progress() const {
-  return cos(camera_on_ground.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  switch (camera_status) {
+  case kPanoramaTransition:
+    return cos(camera_on_ground.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  case kAirTransition:
+    return cos(camera_on_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  default:
+    cerr << "Impossible in Progress." << endl;
+    exit (1);
+    // return 0.0;
+  }
 }
