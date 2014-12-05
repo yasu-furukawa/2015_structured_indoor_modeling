@@ -3,17 +3,17 @@
 #include <Eigen/Dense>
 
 #include "../calibration/file_io.h"
-#include "floorplan_renderer.h"
+#include "polygon_renderer.h"
 
 using namespace std;
 
-FloorplanRenderer::FloorplanRenderer() {
+PolygonRenderer::PolygonRenderer() {
 }
 
-FloorplanRenderer::~FloorplanRenderer() {
+PolygonRenderer::~PolygonRenderer() {
 }
 
-void FloorplanRenderer::RenderWireframe(const int room) {
+void PolygonRenderer::RenderWireframe(const int room) {
   if (room < 0 ||
       static_cast<int>(line_floorplan.line_rooms.size()) <= room) {
     cerr << "Index out of bounds: " << room << endl;
@@ -70,17 +70,17 @@ void FloorplanRenderer::RenderWireframe(const int room) {
   glEnable(GL_DEPTH_TEST);
 }
 
-void FloorplanRenderer::RenderWireframeAll() {
+void PolygonRenderer::RenderWireframeAll() {
   for (int r = 0; r < static_cast<int>(line_floorplan.line_rooms.size()); ++r) {
     RenderWireframe(r);
   }
 }
 
-void FloorplanRenderer::Init(const string data_directory) {
+void PolygonRenderer::Init(const string data_directory) {
   file_io::FileIO file_io(data_directory);
   
   ifstream ifstr;
-  ifstr.open(file_io.GetFloorplan().c_str());
+  ifstr.open(file_io.GetLineFloorplan().c_str());
   ifstr >> line_floorplan;
   ifstr.close();
 
@@ -99,7 +99,7 @@ void FloorplanRenderer::Init(const string data_directory) {
   }
 }
 /*
-void FloorplanRenderer::SortWalls(const Eigen::Vector3d& center,
+void PolygonRenderer::SortWalls(const Eigen::Vector3d& center,
                                   const Eigen::Vector3d& direction,
                                   vector<Wall>* walls) {
 
@@ -107,10 +107,10 @@ void FloorplanRenderer::SortWalls(const Eigen::Vector3d& center,
 }
 */
 
-void FloorplanRenderer::RenderWallAll() {
+void PolygonRenderer::RenderWallAll() {
 
 }
 
-void FloorplanRenderer::RenderWall(const int room) {
+void PolygonRenderer::RenderWall(const int room) {
 
 }

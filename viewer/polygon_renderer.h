@@ -1,5 +1,5 @@
-#ifndef FLOORPLAN_RENDERER_H__
-#define FLOORPLAN_RENDERER_H__
+#ifndef POLYGON_RENDERER_H__
+#define POLYGON_RENDERER_H__
 
 #include <Eigen/Dense>
 #include <QGLFunctions>
@@ -10,10 +10,10 @@ struct Wall {
   Eigen::Vector3d corners[4];
 };
 
-class FloorplanRenderer : protected QGLFunctions {
+class PolygonRenderer : protected QGLFunctions {
  public:
-  FloorplanRenderer();
-  virtual ~FloorplanRenderer();
+  PolygonRenderer();
+  virtual ~PolygonRenderer();
   void RenderWallAll();
   void RenderWall(const int room);
   void RenderWireframeAll();
@@ -32,4 +32,4 @@ class FloorplanRenderer : protected QGLFunctions {
   Eigen::Matrix3d rotation;
 };
 
-#endif  // FLOORPLAN_RENDERER_H__
+#endif  // POLYGON_RENDERER_H__

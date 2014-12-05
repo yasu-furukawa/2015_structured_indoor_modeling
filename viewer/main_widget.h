@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "configuration.h"
-#include "floorplan_renderer.h"
+#include "polygon_renderer.h"
 #include "navigation.h"
 #include "panorama.h"
 
@@ -47,7 +47,7 @@ private:
     // Indoor data.
     const Configuration configuration;
     std::vector<Panorama> panoramas;
-    FloorplanRenderer floorplan_renderer;
+    PolygonRenderer polygon_renderer;
     Navigation navigation;
 
     // Resources.

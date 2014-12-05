@@ -17,7 +17,7 @@ qtHaveModule(opengl) {
        configuration.cc \
        panorama.cc \
        navigation.cc \
-       floorplan_renderer.cc \
+       polygon_renderer.cc \
        ../floorplan/floorplan.cc
 
     HEADERS += \
@@ -25,6 +25,7 @@ qtHaveModule(opengl) {
         configuration.h \
         panorama.h \
         navigation.h \
+        polygon_renderer.h \
         ../calibration/file_io.h \
         ../floorplan/floorplan.h
 

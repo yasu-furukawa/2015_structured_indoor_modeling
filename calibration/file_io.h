@@ -58,8 +58,12 @@ class FileIO {
     sprintf(buffer, "%s/panorama/%03d_depth.png", data_directory.c_str(), panorama);
     return buffer;
   }
-  std::string GetFloorplan() const {
+  std::string GetLineFloorplan() const {
     sprintf(buffer, "%s/floorplan.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetFloorplan() const {
+    sprintf(buffer, "%s/floorplan.dat", data_directory.c_str());
     return buffer;
   }
   std::string GetRotationMat() const {

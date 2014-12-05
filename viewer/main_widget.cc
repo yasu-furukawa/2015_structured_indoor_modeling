@@ -22,7 +22,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
     panoramas[p].Init(configuration.panorama_configurations[p], this);
   }
 
-  floorplan_renderer.Init(configuration.data_directory);
+  polygon_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
   
@@ -252,8 +252,8 @@ void MainWidget::RenderPanoramaTransition() {
 }  
 
 void MainWidget::RenderRooms() {
-  //floorplan_renderer.RenderWallAll();
-  floorplan_renderer.RenderWireframeAll();
+  //polygon_renderer.RenderWallAll();
+  polygon_renderer.RenderWireframeAll();
 }
 
 void MainWidget::paintGL() {  

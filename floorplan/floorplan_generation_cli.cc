@@ -5,6 +5,7 @@
 
 #include <list>
 
+#include "../calibration/file_io.h"
 #include "floorplan.h"
 #include "floorplan_util.h"
 
@@ -46,12 +47,13 @@ int main(int argc, char* argv[]) {
     exit (1);
   }
 
+  file_io::FileIO file_io(argv[1]);
   LineFloorplan line_floorplan;
   {
-    char buffer[1024];
-    sprintf(buffer, "%s/floorplan.txt", argv[1]);
+    // char buffer[1024];
+    // sprintf(buffer, "%s/floorplan.txt", argv[1]);
     ifstream ifstr;
-    ifstr.open(buffer);
+    ifstr.open(file_io.GetLineFloorplan().c_str());
     ifstr >> line_floorplan;
     ifstr.close();
   }
