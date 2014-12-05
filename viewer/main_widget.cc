@@ -357,6 +357,11 @@ void MainWidget::keyReleaseEvent(QKeyEvent *) {
 void MainWidget::mouseMoveEvent(QMouseEvent *e) {
   QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
   mousePressPosition = QVector2D(e->localPos());
+
+  //  switch (navigation.GetCameraStatus()) {
+  //case 
+
+  
   diff /= 400.0;
   navigation.RotateOnGround(Vector3d(diff.x(), -diff.y(), 0.0));      
   
