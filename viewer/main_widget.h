@@ -15,7 +15,7 @@
 #include "configuration.h"
 #include "polygon_renderer.h"
 #include "navigation.h"
-#include "panorama.h"
+#include "panorama_renderer.h"
 
 
 class MainWidget : public QGLWidget, protected QGLFunctions
@@ -46,7 +46,7 @@ protected:
 private:
     // Indoor data.
     const Configuration configuration;
-    std::vector<Panorama> panoramas;
+    std::vector<PanoramaRenderer> panorama_renderers;
     PolygonRenderer polygon_renderer;
     Navigation navigation;
 

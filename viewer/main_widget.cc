@@ -15,11 +15,11 @@ const int kNumBuffers = 2;
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   configuration(configuration),
-  navigation(panoramas) {
+  navigation(panorama_renderers) {
 
-  panoramas.resize(configuration.panorama_configurations.size());
-  for (int p = 0; p < static_cast<int>(panoramas.size()); ++p) {
-    panoramas[p].Init(configuration.panorama_configurations[p], this);
+  panorama_renderers.resize(configuration.panorama_configurations.size());
+  for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
+    panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
   }
 
   polygon_renderer.Init(configuration.data_directory);
@@ -108,8 +108,8 @@ void MainWidget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
-  for (int p = 0; p < static_cast<int>(panoramas.size()); ++p)
-    panoramas[p].InitGL();
+  for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
+    panorama_renderers[p].InitGL();
   
   // Use QBasicTimer because its faster than QTimer
   timer.start(1000 / 60, this);
@@ -146,7 +146,7 @@ void MainWidget::SetMatrices() {
 void MainWidget::RenderPanorama() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
-  panoramas[navigation.GetCameraOnGround().start_index].Render();
+  panorama_renderers[navigation.GetCameraOnGround().start_index].Render();
 }  
 
 void MainWidget::RenderQuad(const double alpha) {
@@ -174,13 +174,13 @@ void MainWidget::RenderPanoramaTransition() {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panoramas[navigation.GetCameraOnGround().start_index].Render();
+  panorama_renderers[navigation.GetCameraOnGround().start_index].Render();
 
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panoramas[navigation.GetCameraOnGround().end_index].Render();
+  panorama_renderers[navigation.GetCameraOnGround().end_index].Render();
 
   // Blend the two.
   const double weight_start = navigation.Progress();

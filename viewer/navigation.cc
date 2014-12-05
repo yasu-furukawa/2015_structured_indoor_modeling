@@ -4,7 +4,8 @@
 using namespace Eigen;
 using namespace std;
 
-Navigation::Navigation(const vector<Panorama>& panoramas) : panoramas(panoramas) {
+Navigation::Navigation(const vector<PanoramaRenderer>& panorama_renderers)
+  : panorama_renderers(panorama_renderers) {
 }
 
 Vector3d Navigation::GetCenter() const {
@@ -43,7 +44,7 @@ CameraOnGround Navigation::GetCameraOnGround() const {
 }
 
 void Navigation::Init() {
-  if (panoramas.empty()) {
+  if (panorama_renderers.empty()) {
     cerr << "No panoramas." << endl;
     exit (1);
   }
@@ -51,7 +52,7 @@ void Navigation::Init() {
   const int kStartIndex = 0;
   camera_status = kPanoramaStop;
   camera_on_ground.start_index = kStartIndex;
-  camera_on_ground.start_center = panoramas[kStartIndex].GetCenter();
+  camera_on_ground.start_center = panorama_renderers[kStartIndex].GetCenter();
   camera_on_ground.start_direction = Vector3d(1, 0, 0);
   camera_on_ground.progress = 0.0;
 }
@@ -89,10 +90,10 @@ void Navigation::RotateOnGround(const Eigen::Vector3d& axis)  {
 void Navigation::MoveToPanorama(const int target_panorama_index) {
   cout << "move " << target_panorama_index << endl;
   camera_on_ground.end_index = target_panorama_index;
-  camera_on_ground.end_center = panoramas[target_panorama_index].GetCenter();
+  camera_on_ground.end_center = panorama_renderers[target_panorama_index].GetCenter();
 
-  Vector3d movement = panoramas[target_panorama_index].GetCenter() -
-    panoramas[camera_on_ground.start_index].GetCenter();
+  Vector3d movement = panorama_renderers[target_panorama_index].GetCenter() -
+    panorama_renderers[camera_on_ground.start_index].GetCenter();
   movement.normalize();
 
   Vector3d sum;
@@ -111,13 +112,13 @@ void Navigation::MoveToPanorama(const int target_panorama_index) {
 }
 
 void Navigation::MoveForwardOnGround() {
-  const int target_panorama_index = (camera_on_ground.start_index + 1) % panoramas.size();
+  const int target_panorama_index = (camera_on_ground.start_index + 1) % panorama_renderers.size();
   MoveToPanorama(target_panorama_index);
 }
 
 void Navigation::MoveBackwardOnGround() {
   const int target_panorama_index =
-    (camera_on_ground.start_index - 1 + panoramas.size()) % panoramas.size();
+    (camera_on_ground.start_index - 1 + panorama_renderers.size()) % panorama_renderers.size();
   MoveToPanorama(target_panorama_index);
 }
 

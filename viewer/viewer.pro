@@ -15,7 +15,7 @@ qtHaveModule(opengl) {
 
     SOURCES += main_widget.cc \
        configuration.cc \
-       panorama.cc \
+       panorama_renderer.cc \
        navigation.cc \
        polygon_renderer.cc \
        ../floorplan/floorplan.cc
@@ -23,7 +23,7 @@ qtHaveModule(opengl) {
     HEADERS += \
         main_widget.h \
         configuration.h \
-        panorama.h \
+        panorama_renderer.h \
         navigation.h \
         polygon_renderer.h \
         ../calibration/file_io.h \

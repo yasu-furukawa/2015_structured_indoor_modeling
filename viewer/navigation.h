@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include "panorama.h"
+#include "panorama_renderer.h"
 
 enum CameraStatus {
   kPanoramaStop,
@@ -25,7 +25,7 @@ struct CameraOnGround {
 
 class Navigation {
  public:
-  Navigation(const std::vector<Panorama>& panoramas);
+  Navigation(const std::vector<PanoramaRenderer>& panorama_renderers);
 
   // Get the current camera center.
   Eigen::Vector3d GetCenter() const;
@@ -56,7 +56,7 @@ class Navigation {
   int current_width;
   int current_height;
 
-  const std::vector<Panorama>& panoramas;
+  const std::vector<PanoramaRenderer>& panorama_renderers;
 };
 
 #endif  // NAVIGATION_H__
