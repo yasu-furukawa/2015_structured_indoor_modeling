@@ -134,8 +134,6 @@ void MainWidget::SetMatrices() {
 
   const Vector3d center = navigation.GetCenter();
   const Vector3d direction = navigation.GetDirection();
-  cout << center[0] << ' ' << center[1] << ' ' << center[2] << "   "
-       << direction[0] << ' ' << direction[1] << ' ' << direction[2] << endl;
 
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],

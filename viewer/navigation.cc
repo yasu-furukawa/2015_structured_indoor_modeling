@@ -152,7 +152,7 @@ void Navigation::Init() {
     air_height += panorama_renderer.GetAverageDistance();
   }
   air_height /= panorama_renderers.size();
-  const double kScale = 5.0;
+  const double kScale = 8.0;
   air_height *= kScale;
   
   air_angle = 45.0 * M_PI / 180.0;
@@ -282,7 +282,8 @@ void Navigation::PanoramaToAir() {
   camera_between_panorama_and_air.camera_panorama = camera_panorama;
   {
     CameraAir& camera_air      = camera_between_panorama_and_air.camera_air;
-    camera_air.ground_center   = camera_panorama.start_center;
+    camera_air.ground_center   =
+      camera_panorama.start_center + camera_panorama.start_direction;
     camera_air.start_direction =
       ComputeAirDirectionFromPanorama(camera_panorama.start_direction,
                                       air_height,
@@ -338,14 +339,14 @@ double Navigation::GetFieldOfViewInDegrees() const {
   }
   // CameraBetweenGroundAndAir handles the state.
   case kPanoramaToAir: {
-    const double weight_start =
-      (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
+    const double weight_start = 1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2.0);
+    // (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
     return weight_start * kPanoramaFieldOfView + weight_end * kAirFieldOfView;
   }
   case kAirToPanorama: {
-    const double weight_start =
-      (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
+    const double weight_start = sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0);
+    // (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
     return weight_start * kAirFieldOfView + weight_end * kPanoramaFieldOfView;
   }
