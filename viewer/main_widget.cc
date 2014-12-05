@@ -156,7 +156,7 @@ void MainWidget::RenderFloorplan() {
 void MainWidget::RenderPanorama() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraOnGround().start_index].Render();
+  panorama_renderers[navigation.GetCameraPanorama().start_index].Render();
 }  
 
 /*
@@ -186,13 +186,13 @@ void MainWidget::RenderPanoramaTransition() {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraOnGround().start_index].Render();
+  panorama_renderers[navigation.GetCameraPanorama().start_index].Render();
 
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraOnGround().end_index].Render();
+  panorama_renderers[navigation.GetCameraPanorama().end_index].Render();
 
   // Blend the two.
   const double weight_start = navigation.Progress();

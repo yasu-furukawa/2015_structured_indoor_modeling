@@ -7,15 +7,18 @@
 #include "panorama_renderer.h"
 
 enum CameraStatus {
+  // CameraPanorama handles the states.
   kPanorama,
   kPanoramaTransition,
+  // CameraAir handles the state.
   kAir,
   kAirTransition,
+  // CameraBetweenGroundAndAir handles the state.
   kPanoramaToAir,
   kAirToPanorama
 };
 
-struct CameraOnGround {
+struct CameraPanorama {
   int start_index;
   Eigen::Vector3d start_center;
   Eigen::Vector3d start_direction;
@@ -27,7 +30,7 @@ struct CameraOnGround {
   double progress;
 };
 
-struct CameraOnAir {
+struct CameraAir {
   Eigen::Vector3d ground_center;
   Eigen::Vector3d start_direction;
   Eigen::Vector3d end_direction;
@@ -43,8 +46,8 @@ class Navigation {
   Eigen::Vector3d GetCenter() const;
   Eigen::Vector3d GetDirection() const;
   CameraStatus GetCameraStatus() const;
-  CameraOnGround GetCameraOnGround() const;
-  CameraOnAir GetCameraOnAir() const;
+  CameraPanorama GetCameraPanorama() const;
+  CameraAir GetCameraAir() const;
 
   void Init();
 
@@ -68,8 +71,9 @@ class Navigation {
   
   // Camera is at (center) and looks along (direction).
   CameraStatus camera_status;
-  CameraOnGround camera_on_ground;
-  CameraOnAir camera_on_air;
+  
+  CameraPanorama camera_panorama;
+  CameraAir camera_air;
   int current_width;
   int current_height;
 
