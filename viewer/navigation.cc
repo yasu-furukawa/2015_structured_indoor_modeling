@@ -169,6 +169,7 @@ void Navigation::Init() {
   const double kScale = 8.0;
   air_height *= kScale;
   
+  // air_angle = 45.0 * M_PI / 180.0;
   air_angle = 45.0 * M_PI / 180.0;
 
   average_distance = 0.0;
