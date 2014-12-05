@@ -18,7 +18,7 @@ istream& operator>>(istream& istr, Shape& shape) {
   istr >> fnum;
   shape.faces.resize(fnum);
   for (auto& face : shape.faces) {
-    istr >> face[0] >> face[1] >> face[1];
+    istr >> face[0] >> face[1] >> face[2];
   }
   return istr;
 }

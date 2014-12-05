@@ -17,20 +17,17 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   configuration(configuration),
   navigation(panorama_renderers) {
 
+  floorplan_renderer.Init(configuration.data_directory);
   panorama_renderers.resize(configuration.panorama_configurations.size());
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
     panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
   }
-
   polygon_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
   
   navigation.Init();
-
   current_width = current_height = -1;
-
-  init_shader = false;
 }
 
 MainWidget::~MainWidget() {
@@ -121,7 +118,6 @@ void MainWidget::resizeGL(int w, int h) {
   if (w != current_width || h != current_height) {
     FreeResources();
     AllocateResources();
-    init_shader = true;
   }  
 }
 
@@ -143,12 +139,28 @@ void MainWidget::SetMatrices() {
             0, 0, 1);
 }
 
+void MainWidget::RenderFloorplan() {
+  FloorplanStyle style;
+  style.outer_style.stroke_color = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
+  style.outer_style.fill_color   = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
+  style.outer_style.stroke_width = 1.0;
+
+  style.inner_style.stroke_color = Eigen::Vector3f(0.0f, 1.0f, 0.5f);
+  style.inner_style.fill_color   = Eigen::Vector3f(0.0f, 1.0f, 0.5f);
+  style.inner_style.stroke_width = 1.0;
+
+  
+  glClear(GL_DEPTH_BUFFER_BIT);
+  floorplan_renderer.Render(style);
+}
+
 void MainWidget::RenderPanorama() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
   panorama_renderers[navigation.GetCameraOnGround().start_index].Render();
 }  
 
+/*
 void MainWidget::RenderQuad(const double alpha) {
   glBegin(GL_QUADS);
   glColor4f(1, 1, 1, alpha);
@@ -168,6 +180,7 @@ void MainWidget::RenderQuad(const double alpha) {
   glVertex3f(0.0f, height(), 0.0f);
   glEnd();
 }
+*/
 
 void MainWidget::RenderPanoramaTransition() {
   // Render the source pano.
@@ -251,7 +264,7 @@ void MainWidget::RenderPanoramaTransition() {
   glPopMatrix();
 }  
 
-void MainWidget::RenderRooms() {
+void MainWidget::RenderPolygon() {
   //polygon_renderer.RenderWallAll();
   polygon_renderer.RenderWireframeAll();
 }
@@ -268,8 +281,8 @@ void MainWidget::paintGL() {
     RenderPanoramaTransition();
     break;
   }
-
-  RenderRooms();
+  RenderPolygon();
+  // RenderFloorplan();
 }
 
 //----------------------------------------------------------------------

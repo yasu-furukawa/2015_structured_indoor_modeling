@@ -87,13 +87,10 @@ void PolygonRenderer::Init(const string data_directory) {
   {
     ifstream ifstr;
     ifstr.open(file_io.GetRotationMat().c_str());
-
     for (int y = 0; y < 3; ++y) {
       for (int x = 0; x < 3; ++x) {
         ifstr >> rotation(y, x);
-        cout << rotation(y, x) << ' ';
       }
-      cout << endl;
     }
     ifstr.close();
   }

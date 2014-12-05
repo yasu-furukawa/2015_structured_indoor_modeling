@@ -13,18 +13,16 @@
 #include <vector>
 
 #include "configuration.h"
-#include "polygon_renderer.h"
 #include "navigation.h"
+#include "floorplan_renderer.h"
 #include "panorama_renderer.h"
+#include "polygon_renderer.h"
 
-
-class MainWidget : public QGLWidget, protected QGLFunctions
-{
-    Q_OBJECT
-
+class MainWidget : public QGLWidget, protected QGLFunctions {
+Q_OBJECT
 public:
     explicit MainWidget(const Configuration& configuration,
-                        QWidget *parent = 0);
+                      QWidget *parent = 0);
     ~MainWidget();
 
 protected:
@@ -40,12 +38,10 @@ protected:
     void resizeGL(int w, int h);
     void paintGL();
 
-    // void initShaders();
-    // void initTextures();
-
 private:
     // Indoor data.
     const Configuration configuration;
+    FloorplanRenderer floorplan_renderer;
     std::vector<PanoramaRenderer> panorama_renderers;
     PolygonRenderer polygon_renderer;
     Navigation navigation;
@@ -57,8 +53,6 @@ private:
     int current_width;
     int current_height;
 
-    bool init_shader;
-    
     QBasicTimer timer;
     QVector2D mousePressPosition;
 
@@ -68,11 +62,12 @@ private:
     void AllocateResources();
     void SetMatrices();
 
+    void RenderFloorplan();
     void RenderPanorama();
     void RenderPanoramaTransition();
-    void RenderQuad(const double alpha);
-    void RenderRooms();
+    void RenderPolygon();
 
+    // void RenderQuad(const double alpha);
     void InitializeShaders();
 };
 

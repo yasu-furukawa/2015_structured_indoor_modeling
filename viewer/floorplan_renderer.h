@@ -6,12 +6,17 @@
 
 #include "../floorplan/floorplan.h"
 
+struct PolygonStyle {
+public:
+  Eigen::Vector3f stroke_color;
+  Eigen::Vector3f fill_color;
+  int stroke_width;
+};
+
 struct FloorplanStyle {
 public:
-  Eigen::Vector3i outer_line_color;
-  Eigen::Vector3i outer_line_color;
-  
-
+  PolygonStyle outer_style;
+  PolygonStyle inner_style;
 };
 
 class FloorplanRenderer : protected QGLFunctions {
@@ -20,10 +25,13 @@ class FloorplanRenderer : protected QGLFunctions {
   virtual ~FloorplanRenderer();
   void Init(const std::string data_directory);
   // void InitGL();
-  void Render();
+  void Render(const FloorplanStyle& style);
 
  private:
-  void RenderShape(const Shape& shape, const Vector3i& line_color);
+  static void RenderShape(const Shape& shape,
+                          const double floor_height,
+                          const Eigen::Matrix3d& rotation,
+                          const PolygonStyle& style);
   
   Floorplan floorplan;
   Eigen::Matrix3d rotation;
