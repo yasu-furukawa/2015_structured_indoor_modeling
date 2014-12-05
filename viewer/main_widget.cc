@@ -319,20 +319,24 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   const double kRotationDegrees = 90.0 * M_PI / 180.0;
   if (e->key() == Qt::Key_Up) {
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.MoveForwardOnGround();
+      navigation.MoveForwardPanorama();
     }
   } else if (e->key() == Qt::Key_Down) {
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.MoveBackwardOnGround();
+      navigation.MoveBackwardPanorama();
     }
   } else if (e->key() == Qt::Key_Left) {
     if (navigation.GetCameraStatus() == kPanorama) {
-      
-      navigation.RotateOnGround(kRotationDegrees);
+      navigation.RotatePanorama(kRotationDegrees);
+    } else if (navigation.GetCameraStatus() == kAir) {
+      navigation.RotateSky(-kRotationDegrees);
     }
-  } else if (e->key() == Qt::Key_Right) {
+  }
+  else if (e->key() == Qt::Key_Right) {
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.RotateOnGround(-kRotationDegrees);
+      navigation.RotatePanorama(-kRotationDegrees);
+    } else if (navigation.GetCameraStatus() == kAir) {
+      navigation.RotateSky(kRotationDegrees);
     }
   } else if (e->key() == Qt::Key_A) {
     switch (navigation.GetCameraStatus()) {
@@ -358,13 +362,25 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
   QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
   mousePressPosition = QVector2D(e->localPos());
 
-  //  switch (navigation.GetCameraStatus()) {
-  //case 
+  switch (navigation.GetCameraStatus()) {
+  case kPanorama: {
+    diff /= 400.0;
+    navigation.RotatePanorama(Vector3d(diff.x(), -diff.y(), 0.0));
+    break;
+  }
+  case kAir: {
+    diff /= 400.0;
+    Vector3d direction = navigation.GetDirection();
+    direction[2] = 0.0;
+    Vector3d orthogonal(-direction[1], direction[0], 0.0);
+    navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);    
+    break;
+  }
+  default: {
+    return;
+  }
+  }
 
-  
-  diff /= 400.0;
-  navigation.RotateOnGround(Vector3d(diff.x(), -diff.y(), 0.0));      
-  
   updateGL();
 }
 

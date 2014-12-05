@@ -53,28 +53,32 @@ class Navigation {
  public:
   Navigation(const std::vector<PanoramaRenderer>& panorama_renderers);
 
-  // Get the current camera center.
+  // Accessors.
   Eigen::Vector3d GetCenter() const;
   Eigen::Vector3d GetDirection() const;
   CameraStatus GetCameraStatus() const;
-  CameraPanorama GetCameraPanorama() const;
-  CameraAir GetCameraAir() const;
-  CameraBetweenPanoramaAndAir GetCameraBetweenPanoramaAndAir() const;
-  
-  void Init();
-
-  void Tick();
-  
-  void RotateOnGround(const Eigen::Vector3d& axis);
-  void MoveForwardOnGround();
-  void MoveBackwardOnGround();
-  void RotateOnGround(const double radian);
-
-  void PanoramaToAir();
-  void AirToPanorama(const int panorama_index);
+  const CameraPanorama& GetCameraPanorama() const;
+  const CameraAir& GetCameraAir() const;
+  const CameraBetweenPanoramaAndAir& GetCameraBetweenPanoramaAndAir() const;
 
   double Progress() const;
   double GetFieldOfViewInDegrees() const;
+  double GetAverageDistance() const { return average_distance; }
+
+  //----------------------------------------------------------------------
+  void Init();
+  void Tick();
+
+  // Interactions.
+  void RotatePanorama(const Eigen::Vector3d& axis);
+  void MoveForwardPanorama();
+  void MoveBackwardPanorama();
+  void RotatePanorama(const double radian);
+  void MoveAir(const Eigen::Vector3d& translation);
+  void RotateSky(const double radian);
+
+  void PanoramaToAir();
+  void AirToPanorama(const int panorama_index);
   
  private:
   void MoveToPanorama(const int target_panorama_index);
@@ -94,6 +98,9 @@ class Navigation {
   double air_height;
   // Angle of viewing in the air.
   double air_angle;
+
+  // Average distance.
+  double average_distance;
 
   const std::vector<PanoramaRenderer>& panorama_renderers;
   

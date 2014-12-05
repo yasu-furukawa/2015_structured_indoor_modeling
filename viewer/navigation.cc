@@ -11,7 +11,7 @@ Eigen::Vector3d ComputeAirDirectionFromPanorama(const Eigen::Vector3d& panorama_
                                                 const double air_angle) {
   Vector3d direction = panorama_direction.normalized();
   // Lift up by the angle.
-  direction += Vector3d(0, 0, -tan(air_angle));
+  direction += -tan(air_angle)* Vector3d(0, 0, 1);
   direction *= air_height / tan(air_angle);
   return direction;
 }
@@ -43,9 +43,12 @@ Vector3d Navigation::GetCenter() const {
     return weight_start * camera_panorama.start_center +
       weight_end * camera_panorama.end_center;
   }
-  case kAir:
-  case kAirTransition: {
+  case kAir: {
     return camera_air.GetCenter();
+  }
+  case kAirTransition: {
+    const Vector3d direction = GetDirection();
+    return camera_air.ground_center - direction;
   }
   case kPanoramaToAir: {
     const double weight_start =
@@ -87,11 +90,22 @@ Vector3d Navigation::GetDirection() const {
     return camera_air.start_direction;
   }
   case kAirTransition: {
+    Vector3d horizontal_direction = camera_air.start_direction;
+    const double vertical_distance = horizontal_direction[2];
+    horizontal_direction[2] = 0.0;
+    const double horizontal_distance = horizontal_direction.norm();
+    
     const double weight_start = (cos(camera_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
-    const Vector3d direction = weight_start * camera_air.start_direction +
+    Vector3d direction = weight_start * camera_air.start_direction +
       weight_end * camera_air.end_direction;
-    return direction.normalized() * ((camera_air.start_direction.norm() + camera_air.end_direction.norm()) / 2.0);
+    direction[2] = 0.0;
+    direction.normalize();
+    direction *= horizontal_distance;
+    direction[2] = vertical_distance;
+    return direction;
+    //return direction.normalized() *
+    //((camera_air.start_direction.norm() + camera_air.end_direction.norm()) / 2.0);
   }
   case kPanoramaToAir: {
     const double weight_start =
@@ -120,15 +134,15 @@ CameraStatus Navigation::GetCameraStatus() const {
   return camera_status;
 }
 
-CameraPanorama Navigation::GetCameraPanorama() const {
+const CameraPanorama& Navigation::GetCameraPanorama() const {
   return camera_panorama;
 }
 
-CameraAir Navigation::GetCameraAir() const {
+const CameraAir& Navigation::GetCameraAir() const {
   return camera_air;
 }
 
-CameraBetweenPanoramaAndAir Navigation::GetCameraBetweenPanoramaAndAir() const {
+const CameraBetweenPanoramaAndAir& Navigation::GetCameraBetweenPanoramaAndAir() const {
   return camera_between_panorama_and_air;
 }
 
@@ -156,6 +170,12 @@ void Navigation::Init() {
   air_height *= kScale;
   
   air_angle = 45.0 * M_PI / 180.0;
+
+  average_distance = 0.0;
+  for (const auto& panorama : panorama_renderers) {
+    average_distance += panorama.GetAverageDistance();
+  }
+  average_distance /= static_cast<int>(panorama_renderers.size());
 }
 
 void Navigation::Tick() {
@@ -212,7 +232,7 @@ void Navigation::Tick() {
   }
 }
 
-void Navigation::RotateOnGround(const Eigen::Vector3d& axis)  {
+void Navigation::RotatePanorama(const Eigen::Vector3d& axis)  {
   Eigen::Matrix3d x_rotate;
   x_rotate << 
     cos(axis[0]), -sin(axis[0]), 0,
@@ -225,6 +245,10 @@ void Navigation::RotateOnGround(const Eigen::Vector3d& axis)  {
     -sin(axis[1]), 0, cos(axis[1]);
 
   camera_panorama.start_direction = x_rotate * y_rotate * camera_panorama.start_direction;
+}
+
+void Navigation::MoveAir(const Eigen::Vector3d& translation)  {
+  camera_air.ground_center += translation;
 }
 
 void Navigation::MoveToPanorama(const int target_panorama_index) {
@@ -252,18 +276,18 @@ void Navigation::MoveToPanorama(const int target_panorama_index) {
   camera_status = kPanoramaTransition;
 }
 
-void Navigation::MoveForwardOnGround() {
+void Navigation::MoveForwardPanorama() {
   const int target_panorama_index = (camera_panorama.start_index + 1) % panorama_renderers.size();
   MoveToPanorama(target_panorama_index);
 }
 
-void Navigation::MoveBackwardOnGround() {
+void Navigation::MoveBackwardPanorama() {
   const int target_panorama_index =
     (camera_panorama.start_index - 1 + panorama_renderers.size()) % panorama_renderers.size();
   MoveToPanorama(target_panorama_index);
 }
 
-void Navigation::RotateOnGround(const double radian) {
+void Navigation::RotatePanorama(const double radian) {
   Matrix3d rotation;
   rotation << cos(radian), -sin(radian), 0.0,
     sin(radian), cos(radian), 0.0,
@@ -274,6 +298,17 @@ void Navigation::RotateOnGround(const double radian) {
   camera_panorama.end_direction = rotation * camera_panorama.start_direction;
   camera_panorama.progress = 0.0;
   camera_status = kPanoramaTransition;  
+}
+
+void Navigation::RotateSky(const double radian) {
+  Matrix3d rotation;
+  rotation << cos(radian), -sin(radian), 0.0,
+    sin(radian), cos(radian), 0.0,
+    0.0, 0.0, 1.0;
+
+  camera_air.end_direction = rotation * camera_air.start_direction;
+  camera_air.progress = 0.0;
+  camera_status = kAirTransition;  
 }
 
 void Navigation::PanoramaToAir() {
