@@ -138,6 +138,11 @@ void MainWidget::SetMatrices() {
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],
             0, 0, 1);
+
+
+  glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+  glGetDoublev( GL_PROJECTION_MATRIX, projection );
+  glGetIntegerv( GL_VIEWPORT, viewport );  
 }
 
 void MainWidget::RenderFloorplan() {
@@ -305,6 +310,28 @@ void MainWidget::paintGL() {
   }
 }
 
+int MainWidget::FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const {
+  int best_index = -1;
+  double best_distance = 0.0;
+  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
+    GLdouble winX, winY, winZ;
+    
+    gluProject(panorama_renderers[p].GetCenter()[0],
+               panorama_renderers[p].GetCenter()[1],
+               panorama_renderers[p].GetCenter()[2],
+               modelview, projection, viewport,
+               &winX, &winY, &winZ);
+
+    const double distance = (pixel - Vector2d(winX, winY)).norm();
+    if (best_index == -1 || distance < best_distance) {
+      best_distance = distance;
+      best_index = p;
+    }
+  }
+
+  return best_index;
+}
+  
 //----------------------------------------------------------------------
 // GUI
 //----------------------------------------------------------------------
@@ -313,6 +340,18 @@ void MainWidget::mousePressEvent(QMouseEvent *e) {
 }
 
 void MainWidget::mouseReleaseEvent(QMouseEvent *) {
+}
+
+void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
+  switch (navigation.GetCameraStatus()) {
+  case kAir: {
+    const int index = FindPanoramaFromAirClick(Vector2d(e->localPos().x(),
+                                                        viewport[3] - e->localPos().y()));
+    if (0 <= index)
+      navigation.AirToPanorama(index);
+    break;
+  }
+  }
 }
 
 void MainWidget::keyPressEvent(QKeyEvent* e) {

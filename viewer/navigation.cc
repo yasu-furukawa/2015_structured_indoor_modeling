@@ -417,19 +417,20 @@ double Navigation::GetFieldOfViewInDegrees() const {
   }
   // CameraBetweenGroundAndAir handles the state.
   case kPanoramaToAir: {
-    //    const double weight_start = pow(1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2.0), 1.5);
+    const double weight_start = pow(1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2.0), 1.6);
+    /*
     double weight_start;
     if (camera_between_panorama_and_air.progress < 0.5) {
       weight_start = 1.0;
     } else {
       weight_start = pow(1.0 - sin(2.0 * (camera_between_panorama_and_air.progress - 0.5) * M_PI / 2.0), 1.0);
-    }
+      }*/
     // (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
     return weight_start * kPanoramaFieldOfView + weight_end * kAirFieldOfView;
   }
   case kAirToPanorama: {
-    const double weight_start = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.5);
+    const double weight_start = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.6);
     const double weight_end = 1.0 - weight_start;
     // (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     // const double weight_end = 1.0 - weight_start;

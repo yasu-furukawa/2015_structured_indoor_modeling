@@ -84,7 +84,6 @@ class Navigation {
  private:
   void MoveToPanorama(const int target_panorama_index);
   bool Collide(const int from_index, const int to_index) const;
-  // int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
   
   // Camera is at (center) and looks along (direction).
   CameraStatus camera_status;

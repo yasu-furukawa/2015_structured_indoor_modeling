@@ -29,6 +29,7 @@ protected:
     void mousePressEvent(QMouseEvent *e);
     void mouseReleaseEvent(QMouseEvent *e);
     void mouseMoveEvent(QMouseEvent *e);
+    void mouseDoubleClickEvent(QMouseEvent *e);
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);
     
@@ -53,6 +54,10 @@ private:
     int current_width;
     int current_height;
 
+    GLint viewport[4];
+    GLdouble modelview[16];
+    GLdouble projection[16];
+    
     QBasicTimer timer;
     QVector2D mousePressPosition;
 
@@ -62,6 +67,8 @@ private:
     void AllocateResources();
     void SetMatrices();
 
+    int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
+    
     void RenderFloorplan();
     void RenderPanorama();
     void RenderPanoramaTransition();
