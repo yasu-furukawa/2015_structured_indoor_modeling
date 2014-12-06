@@ -125,7 +125,7 @@ void MainWidget::SetMatrices() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   const double kMinDistance = 10;
-  const double kMaxDistance = 40000;
+  const double kMaxDistance = 120000;
   gluPerspective(navigation.GetFieldOfViewInDegrees(),
                  width() / static_cast<double>(height()), kMinDistance, kMaxDistance);
 
@@ -276,27 +276,27 @@ void MainWidget::paintGL() {
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
     RenderPanorama();
-    RenderPolygon();
     // RenderFloorplan();
+    RenderPolygon();
     break;
   }
   case kPanoramaTransition: {
     RenderPanoramaTransition();
-    RenderPolygon();
     // RenderFloorplan();
+    RenderPolygon();
     break;
   }
   case kAir:
   case kAirTransition: {
-    RenderPolygon();
     RenderFloorplan();
+    RenderPolygon();
     break;
   }
   case kPanoramaToAir:
   case kAirToPanorama: {
     RenderPanorama();
-    RenderPolygon();
     // RenderFloorplan();
+    RenderPolygon();
     break;
   }
   default: {

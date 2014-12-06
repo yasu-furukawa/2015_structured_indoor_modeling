@@ -71,6 +71,7 @@ class Navigation {
 
   // Interactions.
   void RotatePanorama(const Eigen::Vector3d& axis);
+  void MovePanorama(const Eigen::Vector3d& direction);
   void MoveForwardPanorama();
   void MoveBackwardPanorama();
   void RotatePanorama(const double radian);
@@ -82,9 +83,7 @@ class Navigation {
   
  private:
   void MoveToPanorama(const int target_panorama_index);
-  void AllocateResources();
-  void FreeResources();
-  void SetMatrices();
+  bool Collide(const int from_index, const int to_index) const;
   // int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
   
   // Camera is at (center) and looks along (direction).
@@ -103,10 +102,6 @@ class Navigation {
   double average_distance;
 
   const std::vector<PanoramaRenderer>& panorama_renderers;
-  
-  // Screen dimension.
-  int current_width;
-  int current_height;
 };
 
 #endif  // NAVIGATION_H__
