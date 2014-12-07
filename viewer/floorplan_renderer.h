@@ -25,13 +25,14 @@ class FloorplanRenderer : protected QGLFunctions {
   virtual ~FloorplanRenderer();
   void Init(const std::string data_directory);
   // void InitGL();
-  void Render(const FloorplanStyle& style);
+  void Render(const FloorplanStyle& style, const double alpha);
 
  private:
   static void RenderShape(const Shape& shape,
                           const double floor_height,
                           const Eigen::Matrix3d& rotation,
-                          const PolygonStyle& style);
+                          const PolygonStyle& style,
+                          const double alpha);
   
   Floorplan floorplan;
   Eigen::Matrix3d rotation;

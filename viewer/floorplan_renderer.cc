@@ -37,7 +37,8 @@ void FloorplanRenderer::Init(const std::string data_directory) {
 void FloorplanRenderer::RenderShape(const Shape& shape,
                                     const double floor_height,
                                     const Eigen::Matrix3d& rotation,
-                                    const PolygonStyle& style) {
+                                    const PolygonStyle& style,
+                                    const double alpha) {
   vector<Eigen::Vector3d> global_vertices(shape.vertices.size());
   for (int v = 0; v < (int)shape.vertices.size(); ++v) {
     global_vertices[v][0] = shape.vertices[v][0];
@@ -45,23 +46,29 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
     global_vertices[v][2] = floor_height;
     global_vertices[v] = rotation * global_vertices[v];
   }
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
   glBegin(GL_TRIANGLES);
   for (const auto& face : shape.faces) {
     // for (int i = 2; 0 <= i; --i) {
     for (int i = 0; i < 3; ++i) {
-      glColor3f(style.fill_color[0],
+      glColor4f(style.fill_color[0],
                 style.fill_color[1],
-                style.fill_color[2]);
+                style.fill_color[2],
+                alpha);
       glVertex3d(global_vertices[face[i]][0],
                  global_vertices[face[i]][1],
                  global_vertices[face[i]][2]);
     }
   }
   glEnd();
+
+  glDisable(GL_BLEND);
 }
 
-void FloorplanRenderer::Render(const FloorplanStyle& style) {
+void FloorplanRenderer::Render(const FloorplanStyle& style, const double alpha) {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
   
@@ -69,12 +76,14 @@ void FloorplanRenderer::Render(const FloorplanStyle& style) {
     RenderShape(component.outer_shape,
                 floorplan.floor_height,
                 rotation,
-                style.outer_style);
+                style.outer_style,
+                alpha);
     for (const auto& shape : component.inner_shapes) {
       RenderShape(shape,
                   floorplan.floor_height,
                   rotation,
-                  style.inner_style);
+                  style.inner_style,
+                  alpha);
     }
   }
   glEnable(GL_TEXTURE_2D);

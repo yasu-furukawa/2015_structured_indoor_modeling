@@ -30,9 +30,9 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   navigation.Init();
   current_width = current_height = -1;
 
-  qtime.start();
+  simple_click_time.start();
+  double_click_time.start();
   mouse_down = false;
-  double_clicked = false;
 }
 
 MainWidget::~MainWidget() {
@@ -150,7 +150,7 @@ void MainWidget::SetMatrices() {
   glGetIntegerv( GL_VIEWPORT, viewport );  
 }
 
-void MainWidget::RenderFloorplan() {
+void MainWidget::RenderFloorplan(const double alpha) {
   FloorplanStyle style;
   style.outer_style.stroke_color = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
   style.outer_style.fill_color   = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
@@ -161,7 +161,7 @@ void MainWidget::RenderFloorplan() {
   style.inner_style.stroke_width = 1.0;
 
   glClear(GL_DEPTH_BUFFER_BIT);
-  floorplan_renderer.Render(style);
+  floorplan_renderer.Render(style, alpha);
 }
 
 void MainWidget::RenderPanorama() {
@@ -274,9 +274,9 @@ void MainWidget::RenderPanoramaTransition() {
   glPopMatrix();
 }  
 
-void MainWidget::RenderPolygon() {
+void MainWidget::RenderPolygon(const double alpha) {
   //polygon_renderer.RenderWallAll();
-  polygon_renderer.RenderWireframeAll();
+  polygon_renderer.RenderWireframeAll(alpha);
 }
 
 void MainWidget::paintGL() {  
@@ -287,8 +287,13 @@ void MainWidget::paintGL() {
   case kPanorama: {
     RenderPanorama();
     // RenderFloorplan();
-    if (qtime.elapsed() / 1000 < kPanoramaFadeOutSeconds) {
-      RenderPolygon();
+
+    if (simple_click_time.elapsed() / 1000.0 > kPanoramaFadeInSeconds &&
+        simple_click_time.elapsed() / 1000.0 < kPanoramaFadeOutSeconds &&
+        double_click_time.elapsed() / 1000.0 > kPast) {
+      const double alpha = 1.0 -
+        max(0.0, (simple_click_time.elapsed() / 1000.0 / kPanoramaFadeOutSeconds) - 0.75) * 4.0;
+      RenderPolygon(alpha);
     }
     break;
   }
@@ -300,17 +305,21 @@ void MainWidget::paintGL() {
   }
   case kAir:
   case kAirTransition: {
-    if (qtime.elapsed() / 1000 < kAirFadeOutSeconds) {
-      RenderFloorplan();
+    if (simple_click_time.elapsed() / 1000.0 > kAirFadeInSeconds &&
+        simple_click_time.elapsed() / 1000.0 < kAirFadeOutSeconds &&
+        double_click_time.elapsed() / 1000.0 > kPast) {
+      const double alpha = 1.0 -
+        max(0.0, (simple_click_time.elapsed() / 1000.0 / kAirFadeOutSeconds) - 0.75) * 4.0;
+      RenderFloorplan(alpha);
     }
-    RenderPolygon();
+    RenderPolygon(1.0);
     break;
   }
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition: {
     RenderPanorama();
     // RenderFloorplan();
-    RenderPolygon();
+    RenderPolygon(1.0);
     break;
   }
   default: {
@@ -352,18 +361,13 @@ void MainWidget::mousePressEvent(QMouseEvent *e) {
 void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
   mouse_down = false;
 
-  if (!double_clicked && QVector2D(e->localPos()) == mousePressPosition) {
-    qtime.start();
+  if (QVector2D(e->localPos()) == mousePressPosition) {
+    simple_click_time.start();
   }
-
-  double_clicked = false;
 }
 
 void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
-  double_clicked = true;
-  cout << qtime.elapsed() << ' ';
-  qtime = qtime.addSecs(1.0);
-  cout << qtime.elapsed() << endl;
+  double_click_time.start();
   
   mouse_down = true;
   switch (navigation.GetCameraStatus()) {
@@ -438,7 +442,7 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       Vector3d direction = navigation.GetDirection();
       direction[2] = 0.0;
       Vector3d orthogonal(-direction[1], direction[0], 0.0);
-      navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);    
+      navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);
       break;
     }
     default: {
@@ -460,18 +464,18 @@ void MainWidget::timerEvent(QTimerEvent *) {
     break;
   }
   case kPanorama: {
-    if (qtime.elapsed() / 1000 < kPanoramaFadeOutSeconds + 0.5) {
+    if (simple_click_time.elapsed() / 1000.0 < kPanoramaFadeOutSeconds + kRenderMargin &&
+        (double_click_time.elapsed() / 1000.0 < kRenderMargin || double_click_time.elapsed() / 1000.0 > kPast)) {
       updateGL();
       break;
       //}
   }
   case kAir:
-    if (qtime.elapsed() / 1000 < kAirFadeOutSeconds + 0.5) {
+    if (simple_click_time.elapsed() / 1000.0 < kAirFadeOutSeconds + kRenderMargin &&
+        (double_click_time.elapsed() / 1000.0 < kRenderMargin || double_click_time.elapsed() / 1000.0 > kPast)) {
       updateGL();
       break;
-      //}
-    break;
-  }
+    }
   }
   }
 }

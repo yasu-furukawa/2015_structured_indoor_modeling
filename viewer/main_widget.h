@@ -65,9 +65,9 @@ private:
 
     QOpenGLShaderProgram program;
 
-    QTime qtime;
+    QTime simple_click_time;
+    QTime double_click_time;
     bool mouse_down;
-    bool double_clicked;
 
     void FreeResources();
     void AllocateResources();
@@ -75,19 +75,22 @@ private:
 
     int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
     
-    void RenderFloorplan();
+    void RenderFloorplan(const double alpha);
     void RenderPanorama();
     void RenderPanoramaTransition();
-    void RenderPolygon();
+    void RenderPolygon(const double alpha);
 
     // void RenderQuad(const double alpha);
     void InitializeShaders();
 
-    static const double kPanoramaFadeInSeconds = 0.1;
-    static const double kPanoramaFadeOutSeconds = 1.0;
+    static const double kPast = 1.5;
+    static const double kRenderMargin = 0.5;
+    
+    static const double kPanoramaFadeInSeconds = 0.2;
+    static const double kPanoramaFadeOutSeconds = 2.0;
 
-    static const double kAirFadeInSeconds = 0.1;
-    static const double kAirFadeOutSeconds = 1.0;
+    static const double kAirFadeInSeconds = 0.2;
+    static const double kAirFadeOutSeconds = 2.0;
 };
 
 #endif // MAIN_WIDGET_H__

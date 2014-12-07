@@ -16,8 +16,8 @@ class PolygonRenderer : protected QGLFunctions {
   virtual ~PolygonRenderer();
   void RenderWallAll();
   void RenderWall(const int room);
-  void RenderWireframeAll();
-  void RenderWireframe(const int room);
+  void RenderWireframeAll(const double alpha);
+  void RenderWireframe(const int room, const double alpha);
   void Init(const std::string data_directory);
   // void InitGL();
 

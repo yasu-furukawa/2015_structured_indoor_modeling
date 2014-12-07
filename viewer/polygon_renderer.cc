@@ -13,7 +13,7 @@ PolygonRenderer::PolygonRenderer() {
 PolygonRenderer::~PolygonRenderer() {
 }
 
-void PolygonRenderer::RenderWireframe(const int room) {
+void PolygonRenderer::RenderWireframe(const int room, const double alpha) {
   if (room < 0 ||
       static_cast<int>(line_floorplan.line_rooms.size()) <= room) {
     cerr << "Index out of bounds: " << room << endl;
@@ -24,11 +24,13 @@ void PolygonRenderer::RenderWireframe(const int room) {
   // Floor.
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   glBegin(GL_LINES);
-  glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
+  glColor4f(0.0f, 1.0f, 1.0f, alpha);
   for (int c = 0; c < static_cast<int>(line_room.walls.size()); ++c) {
     const int nextc = (c + 1) % (static_cast<int>(line_room.walls.size()));
-    glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
 
     Eigen::Vector3d floor0(line_room.walls[c][0],
                            line_room.walls[c][1],
@@ -67,12 +69,13 @@ void PolygonRenderer::RenderWireframe(const int room) {
     */
   }
   glEnd();
+  glDisable(GL_BLEND);
   glEnable(GL_DEPTH_TEST);
 }
 
-void PolygonRenderer::RenderWireframeAll() {
+void PolygonRenderer::RenderWireframeAll(const double alpha) {
   for (int r = 0; r < static_cast<int>(line_floorplan.line_rooms.size()); ++r) {
-    RenderWireframe(r);
+    RenderWireframe(r, alpha);
   }
 }
 
