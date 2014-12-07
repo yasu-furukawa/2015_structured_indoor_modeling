@@ -50,7 +50,7 @@ Vector3d Navigation::GetCenter() const {
     const Vector3d direction = GetDirection();
     return camera_air.ground_center - direction;
   }
-  case kPanoramaToAir: {
+  case kPanoramaToAirTransition: {
     const double weight_start =
       (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
@@ -58,7 +58,7 @@ Vector3d Navigation::GetCenter() const {
       weight_start * camera_between_panorama_and_air.camera_panorama.start_center +
       weight_end * (camera_between_panorama_and_air.camera_air.GetCenter());
   }
-  case kAirToPanorama: {
+  case kAirToPanoramaTransition: {
     const double weight_start =
       (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
@@ -107,7 +107,7 @@ Vector3d Navigation::GetDirection() const {
     //return direction.normalized() *
     //((camera_air.start_direction.norm() + camera_air.end_direction.norm()) / 2.0);
   }
-  case kPanoramaToAir: {
+  case kPanoramaToAirTransition: {
     const double weight_start =
       (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
@@ -115,7 +115,7 @@ Vector3d Navigation::GetDirection() const {
       weight_start * camera_between_panorama_and_air.camera_panorama.start_direction +
       weight_end * camera_between_panorama_and_air.camera_air.start_direction;
   }
-  case kAirToPanorama: {
+  case kAirToPanoramaTransition: {
     const double weight_start =
       (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
@@ -205,7 +205,7 @@ void Navigation::Tick() {
     }
     break;
   }
-  case kPanoramaToAir: {
+  case kPanoramaToAirTransition: {
     const double kStepSize = 0.02;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
@@ -216,7 +216,7 @@ void Navigation::Tick() {
     }
     break;
   }
-  case kAirToPanorama: {
+  case kAirToPanoramaTransition: {
     const double kStepSize = 0.02;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
@@ -355,7 +355,7 @@ void Navigation::RotateSky(const double radian) {
 }
 
 void Navigation::PanoramaToAir() {
-  camera_status = kPanoramaToAir;
+  camera_status = kPanoramaToAirTransition;
 
   camera_between_panorama_and_air.camera_panorama = camera_panorama;
   {
@@ -373,7 +373,7 @@ void Navigation::PanoramaToAir() {
 }
 
 void Navigation::AirToPanorama(const int panorama_index) {
-  camera_status = kAirToPanorama;
+  camera_status = kAirToPanoramaTransition;
   
   camera_between_panorama_and_air.camera_air = camera_air;
   {
@@ -416,7 +416,7 @@ double Navigation::GetFieldOfViewInDegrees() const {
     return kAirFieldOfView;
   }
   // CameraBetweenGroundAndAir handles the state.
-  case kPanoramaToAir: {
+  case kPanoramaToAirTransition: {
     const double weight_start = pow(1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2.0), 1.6);
     /*
     double weight_start;
@@ -429,7 +429,7 @@ double Navigation::GetFieldOfViewInDegrees() const {
     const double weight_end = 1.0 - weight_start;
     return weight_start * kPanoramaFieldOfView + weight_end * kAirFieldOfView;
   }
-  case kAirToPanorama: {
+  case kAirToPanoramaTransition: {
     const double weight_start = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.6);
     const double weight_end = 1.0 - weight_start;
     // (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;

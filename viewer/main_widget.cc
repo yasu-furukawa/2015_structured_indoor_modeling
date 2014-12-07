@@ -25,9 +25,14 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   polygon_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
+  setMouseTracking(true);
   
   navigation.Init();
   current_width = current_height = -1;
+
+  qtime.start();
+  mouse_down = false;
+  double_clicked = false;
 }
 
 MainWidget::~MainWidget() {
@@ -282,23 +287,27 @@ void MainWidget::paintGL() {
   case kPanorama: {
     RenderPanorama();
     // RenderFloorplan();
-    RenderPolygon();
+    if (qtime.elapsed() / 1000 < kPanoramaFadeOutSeconds) {
+      RenderPolygon();
+    }
     break;
   }
   case kPanoramaTransition: {
     RenderPanoramaTransition();
     // RenderFloorplan();
-    RenderPolygon();
+    // RenderPolygon();
     break;
   }
   case kAir:
   case kAirTransition: {
-    RenderFloorplan();
+    if (qtime.elapsed() / 1000 < kAirFadeOutSeconds) {
+      RenderFloorplan();
+    }
     RenderPolygon();
     break;
   }
-  case kPanoramaToAir:
-  case kAirToPanorama: {
+  case kPanoramaToAirTransition:
+  case kAirToPanoramaTransition: {
     RenderPanorama();
     // RenderFloorplan();
     RenderPolygon();
@@ -337,12 +346,26 @@ int MainWidget::FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const {
 //----------------------------------------------------------------------
 void MainWidget::mousePressEvent(QMouseEvent *e) {
   mousePressPosition = QVector2D(e->localPos());
+  mouse_down = true;
 }
 
-void MainWidget::mouseReleaseEvent(QMouseEvent *) {
+void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
+  mouse_down = false;
+
+  if (!double_clicked && QVector2D(e->localPos()) == mousePressPosition) {
+    qtime.start();
+  }
+
+  double_clicked = false;
 }
 
 void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
+  double_clicked = true;
+  cout << qtime.elapsed() << ' ';
+  qtime = qtime.addSecs(1.0);
+  cout << qtime.elapsed() << endl;
+  
+  mouse_down = true;
   switch (navigation.GetCameraStatus()) {
   case kAir: {
     const int index = FindPanoramaFromAirClick(Vector2d(e->localPos().x(),
@@ -350,6 +373,8 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
     if (0 <= index)
       navigation.AirToPanorama(index);
     break;
+  }
+  default: {
   }
   }
 }
@@ -394,43 +419,59 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   }
 }
 
-void MainWidget::keyReleaseEvent(QKeyEvent *) {
+void MainWidget::keyReleaseEvent(QKeyEvent *) {  
 }
 
 void MainWidget::mouseMoveEvent(QMouseEvent *e) {
-  QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
-  mousePressPosition = QVector2D(e->localPos());
+  QVector2D diff = QVector2D(e->localPos()) - mouseMovePosition;
+  mouseMovePosition = QVector2D(e->localPos());
 
-  switch (navigation.GetCameraStatus()) {
-  case kPanorama: {
-    diff /= 400.0;
-    navigation.RotatePanorama(Vector3d(diff.x(), -diff.y(), 0.0));
-    break;
+  if (mouse_down) {
+    switch (navigation.GetCameraStatus()) {
+    case kPanorama: {
+      diff /= 400.0;
+      navigation.RotatePanorama(Vector3d(diff.x(), diff.y(), 0.0));
+      break;
+    }
+    case kAir: {
+      diff /= 400.0;
+      Vector3d direction = navigation.GetDirection();
+      direction[2] = 0.0;
+      Vector3d orthogonal(-direction[1], direction[0], 0.0);
+      navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);    
+      break;
+    }
+    default: {
+      return;
+    }
+    }
+    updateGL();
   }
-  case kAir: {
-    diff /= 400.0;
-    Vector3d direction = navigation.GetDirection();
-    direction[2] = 0.0;
-    Vector3d orthogonal(-direction[1], direction[0], 0.0);
-    navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);    
-    break;
-  }
-  default: {
-    return;
-  }
-  }
-
-  updateGL();
 }
 
 void MainWidget::timerEvent(QTimerEvent *) {
-  if (navigation.GetCameraStatus() != kPanoramaTransition &&
-      navigation.GetCameraStatus() != kAirTransition &&
-      navigation.GetCameraStatus() != kPanoramaToAir &&
-      navigation.GetCameraStatus() != kAirToPanorama) {
-    return;
+  switch (navigation.GetCameraStatus()) {
+  case kPanoramaTransition:
+  case kAirTransition:
+  case kPanoramaToAirTransition:
+  case kAirToPanoramaTransition: {
+    navigation.Tick();
+    updateGL();
+    break;
   }
-
-  navigation.Tick();
-  updateGL();
+  case kPanorama: {
+    if (qtime.elapsed() / 1000 < kPanoramaFadeOutSeconds + 0.5) {
+      updateGL();
+      break;
+      //}
+  }
+  case kAir:
+    if (qtime.elapsed() / 1000 < kAirFadeOutSeconds + 0.5) {
+      updateGL();
+      break;
+      //}
+    break;
+  }
+  }
+  }
 }

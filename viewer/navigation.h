@@ -14,8 +14,8 @@ enum CameraStatus {
   kAir,
   kAirTransition,
   // CameraBetweenGroundAndAir handles the state.
-  kPanoramaToAir,
-  kAirToPanorama
+  kPanoramaToAirTransition,
+  kAirToPanoramaTransition
 };
 
 struct CameraPanorama {

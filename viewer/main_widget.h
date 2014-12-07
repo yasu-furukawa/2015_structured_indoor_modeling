@@ -8,6 +8,7 @@
 #include <QVector2D>
 #include <QBasicTimer>
 #include <QOpenGLShaderProgram>
+#include <QTime>
 
 #include <string>
 #include <vector>
@@ -60,8 +61,13 @@ private:
     
     QBasicTimer timer;
     QVector2D mousePressPosition;
+    QVector2D mouseMovePosition;
 
     QOpenGLShaderProgram program;
+
+    QTime qtime;
+    bool mouse_down;
+    bool double_clicked;
 
     void FreeResources();
     void AllocateResources();
@@ -76,6 +82,12 @@ private:
 
     // void RenderQuad(const double alpha);
     void InitializeShaders();
+
+    static const double kPanoramaFadeInSeconds = 0.1;
+    static const double kPanoramaFadeOutSeconds = 1.0;
+
+    static const double kAirFadeInSeconds = 0.1;
+    static const double kAirFadeOutSeconds = 1.0;
 };
 
 #endif // MAIN_WIDGET_H__
