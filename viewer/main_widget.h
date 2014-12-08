@@ -82,15 +82,16 @@ private:
 
     // void RenderQuad(const double alpha);
     void InitializeShaders();
+   
+    // Keep rendering after no action for a while.
+    bool RightAfterSimpleClick(const double margin);
+    static double FadeFunction(const double seconds);
 
-    static const double kPast = 1.5;
-    static const double kRenderMargin = 0.5;
+    double simple_click_time_offset_by_move;
     
-    static const double kPanoramaFadeInSeconds = 0.2;
-    static const double kPanoramaFadeOutSeconds = 2.0;
-
-    static const double kAirFadeInSeconds = 0.2;
-    static const double kAirFadeOutSeconds = 2.0;
+    static const double kRenderMargin = 0.2;
+    static const double kFadeInSeconds = 0.2;
+    static const double kFadeOutSeconds = 1.5;
 };
 
 #endif // MAIN_WIDGET_H__

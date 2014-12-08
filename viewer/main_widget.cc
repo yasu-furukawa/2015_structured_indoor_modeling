@@ -32,6 +32,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   simple_click_time.start();
   double_click_time.start();
+  simple_click_time_offset_by_move = 0.0;
   mouse_down = false;
 }
 
@@ -288,12 +289,8 @@ void MainWidget::paintGL() {
     RenderPanorama();
     // RenderFloorplan();
 
-    if (simple_click_time.elapsed() / 1000.0 > kPanoramaFadeInSeconds &&
-        simple_click_time.elapsed() / 1000.0 < kPanoramaFadeOutSeconds &&
-        double_click_time.elapsed() / 1000.0 > kPast) {
-      const double alpha = 1.0 -
-        max(0.0, (simple_click_time.elapsed() / 1000.0 / kPanoramaFadeOutSeconds) - 0.75) * 4.0;
-      RenderPolygon(alpha);
+    if (RightAfterSimpleClick(0.0)) {
+      RenderPolygon(FadeFunction((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0));
     }
     break;
   }
@@ -305,12 +302,8 @@ void MainWidget::paintGL() {
   }
   case kAir:
   case kAirTransition: {
-    if (simple_click_time.elapsed() / 1000.0 > kAirFadeInSeconds &&
-        simple_click_time.elapsed() / 1000.0 < kAirFadeOutSeconds &&
-        double_click_time.elapsed() / 1000.0 > kPast) {
-      const double alpha = 1.0 -
-        max(0.0, (simple_click_time.elapsed() / 1000.0 / kAirFadeOutSeconds) - 0.75) * 4.0;
-      RenderFloorplan(alpha);
+    if (RightAfterSimpleClick(0.0)) {
+      RenderFloorplan(FadeFunction((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0));
     }
     RenderPolygon(1.0);
     break;
@@ -326,6 +319,9 @@ void MainWidget::paintGL() {
     ;
   }
   }
+
+  if (!RightAfterSimpleClick(0.0))
+    simple_click_time_offset_by_move = 0;
 }
 
 int MainWidget::FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const {
@@ -371,6 +367,20 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   
   mouse_down = true;
   switch (navigation.GetCameraStatus()) {
+  case kPanorama: {
+    Vector3d direction = navigation.GetDirection();
+    direction[2] = 0.0;
+    direction.normalize();
+    Vector3d up(0, 0, 1);
+    Vector3d x_axis = direction.cross(up);
+    
+    const double x_position = 2.0 * (e->localPos().x() / (double)viewport[2] - 0.5);
+    
+    Vector3d new_direction =
+      direction + x_axis * x_position * tan(navigation.GetFieldOfViewInDegrees() / 2.0 * M_PI / 180.0);
+    navigation.MovePanorama(new_direction);
+    break;
+  }
   case kAir: {
     const int index = FindPanoramaFromAirClick(Vector2d(e->localPos().x(),
                                                         viewport[3] - e->localPos().y()));
@@ -430,6 +440,11 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
   QVector2D diff = QVector2D(e->localPos()) - mouseMovePosition;
   mouseMovePosition = QVector2D(e->localPos());
 
+  if (RightAfterSimpleClick(0.0)) {
+    simple_click_time_offset_by_move =
+      max(0, -1 + simple_click_time.elapsed() - static_cast<int>(round(1000 * kFadeInSeconds)));
+  }
+  
   if (mouse_down) {
     switch (navigation.GetCameraStatus()) {
     case kPanorama: {
@@ -438,7 +453,7 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       break;
     }
     case kAir: {
-      diff /= 400.0;
+      diff /= 800.0;
       Vector3d direction = navigation.GetDirection();
       direction[2] = 0.0;
       Vector3d orthogonal(-direction[1], direction[0], 0.0);
@@ -464,18 +479,32 @@ void MainWidget::timerEvent(QTimerEvent *) {
     break;
   }
   case kPanorama: {
-    if (simple_click_time.elapsed() / 1000.0 < kPanoramaFadeOutSeconds + kRenderMargin &&
-        (double_click_time.elapsed() / 1000.0 < kRenderMargin || double_click_time.elapsed() / 1000.0 > kPast)) {
-      updateGL();
-      break;
-      //}
-  }
-  case kAir:
-    if (simple_click_time.elapsed() / 1000.0 < kAirFadeOutSeconds + kRenderMargin &&
-        (double_click_time.elapsed() / 1000.0 < kRenderMargin || double_click_time.elapsed() / 1000.0 > kPast)) {
+    if (RightAfterSimpleClick(kRenderMargin)) {
       updateGL();
       break;
     }
   }
+  case kAir:
+    if (RightAfterSimpleClick(kRenderMargin)) {
+      updateGL();
+      break;
+    }
   }
+}
+
+bool MainWidget::RightAfterSimpleClick(const double margin) {
+  const double kDoubleClickMargin = 0.5;
+  if ((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 > kFadeInSeconds - margin &&
+      (simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 < kFadeOutSeconds + margin &&
+      (double_click_time.elapsed() - (simple_click_time.elapsed() - simple_click_time_offset_by_move)) / 1000.0 > kDoubleClickMargin - margin) {
+    return true;
+  }
+  else {
+    return false;
+  }
+    
+}
+
+double MainWidget::FadeFunction(const double seconds) {
+  return 1.0 - max(0.0, (seconds / kFadeOutSeconds) - 0.75) * 4.0;
 }

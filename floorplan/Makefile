@@ -115,12 +115,50 @@ floorplan_generation_cli/fast:
 	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/build
 .PHONY : floorplan_generation_cli/fast
 
+#=============================================================================
+# Target rules for targets named generate_thumbnail_cli
+
+# Build rule for target.
+generate_thumbnail_cli: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 generate_thumbnail_cli
+.PHONY : generate_thumbnail_cli
+
+# fast build rule for target.
+generate_thumbnail_cli/fast:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/build
+.PHONY : generate_thumbnail_cli/fast
+
+Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.o: Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.o
+.PHONY : Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.o
+
+# target to build an object file
+Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.o:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.o
+.PHONY : Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.o
+
+Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.i: Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.i
+.PHONY : Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.i
+
+# target to preprocess a source file
+Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.i:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.i
+.PHONY : Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.i
+
+Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.s: Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.s
+.PHONY : Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.s
+
+# target to generate assembly for a file
+Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.s:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.s
+.PHONY : Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.cc.s
+
 floorplan.o: floorplan.cc.o
 .PHONY : floorplan.o
 
 # target to build an object file
 floorplan.cc.o:
 	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan.cc.o
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/floorplan.cc.o
 .PHONY : floorplan.cc.o
 
 floorplan.i: floorplan.cc.i
@@ -129,6 +167,7 @@ floorplan.i: floorplan.cc.i
 # target to preprocess a source file
 floorplan.cc.i:
 	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan.cc.i
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/floorplan.cc.i
 .PHONY : floorplan.cc.i
 
 floorplan.s: floorplan.cc.s
@@ -137,6 +176,7 @@ floorplan.s: floorplan.cc.s
 # target to generate assembly for a file
 floorplan.cc.s:
 	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan.cc.s
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/floorplan.cc.s
 .PHONY : floorplan.cc.s
 
 floorplan_generation_cli.o: floorplan_generation_cli.cc.o
@@ -187,6 +227,30 @@ floorplan_util.cc.s:
 	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_util.cc.s
 .PHONY : floorplan_util.cc.s
 
+generate_thumbnail_cli.o: generate_thumbnail_cli.cc.o
+.PHONY : generate_thumbnail_cli.o
+
+# target to build an object file
+generate_thumbnail_cli.cc.o:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/generate_thumbnail_cli.cc.o
+.PHONY : generate_thumbnail_cli.cc.o
+
+generate_thumbnail_cli.i: generate_thumbnail_cli.cc.i
+.PHONY : generate_thumbnail_cli.i
+
+# target to preprocess a source file
+generate_thumbnail_cli.cc.i:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/generate_thumbnail_cli.cc.i
+.PHONY : generate_thumbnail_cli.cc.i
+
+generate_thumbnail_cli.s: generate_thumbnail_cli.cc.s
+.PHONY : generate_thumbnail_cli.s
+
+# target to generate assembly for a file
+generate_thumbnail_cli.cc.s:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/generate_thumbnail_cli.cc.s
+.PHONY : generate_thumbnail_cli.cc.s
+
 polygon_triangulation2.o: polygon_triangulation2.cc.o
 .PHONY : polygon_triangulation2.o
 
@@ -219,7 +283,11 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... floorplan_generation_cli"
+	@echo "... generate_thumbnail_cli"
 	@echo "... rebuild_cache"
+	@echo "... Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.o"
+	@echo "... Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.i"
+	@echo "... Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.s"
 	@echo "... floorplan.o"
 	@echo "... floorplan.i"
 	@echo "... floorplan.s"
@@ -229,6 +297,9 @@ help:
 	@echo "... floorplan_util.o"
 	@echo "... floorplan_util.i"
 	@echo "... floorplan_util.s"
+	@echo "... generate_thumbnail_cli.o"
+	@echo "... generate_thumbnail_cli.i"
+	@echo "... generate_thumbnail_cli.s"
 	@echo "... polygon_triangulation2.o"
 	@echo "... polygon_triangulation2.i"
 	@echo "... polygon_triangulation2.s"

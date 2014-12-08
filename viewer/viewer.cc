@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
   app.setApplicationName("viewer");
 #ifndef QT_NO_OPENGL
   QWidget window;
-  // window.resize(1600, 1024);
-  window.resize(800, 600);
+  window.resize(1280, 720);
+  //window.resize(1000, 600);
   
   QWidget* side_panel = new QWidget();
   QVBoxLayout* side_layout = new QVBoxLayout();

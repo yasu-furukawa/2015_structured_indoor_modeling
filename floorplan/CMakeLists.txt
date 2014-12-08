@@ -3,6 +3,7 @@
 
 project( floorplan_generation_cli )
 
+find_package( OpenCV REQUIRED )
 
 cmake_minimum_required(VERSION 2.6.2)
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" VERSION_GREATER 2.6)
@@ -57,9 +58,10 @@ set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions")
 # ############################
 
 add_executable( floorplan_generation_cli floorplan_generation_cli.cc floorplan.cc floorplan_util.cc polygon_triangulation2.cc)
-
 add_to_cached_list( CGAL_EXECUTABLE_TARGETS floorplan_generation_cli )
-
-# Link the executable to CGAL and third-party libraries
 target_link_libraries(floorplan_generation_cli   ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
 
+
+add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc floorplan.cc ../viewer/configuration.cc )
+target_link_libraries( generate_thumbnail_cli ${OpenCV_LIBS} )
+target_link_libraries( generate_thumbnail_cli gflags )

@@ -24,6 +24,9 @@ struct Configuration {
   std::vector<PanoramaConfiguration> panorama_configurations;
 };
 
+void ReadPanoramaConfiguration(const std::string& data_directory,
+                               const int pano_index,
+                               PanoramaConfiguration* panorama_configuration);
 void ReadConfiguration(const std::string filename, Configuration* configuration);
 
 #endif  // CONFIGURATION_H__

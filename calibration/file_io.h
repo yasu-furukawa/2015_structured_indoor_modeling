@@ -29,7 +29,6 @@ class FileIO {
     return buffer;
   }
 
-
   std::string GetPanoramaImage(const int panorama) const {
     sprintf(buffer, "%s/panorama/%03d.png", data_directory.c_str(), panorama);
     return buffer;
@@ -68,6 +67,10 @@ class FileIO {
   }
   std::string GetRotationMat() const {
     sprintf(buffer, "%s/rotationmat.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetRoomThumbnail(const int room) const {
+    sprintf(buffer, "%s/panorama/room_thumbnail%03d.png", data_directory.c_str(), room);
     return buffer;
   }
   

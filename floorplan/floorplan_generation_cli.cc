@@ -1,16 +1,13 @@
 #include <fstream>
 #include <iostream>
-
-#include <vector>
-
 #include <list>
+#include <vector>
 
 #include "../calibration/file_io.h"
 #include "floorplan.h"
 #include "floorplan_util.h"
 
 using namespace std;
-
 
 template<class Kernel, class Container>
 void print_polygon(const CGAL::Polygon_2<Kernel, Container>& P) {
