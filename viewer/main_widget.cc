@@ -290,7 +290,8 @@ void MainWidget::paintGL() {
     // RenderFloorplan();
 
     if (RightAfterSimpleClick(0.0)) {
-      RenderPolygon(FadeFunction((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0));
+      RenderPolygon(FadeFunction((simple_click_time.elapsed() -
+                                  simple_click_time_offset_by_move) / 1000.0));
     }
     break;
   }
@@ -461,7 +462,6 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       break;
     }
     default: {
-      return;
     }
     }
     updateGL();

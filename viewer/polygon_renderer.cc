@@ -108,6 +108,9 @@ void PolygonRenderer::SortWalls(const Eigen::Vector3d& center,
 */
 
 void PolygonRenderer::RenderWallAll() {
+  
+
+  
 
 }
 
