@@ -7,10 +7,31 @@
 #include <OpenGL/glu.h>
 #include <QMouseEvent>
 
+#include <opencv2/opencv.hpp>
+// #include <opencv2/imgproc/imgproc.hpp>
+
 using namespace Eigen;
 using namespace std;
 
 const int kNumBuffers = 2;
+
+namespace {
+
+bool IsInside(const LineRoom& line_room, const Vector2d& point) {
+  const cv::Point2f point_tmp(point[0], point[1]);
+
+  vector<cv::Point> contour;
+  for (int w = 0; w < (int)line_room.walls.size(); ++w) {
+    contour.push_back(cv::Point(line_room.walls[w][0], line_room.walls[w][1]));
+  }
+
+  if (cv::pointPolygonTest(contour, point_tmp, true) >= 0.0)
+    return true;
+  else
+    return false;
+}
+  
+}  // namespace
 
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
@@ -28,6 +49,9 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   setMouseTracking(true);
   
   navigation.Init();
+
+  SetPanoramaToRoom();
+  
   current_width = current_height = -1;
 
   simple_click_time.start();
@@ -276,7 +300,9 @@ void MainWidget::RenderPanoramaTransition() {
 }  
 
 void MainWidget::RenderPolygon(const double alpha) {
-  //polygon_renderer.RenderWallAll();
+  polygon_renderer.RenderWallAll(navigation.GetCenter(),
+                                 alpha / 3.0,
+                                 panorama_to_room[navigation.GetCameraPanorama().start_index]);
   polygon_renderer.RenderWireframeAll(alpha);
 }
 
@@ -507,4 +533,24 @@ bool MainWidget::RightAfterSimpleClick(const double margin) {
 
 double MainWidget::FadeFunction(const double seconds) {
   return 1.0 - max(0.0, (seconds / kFadeOutSeconds) - 0.75) * 4.0;
+}
+
+void MainWidget::SetPanoramaToRoom() {
+  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
+    const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
+    const Eigen::Matrix3d& floorplan_to_global = polygon_renderer.GetFloorplanToGlobal();
+
+    const Vector3d global_center = panorama_renderers[p].GetCenter();
+    const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
+    const Vector2d floorplan_center2(floorplan_center[0], floorplan_center[1]);
+           
+    int room_id = -1;
+    for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+      if (IsInside(line_floorplan.line_rooms[room], floorplan_center2)) {
+        room_id = room;
+        break;
+      }
+    }
+    panorama_to_room[p] = room_id;
+  }
 }

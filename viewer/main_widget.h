@@ -10,6 +10,7 @@
 #include <QOpenGLShaderProgram>
 #include <QTime>
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -87,7 +88,11 @@ private:
     bool RightAfterSimpleClick(const double margin);
     static double FadeFunction(const double seconds);
 
+    void SetPanoramaToRoom();
+
     double simple_click_time_offset_by_move;
+
+    std::map<int, int> panorama_to_room;
     
     static const double kRenderMargin = 0.2;
     static const double kFadeInSeconds = 0.2;
