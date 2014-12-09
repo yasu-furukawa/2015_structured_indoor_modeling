@@ -7,6 +7,41 @@
 
 using namespace std;
 
+Eigen::Vector2d center_for_wall_comparer;
+
+struct Wall {
+  Eigen::Vector2d points[2];
+};
+
+typedef vector<Wall> Walls;
+
+namespace {
+bool WallComparer(const Wall& lhs, const Wall& rhs) {
+  Wall lhs_diff, rhs_diff;
+  for (int i = 0; i < 2; ++i) {
+    lhs_diff.points[i] = lhs.points[i] - center_for_wall_comparer;
+    rhs_diff.points[i] = rhs.points[i] - center_for_wall_comparer;
+  }
+  
+  double lhs_angles[2], rhs_angles[2];
+  for (int i = 0; i < 2; ++i) {
+    lhs_angles[i] = atan2(lhs_diff.points[i][1], lhs_diff.points[i][0]);
+    rhs_angles[i] = atan2(rhs_diff.points[i][1], rhs_diff.points[i][0]);
+  }
+}
+
+void SortWalls(const Eigen::Vector3d& center, Walls* walls) {
+  
+
+}
+
+void SortRooms(const Eigen::Vector3d& center, vector<Walls>* rooms) {
+
+}
+  
+  
+} // namespace
+
 PolygonRenderer::PolygonRenderer() {
 }
 
@@ -98,14 +133,6 @@ void PolygonRenderer::Init(const string data_directory) {
     ifstr.close();
   }
 }
-/*
-void PolygonRenderer::SortWalls(const Eigen::Vector3d& center,
-                                  const Eigen::Vector3d& direction,
-                                  vector<Wall>* walls) {
-
-
-}
-*/
 
 void PolygonRenderer::RenderWallAll() {
   

@@ -6,10 +6,6 @@
 
 #include "../floorplan/floorplan.h"
 
-struct Wall {
-  Eigen::Vector3d corners[4];
-};
-
 class PolygonRenderer : protected QGLFunctions {
  public:
   PolygonRenderer();
@@ -21,13 +17,7 @@ class PolygonRenderer : protected QGLFunctions {
   void Init(const std::string data_directory);
   // void InitGL();
 
- private:
-  /*
-  void SortWalls(const Eigen::Vector3d& center,
-                 const Eigen::Vector3d& direction,
-                 vector<Wall>* walls);
-  */
-  
+ private:  
   LineFloorplan line_floorplan;
   Eigen::Matrix3d rotation;
 };
