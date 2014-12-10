@@ -303,7 +303,7 @@ void MainWidget::RenderPolygon(const double alpha) {
   polygon_renderer.RenderWallAll(navigation.GetCenter(),
                                  alpha / 3.0,
                                  panorama_to_room[navigation.GetCameraPanorama().start_index]);
-  polygon_renderer.RenderWireframeAll(alpha);
+  // polygon_renderer.RenderWireframeAll(alpha);
 }
 
 void MainWidget::paintGL() {  
@@ -316,6 +316,8 @@ void MainWidget::paintGL() {
     // RenderFloorplan();
 
     if (RightAfterSimpleClick(0.0)) {
+      RenderFloorplan(0.5);
+      
       RenderPolygon(FadeFunction((simple_click_time.elapsed() -
                                   simple_click_time_offset_by_move) / 1000.0));
     }
