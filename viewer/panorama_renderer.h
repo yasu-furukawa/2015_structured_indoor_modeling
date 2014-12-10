@@ -13,7 +13,7 @@ class PanoramaRenderer : protected QGLFunctions {
  public:
   PanoramaRenderer();
   virtual ~PanoramaRenderer();
-  void Render();
+  void Render(const double alpha);
   void Init(const PanoramaConfiguration& panorama_configuration, QGLWidget* widget);
   void InitGL();
   Eigen::Vector2d Project(const Eigen::Vector3d& xyz) const;

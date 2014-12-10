@@ -26,7 +26,7 @@ PanoramaRenderer::~PanoramaRenderer() {
   */
 //}
 
-void PanoramaRenderer::Render() {
+void PanoramaRenderer::Render(const double alpha) {
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   //glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture_id);
@@ -39,7 +39,8 @@ void PanoramaRenderer::Render() {
   const int kSkip = 1;
   
   glBegin(GL_TRIANGLES);
-  glColor3f(1, 1, 1);
+  // glColor4f(1, 1, 1, alpha);
+  glColor4f(alpha, alpha, alpha, 1.0);
   //for (int y = 0; y < depth_height - 1; ++y) {
   //for (int x = 0; x < depth_width; ++x) {
   for (int y = 0; y < depth_height - kSkip - 1; y += kSkip) {

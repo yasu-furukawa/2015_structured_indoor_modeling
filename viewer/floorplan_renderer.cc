@@ -47,8 +47,8 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
     global_vertices[v] = rotation * global_vertices[v];
   }
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //glEnable(GL_BLEND);
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
   glBegin(GL_TRIANGLES);
   for (const auto& face : shape.faces) {
@@ -65,13 +65,10 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
   }
   glEnd();
 
-  glDisable(GL_BLEND);
+  //glDisable(GL_BLEND);
 }
 
 void FloorplanRenderer::Render(const FloorplanStyle& style, const double alpha) {
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_TEXTURE_2D);
-  
   for (const auto& component : floorplan.components) {
     RenderShape(component.outer_shape,
                 floorplan.floor_height,
@@ -86,6 +83,4 @@ void FloorplanRenderer::Render(const FloorplanStyle& style, const double alpha) 
                   alpha);
     }
   }
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_DEPTH_TEST);
 }

@@ -255,6 +255,8 @@ void PolygonRenderer::Init(const string data_directory) {
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const double alpha,
                                     const int center_room) {
+  //based on distance and alpha, change the height of the rooms.
+  
   Walls walls;
   for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
     if (room == center_room)
@@ -280,60 +282,6 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   const Vector3d local_center = floorplan_to_global.transpose() * center;
   
   SortWalls(Vector2d(local_center[0], local_center[1]), &walls);
-
-
-  //??????
-  {
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-
-    glBegin(GL_TRIANGLES);
-    for (const auto& wall : walls) {
-      Eigen::Vector3d floor0(wall.points[0][0],
-                             wall.points[0][1],
-                             wall.floor_height);
-      Eigen::Vector3d floor1(wall.points[1][0],
-                             wall.points[1][1],
-                             wall.floor_height);
-      
-      Eigen::Vector3d ceiling0(wall.points[0][0],
-                               wall.points[0][1],
-                               wall.ceiling_height);
-      Eigen::Vector3d ceiling1(wall.points[1][0],
-                               wall.points[1][1],
-                               wall.ceiling_height);
-      
-      floor0 = floorplan_to_global * floor0;
-      floor1 = floorplan_to_global * floor1;
-      ceiling0 = floorplan_to_global * ceiling0;
-      ceiling1 = floorplan_to_global * ceiling1;
-      
-      glColor4f(wall.color[0], wall.color[1], wall.color[2], alpha);
-      
-      glVertex3f(floor0[0], floor0[1], floor0[2]);
-      glVertex3f(floor1[0], floor1[1], floor1[2]);
-      glVertex3f(ceiling0[0], ceiling0[1], ceiling0[2]);
-      
-      glVertex3f(ceiling0[0], ceiling0[1], ceiling0[2]);
-      glVertex3f(floor1[0], floor1[1], floor1[2]);
-      glVertex3f(ceiling1[0], ceiling1[1], ceiling1[2]);
-    }
-    glEnd();
-    
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
-  }
-
-  
-
-  glDisable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_DEPTH_TEST);
 
   glBegin(GL_TRIANGLES);
   for (const auto& wall : walls) {
@@ -367,12 +315,6 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
     glVertex3f(ceiling1[0], ceiling1[1], ceiling1[2]);
   }
   glEnd();
-
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glDisable(GL_BLEND);
-  glEnable(GL_TEXTURE_2D);
-
 }
 
 void PolygonRenderer::RenderWall(const int room) {

@@ -177,22 +177,45 @@ void MainWidget::SetMatrices() {
 
 void MainWidget::RenderFloorplan(const double alpha) {
   FloorplanStyle style;
-  style.outer_style.stroke_color = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
-  style.outer_style.fill_color   = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
+  style.outer_style.stroke_color = Eigen::Vector3f(0.5f, 0.5f, 0.5f);
+  style.outer_style.fill_color   = Eigen::Vector3f(0.5f, 0.5f, 0.5f);
   style.outer_style.stroke_width = 1.0;
 
-  style.inner_style.stroke_color = Eigen::Vector3f(0.0f, 1.0f, 0.5f);
-  style.inner_style.fill_color   = Eigen::Vector3f(0.0f, 1.0f, 0.5f);
+  style.inner_style.stroke_color = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
+  style.inner_style.fill_color   = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
   style.inner_style.stroke_width = 1.0;
 
-  glClear(GL_DEPTH_BUFFER_BIT);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  
   floorplan_renderer.Render(style, alpha);
+
+  glDisable(GL_BLEND);
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_DEPTH_TEST);
 }
 
-void MainWidget::RenderPanorama() {
+void MainWidget::RenderPanorama(const double alpha) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraPanorama().start_index].Render();
+
+  switch (navigation.GetCameraStatus()) {
+  case kPanorama: {
+    panorama_renderers[navigation.GetCameraPanorama().start_index].Render(alpha);
+    break;
+  }
+  case kPanoramaToAirTransition:
+  case kAirToPanoramaTransition: {
+    panorama_renderers[navigation.GetCameraBetweenPanoramaAndAir().camera_panorama.start_index].Render(alpha);
+    break;
+  }
+  default: {
+  }
+  }
+
+  glDisable(GL_TEXTURE_2D);
 }  
 
 /*
@@ -222,13 +245,13 @@ void MainWidget::RenderPanoramaTransition() {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraPanorama().start_index].Render();
+  panorama_renderers[navigation.GetCameraPanorama().start_index].Render(1.0);
 
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraPanorama().end_index].Render();
+  panorama_renderers[navigation.GetCameraPanorama().end_index].Render(1.0);
 
   // Blend the two.
   const double weight_start = navigation.Progress();
@@ -300,10 +323,21 @@ void MainWidget::RenderPanoramaTransition() {
 }  
 
 void MainWidget::RenderPolygon(const double alpha) {
+  glDisable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+
   polygon_renderer.RenderWallAll(navigation.GetCenter(),
-                                 alpha / 3.0,
+                                 alpha,
                                  panorama_to_room[navigation.GetCameraPanorama().start_index]);
   // polygon_renderer.RenderWireframeAll(alpha);
+
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glDisable(GL_BLEND);
+  glEnable(GL_TEXTURE_2D);
 }
 
 void MainWidget::paintGL() {  
@@ -312,14 +346,15 @@ void MainWidget::paintGL() {
 
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
-    RenderPanorama();
-    // RenderFloorplan();
-
-    if (RightAfterSimpleClick(0.0)) {
-      RenderFloorplan(0.5);
-      
-      RenderPolygon(FadeFunction((simple_click_time.elapsed() -
-                                  simple_click_time_offset_by_move) / 1000.0));
+    if (!RightAfterSimpleClick(0.0)) {
+      RenderPanorama(1.0);
+      // RenderFloorplan();
+    } else {
+      const double alpha = FadeFunction(simple_click_time.elapsed() / 1000.0,
+                                        simple_click_time_offset_by_move / 1000.0);
+      RenderPanorama(1.0 - alpha / 2);
+      RenderFloorplan(alpha / 3.0);
+      RenderPolygon(alpha / 3.0);
     }
     break;
   }
@@ -332,16 +367,18 @@ void MainWidget::paintGL() {
   case kAir:
   case kAirTransition: {
     if (RightAfterSimpleClick(0.0)) {
-      RenderFloorplan(FadeFunction((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0));
+      const double alpha = FadeFunction(simple_click_time.elapsed() / 1000.0,
+                                        simple_click_time_offset_by_move / 1000.0);
+      RenderFloorplan(alpha);
     }
-    RenderPolygon(1.0);
+    RenderPolygon(1.0 / 3.0);
     break;
   }
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition: {
-    RenderPanorama();
+    RenderPanorama(1.0 - navigation.Progress());
     // RenderFloorplan();
-    RenderPolygon(1.0);
+    RenderPolygon(1.0 / 3.0);
     break;
   }
   default: {
@@ -533,8 +570,25 @@ bool MainWidget::RightAfterSimpleClick(const double margin) {
     
 }
 
-double MainWidget::FadeFunction(const double seconds) {
-  return 1.0 - max(0.0, (seconds / kFadeOutSeconds) - 0.75) * 4.0;
+double MainWidget::FadeFunction(const double elapsed, const double offset) {
+  double progress;
+
+  if (offset < kFadeInSeconds)
+    progress = ((elapsed) - kFadeInSeconds) / (kFadeOutSeconds - kFadeInSeconds);
+  else
+    progress = ((elapsed - offset) - kFadeInSeconds) / (kFadeOutSeconds - kFadeInSeconds);
+
+  if (progress < 0.1) {
+    // When a mouse keeps moving (offset is large, we draw with a full opacity).
+    if (offset > kFadeInSeconds)
+      return 1.0;
+    else
+      return 10.0 * progress;
+  } else if (progress > 0.75) {
+    return 1.0 - (progress - 0.75) * 4.0;
+  } else {
+    return 1.0;
+  }
 }
 
 void MainWidget::SetPanoramaToRoom() {

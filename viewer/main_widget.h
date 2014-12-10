@@ -77,7 +77,7 @@ private:
     int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
     
     void RenderFloorplan(const double alpha);
-    void RenderPanorama();
+    void RenderPanorama(const double alpha);
     void RenderPanoramaTransition();
     void RenderPolygon(const double alpha);
 
@@ -86,7 +86,7 @@ private:
    
     // Keep rendering after no action for a while.
     bool RightAfterSimpleClick(const double margin);
-    static double FadeFunction(const double seconds);
+    static double FadeFunction(const double elapsed, const double offset);
 
     void SetPanoramaToRoom();
 

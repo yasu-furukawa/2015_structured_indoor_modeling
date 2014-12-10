@@ -394,6 +394,9 @@ double Navigation::Progress() const {
     return cos(camera_panorama.progress * M_PI) / 2.0 + 1.0 / 2.0;
   case kAirTransition:
     return cos(camera_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  case kPanoramaToAirTransition:
+  case kAirToPanoramaTransition:
+    return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
   default:
     cerr << "Impossible in Progress." << endl;
     exit (1);
