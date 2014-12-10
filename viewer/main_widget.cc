@@ -177,12 +177,12 @@ void MainWidget::SetMatrices() {
 
 void MainWidget::RenderFloorplan(const double alpha) {
   FloorplanStyle style;
-  style.outer_style.stroke_color = Eigen::Vector3f(0.5f, 0.5f, 0.5f);
-  style.outer_style.fill_color   = Eigen::Vector3f(0.5f, 0.5f, 0.5f);
+  style.outer_style.stroke_color = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
+  style.outer_style.fill_color   = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
   style.outer_style.stroke_width = 1.0;
 
-  style.inner_style.stroke_color = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
-  style.inner_style.fill_color   = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
+  style.inner_style.stroke_color = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
+  style.inner_style.fill_color   = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
   style.inner_style.stroke_width = 1.0;
 
   glDisable(GL_DEPTH_TEST);
@@ -322,7 +322,8 @@ void MainWidget::RenderPanoramaTransition() {
   glPopMatrix();
 }  
 
-void MainWidget::RenderPolygon(const double alpha) {
+void MainWidget::RenderPolygon(const double alpha,
+                               const double height_adjustment) {
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -331,6 +332,7 @@ void MainWidget::RenderPolygon(const double alpha) {
 
   polygon_renderer.RenderWallAll(navigation.GetCenter(),
                                  alpha,
+                                 height_adjustment,
                                  panorama_to_room[navigation.GetCameraPanorama().start_index]);
   // polygon_renderer.RenderWireframeAll(alpha);
 
@@ -350,35 +352,33 @@ void MainWidget::paintGL() {
       RenderPanorama(1.0);
       // RenderFloorplan();
     } else {
-      const double alpha = FadeFunction(simple_click_time.elapsed() / 1000.0,
-                                        simple_click_time_offset_by_move / 1000.0);
-      RenderPanorama(1.0 - alpha / 2);
-      RenderFloorplan(alpha / 3.0);
-      RenderPolygon(alpha / 3.0);
+      const double alpha = Fade();
+      RenderPanorama(1.0 - alpha * 0.7);
+      RenderFloorplan(alpha / 2.0);
+      RenderPolygon(alpha / 2.0, HeightAdjustment());
     }
     break;
   }
   case kPanoramaTransition: {
     RenderPanoramaTransition();
-    // RenderFloorplan();
-    // RenderPolygon();
     break;
   }
   case kAir:
   case kAirTransition: {
     if (RightAfterSimpleClick(0.0)) {
-      const double alpha = FadeFunction(simple_click_time.elapsed() / 1000.0,
-                                        simple_click_time_offset_by_move / 1000.0);
+      const double alpha = Fade();
       RenderFloorplan(alpha);
     }
-    RenderPolygon(1.0 / 3.0);
+    const double kNoHeightAdjustment = 0.0;
+    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment);
     break;
   }
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition: {
     RenderPanorama(1.0 - navigation.Progress());
     // RenderFloorplan();
-    RenderPolygon(1.0 / 3.0);
+    const double kNoHeightAdjustment = 0.0;
+    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment);
     break;
   }
   default: {
@@ -386,8 +386,8 @@ void MainWidget::paintGL() {
   }
   }
 
-  if (!RightAfterSimpleClick(0.0))
-    simple_click_time_offset_by_move = 0;
+  //if (!RightAfterSimpleClick(kRenderMargin))
+  //simple_click_time_offset_by_move = 0;
 }
 
 int MainWidget::FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const {
@@ -425,6 +425,7 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
 
   if (QVector2D(e->localPos()) == mousePressPosition) {
     simple_click_time.start();
+    simple_click_time_offset_by_move = 0;
   }
 }
 
@@ -567,19 +568,36 @@ bool MainWidget::RightAfterSimpleClick(const double margin) {
   else {
     return false;
   }
-    
+}
+
+double MainWidget::Progress() {
+  return ProgressFunction(simple_click_time.elapsed() / 1000.0,
+                          simple_click_time_offset_by_move / 1000.0);
+}
+
+double MainWidget::Fade() {
+  return FadeFunction(simple_click_time.elapsed() / 1000.0,
+                      simple_click_time_offset_by_move / 1000.0);
+}
+
+double MainWidget::HeightAdjustment() {
+  return HeightAdjustmentFunction(simple_click_time.elapsed() / 1000.0,
+                                  simple_click_time_offset_by_move / 1000.0);
+}
+
+double MainWidget::ProgressFunction(const double elapsed, const double offset) {
+  //if (offset < kFadeInSeconds)
+  //return ((elapsed) - kFadeInSeconds) / (kFadeOutSeconds - kFadeInSeconds);
+  //else
+  return max(0.0,
+             ((elapsed - offset) - kFadeInSeconds) /
+             (kFadeOutSeconds - kFadeInSeconds));
 }
 
 double MainWidget::FadeFunction(const double elapsed, const double offset) {
-  double progress;
-
-  if (offset < kFadeInSeconds)
-    progress = ((elapsed) - kFadeInSeconds) / (kFadeOutSeconds - kFadeInSeconds);
-  else
-    progress = ((elapsed - offset) - kFadeInSeconds) / (kFadeOutSeconds - kFadeInSeconds);
-
+  // When a mouse keeps moving (offset is large, we draw with a full opacity).
+  const double progress = ProgressFunction(elapsed, offset);
   if (progress < 0.1) {
-    // When a mouse keeps moving (offset is large, we draw with a full opacity).
     if (offset > kFadeInSeconds)
       return 1.0;
     else
@@ -589,6 +607,16 @@ double MainWidget::FadeFunction(const double elapsed, const double offset) {
   } else {
     return 1.0;
   }
+}
+
+double MainWidget::HeightAdjustmentFunction(const double elapsed,
+                                            const double offset) {
+  // When a mouse keeps moving (offset is large, we draw with a full opacity).
+  if (offset > kFadeInSeconds)
+    return 1.0;
+
+  const double progress = ProgressFunction(elapsed, offset);
+  return min(1.0, 8.0 * progress);
 }
 
 void MainWidget::SetPanoramaToRoom() {

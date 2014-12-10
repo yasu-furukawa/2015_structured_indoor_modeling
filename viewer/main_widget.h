@@ -79,14 +79,22 @@ private:
     void RenderFloorplan(const double alpha);
     void RenderPanorama(const double alpha);
     void RenderPanoramaTransition();
-    void RenderPolygon(const double alpha);
+    void RenderPolygon(const double alpha, const double height_adjustment);
 
     // void RenderQuad(const double alpha);
     void InitializeShaders();
    
     // Keep rendering after no action for a while.
     bool RightAfterSimpleClick(const double margin);
+
+    // After a single click, where we are between kFadeInSeconds and
+    // kFadeOutSeconds.
+    double Progress();
+    double Fade();
+    double HeightAdjustment();
+    static double ProgressFunction(const double elapsed, const double offset);
     static double FadeFunction(const double elapsed, const double offset);
+    static double HeightAdjustmentFunction(const double elapsed, const double offset);
 
     void SetPanoramaToRoom();
 

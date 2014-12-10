@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <Eigen/Dense>
 
 #include "../calibration/file_io.h"
@@ -248,14 +249,45 @@ void PolygonRenderer::Init(const string data_directory) {
   }
 
   //----------------------------------------------------------------------
-  
-  
+  room_centers.resize(line_floorplan.line_rooms.size());
+  for (int room = 0; room < (int)room_centers.size(); ++room) {
+    const LineRoom& line_room = line_floorplan.line_rooms[room];
+    
+    room_centers[room] = Vector2d(0, 0);
+    for (const auto& wall : line_room.walls) {
+      room_centers[room] += wall;
+    }
+    if (line_room.walls.empty()) {
+      cerr << "Impossible." << endl;
+      exit (1);
+    }
+    room_centers[room] /= line_room.walls.size();
+  }  
 }
 
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const double alpha,
+                                    const double height_adjustment,
                                     const int center_room) {
-  //based on distance and alpha, change the height of the rooms.
+  const Vector3d local_center = floorplan_to_global.transpose() * center;
+
+  vector<double> distances(room_centers.size(), 0.0);
+  double min_distance = numeric_limits<double>::max();
+  double max_distance = -1.0;
+  for (int room = 0; room < (int)room_centers.size(); ++room) {
+    distances[room] = (Vector2d(local_center[0], local_center[1]) -
+                       room_centers[room]).norm();
+    if (room != center_room) {
+      min_distance = min(min_distance, distances[room]);
+      max_distance = max(max_distance, distances[room]);
+    }
+  }
+
+  vector<double> height_adjustment_rates(room_centers.size());
+  for (int room = 0; room < (int)room_centers.size(); ++room) {
+    height_adjustment_rates[room] =
+      max(0.0, min(0.8, (distances[room] - max_distance) / (min_distance - max_distance)));
+  }
   
   Walls walls;
   for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
@@ -270,16 +302,18 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
       Wall wall;
       wall.points[0] = line_room.walls[w];
       wall.points[1] = line_room.walls[next_w];
-      wall.floor_height   = line_room.floor_height;
+      wall.ceiling_height   = line_room.ceiling_height;
       //????
       //      wall.floor_height   = line_room.ceiling_height + (line_room.floor_height - line_room.ceiling_height) * 0.1;
-       wall.ceiling_height = line_room.ceiling_height;
+      wall.floor_height = line_room.floor_height +
+        (line_room.ceiling_height - line_room.floor_height) *
+        height_adjustment * height_adjustment_rates[room];
+      
       wall.color = color;
       walls.push_back(wall);
     }
   }
 
-  const Vector3d local_center = floorplan_to_global.transpose() * center;
   
   SortWalls(Vector2d(local_center[0], local_center[1]), &walls);
 
