@@ -1,5 +1,7 @@
 #include <iostream>
 #include "navigation.h"
+#include "panorama_renderer.h"
+#include "polygon_renderer.h"
 
 using namespace Eigen;
 using namespace std;
@@ -28,8 +30,47 @@ Eigen::Vector3d ComputePanoramaDirectionFromAir(const Eigen::Vector3d& air_direc
   
 }  // namespace
 
-Navigation::Navigation(const vector<PanoramaRenderer>& panorama_renderers)
-  : panorama_renderers(panorama_renderers) {
+void CameraPanoramaTour::GetIndexWeightPairs(const double progress,
+                                             int index_pair[2],
+                                             int panorama_index_pair[2],
+                                             double weight_pair[2]) const {
+  const double index = progress * (indexes.size() - 1);
+  index_pair[0] = static_cast<int>(floor(index));
+  index_pair[1] = min(index_pair[0] + 1, (int)indexes.size() - 1);
+  
+  panorama_index_pair[0] = indexes[index_pair[0]];
+  panorama_index_pair[1] = indexes[index_pair[1]];
+
+  weight_pair[1] = index - index_pair[0];
+  weight_pair[0] = 1.0 - weight_pair[1];
+}
+
+Eigen::Vector3d CameraPanoramaTour::GetCenter(const double progress) const {
+  int index_pair[2];
+  int panorama_index_pair[2];
+  double weight_pair[2];
+  GetIndexWeightPairs(progress, index_pair, panorama_index_pair, weight_pair);
+  return weight_pair[0] * centers[index_pair[0]] + weight_pair[1] * centers[index_pair[1]];
+}
+
+Eigen::Vector3d CameraPanoramaTour::GetDirection(const double progress) const {
+  int index_pair[2];
+  int panorama_index_pair[2];
+  double weight_pair[2];
+  GetIndexWeightPairs(progress, index_pair, panorama_index_pair, weight_pair);
+  Vector3d direction = weight_pair[0] * directions[index_pair[0]] + weight_pair[1] * directions[index_pair[1]];
+
+  if (direction.norm() == 0.0) {
+    cerr << "zero direction vector." << endl;
+    exit (1);
+  }
+  
+  return direction;
+}
+
+Navigation::Navigation(const vector<PanoramaRenderer>& panorama_renderers,
+                       const PolygonRenderer& polygon_renderer)
+  : panorama_renderers(panorama_renderers), polygon_renderer(polygon_renderer) {
 }
 
 Vector3d Navigation::GetCenter() const {
@@ -38,7 +79,7 @@ Vector3d Navigation::GetCenter() const {
     return camera_panorama.start_center;
   }
   case kPanoramaTransition: {
-    const double weight_start = (cos(camera_panorama.progress * M_PI) + 1.0) / 2.0;
+    const double weight_start = ProgressInverse();
     const double weight_end = 1.0 - weight_start;
     return weight_start * camera_panorama.start_center +
       weight_end * camera_panorama.end_center;
@@ -51,20 +92,21 @@ Vector3d Navigation::GetCenter() const {
     return camera_air.ground_center - direction;
   }
   case kPanoramaToAirTransition: {
-    const double weight_start =
-      (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
+    const double weight_start = ProgressInverse();
     const double weight_end = 1.0 - weight_start;
     return
       weight_start * camera_between_panorama_and_air.camera_panorama.start_center +
       weight_end * (camera_between_panorama_and_air.camera_air.GetCenter());
   }
   case kAirToPanoramaTransition: {
-    const double weight_start =
-      (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
+    const double weight_start = ProgressInverse();
     const double weight_end = 1.0 - weight_start;
     return
       weight_start * (camera_between_panorama_and_air.camera_air.GetCenter()) +
       weight_end * camera_between_panorama_and_air.camera_panorama.start_center;
+  }
+  case kPanoramaTour: {
+    return camera_panorama_tour.GetCenter(1.0 - ProgressInverse());
   }
   default: {
     cerr << "Invalid camera_status." << endl;
@@ -123,6 +165,9 @@ Vector3d Navigation::GetDirection() const {
       weight_start * camera_between_panorama_and_air.camera_air.start_direction +
       weight_end * camera_between_panorama_and_air.camera_panorama.start_direction;
   }
+  case kPanoramaTour: {
+    return camera_panorama_tour.GetDirection(1.0 - ProgressInverse());
+  }
   default: {
     cerr << "Invalid camera_status." << endl;
     exit (1);
@@ -144,6 +189,10 @@ const CameraAir& Navigation::GetCameraAir() const {
 
 const CameraBetweenPanoramaAndAir& Navigation::GetCameraBetweenPanoramaAndAir() const {
   return camera_between_panorama_and_air;
+}
+
+const CameraPanoramaTour& Navigation::GetCameraPanoramaTour() const {
+  return camera_panorama_tour;
 }
 
 void Navigation::Init() {
@@ -227,6 +276,35 @@ void Navigation::Tick() {
     }
     break;
   }
+  case kPanoramaTour: {
+    const double kStepSize = 0.01;
+    camera_panorama_tour.progress += kStepSize;
+    if (camera_panorama_tour.progress >= 1.0) {
+      camera_status = kPanoramaTransition;
+      camera_panorama.start_index = camera_panorama_tour.indexes.back();
+      camera_panorama.end_index = camera_panorama_tour.indexes.back();
+      camera_panorama.start_center = camera_panorama_tour.centers.back();
+      camera_panorama.end_center = camera_panorama_tour.centers.back();
+      camera_panorama.start_direction = camera_panorama_tour.directions.back();
+      camera_panorama.end_direction =
+        polygon_renderer.GetFloorplanToGlobal() * 
+        polygon_renderer.GetRoomCenter3D(camera_panorama.start_index) - camera_panorama.start_center;
+      camera_panorama.end_direction[2] = 0.0;
+      camera_panorama.end_direction.normalize();
+      camera_panorama.end_direction *= panorama_renderers[camera_panorama.start_index].GetAverageDistance();
+      
+      camera_panorama.progress = 0.0;
+      /*
+      camera_status = kPanorama;
+
+      camera_panorama.start_index = camera_panorama_tour.indexes.back();
+      camera_panorama.start_center = camera_panorama_tour.centers.back();
+      camera_panorama.start_direction = camera_panorama_tour.directions.back();
+      camera_panorama.progress = 0.0;
+      */
+    }
+    break;
+  }
   default: {
     break;
   }
@@ -257,13 +335,13 @@ bool Navigation::Collide(const int from_index, const int to_index) const {
 }
 
 void Navigation::MoveToPanorama(const int target_panorama_index) {
-  cout << "move " << target_panorama_index << endl;
+  cout << "Move to " << target_panorama_index << endl;
   camera_panorama.end_index = target_panorama_index;
   camera_panorama.end_center = panorama_renderers[target_panorama_index].GetCenter();
 
   Vector3d movement = panorama_renderers[target_panorama_index].GetCenter() -
     panorama_renderers[camera_panorama.start_index].GetCenter();
-  movement.normalize();
+  // movement.normalize();
 
   Vector3d sum;
   if (camera_panorama.start_direction.dot(movement) > 0.0)
@@ -279,6 +357,30 @@ void Navigation::MoveToPanorama(const int target_panorama_index) {
   // Starts animation.
   camera_panorama.progress = 0.0;
   camera_status = kPanoramaTransition;
+}
+
+void Navigation::TourToPanorama(const std::vector<int>& indexes) {
+  // Find a sequence of paths from camera_panorama.start_index to target_panorama_index.
+  camera_panorama_tour.progress = 0.0;
+  camera_panorama_tour.indexes = indexes;
+  camera_panorama_tour.centers.resize(indexes.size());
+  camera_panorama_tour.directions.resize(indexes.size());
+  for (int i = 0; i < (int)indexes.size(); ++i) {
+    camera_panorama_tour.centers[i] = panorama_renderers[indexes[i]].GetCenter();
+  }
+
+  camera_panorama_tour.directions[0] = camera_panorama.start_direction;
+  for (int i = 1; i < (int)indexes.size(); ++i) {
+    const Vector3d movement = camera_panorama_tour.centers[i] -
+      camera_panorama_tour.centers[i - 1];
+    
+    camera_panorama_tour.directions[i] =
+      camera_panorama_tour.directions[i - 1] + movement;
+    camera_panorama_tour.directions[i].normalize();
+    camera_panorama_tour.directions[i] *= panorama_renderers[indexes[i]].GetAverageDistance();
+  }
+  
+  camera_status = kPanoramaTour;
 }
 
 void Navigation::MovePanorama(const Vector3d& direction) {
@@ -388,7 +490,7 @@ void Navigation::AirToPanorama(const int panorama_index) {
   camera_between_panorama_and_air.progress = 0.0;  
 }
  
-double Navigation::Progress() const {
+double Navigation::ProgressInverse() const {
   switch (camera_status) {
   case kPanoramaTransition:
     return cos(camera_panorama.progress * M_PI) / 2.0 + 1.0 / 2.0;
@@ -397,8 +499,10 @@ double Navigation::Progress() const {
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition:
     return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  case kPanoramaTour:
+    return cos(camera_panorama_tour.progress * M_PI) / 2.0 + 1.0 / 2.0;
   default:
-    cerr << "Impossible in Progress." << endl;
+    cerr << "Impossible in ProgressInverse." << endl;
     exit (1);
     // return 0.0;
   }
@@ -410,7 +514,8 @@ double Navigation::GetFieldOfViewInDegrees() const {
 
   switch (camera_status) {
   case kPanorama:
-  case kPanoramaTransition: {
+  case kPanoramaTransition:
+  case kPanoramaTour: {
     return kPanoramaFieldOfView;
   }
   // CameraAir handles the state.

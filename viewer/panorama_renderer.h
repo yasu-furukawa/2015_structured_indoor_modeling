@@ -24,7 +24,12 @@ class PanoramaRenderer : protected QGLFunctions {
 
   const Eigen::Vector3d& GetCenter() const { return center; }
   double GetAverageDistance() const { return average_distance; }
+  Eigen::Vector2d RGBToDepth(const Eigen::Vector2d& pixel) const;
 
+  const std::vector<Eigen::Vector3d>& DepthMesh() const { return depth_mesh; }
+  int DepthWidth() const { return depth_width; }
+  int DepthHeight() const { return depth_height; }
+  
  private:
   void InitDepthMesh(const std::string& filename, const double phi_range);
 

@@ -36,7 +36,7 @@ bool IsInside(const LineRoom& line_room, const Vector2d& point) {
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   configuration(configuration),
-  navigation(panorama_renderers) {
+  navigation(panorama_renderers, polygon_renderer) {
 
   floorplan_renderer.Init(configuration.data_directory);
   panorama_renderers.resize(configuration.panorama_configurations.size());
@@ -51,8 +51,14 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   navigation.Init();
 
   SetPanoramaToRoom();
+  SetRoomToPanorama();
+  SetPanoramaDistanceTable();
+
   
   current_width = current_height = -1;
+
+  prev_height_adjustment = 0.0;
+  fresh_screen_for_panorama = true;
 
   simple_click_time.start();
   double_click_time.start();
@@ -169,10 +175,42 @@ void MainWidget::SetMatrices() {
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],
             0, 0, 1);
 
+  GLint viewport_old[4];
+  GLdouble modelview_old[16];
+  GLdouble projection_old[16];
+  for (int i = 0; i < 4; ++i)
+    viewport_old[i] = viewport[i];
+  for (int i = 0; i < 16; ++i) {
+    modelview_old[i] = modelview[i];
+    projection_old[i] = projection[i];
+  }
 
   glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
   glGetDoublev( GL_PROJECTION_MATRIX, projection );
-  glGetIntegerv( GL_VIEWPORT, viewport );  
+  glGetIntegerv( GL_VIEWPORT, viewport );
+
+  for (int i = 0; i < 4; ++i) {
+    if (viewport_old[i] != viewport[i]) {
+      fresh_screen_for_panorama = true;
+      break;
+    }
+  }
+  for (int i = 0; i < 16; ++i) {
+    if (modelview_old[i] != modelview[i]) {
+      fresh_screen_for_panorama = true;
+      break;
+    }
+  }
+  for (int i = 0; i < 16; ++i) {
+    if (projection_old[i] != projection[i]) {
+      fresh_screen_for_panorama = true;
+      break;
+    }
+  }
+
+  if (prev_height_adjustment != HeightAdjustment())
+    fresh_screen_for_panorama = true;
+  prev_height_adjustment = HeightAdjustment();  
 }
 
 void MainWidget::RenderFloorplan(const double alpha) {
@@ -198,7 +236,6 @@ void MainWidget::RenderFloorplan(const double alpha) {
 }
 
 void MainWidget::RenderPanorama(const double alpha) {
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
 
   switch (navigation.GetCameraStatus()) {
@@ -240,21 +277,39 @@ void MainWidget::RenderQuad(const double alpha) {
 }
 */
 
+void MainWidget::RenderPanoramaTour() {
+  int index_pair[2];
+  int panorama_index_pair[2];
+  double weight_pair[2];
+  navigation.GetCameraPanoramaTour().GetIndexWeightPairs(1.0 - navigation.ProgressInverse(),
+                                                         index_pair,
+                                                         panorama_index_pair,
+                                                         weight_pair);
+  RenderPanoramaTransition(panorama_index_pair[0], panorama_index_pair[1], weight_pair[0]);
+}
+
 void MainWidget::RenderPanoramaTransition() {
-  // Render the source pano.
+  RenderPanoramaTransition(navigation.GetCameraPanorama().start_index,
+                           navigation.GetCameraPanorama().end_index,
+                           navigation.ProgressInverse());
+}
+
+void MainWidget::RenderPanoramaTransition(const int start_index,
+                                          const int end_index,
+                                          const double start_weight) {
+    // Render the source pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraPanorama().start_index].Render(1.0);
+  panorama_renderers[start_index].Render(1.0);
 
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[navigation.GetCameraPanorama().end_index].Render(1.0);
+  panorama_renderers[end_index].Render(1.0);
 
   // Blend the two.
-  const double weight_start = navigation.Progress();
   // const double weight_end = 1.0 - weight_start;
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
@@ -277,7 +332,7 @@ void MainWidget::RenderPanoramaTransition() {
   }
 
   program.setUniformValue("weight",
-                          static_cast<float>(weight_start));
+                          static_cast<float>(start_weight));
   
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texids[0]);
@@ -323,17 +378,21 @@ void MainWidget::RenderPanoramaTransition() {
 }  
 
 void MainWidget::RenderPolygon(const double alpha,
-                               const double height_adjustment) {
+                               const double height_adjustment,
+                               const int room_highlighted) {
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_CULL_FACE);
   glDisable(GL_DEPTH_TEST);
 
+  const bool kNotRenderLabel = false;
   polygon_renderer.RenderWallAll(navigation.GetCenter(),
                                  alpha,
                                  height_adjustment,
-                                 panorama_to_room[navigation.GetCameraPanorama().start_index]);
+                                 panorama_to_room[navigation.GetCameraPanorama().start_index],
+                                 room_highlighted,
+                                 kNotRenderLabel);
 
   //polygon_renderer.RenderWireframeAll(alpha);
 
@@ -343,12 +402,42 @@ void MainWidget::RenderPolygon(const double alpha,
   glEnable(GL_TEXTURE_2D);
 }
 
+void MainWidget::RenderPolygonLabels(const double height_adjustment) {
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_CULL_FACE);
+
+  const bool kRenderLabel = true;
+  polygon_renderer.RenderWallAll(navigation.GetCenter(),
+                                 1.0,
+                                 height_adjustment,
+                                 panorama_to_room[navigation.GetCameraPanorama().start_index],
+                                 -1,
+                                 kRenderLabel);
+
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_TEXTURE_2D);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void MainWidget::paintGL() {  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   SetMatrices();
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
+    // When mouse is moving, this is called in every frame, and
+    // becomes slow. So, we do this only when the mouse is not
+    // moving. Interaction
+    if (fresh_screen_for_panorama && !mouse_down) {
+      RenderPolygonLabels(HeightAdjustment());
+      fresh_screen_for_panorama = false;
+    }
+    
     if (!RightAfterSimpleClick(0.0)) {
       RenderPanorama(1.0);
       // RenderFloorplan();
@@ -356,7 +445,13 @@ void MainWidget::paintGL() {
       const double alpha = Fade();
       RenderPanorama(1.0 - alpha * 0.7);
       RenderFloorplan(alpha / 2.0);
-      RenderPolygon(alpha / 2.0, HeightAdjustment());
+
+      // Checks if any room should be highlighted.
+      int room_highlighted = -1;
+      if (!mouse_down)
+        room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
+                                                        mouseMovePosition[1]));
+      RenderPolygon(alpha / 2.0, HeightAdjustment(), room_highlighted);
     }
     break;
   }
@@ -371,15 +466,19 @@ void MainWidget::paintGL() {
       RenderFloorplan(alpha);
     }
     const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment);
+    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment, -1);
     break;
   }
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition: {
-    RenderPanorama(1.0 - navigation.Progress());
+    RenderPanorama(1.0 - navigation.ProgressInverse());
     // RenderFloorplan();
     const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment);
+    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment, -1);
+    break;
+  }
+  case kPanoramaTour: {
+    RenderPanoramaTour();
     break;
   }
   default: {
@@ -412,6 +511,15 @@ int MainWidget::FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const {
 
   return best_index;
 }
+
+int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
+  unsigned char data;
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
+  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_BLUE, GL_UNSIGNED_BYTE, &data);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  
+  return static_cast<int>(data) - 1;
+}
   
 //----------------------------------------------------------------------
 // GUI
@@ -425,8 +533,26 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
   mouse_down = false;
 
   if (QVector2D(e->localPos()) == mousePressPosition) {
-    simple_click_time.start();
-    simple_click_time_offset_by_move = 0;
+    // This may trigger a tour.
+    if (navigation.GetCameraStatus() == kPanorama &&
+        RightAfterSimpleClick(0.0)) {
+      const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
+                                                                mousePressPosition[1]));
+      
+      //simple_click_time.start();
+      if (room_highlighted != -1) {
+        vector<int> indexes;
+        FindPanoramaPath(navigation.GetCameraPanorama().start_index,
+                         room_to_panorama[room_highlighted],
+                         &indexes);
+        navigation.TourToPanorama(indexes);
+        // Not perfect, the following line is good enough.
+        simple_click_time_offset_by_move = 0;
+      }
+    } else {
+      simple_click_time.start();
+      simple_click_time_offset_by_move = 0;
+    }
   }
 }
 
@@ -540,7 +666,8 @@ void MainWidget::timerEvent(QTimerEvent *) {
   case kPanoramaTransition:
   case kAirTransition:
   case kPanoramaToAirTransition:
-  case kAirToPanoramaTransition: {
+  case kAirToPanoramaTransition:
+  case kPanoramaTour: {
     navigation.Tick();
     updateGL();
     break;
@@ -559,7 +686,7 @@ void MainWidget::timerEvent(QTimerEvent *) {
   }
 }
 
-bool MainWidget::RightAfterSimpleClick(const double margin) {
+bool MainWidget::RightAfterSimpleClick(const double margin) const {
   const double kDoubleClickMargin = 0.5;
   if ((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 > kFadeInSeconds - margin &&
       (simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 < kFadeOutSeconds + margin &&
@@ -621,10 +748,10 @@ double MainWidget::HeightAdjustmentFunction(const double elapsed,
 }
 
 void MainWidget::SetPanoramaToRoom() {
+  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
+  const Eigen::Matrix3d& floorplan_to_global = polygon_renderer.GetFloorplanToGlobal();
+  
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-    const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
-    const Eigen::Matrix3d& floorplan_to_global = polygon_renderer.GetFloorplanToGlobal();
-
     const Vector3d global_center = panorama_renderers[p].GetCenter();
     const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
     const Vector2d floorplan_center2(floorplan_center[0], floorplan_center[1]);
@@ -638,4 +765,102 @@ void MainWidget::SetPanoramaToRoom() {
     }
     panorama_to_room[p] = room_id;
   }
+}
+
+void MainWidget::SetRoomToPanorama() {
+  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
+  const Eigen::Matrix3d& floorplan_to_global = polygon_renderer.GetFloorplanToGlobal();
+
+  for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+    const Vector2d room_center = polygon_renderer.GetRoomCenter(room);
+    
+    // Find the closest panorama.
+    int best_panorama = -1;
+    double best_distance = 0.0;
+    for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
+      const Vector3d global_center = panorama_renderers[p].GetCenter();
+      const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
+      const Vector2d panorama_center(floorplan_center[0], floorplan_center[1]);
+      const double distance = (room_center - panorama_center).norm();
+      if (best_panorama == -1 || distance < best_distance) {
+        best_panorama = p;
+        best_distance = distance;
+      }
+    }
+    room_to_panorama[room] = best_panorama;
+  }
+}
+
+void MainWidget::SetPanoramaDistanceTable() {
+  panorama_distance_table.clear();
+  panorama_distance_table.resize(panorama_renderers.size());
+  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
+    panorama_distance_table[p].resize(panorama_renderers.size(), -1);
+    for (int q = p + 1; q < (int)panorama_renderers.size(); ++q) {
+      panorama_distance_table[p][q] = panorama_distance_table[q][p] =
+        (ComputePanoramaDistance(p, q) + ComputePanoramaDistance(q, p)) / 2.0;
+    }
+  }
+}
+
+double MainWidget::ComputePanoramaDistance(const int lhs, const int rhs) const {
+  const Vector2d lhs_on_rhs_depth_image =
+    panorama_renderers[rhs].RGBToDepth(panorama_renderers[rhs].Project(panorama_renderers[lhs].GetCenter()));
+  // Search in some radius.
+  const int radius = (panorama_renderers[rhs].DepthWidth() + panorama_renderers[rhs].DepthHeight()) / 10;
+  const double distance = (panorama_renderers[lhs].GetCenter() -
+                           panorama_renderers[rhs].GetCenter()).norm();
+
+  int connected = 0;
+  int occluded = 0;
+  
+  const int depth_width              = panorama_renderers[rhs].DepthWidth();
+  const int depth_height             = panorama_renderers[rhs].DepthHeight();
+  const vector<Vector3d>& depth_mesh = panorama_renderers[rhs].DepthMesh();
+  for (int j = -radius; j <= radius; ++j) {
+    const int ytmp = static_cast<int>(round(lhs_on_rhs_depth_image[1])) + j;
+    if (ytmp < 0 || depth_height <= ytmp)
+      continue;
+    for (int i = -radius; i <= radius; ++i) {
+      const int xtmp = (static_cast<int>(round(lhs_on_rhs_depth_image[0])) + i + depth_width) % depth_width;
+      const Vector3d depth_point = depth_mesh[ytmp * depth_width + xtmp];
+      const double depthmap_distance = (depth_point - panorama_renderers[rhs].GetCenter()).norm();
+
+      if (distance < depthmap_distance)
+        ++connected;
+      else
+        ++occluded;
+    }
+  }
+
+  return distance * ;
+}
+
+void MainWidget::FindPanoramaPath(const int start_panorama, const int goal_panorama,
+                                  std::vector<int>* indexes) const {
+  // Standard shortest path algorithm.
+  indexes->clear();
+
+  // Find connectivity information. Distance is put. -1 means not connected.
+
+
+
+  
+  // Current distance from the source and its previous panorama index.
+  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
+  vector<pair<double, int> > table(panorama_renderers.size(), pair<double, int>(-1.0, -1));
+
+  table[start_panorama] = pair<double, int>(0.0, start_panorama);
+
+  
+  
+
+  
+  // It is enough to repeat iterations at the number of panoramas - 1.
+  for (int i = 0; i < (int)panorama_renderers.size() - 1; ++i) {
+    for (int j = 0; j < (int)panorama_renderers.size()
+
+
+  }
+  
 }

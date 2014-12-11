@@ -16,6 +16,7 @@ struct Wall {
   double floor_height;
   double ceiling_height;
   Eigen::Vector3d color;
+  Eigen::Vector3i colori;
 };
 
 typedef vector<Wall> Walls;
@@ -108,7 +109,7 @@ int FrontBackTest(const Eigen::Vector2d& optical_center, const Wall& lhs, const 
     }
   }
 
-  cerr << "Rare case. a bug..." << endl;
+  cerr << "Rare case. a bug..." << optical_center[0] << ' ' << optical_center[1] << endl;
   return 0;
 }
 
@@ -129,32 +130,34 @@ Vector3d GenerateRoomColor(const int room) {
   case 0:
     return Vector3d(255, 179, 0) / 255.0;
   case 1:
-    return Vector3d(129, 112, 102) / 255.0;
+    return Vector3d(0.0, 1.0, 1.0);
   case 2:
     return Vector3d(0.0, 0.0, 1.0);
   case 3:
-    return Vector3d(166, 189, 215) / 255.0;
+    return Vector3d(255, 104, 0) / 255.0;
   case 4:
-    return Vector3d(193, 0, 32) / 255.0;
+    return Vector3d(0.7, 1.0, 0.0);
   case 5:
     return Vector3d(0.0, 1.0, 0.0);
   case 6:
     return Vector3d(128, 62, 117) / 255.0;
   case 7:
-    return Vector3d(0.7, 1.0, 0.0);
+    return Vector3d(193, 0, 32) / 255.0;
   case 8:
     return Vector3d(206, 162, 98) / 255.0;
   case 9:
-    return Vector3d(255, 104, 0) / 255.0;
+    return Vector3d(166, 189, 215) / 255.0;
   case 10:
-    return Vector3d(0.0, 1.0, 1.0);
+    return Vector3d(129, 112, 102) / 255.0;
   default:
     return Vector3d(1.0, 1.0, 1.0);
   }
 }
+
+
+
   
 } // namespace
-
 
 
 PolygonRenderer::PolygonRenderer() {
@@ -268,25 +271,36 @@ void PolygonRenderer::Init(const string data_directory) {
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const double alpha,
                                     const double height_adjustment,
-                                    const int center_room) {
+                                    const int center_room,
+                                    const int room_highlighted,
+                                    const bool render_room_id) {
   const Vector3d local_center = floorplan_to_global.transpose() * center;
 
   vector<double> distances(room_centers.size(), 0.0);
-  double min_distance = numeric_limits<double>::max();
-  double max_distance = -1.0;
   for (int room = 0; room < (int)room_centers.size(); ++room) {
     distances[room] = (Vector2d(local_center[0], local_center[1]) -
                        room_centers[room]).norm();
-    if (room != center_room) {
-      min_distance = min(min_distance, distances[room]);
-      max_distance = max(max_distance, distances[room]);
+  }
+  vector<int> room_orders(room_centers.size(), -1);
+  {
+    vector<pair<double, int> > distances_room;
+    for (int room = 0; room < (int)room_centers.size(); ++room) {
+      if (room == center_room)
+        continue;
+      distances_room.push_back(pair<double, int>(distances[room], room));
+    }
+    sort(distances_room.begin(), distances_room.end());
+    for (int i = 0; i < (int)distances_room.size(); ++i) {
+      room_orders[distances_room[i].second] = i;
     }
   }
 
-  vector<double> height_adjustment_rates(room_centers.size());
-  for (int room = 0; room < (int)room_centers.size(); ++room) {
-    height_adjustment_rates[room] =
-      max(0.0, min(0.8, (distances[room] - max_distance) / (min_distance - max_distance)));
+  double average_length = 0.0;
+  {
+    for (const auto& line_room : line_floorplan.line_rooms) {
+      average_length += line_room.floor_height - line_room.ceiling_height; // ????
+    }
+    average_length /= (int)line_floorplan.line_rooms.size();
   }
   
   Walls walls;
@@ -294,7 +308,10 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
     if (room == center_room)
       continue;
 
-    const Vector3d color = GenerateRoomColor(room);
+    Vector3d color = GenerateRoomColor(room);
+    if (room_highlighted == room)
+      color = Vector3d(1, 1, 1);
+    const Vector3i colori(0, 0, room + 1);
     
     const LineRoom& line_room = line_floorplan.line_rooms[room];
     for (int w = 0; w < (int)line_room.walls.size(); ++w) {
@@ -302,18 +319,22 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
       Wall wall;
       wall.points[0] = line_room.walls[w];
       wall.points[1] = line_room.walls[next_w];
-      wall.ceiling_height   = line_room.ceiling_height;
+      wall.floor_height   = line_room.ceiling_height;
       //????
       //      wall.floor_height   = line_room.ceiling_height + (line_room.floor_height - line_room.ceiling_height) * 0.1;
-      wall.floor_height = line_room.floor_height +
-        (line_room.ceiling_height - line_room.floor_height) *
-        height_adjustment * height_adjustment_rates[room];
+
+
+      const double target_length =
+        average_length * (room_orders[room] + 1) / ((int)room_centers.size() - 1);
+      const double target_ceiling_height = line_room.ceiling_height + target_length;
+
+      wall.ceiling_height = line_room.floor_height + (target_ceiling_height - line_room.floor_height) * height_adjustment;
       
       wall.color = color;
+      wall.colori = colori;
       walls.push_back(wall);
     }
   }
-
   
   SortWalls(Vector2d(local_center[0], local_center[1]), &walls);
 
@@ -338,7 +359,10 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
     ceiling0 = floorplan_to_global * ceiling0;
     ceiling1 = floorplan_to_global * ceiling1;
 
-    glColor4f(wall.color[0], wall.color[1], wall.color[2], alpha);
+    if (render_room_id)
+      glColor4ub(wall.colori[0], wall.colori[1], wall.colori[2], 255);
+    else
+      glColor4f(wall.color[0], wall.color[1], wall.color[2], alpha);
     
     glVertex3f(floor0[0], floor0[1], floor0[2]);
     glVertex3f(floor1[0], floor1[1], floor1[2]);
@@ -351,6 +375,3 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   glEnd();
 }
 
-void PolygonRenderer::RenderWall(const int room) {
-
-}

@@ -4,7 +4,8 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include "panorama_renderer.h"
+class PanoramaRenderer;
+class PolygonRenderer;
 
 enum CameraStatus {
   // CameraPanorama handles the states.
@@ -15,7 +16,9 @@ enum CameraStatus {
   kAirTransition,
   // CameraBetweenGroundAndAir handles the state.
   kPanoramaToAirTransition,
-  kAirToPanoramaTransition
+  kAirToPanoramaTransition,
+  // Tour
+  kPanoramaTour
 };
 
 struct CameraPanorama {
@@ -49,9 +52,25 @@ struct CameraBetweenPanoramaAndAir {
   double progress;  
 };
 
+struct CameraPanoramaTour {
+  std::vector<int> indexes;
+  std::vector<Eigen::Vector3d> centers;
+  std::vector<Eigen::Vector3d> directions;
+
+  void GetIndexWeightPairs(const double progress,
+                           int index_pair[2],
+                           int panorama_index_pair[2],
+                           double weight_pair[2]) const;
+  Eigen::Vector3d GetCenter(const double progress) const;
+  Eigen::Vector3d GetDirection(const double progress) const;
+  
+  double progress;
+};
+
 class Navigation {
  public:
-  Navigation(const std::vector<PanoramaRenderer>& panorama_renderers);
+  Navigation(const std::vector<PanoramaRenderer>& panorama_renderers,
+             const PolygonRenderer& polygon_renderer);
 
   // Accessors.
   Eigen::Vector3d GetCenter() const;
@@ -60,8 +79,10 @@ class Navigation {
   const CameraPanorama& GetCameraPanorama() const;
   const CameraAir& GetCameraAir() const;
   const CameraBetweenPanoramaAndAir& GetCameraBetweenPanoramaAndAir() const;
+  const CameraPanoramaTour& GetCameraPanoramaTour() const;
 
-  double Progress() const;
+  // double Progress() const;
+  double ProgressInverse() const;
   double GetFieldOfViewInDegrees() const;
   double GetAverageDistance() const { return average_distance; }
 
@@ -72,6 +93,8 @@ class Navigation {
   // Interactions.
   void RotatePanorama(const Eigen::Vector3d& axis);
   void MovePanorama(const Eigen::Vector3d& direction);
+  void MoveToPanorama(const int target_panorama_index);
+  void TourToPanorama(const std::vector<int>& indexes);
   void MoveForwardPanorama();
   void MoveBackwardPanorama();
   void RotatePanorama(const double radian);
@@ -82,7 +105,6 @@ class Navigation {
   void AirToPanorama(const int panorama_index);
   
  private:
-  void MoveToPanorama(const int target_panorama_index);
   bool Collide(const int from_index, const int to_index) const;
   
   // Camera is at (center) and looks along (direction).
@@ -91,6 +113,7 @@ class Navigation {
   CameraPanorama camera_panorama;
   CameraAir camera_air;
   CameraBetweenPanoramaAndAir camera_between_panorama_and_air;
+  CameraPanoramaTour camera_panorama_tour;
 
   // Z coordinate of the camera in the air.
   double air_height;
@@ -101,6 +124,7 @@ class Navigation {
   double average_distance;
 
   const std::vector<PanoramaRenderer>& panorama_renderers;
+  const PolygonRenderer& polygon_renderer;
 };
 
 #endif  // NAVIGATION_H__

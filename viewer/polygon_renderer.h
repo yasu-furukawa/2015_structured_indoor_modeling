@@ -5,7 +5,6 @@
 #include <QGLFunctions>
 
 #include "../floorplan/floorplan.h"
-
 class PolygonRenderer : protected QGLFunctions {
  public:
   PolygonRenderer();
@@ -13,16 +12,25 @@ class PolygonRenderer : protected QGLFunctions {
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,
                      const double height_adjustment,
-                     const int center_room);
-  void RenderWall(const int room);
+                     const int center_room,
+                     const int room_highlighted,
+                     const bool render_room_id);
   void RenderWireframeAll(const double alpha);
   void RenderWireframe(const int room, const double alpha);
   void Init(const std::string data_directory);
   // void InitGL();
 
-  const LineFloorplan& GetLineFloorplan() { return line_floorplan; }
-  const Eigen::Matrix3d& GetFloorplanToGlobal() { return floorplan_to_global; }
-
+  const LineFloorplan& GetLineFloorplan() const { return line_floorplan; }
+  const Eigen::Matrix3d& GetFloorplanToGlobal() const { return floorplan_to_global; }
+  Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers[room]; }
+  Eigen::Vector3d GetRoomCenter3D(const int room) const {
+    const Eigen::Vector2d center = GetRoomCenter(room);
+    return Eigen::Vector3d(center[0],
+                           center[1],
+                           (line_floorplan.line_rooms[room].floor_height + 
+                            line_floorplan.line_rooms[room].ceiling_height) / 2.0);
+  }
+  
  private:  
   LineFloorplan line_floorplan;
   Eigen::Matrix3d floorplan_to_global;

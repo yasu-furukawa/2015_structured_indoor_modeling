@@ -59,6 +59,8 @@ private:
     GLint viewport[4];
     GLdouble modelview[16];
     GLdouble projection[16];
+    double prev_height_adjustment;
+    bool fresh_screen_for_panorama;
     
     QBasicTimer timer;
     QVector2D mousePressPosition;
@@ -75,17 +77,23 @@ private:
     void SetMatrices();
 
     int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
+    int FindRoomHighlighted(const Eigen::Vector2i& pixel);
     
     void RenderFloorplan(const double alpha);
     void RenderPanorama(const double alpha);
     void RenderPanoramaTransition();
-    void RenderPolygon(const double alpha, const double height_adjustment);
+    void RenderPanoramaTransition(const int start_index,
+                                  const int end_index,
+                                  const double start_weight);
+    void RenderPolygon(const double alpha, const double height_adjustment, const int room_highlighted);
+    void RenderPolygonLabels(const double height_adjustment);
+    void RenderPanoramaTour();
 
     // void RenderQuad(const double alpha);
     void InitializeShaders();
    
     // Keep rendering after no action for a while.
-    bool RightAfterSimpleClick(const double margin);
+    bool RightAfterSimpleClick(const double margin) const;
 
     // After a single click, where we are between kFadeInSeconds and
     // kFadeOutSeconds.
@@ -97,10 +105,19 @@ private:
     static double HeightAdjustmentFunction(const double elapsed, const double offset);
 
     void SetPanoramaToRoom();
+    void SetRoomToPanorama();
+
+    double ComputePanoramaDistance(const int lhs, const int rhs) const;
+    void SetPanoramaDistanceTable();
+    void FindPanoramaPath(const int start_panorama, const int goal_panorama,
+                          std::vector<int>* indexes) const;
 
     double simple_click_time_offset_by_move;
 
     std::map<int, int> panorama_to_room;
+    std::map<int, int> room_to_panorama;
+
+    std::vector<std::vector<double> > panorama_distance_table;
     
     static const double kRenderMargin = 0.2;
     static const double kFadeInSeconds = 0.2;
