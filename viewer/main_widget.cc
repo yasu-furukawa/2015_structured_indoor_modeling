@@ -796,6 +796,8 @@ void MainWidget::SetPanoramaDistanceTable() {
   panorama_distance_table.resize(panorama_renderers.size());
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
     panorama_distance_table[p].resize(panorama_renderers.size(), -1);
+  }
+  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
     for (int q = p + 1; q < (int)panorama_renderers.size(); ++q) {
       panorama_distance_table[p][q] = panorama_distance_table[q][p] =
         (ComputePanoramaDistance(p, q) + ComputePanoramaDistance(q, p)) / 2.0;
@@ -807,7 +809,8 @@ double MainWidget::ComputePanoramaDistance(const int lhs, const int rhs) const {
   const Vector2d lhs_on_rhs_depth_image =
     panorama_renderers[rhs].RGBToDepth(panorama_renderers[rhs].Project(panorama_renderers[lhs].GetCenter()));
   // Search in some radius.
-  const int radius = (panorama_renderers[rhs].DepthWidth() + panorama_renderers[rhs].DepthHeight()) / 10;
+  const int wradius = panorama_renderers[rhs].DepthWidth() / 20;
+  const int hradius = panorama_renderers[rhs].DepthHeight() / 20;
   const double distance = (panorama_renderers[lhs].GetCenter() -
                            panorama_renderers[rhs].GetCenter()).norm();
 
@@ -816,12 +819,14 @@ double MainWidget::ComputePanoramaDistance(const int lhs, const int rhs) const {
   
   const int depth_width              = panorama_renderers[rhs].DepthWidth();
   const int depth_height             = panorama_renderers[rhs].DepthHeight();
+
   const vector<Vector3d>& depth_mesh = panorama_renderers[rhs].DepthMesh();
-  for (int j = -radius; j <= radius; ++j) {
+  // Only look at the top half.
+  for (int j = -hradius; j <= 0; ++j) {
     const int ytmp = static_cast<int>(round(lhs_on_rhs_depth_image[1])) + j;
     if (ytmp < 0 || depth_height <= ytmp)
       continue;
-    for (int i = -radius; i <= radius; ++i) {
+    for (int i = -wradius; i <= wradius; ++i) {
       const int xtmp = (static_cast<int>(round(lhs_on_rhs_depth_image[0])) + i + depth_width) % depth_width;
       const Vector3d depth_point = depth_mesh[ytmp * depth_width + xtmp];
       const double depthmap_distance = (depth_point - panorama_renderers[rhs].GetCenter()).norm();
@@ -832,35 +837,67 @@ double MainWidget::ComputePanoramaDistance(const int lhs, const int rhs) const {
         ++occluded;
     }
   }
+  if (connected + occluded == 0) {
+    cerr << "Impossible in ComputePanoramaDistance" << endl;
+    exit (1);
+  }
+  //cout << '(' << lhs << ',' << rhs << ',' << occluded *1.0/ (connected + occluded) << ") ";
+  const double ratio = occluded / static_cast<double>(connected + occluded);
+  const double kOffset = 0.0;
+  const double kMinScale = 1.0;
+  const double kMaxScale = 10.0;
 
-  return distance * ;
+  return distance *
+    (kMinScale + (kMaxScale - kMinScale) * max(0.0, ratio - kOffset) /
+     (1.0 - kOffset));
 }
 
 void MainWidget::FindPanoramaPath(const int start_panorama, const int goal_panorama,
                                   std::vector<int>* indexes) const {
   // Standard shortest path algorithm.
-  indexes->clear();
-
+  const double kInvalid = -1.0;
   // Find connectivity information. Distance is put. -1 means not connected.
-
-
-
-  
-  // Current distance from the source and its previous panorama index.
-  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
-  vector<pair<double, int> > table(panorama_renderers.size(), pair<double, int>(-1.0, -1));
+  vector<pair<double, int> > table(panorama_renderers.size(), pair<double, int>(kInvalid, -1));
 
   table[start_panorama] = pair<double, int>(0.0, start_panorama);
-
-  
-  
-
-  
   // It is enough to repeat iterations at the number of panoramas - 1.
   for (int i = 0; i < (int)panorama_renderers.size() - 1; ++i) {
-    for (int j = 0; j < (int)panorama_renderers.size()
-
-
+    // Update the result on panorama p by using q.
+    for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
+      if (p == start_panorama)
+        continue;
+      for (int q = 0; q < (int)panorama_renderers.size(); ++q) {
+        if (p == q)
+          continue;
+        // q is not reachable yet.
+        if (table[q].first == kInvalid)
+          continue;
+        
+        const double new_distance = table[q].first + panorama_distance_table[q][p];
+        if (table[p].first == kInvalid || new_distance < table[p].first) {
+          table[p].first = new_distance;
+          table[p].second = q;
+        }
+      }
+    }
   }
-  
+
+  if (table[goal_panorama].first == kInvalid) {
+    cerr << "Impossible. every node is reachable." << endl;
+    exit (1);
+  }
+
+  indexes->clear();
+  int pindex = goal_panorama;
+  indexes->push_back(pindex);
+  while (pindex != start_panorama) {
+    pindex = table[pindex].second;
+    indexes->push_back(pindex);
+  }
+  reverse(indexes->begin(), indexes->end());
+
+  cout << "Path ";
+  for (int i = 0; i < indexes->size(); ++i)
+    cout << indexes->at(i) << ' ';
+  cout << endl;
 }

@@ -8,7 +8,7 @@ TEMPLATE = app
 
 SOURCES += viewer.cc
 
-QMAKE_CXXFLAGS += '-Wno-c++11-extensions -Wno-gnu-static-float-init'
+QMAKE_CXXFLAGS += '-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare'
 
 qtHaveModule(opengl) {
     QT += opengl

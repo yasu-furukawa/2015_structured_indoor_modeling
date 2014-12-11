@@ -23,12 +23,13 @@ class PolygonRenderer : protected QGLFunctions {
   const LineFloorplan& GetLineFloorplan() const { return line_floorplan; }
   const Eigen::Matrix3d& GetFloorplanToGlobal() const { return floorplan_to_global; }
   Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers[room]; }
-  Eigen::Vector3d GetRoomCenter3D(const int room) const {
+  Eigen::Vector3d GetRoomCenterGlobal(const int room) const {
     const Eigen::Vector2d center = GetRoomCenter(room);
-    return Eigen::Vector3d(center[0],
-                           center[1],
-                           (line_floorplan.line_rooms[room].floor_height + 
-                            line_floorplan.line_rooms[room].ceiling_height) / 2.0);
+    return floorplan_to_global *
+      Eigen::Vector3d(center[0],
+                      center[1],
+                      (line_floorplan.line_rooms[room].floor_height + 
+                       line_floorplan.line_rooms[room].ceiling_height) / 2.0);
   }
   
  private:  

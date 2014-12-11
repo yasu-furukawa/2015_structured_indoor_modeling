@@ -206,7 +206,10 @@ void Navigation::Init() {
   camera_panorama.start_index = kStartIndex;
   camera_panorama.start_center = panorama_renderers[kStartIndex].GetCenter();
   camera_panorama.start_direction =
-    panorama_renderers[kStartIndex].GetAverageDistance() * Vector3d(1, 0, 0);
+    polygon_renderer.GetRoomCenterGlobal(kStartIndex) - camera_panorama.start_center;
+  camera_panorama.start_direction[2] = 0.0;
+  camera_panorama.start_direction.normalize();
+  camera_panorama.start_direction *= panorama_renderers[kStartIndex].GetAverageDistance();
   camera_panorama.progress = 0.0;
 
   //----------------------------------------------------------------------
@@ -277,8 +280,12 @@ void Navigation::Tick() {
     break;
   }
   case kPanoramaTour: {
-    const double kStepSize = 0.01;
-    camera_panorama_tour.progress += kStepSize;
+    double step_size;
+    if (camera_panorama_tour.indexes.size() > 4)
+      step_size = 0.01;
+    else
+      step_size = 0.02;
+    camera_panorama_tour.progress += step_size;
     if (camera_panorama_tour.progress >= 1.0) {
       camera_status = kPanoramaTransition;
       camera_panorama.start_index = camera_panorama_tour.indexes.back();
@@ -287,8 +294,8 @@ void Navigation::Tick() {
       camera_panorama.end_center = camera_panorama_tour.centers.back();
       camera_panorama.start_direction = camera_panorama_tour.directions.back();
       camera_panorama.end_direction =
-        polygon_renderer.GetFloorplanToGlobal() * 
-        polygon_renderer.GetRoomCenter3D(camera_panorama.start_index) - camera_panorama.start_center;
+        polygon_renderer.GetRoomCenterGlobal(camera_panorama.start_index) -
+        camera_panorama.start_center;
       camera_panorama.end_direction[2] = 0.0;
       camera_panorama.end_direction.normalize();
       camera_panorama.end_direction *= panorama_renderers[camera_panorama.start_index].GetAverageDistance();
