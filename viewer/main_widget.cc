@@ -334,7 +334,8 @@ void MainWidget::RenderPolygon(const double alpha,
                                  alpha,
                                  height_adjustment,
                                  panorama_to_room[navigation.GetCameraPanorama().start_index]);
-  // polygon_renderer.RenderWireframeAll(alpha);
+
+  //polygon_renderer.RenderWireframeAll(alpha);
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
