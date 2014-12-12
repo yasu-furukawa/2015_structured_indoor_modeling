@@ -12,7 +12,8 @@ class PolygonRenderer : protected QGLFunctions {
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,
                      const double height_adjustment,
-                     const int center_room,
+                     const bool depth_order_height_adjustment,
+                     const int room_not_rendered,
                      const int room_highlighted,
                      const bool render_room_id);
   void RenderWireframeAll(const double alpha);
@@ -30,6 +31,13 @@ class PolygonRenderer : protected QGLFunctions {
                       center[1],
                       (line_floorplan.line_rooms[room].floor_height + 
                        line_floorplan.line_rooms[room].ceiling_height) / 2.0);
+  }
+  Eigen::Vector3d GetRoomCenterFloorGlobal(const int room) const {
+    const Eigen::Vector2d center = GetRoomCenter(room);
+    return floorplan_to_global *
+      Eigen::Vector3d(center[0],
+                      center[1],
+                      line_floorplan.line_rooms[room].ceiling_height);
   }
   
  private:  

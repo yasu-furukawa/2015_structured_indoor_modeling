@@ -2,12 +2,14 @@
 #define FLOORPLAN_H__
 
 #include <Eigen/Dense>
+#include <string>
 #include <vector>
 
 //----------------------------------------------------------------------
 // Input data.
 //----------------------------------------------------------------------
 struct LineRoom {
+  std::vector<std::string> name;
   std::vector<Eigen::Vector2d> walls;
   double floor_height;
   double ceiling_height;

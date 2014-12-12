@@ -17,6 +17,7 @@
 #include "configuration.h"
 #include "navigation.h"
 #include "floorplan_renderer.h"
+#include "panel_renderer.h"
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
 
@@ -47,6 +48,7 @@ private:
     FloorplanRenderer floorplan_renderer;
     std::vector<PanoramaRenderer> panorama_renderers;
     PolygonRenderer polygon_renderer;
+    PanelRenderer panel_renderer;
     Navigation navigation;
 
     // Resources.
@@ -61,6 +63,7 @@ private:
     GLdouble projection[16];
     double prev_height_adjustment;
     bool fresh_screen_for_panorama;
+    bool fresh_screen_for_air;
     
     QBasicTimer timer;
     QVector2D mousePressPosition;
@@ -85,8 +88,16 @@ private:
     void RenderPanoramaTransition(const int start_index,
                                   const int end_index,
                                   const double start_weight);
-    void RenderPolygon(const double alpha, const double height_adjustment, const int room_highlighted);
-    void RenderPolygonLabels(const double height_adjustment);
+    void RenderPolygon(const int room_not_rendered,
+                       const double alpha,
+                       const double height_adjustment,
+                       const bool depth_order_height_adjustment,
+                       const int room_highlighted);
+    void RenderPolygonLabels(const int room_not_rendered,
+                             const double height_adjustment,
+                             const bool depth_order_height_adjustment);
+    void RenderThumbnail(const double alpha, const int room_highlighted); //, MainWidget* main_widget);
+    void RenderAllThumbnails(const double alpha, const int room_highlighted); //, MainWidget* main_widget);
     void RenderPanoramaTour();
 
     // void RenderQuad(const double alpha);

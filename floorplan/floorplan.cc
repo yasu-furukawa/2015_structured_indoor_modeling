@@ -47,9 +47,15 @@ istream& operator>>(istream& istr, LineFloorplan& line_floorplan) {
     LineRoom& line_room = line_floorplan.line_rooms[r];
     
     int room_index;
+    int num_words;
+    istr >> room_index >> num_words;
+    if (num_words != 0) {
+      line_room.name.resize(num_words);
+      for (int w = 0; w < num_words; ++w)
+        istr >> line_room.name[w];
+    }
     int num_walls;
-    istr >> room_index
-         >> num_walls
+    istr >> num_walls
          >> line_room.floor_height
          >> line_room.ceiling_height;
     

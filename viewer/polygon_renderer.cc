@@ -257,6 +257,22 @@ void PolygonRenderer::Init(const string data_directory) {
     const LineRoom& line_room = line_floorplan.line_rooms[room];
     
     room_centers[room] = Vector2d(0, 0);
+    double denom = 0;
+    const int wall_num = (int)line_room.walls.size();
+    for (int w = 0; w < wall_num; ++w) {
+      const int prev_w = ((w - 1) + wall_num) % wall_num;
+      const int next_w = (w + 1) % wall_num;
+      const double length = (line_room.walls[w] - line_room.walls[prev_w]).norm() +
+        (line_room.walls[w] - line_room.walls[next_w]).norm();
+      room_centers[room] += line_room.walls[w] * length;
+      denom += length;
+    }
+    if (denom == 0.0) {
+      cerr << "Impossible." << endl;
+      exit (1);
+    }
+    room_centers[room] /= denom;
+    /*
     for (const auto& wall : line_room.walls) {
       room_centers[room] += wall;
     }
@@ -265,13 +281,15 @@ void PolygonRenderer::Init(const string data_directory) {
       exit (1);
     }
     room_centers[room] /= line_room.walls.size();
+    */
   }  
 }
 
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const double alpha,
                                     const double height_adjustment,
-                                    const int center_room,
+                                    const bool depth_order_height_adjustment,
+                                    const int room_not_rendered,
                                     const int room_highlighted,
                                     const bool render_room_id) {
   const Vector3d local_center = floorplan_to_global.transpose() * center;
@@ -285,7 +303,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   {
     vector<pair<double, int> > distances_room;
     for (int room = 0; room < (int)room_centers.size(); ++room) {
-      if (room == center_room)
+      if (room == room_not_rendered)
         continue;
       distances_room.push_back(pair<double, int>(distances[room], room));
     }
@@ -305,7 +323,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   
   Walls walls;
   for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
-    if (room == center_room)
+    if (room == room_not_rendered)
       continue;
 
     Vector3d color = GenerateRoomColor(room);
@@ -323,9 +341,14 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
       //????
       //      wall.floor_height   = line_room.ceiling_height + (line_room.floor_height - line_room.ceiling_height) * 0.1;
 
-
-      const double target_length =
-        average_length * (room_orders[room] + 1) / ((int)room_centers.size() - 1);
+      double target_length;
+      if (depth_order_height_adjustment) {
+        target_length =
+          average_length * (room_orders[room] + 1) / ((int)room_centers.size() - 1);
+      }
+      else {
+        target_length = average_length * 0.2;
+      }
       const double target_ceiling_height = line_room.ceiling_height + target_length;
 
       wall.ceiling_height = line_room.floor_height + (target_ceiling_height - line_room.floor_height) * height_adjustment;

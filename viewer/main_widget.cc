@@ -36,6 +36,7 @@ bool IsInside(const LineRoom& line_room, const Vector2d& point) {
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   configuration(configuration),
+  panel_renderer(polygon_renderer, viewport),  
   navigation(panorama_renderers, polygon_renderer) {
 
   floorplan_renderer.Init(configuration.data_directory);
@@ -44,6 +45,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
     panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
   }
   polygon_renderer.Init(configuration.data_directory);
+  panel_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
   setMouseTracking(true);
@@ -59,6 +61,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   prev_height_adjustment = 0.0;
   fresh_screen_for_panorama = true;
+  fresh_screen_for_air = true;
 
   simple_click_time.start();
   double_click_time.start();
@@ -143,6 +146,8 @@ void MainWidget::initializeGL() {
 
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
+
+  panel_renderer.InitGL(this);
   
   // Use QBasicTimer because its faster than QTimer
   timer.start(1000 / 60, this);
@@ -192,24 +197,29 @@ void MainWidget::SetMatrices() {
   for (int i = 0; i < 4; ++i) {
     if (viewport_old[i] != viewport[i]) {
       fresh_screen_for_panorama = true;
+      fresh_screen_for_air = true;
       break;
     }
   }
   for (int i = 0; i < 16; ++i) {
     if (modelview_old[i] != modelview[i]) {
       fresh_screen_for_panorama = true;
+      fresh_screen_for_air = true;
       break;
     }
   }
   for (int i = 0; i < 16; ++i) {
     if (projection_old[i] != projection[i]) {
       fresh_screen_for_panorama = true;
+      fresh_screen_for_air = true;
       break;
     }
   }
 
-  if (prev_height_adjustment != HeightAdjustment())
+  if (prev_height_adjustment != HeightAdjustment()) {
     fresh_screen_for_panorama = true;
+    fresh_screen_for_air = true;
+  }
   prev_height_adjustment = HeightAdjustment();  
 }
 
@@ -377,8 +387,10 @@ void MainWidget::RenderPanoramaTransition(const int start_index,
   glPopMatrix();
 }  
 
-void MainWidget::RenderPolygon(const double alpha,
+void MainWidget::RenderPolygon(const int room_not_rendered,
+                               const double alpha,
                                const double height_adjustment,
+                               const bool depth_order_height_adjustment,
                                const int room_highlighted) {
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
@@ -390,7 +402,8 @@ void MainWidget::RenderPolygon(const double alpha,
   polygon_renderer.RenderWallAll(navigation.GetCenter(),
                                  alpha,
                                  height_adjustment,
-                                 panorama_to_room[navigation.GetCameraPanorama().start_index],
+                                 depth_order_height_adjustment,
+                                 room_not_rendered,
                                  room_highlighted,
                                  kNotRenderLabel);
 
@@ -402,7 +415,9 @@ void MainWidget::RenderPolygon(const double alpha,
   glEnable(GL_TEXTURE_2D);
 }
 
-void MainWidget::RenderPolygonLabels(const double height_adjustment) {
+void MainWidget::RenderPolygonLabels(const int room_not_rendered,
+                                     const double height_adjustment,
+                                     const bool depth_order_height_adjustment) {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
@@ -413,7 +428,8 @@ void MainWidget::RenderPolygonLabels(const double height_adjustment) {
   polygon_renderer.RenderWallAll(navigation.GetCenter(),
                                  1.0,
                                  height_adjustment,
-                                 panorama_to_room[navigation.GetCameraPanorama().start_index],
+                                 depth_order_height_adjustment,
+                                 room_not_rendered,
                                  -1,
                                  kRenderLabel);
 
@@ -423,18 +439,94 @@ void MainWidget::RenderPolygonLabels(const double height_adjustment) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void MainWidget::RenderThumbnail(const double alpha, const int room_highlighted) {
+  Vector2i render_pos(mouseMovePosition[0], mouseMovePosition[1]);
+  // Decide to draw where. Either right or left. At default right. When too close left.
+  const double kMarginRatio = 0.05;
+  if (render_pos[0] < viewport[2] * 0.85)
+    render_pos[0] += static_cast<int>(round(viewport[2] * kMarginRatio));
+  else
+    render_pos[0] -= static_cast<int>(round(viewport[2] * (kMarginRatio + PanelRenderer::kWidthRatio / 2)));
+  const double kScale = 1.0;
+  panel_renderer.RenderThumbnail(alpha,
+                                 room_highlighted,
+                                 render_pos,
+                                 Vector3d(0.4, 0.3, 0.3),
+                                 kScale,
+                                 this);
+}
+
+void MainWidget::RenderAllThumbnails(const double alpha, const int room_highlighted) {
+  // Make thumbnails smaller when rendering everything.
+  const double kScale = 0.7;
+
+  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
+  vector<Vector2i> room_centers((int)line_floorplan.line_rooms.size());
+  for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+    const Vector3d& center = polygon_renderer.GetRoomCenterFloorGlobal(room);
+    GLdouble u, v, w;
+    gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
+    room_centers[room][0] = static_cast<int>(round(u));
+    room_centers[room][1] = static_cast<int>(round(v));
+  }
+
+  vector<pair<int, int> > render_order;
+  for (int room = 0; room < (int)room_centers.size(); ++room)
+    render_order.push_back(make_pair(room_centers[room][1], room));
+  sort(render_order.rbegin(), render_order.rend());
+  
+  for (int i = 0; i < (int)render_order.size(); ++i) {
+    const int room = render_order[i].second;
+    const int offset_x = static_cast<int>(round(kScale * PanelRenderer::kWidthRatio * viewport[2] / 2.0));
+    const int offset_y = offset_x * panel_renderer.GetRoomThumbnail(room).height() /
+      panel_renderer.GetRoomThumbnail(room).width();
+    
+    if (room == room_highlighted)
+      panel_renderer.RenderThumbnail(alpha,
+                                     room,
+                                     Vector2i(room_centers[room][0] - offset_x,
+                                              viewport[3] - room_centers[room][1] - offset_y),
+                                     Vector3d(1, 1, 1),
+                                     kScale,
+                                     this);
+    else
+      panel_renderer.RenderThumbnail(alpha,
+                                     room,
+                                     Vector2i(room_centers[room][0] - offset_x,
+                                              viewport[3] - room_centers[room][1] - offset_y),
+                                     Vector3d(0.4, 0.3, 0.3),
+                                     kScale,
+                                     this);
+  }    
+  /*
+  Vector2i render_pos(mouseMovePosition[0], mouseMovePosition[1]);
+  // Decide to draw where. Either right or left. At default right. When too close left.
+  const double kMarginRatio = 0.05;
+  if (render_pos[0] < viewport[2] * 0.85)
+    render_pos[0] += static_cast<int>(round(viewport[2] * kMarginRatio));
+  else
+    render_pos[0] -= static_cast<int>(round(viewport[2] * (kMarginRatio + PanelRenderer::kWidthRatio / 2)));
+
+  panel_renderer.RenderThumbnail(alpha, room_highlighted, render_pos, this);
+  */
+}
+
 void MainWidget::paintGL() {  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   SetMatrices();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+  const bool kDepthOrderHeightAdjustment = true;
+  const bool kUniformHeightAdjustment = false;
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
     // When mouse is moving, this is called in every frame, and
     // becomes slow. So, we do this only when the mouse is not
     // moving. Interaction
     if (fresh_screen_for_panorama && !mouse_down) {
-      RenderPolygonLabels(HeightAdjustment());
+      RenderPolygonLabels(panorama_to_room[navigation.GetCameraPanorama().start_index],
+                          HeightAdjustment(),
+                          kDepthOrderHeightAdjustment);
       fresh_screen_for_panorama = false;
     }
     
@@ -451,7 +543,9 @@ void MainWidget::paintGL() {
       if (!mouse_down)
         room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
                                                         mouseMovePosition[1]));
-      RenderPolygon(alpha / 2.0, HeightAdjustment(), room_highlighted);
+      RenderPolygon(panorama_to_room[navigation.GetCameraPanorama().start_index],
+                    alpha / 2.0, HeightAdjustment(), kDepthOrderHeightAdjustment, room_highlighted);
+      RenderThumbnail(1.0, room_highlighted);
     }
     break;
   }
@@ -459,22 +553,52 @@ void MainWidget::paintGL() {
     RenderPanoramaTransition();
     break;
   }
-  case kAir:
-  case kAirTransition: {
-    if (RightAfterSimpleClick(0.0)) {
-      const double alpha = Fade();
-      RenderFloorplan(alpha);
+  case kAir: {
+    if (fresh_screen_for_air && !mouse_down) {
+      RenderPolygonLabels(-1, HeightAdjustment(), kUniformHeightAdjustment);
+      fresh_screen_for_air = false;
     }
-    const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment, -1);
+        
+    if (!RightAfterSimpleClick(0.0)) {
+      RenderFloorplan(1.0);
+      const double kNoHeightAdjustment = 0.0;
+      RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    } else {
+      const double alpha = Fade();
+      RenderFloorplan(alpha / 2.0);
+
+      int room_highlighted = -1;
+      if (!mouse_down)
+        room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
+                                                        mouseMovePosition[1]));
+      RenderPolygon(-1, 1.0 / 3.0, HeightAdjustment(), kUniformHeightAdjustment, room_highlighted);
+      RenderAllThumbnails(alpha, room_highlighted);
+    }
     break;
   }
-  case kPanoramaToAirTransition:
-  case kAirToPanoramaTransition: {
-    RenderPanorama(1.0 - navigation.ProgressInverse());
-    // RenderFloorplan();
+  case kAirTransition: {
+    //if (RightAfterSimpleClick(0.0)) {
+    //const double alpha = Fade();
+    RenderFloorplan(1.0);
+      //}
     const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(1.0 / 3.0, kNoHeightAdjustment, -1);
+    RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    break;
+  }
+  case kPanoramaToAirTransition: {
+    const double alpha = navigation.ProgressInverse();
+    RenderPanorama(alpha);
+    RenderFloorplan(1.0 - alpha);
+    const double kNoHeightAdjustment = 0.0;
+    RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    break;
+  }
+  case kAirToPanoramaTransition: {
+    const double alpha = 1.0 - navigation.ProgressInverse();
+    RenderPanorama(alpha);
+    RenderFloorplan(1.0 - alpha);
+    const double kNoHeightAdjustment = 0.0;
+    RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
     break;
   }
   case kPanoramaTour: {
@@ -527,6 +651,21 @@ int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
 void MainWidget::mousePressEvent(QMouseEvent *e) {
   mousePressPosition = QVector2D(e->localPos());
   mouse_down = true;
+
+  if (e->button() == Qt::RightButton) {
+    switch (navigation.GetCameraStatus()) {
+    case kPanorama: {
+      navigation.PanoramaToAir();
+      break;
+    }
+    case kAir: {      
+      navigation.AirToPanorama(navigation.GetCameraPanorama().start_index);
+      break;
+    }
+    default: {
+    }
+    }
+  }
 }
 
 void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
@@ -549,6 +688,15 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
         // Not perfect, the following line is good enough.
         simple_click_time_offset_by_move = 0;
       }
+    } else if (navigation.GetCameraStatus() == kAir &&
+               RightAfterSimpleClick(0.0)) {
+      const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
+                                                                mousePressPosition[1]));
+      if (room_highlighted != -1) {
+        navigation.AirToPanorama(room_to_panorama[room_highlighted]);
+        // Not perfect, the following line is good enough.
+        simple_click_time_offset_by_move = 0;
+      }      
     } else {
       simple_click_time.start();
       simple_click_time_offset_by_move = 0;
@@ -643,7 +791,7 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
     switch (navigation.GetCameraStatus()) {
     case kPanorama: {
       diff /= 400.0;
-      navigation.RotatePanorama(Vector3d(diff.x(), diff.y(), 0.0));
+      navigation.RotatePanorama(diff.x(), diff.y());
       break;
     }
     case kAir: {
@@ -725,11 +873,12 @@ double MainWidget::ProgressFunction(const double elapsed, const double offset) {
 double MainWidget::FadeFunction(const double elapsed, const double offset) {
   // When a mouse keeps moving (offset is large, we draw with a full opacity).
   const double progress = ProgressFunction(elapsed, offset);
-  if (progress < 0.1) {
+  const double kSpeed = 20.0;
+  if (progress < 1.0 / kSpeed) {
     if (offset > kFadeInSeconds)
       return 1.0;
     else
-      return 10.0 * progress;
+      return kSpeed * progress;
   } else if (progress > 0.75) {
     return 1.0 - (progress - 0.75) * 4.0;
   } else {
@@ -744,7 +893,7 @@ double MainWidget::HeightAdjustmentFunction(const double elapsed,
     return 1.0;
 
   const double progress = ProgressFunction(elapsed, offset);
-  return min(1.0, 8.0 * progress);
+  return min(1.0, 0.2 + 10.0 * max(0.0, progress - 0.2));
 }
 
 void MainWidget::SetPanoramaToRoom() {
@@ -897,7 +1046,7 @@ void MainWidget::FindPanoramaPath(const int start_panorama, const int goal_panor
   reverse(indexes->begin(), indexes->end());
 
   cout << "Path ";
-  for (int i = 0; i < indexes->size(); ++i)
+  for (int i = 0; i < (int)indexes->size(); ++i)
     cout << indexes->at(i) << ' ';
   cout << endl;
 }

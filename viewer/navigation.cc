@@ -1,3 +1,4 @@
+#include <Eigen/Geometry>
 #include <iostream>
 #include "navigation.h"
 #include "panorama_renderer.h"
@@ -318,7 +319,31 @@ void Navigation::Tick() {
   }
 }
 
-void Navigation::RotatePanorama(const Eigen::Vector3d& axis)  {
+void Navigation::RotatePanorama(const double dx, const double dy) {
+  Vector3d zaxis = camera_panorama.start_direction;
+  Vector3d yaxis(0, 0, 1);
+  Vector3d xaxis = yaxis.cross(zaxis);
+  yaxis = zaxis.cross(xaxis);
+
+  if (dx == 0 && dy == 0)
+    return;
+
+  xaxis.normalize();
+  yaxis.normalize();
+
+  Matrix3d rotation;
+  if (dx == 0) {
+    rotation = AngleAxisd(-dy, xaxis).toRotationMatrix();
+  } else if (dy == 0) {
+    rotation = AngleAxisd(dx, yaxis).toRotationMatrix();
+  } else {
+    rotation = AngleAxisd(-dy, xaxis).toRotationMatrix() * AngleAxisd(dx, yaxis).toRotationMatrix();
+  }
+    //Matrix3d rotation = AngleAxisd(dy, xaxis).toRotationMatrix() * AngleAxisd(dx, yaxis).toRotationMatrix();
+  camera_panorama.start_direction = rotation * camera_panorama.start_direction;
+  
+
+  /*
   Eigen::Matrix3d x_rotate;
   x_rotate << 
     cos(axis[0]), -sin(axis[0]), 0,
@@ -331,13 +356,14 @@ void Navigation::RotatePanorama(const Eigen::Vector3d& axis)  {
     -sin(axis[1]), 0, cos(axis[1]);
 
   camera_panorama.start_direction = x_rotate * y_rotate * camera_panorama.start_direction;
+  */
 }
 
 void Navigation::MoveAir(const Eigen::Vector3d& translation)  {
   camera_air.ground_center += translation;
 }
 
-bool Navigation::Collide(const int from_index, const int to_index) const {
+bool Navigation::Collide(const int /*from_index*/, const int /*to_index*/) const {
   return false;
 }
 

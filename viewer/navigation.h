@@ -91,7 +91,7 @@ class Navigation {
   void Tick();
 
   // Interactions.
-  void RotatePanorama(const Eigen::Vector3d& axis);
+  void RotatePanorama(const double dx, const double dy);
   void MovePanorama(const Eigen::Vector3d& direction);
   void MoveToPanorama(const int target_panorama_index);
   void TourToPanorama(const std::vector<int>& indexes);
