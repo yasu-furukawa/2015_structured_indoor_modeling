@@ -1,9 +1,11 @@
 #include <Eigen/Dense>
+#include <fstream>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "../floorplan/file_io.h"
+#include "../calibration/file_io.h"
+#include "../floorplan/floorplan.h"
 
 DEFINE_int32(num_panoramas, 1, "Number of panorama images.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
@@ -37,8 +39,46 @@ void ReadPanoramas(const file_io::FileIO& file_io,
   }
 }
 
-  void ReadPanoramaToGlobals(const file_io:
-  std::string GetPanoramaToGlobalTransformation(const int panorama) const {  
+void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
+                           const int num_panoramas,
+                           vector<Matrix4d>* panorama_to_globals) {
+  panorama_to_globals->resize(num_panoramas);
+  for (int p = 0; p < num_panoramas; ++p) {
+    const string filename = file_io.GetPanoramaToGlobalTransformation(p);
+    ifstream ifstr;
+    ifstr.open(filename.c_str());
+    string header;
+    for (int y = 0; y < 4; ++y) {
+      for (int x = 0; x < 4; ++x) {
+        ifstr >> (*panorama_to_globals)[p](y, x);
+      }
+    }
+    ifstr.close();
+  }
+}
+
+void Invert(const vector<Matrix4d>& panorama_to_globals,
+            vector<Matrix4d>* global_to_panoramas) {
+  global_to_panoramas.resize(panorama_to_globals.size());
+  for (int i = 0; i < panorama_to_globals.size(); ++i) {
+    Matrix3d rotation = panorama_to_globals[i].block(0, 0, 3, 3);
+    global_to_panoramas->at(i).block(0, 0, 3, 3) = rotation.transpose();
+    global_to_panoramas->at(i).block(0, 3, 3, 1) =
+      - rotation.transpose() * panorama_to_globals[i].block(0, 3, 3, 1);
+    global_to_panoramas->at(i)(3, 0) = 0.0;
+    global_to_panoramas->at(i)(3, 1) = 0.0;
+    global_to_panoramas->at(i)(3, 2) = 0.0;
+    global_to_panoramas->at(i)(3, 3) = 1.0;
+    
+    // debug.
+    Matrix4d a = global_to_panoramas->at(i) * panorama_to_globals[i];
+    for (int y = 0; y < 4; ++y) {
+      for (int x = 0; x < 4; ++x)
+        cout << a(y, x) << ' ';
+      cout << endl;
+    }
+  }
+}
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -47,18 +87,42 @@ int main(int argc, char* argv[]) {
   }
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-    
-  file_io::FileIO file_io(argv[1]);
 
+  // Read data from the directory.
+  file_io::FileIO file_io(argv[1]);
   vector<cv::Mat> panoramas;
-  vector<Matrix4d> panorama_to_globals;
   {
     ReadPanoramas(file_io,
                   FLAGS_num_panoramas,
                   FLAGS_num_pyramid_levels,
                   &panoramas);
-    
+  }
+  vector<Matrix4d> panorama_to_globals;
+  {
     ReadPanoramaToGlobals(file_io, FLAGS_num_panorams, &panorama_to_globals);
+  }
+  LineFloorplan line_floorplan;
+  {
+    const string filename = file_io.GetLineFloorplan();
+    ifstream ifstr;
+    ifstr.open(filename.c_str());
+    ifstr >> line_floorplan;
+    ifstr.close();
+  }
+  Matrix3d rotation;
+  {
+    const string filename = file_io.GetRotationMat();
+    ifstream ifstr;
+    ifstr.open(filename.c_str());
+    for (int y = 0; y < 3; ++y) {
+      for (int x = 0; x < 3; ++x) {
+        ifstr >> rotation(y, x);
+      }
+    }
+  }
+  vector<Matrix4d> global_to_panoramas;
+  {
+    Invert(panorama_to_globals, &global_to_panoramas);
   }
 
 }
