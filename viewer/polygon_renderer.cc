@@ -276,7 +276,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const int room_not_rendered,
                                     const int room_highlighted,
                                     const bool render_room_id) {
-  const Vector3d local_center = line_floorplan.floorplan_to_global.transpose() * center;
+  const Vector3d local_center = line_floorplan.GetFloorplanToGlobal().transpose() * center;
 
   vector<double> distances(room_centers_local.size(), 0.0);
   for (int room = 0; room < (int)room_centers_local.size(); ++room) {
@@ -317,9 +317,9 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
     const Vector3i colori(0, 0, room + 1);
     
     // const LineRoom& line_room = line_floorplan.line_rooms[room];
-    for (int wall = 0; wall < line_floorplan.
-    for (int w = 0; w < (int)line_room.walls.size(); ++w) {
-      const int next_w = (w + 1) % line_room.walls.size();
+    const int num_walls = line_floorplan.GetNumWalls(room);
+    for (int wall = 0; wall < num_walls; ++wall) {
+      const int next_w = (w + 1) % num_walls;
       Wall wall;
       wall.points[0] = line_room.walls[w];
       wall.points[1] = line_room.walls[next_w];
