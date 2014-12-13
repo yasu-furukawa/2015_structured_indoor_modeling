@@ -109,17 +109,6 @@ int main(int argc, char* argv[]) {
     ifstr >> line_floorplan;
     ifstr.close();
   }
-  Matrix3d rotation;
-  {
-    const string filename = file_io.GetRotationMat();
-    ifstream ifstr;
-    ifstr.open(filename.c_str());
-    for (int y = 0; y < 3; ++y) {
-      for (int x = 0; x < 3; ++x) {
-        ifstr >> rotation(y, x);
-      }
-    }
-  }
   vector<Matrix4d> global_to_panoramas;
   {
     Invert(panorama_to_globals, &global_to_panoramas);

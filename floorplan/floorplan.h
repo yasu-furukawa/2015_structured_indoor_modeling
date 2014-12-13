@@ -8,11 +8,54 @@
 //----------------------------------------------------------------------
 // Input data.
 //----------------------------------------------------------------------
+struct IUV;
+struct Triangle;
+struct WallTriangulation;
+struct FloorCeilingTriangulation;
+
 struct LineRoom {
   std::vector<std::string> name;
-  std::vector<Eigen::Vector2d> walls;
+
+  // The following 3 information is enough to draw a simple 3D box for
+  // a room.
+  // Contour (2D coordinate) information.
+  std::vector<Eigen::Vector2d> contour;
   double floor_height;
   double ceiling_height;
+
+  // Wall triangulations.
+  std::vector<WallTriangulation> wall_triangulations;
+  // Floor triangulations.
+  FloorCeilingTriangulation floor_triangulation;
+  // Ceiling triangulations.
+  FloorCeilingTrianglulation ceiling_triangulation;
+};
+
+// A texture coordinate in multi-texturing setup.
+struct IUV {
+  int index;
+  double u;
+  double v;
+};
+
+struct Triangle {
+  // Vertex indices.
+  Eigen::Vector3i indices;
+  // Texture coordinate.
+  IUV iuvs[3];
+};
+
+// Wall triangulation needs to store the vertex information.
+struct WallTriangulation {
+  // uv coordinates specify the coordinate.
+  std::vector<Eigen::Vector2d> vertices_in_uv;
+  std::vector<Triangle> triangles;
+};
+
+// Floor/ceiling triangulation needs not store the vertex information,
+// because they are given by the room "contour".
+struct FloorCeilingTriangulation {
+  std::vector<Triangle> triangles;
 };
 
 struct LineDoorFace {
@@ -28,6 +71,8 @@ struct LineDoorFace {
 typedef std::pair<LineDoorFace, LineDoorFace> LineDoor;
 
 struct LineFloorplan {
+  // Transformation from floorplan to global.
+  Eigen::Matrix3d floorplan_to_global;
   // Each room is an array of 2D coordinates.
   std::vector<LineRoom> line_rooms;
   // Door connections.
@@ -85,8 +130,8 @@ struct Floorplan {
 };
 
 std::istream& operator>>(std::istream& istr, LineFloorplan& line_floorplan);
-
 std::istream& operator>>(std::istream& istr, Floorplan& floorplan);
+
 std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);
 
 #endif  // FLOORPLAN_H__

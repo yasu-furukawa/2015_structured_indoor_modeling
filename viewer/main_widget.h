@@ -45,9 +45,9 @@ protected:
 private:
     // Indoor data.
     const Configuration configuration;
-    FloorplanRenderer floorplan_renderer;
     std::vector<PanoramaRenderer> panorama_renderers;
     PolygonRenderer polygon_renderer;
+    FloorplanRenderer floorplan_renderer;
     PanelRenderer panel_renderer;
     Navigation navigation;
 

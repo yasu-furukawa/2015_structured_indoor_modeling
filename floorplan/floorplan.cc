@@ -35,37 +35,73 @@ ostream& operator<<(ostream& ostr, const Shape& shape) {
   return ostr;
 }
 
+istream& operator>>(std::istream& istr, LineRoom& line_room) {
+  int num_words;
+  istr >> num_words;
+  if (num_words != 0) {
+    line_room.name.resize(num_words);
+    for (int w = 0; w < num_words; ++w)
+      istr >> line_room.name[w];
+  }
+  int num_points;
+  istr >> num_points;
+  
+  line_room.contour.resize(num_points);
+  for (int p = 0; p < num_points; ++p) {
+    istr >> line_room.contour[p][0] >> line_room.contour[p][1];
+  }
+  
+  istr >> line_room.floor_height
+       >> line_room.ceiling_height;
+
+  wall_triangulations.resize(num_points);
+  for (int w = 0; w < num_points; ++w)
+    istr >> wall_triangulations[w];
+
+  istr >> floor_triangulation;
+  istr >> ceiling_triangulation;
+  return istr;
+}
+
+std::istream& operator>>(std::istream& istr, WallTriangulation& wall_triangulation) {
+  int num_vertices, num_triangles;
+  istr >> num_vertices >> num_triangles;
+  wall_triangulation.vertices_in_uv.resize(num_vertices);
+  for (int v = 0; v < num_vertices; ++v) {
+    istr >> wall_triangulation.vertices_in_uv[v];
+  }
+  wall_triangulation.triangles.resize(num_triangles);
+  for (int t = 0; t < num_triangles; ++t) {
+    istr >> wall_triangulation.triangles[t];
+  }
+
+  return istr;
+}
+
+std::istream& operator>>(std::istream& istr, FloorCeilingTriangulation& triangulation) {
+
+
+  return istr;
+}
+
 }  // namespace
 
 istream& operator>>(istream& istr, LineFloorplan& line_floorplan) {
-  int num_rooms, num_doors;
-  istr >> num_rooms >> num_doors;
+  for (int y = 0; y < 3; ++y)
+    for (int x = 0; x < 3; ++x)
+      istr >> line_floorplan.floorplan_to_global(y, x);
+  
+  int num_rooms;
+  istr >> num_rooms;
   line_floorplan.line_rooms.resize(num_rooms);
+
+  for (int r = 0; r < num_rooms; ++r)
+    istr >> line_floorplan.line_rooms[r];
+
+  int num_doors;
+  istr >> num_doors;
   line_floorplan.line_doors.resize(num_doors);
 
-  for (int r = 0; r < num_rooms; ++r) {
-    LineRoom& line_room = line_floorplan.line_rooms[r];
-    
-    int room_index;
-    int num_words;
-    istr >> room_index >> num_words;
-    if (num_words != 0) {
-      line_room.name.resize(num_words);
-      for (int w = 0; w < num_words; ++w)
-        istr >> line_room.name[w];
-    }
-    int num_walls;
-    istr >> num_walls
-         >> line_room.floor_height
-         >> line_room.ceiling_height;
-    
-    line_room.walls.resize(num_walls);
-    
-    for (int w = 0; w < num_walls; ++w) {
-      double dummy;
-      istr >> dummy >> dummy >> line_room.walls[w][0] >> line_room.walls[w][1];
-    }
-  }
 
   for (int d = 0; d < num_doors; ++d) {
     LineDoor& line_door = line_floorplan.line_doors[d];

@@ -28,6 +28,22 @@ Eigen::Vector3d ComputePanoramaDirectionFromAir(const Eigen::Vector3d& air_direc
   direction *= distance;
   return direction;
 }
+
+void RobustifyDirection(const Eigen::Vector3d& lhs, Eigen::Vector3d* rhs) {
+  const double length = (lhs.norm() + rhs->norm()) / 2.0;
+  const double move_length = length * 0.01;
+
+  Vector3d lhs_normalized = lhs.normalized();
+  Vector3d rhs_normalized = rhs->normalized();
+
+  const double kAlmostOpposite = -0.98;
+  if (lhs_normalized.dot(rhs_normalized) <= kAlmostOpposite) {
+    // Add a small offset.
+    Vector3d orthogonal(lhs_normalized[1], lhs_normalized[0], 0.0);
+    orthogonal.normalize();
+    *rhs += orthogonal * move_length;
+  }
+}
   
 }  // namespace
 
@@ -300,6 +316,7 @@ void Navigation::Tick() {
       camera_panorama.end_direction[2] = 0.0;
       camera_panorama.end_direction.normalize();
       camera_panorama.end_direction *= panorama_renderers[camera_panorama.start_index].GetAverageDistance();
+      RobustifyDirection(camera_panorama.start_direction, &camera_panorama.end_direction);
       
       camera_panorama.progress = 0.0;
       /*
@@ -387,6 +404,8 @@ void Navigation::MoveToPanorama(const int target_panorama_index) {
   camera_panorama.end_direction =
     sum * panorama_renderers[target_panorama_index].GetAverageDistance();
 
+  RobustifyDirection(camera_panorama.start_direction, &camera_panorama.end_direction);
+  
   // Starts animation.
   camera_panorama.progress = 0.0;
   camera_status = kPanoramaTransition;
@@ -475,7 +494,9 @@ void Navigation::RotatePanorama(const double radian) {
   camera_panorama.end_center = camera_panorama.start_center;
   camera_panorama.end_direction = rotation * camera_panorama.start_direction;
   camera_panorama.progress = 0.0;
-  camera_status = kPanoramaTransition;  
+  camera_status = kPanoramaTransition;
+
+  RobustifyDirection(camera_panorama.start_direction, &camera_panorama.end_direction);
 }
 
 void Navigation::RotateSky(const double radian) {

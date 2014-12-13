@@ -198,10 +198,10 @@ void PolygonRenderer::RenderWireframe(const int room, const double alpha) {
                              line_room.walls[nextc][1],
                              line_room.ceiling_height);
     
-    floor0 = floorplan_to_global * floor0;
-    floor1 = floorplan_to_global * floor1;
-    ceiling0 = floorplan_to_global * ceiling0;
-    ceiling1 = floorplan_to_global * ceiling1;
+    floor0 = line_floorplan.floorplan_to_global * floor0;
+    floor1 = line_floorplan.floorplan_to_global * floor1;
+    ceiling0 = line_floorplan.floorplan_to_global * ceiling0;
+    ceiling1 = line_floorplan.floorplan_to_global * ceiling1;
 
     glVertex3f(floor0[0], floor0[1], floor0[2]);
     glVertex3f(floor1[0], floor1[1], floor1[2]);
@@ -239,17 +239,6 @@ void PolygonRenderer::Init(const string data_directory) {
   ifstr.open(file_io.GetLineFloorplan().c_str());
   ifstr >> line_floorplan;
   ifstr.close();
-
-  {
-    ifstream ifstr;
-    ifstr.open(file_io.GetRotationMat().c_str());
-    for (int y = 0; y < 3; ++y) {
-      for (int x = 0; x < 3; ++x) {
-        ifstr >> floorplan_to_global(y, x);
-      }
-    }
-    ifstr.close();
-  }
 
   //----------------------------------------------------------------------
   room_centers.resize(line_floorplan.line_rooms.size());
@@ -292,7 +281,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const int room_not_rendered,
                                     const int room_highlighted,
                                     const bool render_room_id) {
-  const Vector3d local_center = floorplan_to_global.transpose() * center;
+  const Vector3d local_center = line_floorplan.floorplan_to_global.transpose() * center;
 
   vector<double> distances(room_centers.size(), 0.0);
   for (int room = 0; room < (int)room_centers.size(); ++room) {
@@ -377,10 +366,10 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                            wall.points[1][1],
                            wall.ceiling_height);
     
-    floor0 = floorplan_to_global * floor0;
-    floor1 = floorplan_to_global * floor1;
-    ceiling0 = floorplan_to_global * ceiling0;
-    ceiling1 = floorplan_to_global * ceiling1;
+    floor0   = line_floorplan.floorplan_to_global * floor0;
+    floor1   = line_floorplan.floorplan_to_global * floor1;
+    ceiling0 = line_floorplan.floorplan_to_global * ceiling0;
+    ceiling1 = line_floorplan.floorplan_to_global * ceiling1;
 
     if (render_room_id)
       glColor4ub(wall.colori[0], wall.colori[1], wall.colori[2], 255);

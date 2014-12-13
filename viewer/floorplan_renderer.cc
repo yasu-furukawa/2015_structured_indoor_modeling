@@ -13,7 +13,8 @@ FloorplanRenderer::FloorplanRenderer() {
 FloorplanRenderer::~FloorplanRenderer() {
 }
 
-void FloorplanRenderer::Init(const std::string data_directory) {
+void FloorplanRenderer::Init(const std::string data_directory,
+                             const Eigen::Matrix3d& floorplan_to_global_tmp) {
   file_io::FileIO file_io(data_directory);
   {
     ifstream ifstr;
@@ -21,22 +22,11 @@ void FloorplanRenderer::Init(const std::string data_directory) {
     ifstr >> floorplan;
     ifstr.close();
   }
-  {
-    ifstream ifstr;
-    ifstr.open(file_io.GetRotationMat().c_str());
-
-    for (int y = 0; y < 3; ++y) {
-      for (int x = 0; x < 3; ++x) {
-        ifstr >> rotation(y, x);
-      }
-    }
-    ifstr.close();
-  }
+  floorplan_to_global = floorplan_to_global_tmp;
 }
 
 void FloorplanRenderer::RenderShape(const Shape& shape,
                                     const double floor_height,
-                                    const Eigen::Matrix3d& rotation,
                                     const PolygonStyle& style,
                                     const double alpha) {
   vector<Eigen::Vector3d> global_vertices(shape.vertices.size());
@@ -44,9 +34,8 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
     global_vertices[v][0] = shape.vertices[v][0];
     global_vertices[v][1] = shape.vertices[v][1];
     global_vertices[v][2] = floor_height;
-    global_vertices[v] = rotation * global_vertices[v];
+    global_vertices[v] = floorplan_to_global * global_vertices[v];
   }
-
   //glEnable(GL_BLEND);
   //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
@@ -72,13 +61,11 @@ void FloorplanRenderer::Render(const FloorplanStyle& style, const double alpha) 
   for (const auto& component : floorplan.components) {
     RenderShape(component.outer_shape,
                 floorplan.floor_height,
-                rotation,
                 style.outer_style,
                 alpha);
     for (const auto& shape : component.inner_shapes) {
       RenderShape(shape,
                   floorplan.floor_height,
-                  rotation,
                   style.inner_style,
                   alpha);
     }

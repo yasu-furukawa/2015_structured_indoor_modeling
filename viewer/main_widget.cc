@@ -39,12 +39,13 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   panel_renderer(polygon_renderer, viewport),  
   navigation(panorama_renderers, polygon_renderer) {
 
-  floorplan_renderer.Init(configuration.data_directory);
   panorama_renderers.resize(configuration.panorama_configurations.size());
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
     panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
   }
   polygon_renderer.Init(configuration.data_directory);
+  floorplan_renderer.Init(configuration.data_directory,
+                          polygon_renderer.GetLineFloorplan().floorplan_to_global);
   panel_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
@@ -175,6 +176,10 @@ void MainWidget::SetMatrices() {
 
   const Vector3d center = navigation.GetCenter();
   const Vector3d direction = navigation.GetDirection();
+  if (direction.norm() == 0.0) {
+    cerr << "ZERO" << endl;
+    exit (1);
+  }
 
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],

@@ -65,10 +65,12 @@ class FileIO {
     sprintf(buffer, "%s/floorplan.dat", data_directory.c_str());
     return buffer;
   }
+  /*
   std::string GetRotationMat() const {
     sprintf(buffer, "%s/rotationmat.txt", data_directory.c_str());
     return buffer;
   }
+  */
   std::string GetRoomThumbnail(const int room) const {
     sprintf(buffer, "%s/panorama/room_thumbnail%03d.png", data_directory.c_str(), room);
     return buffer;

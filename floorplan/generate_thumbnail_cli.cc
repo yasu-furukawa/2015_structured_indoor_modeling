@@ -88,6 +88,7 @@ void Init(const string& data_directory, Input *input) {
     ifstr >> input->line_floorplan;
     ifstr.close();
   }
+  /*
   {
     ifstream ifstr;
     ifstr.open(file_io.GetRotationMat().c_str());
@@ -98,7 +99,9 @@ void Init(const string& data_directory, Input *input) {
       }
     }
     ifstr.close();
-  }  
+  }
+  */
+  input->floorplan_to_global = input->line_floorplan.floorplan_to_global;
 }
 
 int FindClosestPanorama(const vector<PanoramaConfiguration>& panorama_configurations,
