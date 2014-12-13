@@ -44,7 +44,7 @@ class PolygonRenderer : protected QGLFunctions {
   LineFloorplan line_floorplan;
   Eigen::Matrix3d floorplan_to_global;
 
-  std::vector<Eigen::Vector2d> room_centers;
+  std::vector<Eigen::Vector2d> room_centers_local;
 };
 
 #endif  // POLYGON_RENDERER_H__
