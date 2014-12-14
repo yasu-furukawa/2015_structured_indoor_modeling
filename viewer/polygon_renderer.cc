@@ -241,8 +241,8 @@ void PolygonRenderer::Init(const string data_directory) {
     room_centers_local[room] = Vector2d(0, 0);
     double denom = 0;
     for (int wall = 0; wall < num_wall; ++wall) {
-      const int prev_wall = ((wall - 1) + wall_num) % wall_num;
-      const int next_wall = (wall + 1) % wall_num;
+      const int prev_wall = ((wall - 1) + num_wall) % num_wall;
+      const int next_wall = (wall + 1) % num_wall;
       const double length =
         (line_floorplan.GetRoomVertexLocal(room, wall) -
          line_floorplan.GetRoomVertexLocal(room, prev_wall)).norm() +
@@ -318,12 +318,12 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
     
     // const LineRoom& line_room = line_floorplan.line_rooms[room];
     const int num_walls = line_floorplan.GetNumWalls(room);
-    for (int wall = 0; wall < num_walls; ++wall) {
+    for (int w = 0; w < num_walls; ++w) {
       const int next_w = (w + 1) % num_walls;
       Wall wall;
-      wall.points[0] = line_room.walls[w];
-      wall.points[1] = line_room.walls[next_w];
-      wall.floor_height   = line_room.ceiling_height;
+      wall.points[0] = line_floorplan.GetRoomVertexLocal(room, w);
+      wall.points[1] = line_floorplan.GetRoomVertexLocal(room, next_w);
+      wall.floor_height   = line_floorplan.GetCeilingHeight(room);
       //????
       //      wall.floor_height   = line_room.ceiling_height + (line_room.floor_height - line_room.ceiling_height) * 0.1;
 
@@ -335,9 +335,9 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
       else {
         target_length = average_length * 0.2;
       }
-      const double target_ceiling_height = line_room.ceiling_height + target_length;
+      const double target_ceiling_height = line_floorplan.GetCeilingHeight(room) + target_length;
 
-      wall.ceiling_height = line_room.floor_height + (target_ceiling_height - line_room.floor_height) * height_adjustment;
+      wall.ceiling_height = line_floorplan.GetFloorHeight(room) + (target_ceiling_height - line_floorplan.GetFloorHeight(room)) * height_adjustment;
       
       wall.color = color;
       wall.colori = colori;
@@ -347,6 +347,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   
   SortWalls(Vector2d(local_center[0], local_center[1]), &walls);
 
+  const Eigen::Matrix3d floorplan_to_global = line_floorplan.GetFloorplanToGlobal();
   glBegin(GL_TRIANGLES);
   for (const auto& wall : walls) {
     Eigen::Vector3d floor0(wall.points[0][0],
@@ -363,10 +364,10 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                            wall.points[1][1],
                            wall.ceiling_height);
     
-    floor0   = line_floorplan.floorplan_to_global * floor0;
-    floor1   = line_floorplan.floorplan_to_global * floor1;
-    ceiling0 = line_floorplan.floorplan_to_global * ceiling0;
-    ceiling1 = line_floorplan.floorplan_to_global * ceiling1;
+    floor0   = floorplan_to_global * floor0;
+    floor1   = floorplan_to_global * floor1;
+    ceiling0 = floorplan_to_global * ceiling0;
+    ceiling1 = floorplan_to_global * ceiling1;
 
     if (render_room_id)
       glColor4ub(wall.colori[0], wall.colori[1], wall.colori[2], 255);

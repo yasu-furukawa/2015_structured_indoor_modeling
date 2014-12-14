@@ -7,7 +7,13 @@ using namespace Eigen;
 using namespace std;
 
 namespace {
+  
+std::istream& operator>>(std::istream& istr, WallTriangulation& wall_triangulation);
 
+std::istream& operator>>(std::istream& istr, FloorCeilingTriangulation& triangulation);
+
+
+  
 istream& operator>>(std::istream& istr, Triangle& triangle) {
   for (int i = 0; i < 3; ++i) {
     istr >> triangle.indices[i];
@@ -31,19 +37,19 @@ istream& operator>>(std::istream& istr, LineRoom& line_room) {
   istr >> num_vertices;
   
   line_room.vertices.resize(num_vertices);
-  for (int p = 0; p < num_points; ++p) {
-    istr >> line_room.vertices[p][0] >> line_room.vertices[p][1];
+  for (int v = 0; v < num_vertices; ++v) {
+    istr >> line_room.vertices[v][0] >> line_room.vertices[v][1];
   }
   
   istr >> line_room.floor_height
        >> line_room.ceiling_height;
 
-  wall_triangulations.resize(num_points);
-  for (int w = 0; w < num_points; ++w)
-    istr >> wall_triangulations[w];
+  line_room.wall_triangulations.resize(num_vertices);
+  for (int w = 0; w < num_vertices; ++w)
+    istr >> line_room.wall_triangulations[w];
 
-  istr >> floor_triangulation;
-  istr >> ceiling_triangulation;
+  istr >> line_room.floor_triangulation;
+  istr >> line_room.ceiling_triangulation;
   return istr;
 }
 
@@ -125,7 +131,7 @@ ostream& operator<<(ostream& ostr, const Shape& shape) {
   
 }  // namespace
 
-const Eigen::Matrix3d& GetFloorplanToGlobal() const {
+const Eigen::Matrix3d& LineFloorplan::GetFloorplanToGlobal() const {
   return floorplan_to_global;
 }
 
@@ -199,6 +205,10 @@ double LineFloorplan::GetCeilingHeight(const int room) const {
   return line_rooms[room].ceiling_height;
 }
 
+const std::vector<std::string>& LineFloorplan::GetRoomName(const int room) const {
+  return line_rooms[room].name;
+}
+
 int LineFloorplan::GetNumRooms() const {
   return static_cast<int>(line_rooms.size());
 }
@@ -206,7 +216,7 @@ int LineFloorplan::GetNumRoomVertices(const int room) const {
   return static_cast<int>(line_rooms[room].vertices.size());
 }
 int LineFloorplan::GetNumWalls(const int room) const {
-  retrun GetNumRoomVertices(room);
+  return GetNumRoomVertices(room);
 }
 int LineFloorplan::GetNumWallVertices(const int room, const int wall) const {
   return static_cast<int>(line_rooms[room].wall_triangulations[wall].vertices_in_uv.size());
@@ -236,7 +246,7 @@ istream& operator>>(istream& istr, LineFloorplan& line_floorplan) {
   for (int y = 0; y < 3; ++y)
     for (int x = 0; x < 3; ++x)
       istr >> line_floorplan.floorplan_to_global(y, x);
-  
+
   int num_rooms;
   istr >> num_rooms;
   line_floorplan.line_rooms.resize(num_rooms);

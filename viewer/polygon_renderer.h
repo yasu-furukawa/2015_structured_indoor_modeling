@@ -23,7 +23,7 @@ class PolygonRenderer : protected QGLFunctions {
 
   const LineFloorplan& GetLineFloorplan() const { return line_floorplan; }
   const Eigen::Matrix3d& GetFloorplanToGlobal() const { return floorplan_to_global; }
-  Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers[room]; }
+  Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers_local[room]; }
   Eigen::Vector3d GetRoomCenterGlobal(const int room) const {
     const Eigen::Vector2d center = GetRoomCenter(room);
     return floorplan_to_global *

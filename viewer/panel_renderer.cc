@@ -21,7 +21,7 @@ PanelRenderer::~PanelRenderer() {
 void PanelRenderer::Init(const std::string& data_directory) {
   file_io::FileIO file_io(data_directory);
 
-  const int room_num = polygon_renderer.GetLineFloorplan().line_rooms.size();
+  const int room_num = polygon_renderer.GetLineFloorplan().GetNumRooms();
   room_thumbnails.resize(room_num);
   for (int room = 0; room < room_num; ++room) {
     room_thumbnails[room].load(file_io.GetRoomThumbnail(room).c_str());
@@ -41,7 +41,7 @@ void PanelRenderer::RenderThumbnail(const double alpha,
   if (room_highlighted == -1) {
     return;
   }
-  const vector<string> name = polygon_renderer.GetLineFloorplan().line_rooms[room_highlighted].name;
+  const vector<string>& name = polygon_renderer.GetLineFloorplan().GetRoomName(room_highlighted);
   string full_name("");
   for (const auto& word : name) {
     full_name = full_name + string(" ") + word;

@@ -12,7 +12,16 @@ struct IUV;
 struct Triangle;
 struct WallTriangulation;
 struct FloorCeilingTriangulation;
+struct LineDoor;
 struct LineRoom;
+
+
+// Floor/ceiling triangulation needs not store the vertex information,
+// because they are given by the vertices.
+struct FloorCeilingTriangulation {
+  std::vector<Triangle> triangles;
+};
+
 
 struct LineFloorplan {
   //----------------------------------------------------------------------
@@ -34,6 +43,8 @@ struct LineFloorplan {
 
   double GetFloorHeight(const int room) const;
   double GetCeilingHeight(const int room) const;
+
+  const std::vector<std::string>& GetRoomName(const int room) const;
   
   int GetNumRooms() const;
   int GetNumRoomVertices(const int room) const;
@@ -71,7 +82,7 @@ struct LineRoom {
   // Floor triangulations.
   FloorCeilingTriangulation floor_triangulation;
   // Ceiling triangulations.
-  FloorCeilingTrianglulation ceiling_triangulation;
+  FloorCeilingTriangulation ceiling_triangulation;
 };
 
 struct Triangle {
@@ -80,7 +91,7 @@ struct Triangle {
   // Texture image index.
   int image_index;
   // UV coordinate.
-  Vector2d uvs[3];
+  Eigen::Vector2d uvs[3];
 };
 
 // Wall triangulation needs to store the vertex information.
@@ -90,16 +101,10 @@ struct WallTriangulation {
   std::vector<Triangle> triangles;
 };
 
-// Floor/ceiling triangulation needs not store the vertex information,
-// because they are given by the vertices.
-struct FloorCeilingTriangulation {
-  std::vector<Triangle> triangles;
-};
-
 struct LineDoorFace {
   int room_id;
   int wall_id;
-  Vector4_i vertex_indices;
+  Eigen::Vector4i vertex_indices;
 };
 
 struct LineDoor {

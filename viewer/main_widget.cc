@@ -17,12 +17,13 @@ const int kNumBuffers = 2;
 
 namespace {
 
-bool IsInside(const LineRoom& line_room, const Vector2d& point) {
+bool IsInside(const LineFloorplan line_floorplan, const int room, const Vector2d& point) {
   const cv::Point2f point_tmp(point[0], point[1]);
 
   vector<cv::Point> contour;
-  for (int w = 0; w < (int)line_room.walls.size(); ++w) {
-    contour.push_back(cv::Point(line_room.walls[w][0], line_room.walls[w][1]));
+  for (int w = 0; w < line_floorplan.GetNumWalls(room); ++w) {
+    const Eigen::Vector2d local = line_floorplan.GetRoomVertexLocal(room, w);
+    contour.push_back(cv::Point(local[0], local[1]));
   }
 
   if (cv::pointPolygonTest(contour, point_tmp, true) >= 0.0)
@@ -45,7 +46,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   }
   polygon_renderer.Init(configuration.data_directory);
   floorplan_renderer.Init(configuration.data_directory,
-                          polygon_renderer.GetLineFloorplan().floorplan_to_global);
+                          polygon_renderer.GetLineFloorplan().GetFloorplanToGlobal());
   panel_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
@@ -466,8 +467,9 @@ void MainWidget::RenderAllThumbnails(const double alpha, const int room_highligh
   const double kScale = 0.7;
 
   const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
-  vector<Vector2i> room_centers((int)line_floorplan.line_rooms.size());
-  for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+  const int num_room = line_floorplan.GetNumRooms();
+  vector<Vector2i> room_centers(num_room);
+  for (int room = 0; room < num_room; ++room) {
     const Vector3d& center = polygon_renderer.GetRoomCenterFloorGlobal(room);
     GLdouble u, v, w;
     gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
@@ -912,7 +914,7 @@ void MainWidget::SetPanoramaToRoom() {
            
     int room_id = -1;
     for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
-      if (IsInside(line_floorplan.line_rooms[room], floorplan_center2)) {
+      if (IsInside(line_floorplan, room, floorplan_center2)) {
         room_id = room;
         break;
       }
