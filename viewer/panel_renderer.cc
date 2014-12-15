@@ -8,6 +8,10 @@
 using namespace Eigen;
 using namespace std;
 
+const double PanelRenderer::kWidthRatio = 0.2;
+const int PanelRenderer::kTextHeight = 6;
+const int PanelRenderer::kFrameMargin = 5;
+
 PanelRenderer::PanelRenderer(const PolygonRenderer& polygon_renderer,
                              const GLint* viewport) :
   polygon_renderer(polygon_renderer), viewport(viewport) {

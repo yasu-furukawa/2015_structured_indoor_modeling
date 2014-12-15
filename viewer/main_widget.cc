@@ -15,6 +15,10 @@ using namespace std;
 
 const int kNumBuffers = 2;
 
+const double MainWidget::kRenderMargin = 0.2;
+const double MainWidget::kFadeInSeconds = 0.2;
+const double MainWidget::kFadeOutSeconds = 1.5;
+
 namespace {
 
 bool IsInside(const Floorplan floorplan, const int room, const Vector2d& point) {

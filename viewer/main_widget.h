@@ -130,9 +130,9 @@ private:
 
     std::vector<std::vector<double> > panorama_distance_table;
     
-    static const double kRenderMargin = 0.2;
-    static const double kFadeInSeconds = 0.2;
-    static const double kFadeOutSeconds = 1.5;
+    static const double kRenderMargin;
+    static const double kFadeInSeconds;
+    static const double kFadeOutSeconds;
 };
 
 #endif // MAIN_WIDGET_H__

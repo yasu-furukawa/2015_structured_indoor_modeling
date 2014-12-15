@@ -24,9 +24,9 @@ class PanelRenderer : protected QGLFunctions {
                        MainWidget* main_widget);
 const QImage& GetRoomThumbnail(const int room) { return room_thumbnails[room]; }
 
-  static const double kWidthRatio = 0.2;
-  static const int kTextHeight = 6;
-  static const int kFrameMargin = 5;
+ static const double kWidthRatio;
+ static const int kTextHeight;
+ static const int kFrameMargin;
 
  private:
   std::vector<QImage> room_thumbnails;
