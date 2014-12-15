@@ -8,9 +8,9 @@ using namespace std;
 
 namespace {
 
-std::istream& operator>>(std::istream& istr, WallTriangulation& wall_triangulation);
-std::istream& operator>>(std::istream& istr, FloorCeilingTriangulation& triangulation);
-  
+//----------------------------------------------------------------------
+// Read.
+//----------------------------------------------------------------------  
 istream& operator>>(std::istream& istr, Triangle& triangle) {
   for (int i = 0; i < 3; ++i) {
     istr >> triangle.indices[i];
@@ -19,34 +19,6 @@ istream& operator>>(std::istream& istr, Triangle& triangle) {
   for (int i = 0; i < 3; ++i) {
     istr >> triangle.uvs[i][0] >> triangle.uvs[i][1];
   }
-  return istr;
-}
-
-istream& operator>>(std::istream& istr, LineRoom& line_room) {
-  int num_words;
-  istr >> num_words;
-  if (num_words != 0) {
-    line_room.name.resize(num_words);
-    for (int w = 0; w < num_words; ++w)
-      istr >> line_room.name[w];
-  }
-  int num_vertices;
-  istr >> num_vertices;
-  
-  line_room.vertices.resize(num_vertices);
-  for (int v = 0; v < num_vertices; ++v) {
-    istr >> line_room.vertices[v][0] >> line_room.vertices[v][1];
-  }
-  
-  istr >> line_room.floor_height
-       >> line_room.ceiling_height;
-
-  line_room.wall_triangulations.resize(num_vertices);
-  for (int w = 0; w < num_vertices; ++w)
-    istr >> line_room.wall_triangulations[w];
-
-  istr >> line_room.floor_triangulation;
-  istr >> line_room.ceiling_triangulation;
   return istr;
 }
 
@@ -77,6 +49,34 @@ std::istream& operator>>(std::istream& istr, FloorCeilingTriangulation& triangul
   return istr;
 }
 
+istream& operator>>(std::istream& istr, LineRoom& line_room) {
+  int num_words;
+  istr >> num_words;
+  if (num_words != 0) {
+    line_room.name.resize(num_words);
+    for (int w = 0; w < num_words; ++w)
+      istr >> line_room.name[w];
+  }
+  int num_vertices;
+  istr >> num_vertices;
+  
+  line_room.vertices.resize(num_vertices);
+  for (int v = 0; v < num_vertices; ++v) {
+    istr >> line_room.vertices[v][0] >> line_room.vertices[v][1];
+  }
+  
+  istr >> line_room.floor_height
+       >> line_room.ceiling_height;
+
+  line_room.wall_triangulations.resize(num_vertices);
+  for (int w = 0; w < num_vertices; ++w)
+    istr >> line_room.wall_triangulations[w];
+
+  istr >> line_room.floor_triangulation;
+  istr >> line_room.ceiling_triangulation;
+  return istr;
+}
+  
 istream& operator>>(istream& istr, LineDoor& line_door) {
   for (int i = 0; i < 2; ++i) {
     istr >> line_door.line_door_faces[i].room_id
@@ -94,6 +94,93 @@ istream& operator>>(istream& istr, LineDoor& line_door) {
   }
   
   return istr;
+}
+
+//----------------------------------------------------------------------
+// Write.
+//----------------------------------------------------------------------
+ostream& operator<<(std::ostream& ostr, const Triangle& triangle) {
+  for (int i = 0; i < 3; ++i) {
+    ostr << triangle.indices[i] << ' ';
+  }
+  ostr << triangle.image_index << ' ';
+  for (int i = 0; i < 3; ++i) {
+    ostr << triangle.uvs[i][0] << ' ' << triangle.uvs[i][1] << ' ';
+  }
+  ostr << endl;
+  return ostr;
+}
+
+std::ostream& operator<<(std::ostream& ostr, const WallTriangulation& wall_triangulation) {
+  const int num_vertices = static_cast<int>(wall_triangulation.vertices_in_uv.size());
+  const int num_triangles = static_cast<int>(wall_triangulation.triangles.size());
+  ostr << num_vertices << ' ' << num_triangles << endl;
+
+  for (int v = 0; v < num_vertices; ++v) {
+    ostr << wall_triangulation.vertices_in_uv[v][0] << ' '
+         << wall_triangulation.vertices_in_uv[v][1] << endl;
+  }
+  
+  for (int t = 0; t < num_triangles; ++t) {
+    ostr << wall_triangulation.triangles[t];
+  }
+
+  return ostr;
+}
+
+std::ostream& operator<<(std::ostream& ostr, const FloorCeilingTriangulation& triangulation) {
+  const int num_triangles = static_cast<int>(triangulation.triangles.size());
+  ostr << num_triangles << endl;
+  for (int t = 0; t < num_triangles; ++t) {
+    ostr << triangulation.triangles[t];
+  }
+
+  return ostr;
+}
+
+ostream& operator<<(std::ostream& ostr, const LineRoom& line_room) {
+  const int num_words = line_room.name.size();
+  ostr << static_cast<int>(num_words) << endl;
+
+  if (num_words != 0) {
+    for (int w = 0; w < num_words; ++w)
+      ostr << line_room.name[w] << endl;
+  }
+  const int num_vertices = static_cast<int>(line_room.vertices.size());
+  ostr << num_vertices << endl;
+  
+  for (int v = 0; v < num_vertices; ++v) {
+    ostr << line_room.vertices[v][0] << ' ' << line_room.vertices[v][1] << endl;
+  }
+  
+  ostr << line_room.floor_height << ' '
+       << line_room.ceiling_height << endl;
+
+  for (int w = 0; w < num_vertices; ++w)
+    ostr << line_room.wall_triangulations[w];
+
+  ostr << line_room.floor_triangulation << ' ' << line_room.ceiling_triangulation << endl;
+  return ostr;
+}
+  
+ostream& operator<<(ostream& ostr, const LineDoor& line_door) {
+  for (int i = 0; i < 2; ++i) {
+    ostr << line_door.line_door_faces[i].room_id << ' '
+         << line_door.line_door_faces[i].wall_id << endl;
+  }
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      ostr << line_door.line_door_faces[i].vertex_indices[j] << ' ';
+    }
+    ostr << endl;
+  }
+
+  const int kNumTriangles = 8;
+  for (int t = 0; t < kNumTriangles; ++t) {
+    ostr << line_door.triangles[t];
+  }
+  
+  return ostr;
 }
   
 }  // namespace
@@ -188,13 +275,13 @@ int Floorplan::GetNumWalls(const int room) const {
 int Floorplan::GetNumWallVertices(const int room, const int wall) const {
   return static_cast<int>(line_rooms[room].wall_triangulations[wall].vertices_in_uv.size());
 }
-int Floorplan::GetNumDoors() {
+int Floorplan::GetNumDoors() const {
   return static_cast<int>(line_doors.size());
 }
-int Floorplan::GetNumDoorVertices(const int /*door*/) {
+int Floorplan::GetNumDoorVertices(const int /*door*/) const {
   return 8;
 }
-int Floorplan::GetNumDoorTriangles(const int /*door*/) {
+int Floorplan::GetNumDoorTriangles(const int /*door*/) const {
   return 8;
 }
 
@@ -228,6 +315,25 @@ istream& operator>>(istream& istr, Floorplan& floorplan) {
     istr >> floorplan.line_doors[d];
   }
   return istr;
+}
+
+ostream& operator<<(ostream& ostr, const Floorplan& floorplan) {
+  for (int y = 0; y < 3; ++y) {
+    for (int x = 0; x < 3; ++x) {
+      ostr << floorplan.floorplan_to_global(y, x) << ' ';
+    }
+    ostr << endl;
+  }
+
+  ostr << floorplan.GetNumRooms() << endl;
+  for (int r = 0; r < floorplan.GetNumRooms(); ++r)
+    ostr << floorplan.line_rooms[r];
+
+  ostr << floorplan.GetNumDoors() << endl;
+  for (int d = 0; d < floorplan.GetNumDoors(); ++d) {
+    ostr << floorplan.line_doors[d];
+  }
+  return ostr;
 }
 
 /*

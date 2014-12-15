@@ -34,9 +34,9 @@ class Floorplan {
   int GetNumRoomVertices(const int room) const;
   int GetNumWalls(const int room) const;
   int GetNumWallVertices(const int room, const int wall) const;
-  int GetNumDoors();
-  int GetNumDoorVertices(const int door);
-  int GetNumDoorTriangles(const int door);
+  int GetNumDoors() const;
+  int GetNumDoorVertices(const int door) const;
+  int GetNumDoorTriangles(const int door) const;
   
   int GetNumWallTriangles(const int room, const int wall) const;
   int GetNumFloorTriangles(const int room) const;
@@ -52,8 +52,10 @@ class Floorplan {
   std::vector<LineDoor> line_doors;
 
   friend std::istream& operator>>(std::istream& istr, Floorplan& floorplan);
+  friend std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);
 };
 
 std::istream& operator>>(std::istream& istr, Floorplan& floorplan);
+std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);
 
 #endif  // FLOORPLAN_H__

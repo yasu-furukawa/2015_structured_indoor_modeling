@@ -30,10 +30,7 @@ struct Input {
   vector<PanoramaConfiguration> panorama_configurations;
 
   // Input (floorplan).
-  LineFloorplan line_floorplan;
-
-  // Input (transformation)
-  Eigen::Matrix3d floorplan_to_global;
+  Floorplan floorplan;
 };
 
 Eigen::Vector2d Project(const Eigen::Vector3d& xyz,
@@ -84,24 +81,10 @@ void Init(const string& data_directory, Input *input) {
 
   {
     ifstream ifstr;
-    ifstr.open(file_io.GetLineFloorplan().c_str());
-    ifstr >> input->line_floorplan;
+    ifstr.open(file_io.GetFloorplan().c_str());
+    ifstr >> input->floorplan;
     ifstr.close();
   }
-  /*
-  {
-    ifstream ifstr;
-    ifstr.open(file_io.GetRotationMat().c_str());
-
-    for (int y = 0; y < 3; ++y) {
-      for (int x = 0; x < 3; ++x) {
-        ifstr >> input->floorplan_to_global(y, x);
-      }
-    }
-    ifstr.close();
-  }
-  */
-  input->floorplan_to_global = input->line_floorplan.floorplan_to_global;
 }
 
 int FindClosestPanorama(const vector<PanoramaConfiguration>& panorama_configurations,
@@ -120,17 +103,18 @@ int FindClosestPanorama(const vector<PanoramaConfiguration>& panorama_configurat
 
 int FindInsidePanorama(const vector<PanoramaConfiguration>& panorama_configurations,
                        const Vector3d& room_center,
-                       const LineRoom& line_room,
-                       const Matrix3d& floorplan_to_global) {
+                       const Floorplan& floorplan,
+                       const int room) {
   vector<cv::Point> contour;
-  for (int w = 0; w < line_room.walls.size(); ++w) {
-    contour.push_back(cv::Point(line_room.walls[w][0], line_room.walls[w][1]));
+  for (int w = 0; w < floorplan.GetNumWalls(room); ++w) {
+    const Vector2d& point = floorplan.GetRoomVertexLocal(room, w);
+    contour.push_back(cv::Point(point[0], point[1]));
   }
   
   int best_panorama = -1;
   double best_distance = 0.0;
   for (int p = 0; p < panorama_configurations.size(); ++p) {
-    const Vector3d panorama_center = floorplan_to_global.transpose() * panorama_configurations[p].center;
+    const Vector3d panorama_center = floorplan.GetFloorplanToGlobal().transpose() * panorama_configurations[p].center;
     const cv::Point2f panorama_center2(panorama_center[0], panorama_center[1]);
     
     if (cv::pointPolygonTest(contour, panorama_center2, true) >= 0.0) {
@@ -211,12 +195,13 @@ void Render(const PanoramaConfiguration& panorama_configuration,
   }
 }
 
-bool IsInside(const LineRoom& line_room, const Vector2d& point) {
+bool IsInside(const Floorplan& floorplan, const int room, const Vector2d& point) {
   const cv::Point2f point_tmp(point[0], point[1]);
 
   vector<cv::Point> contour;
-  for (int w = 0; w < line_room.walls.size(); ++w) {
-    contour.push_back(cv::Point(line_room.walls[w][0], line_room.walls[w][1]));
+  for (int w = 0; w < floorplan.GetNumWalls(room); ++w) {
+    const Eigen::Vector2d& point = floorplan.GetRoomVertexLocal(room, w);
+    contour.push_back(cv::Point(point[0], point[1]));
   }
 
   if (cv::pointPolygonTest(contour, point_tmp, true) >= 0.0)
@@ -261,20 +246,17 @@ void FindFarPanoramaInRoom(const Input& input) {
 
 void FindPanoramaClosestToTheRoomCenter(const Input& input) {
   // For each room, identify the best panorama and the angle.
-  for (int room = 0; room < (int)input.line_floorplan.line_rooms.size(); ++room) {
-    const auto& line_room = input.line_floorplan.line_rooms[room];
+  for (int room = 0; room < input.floorplan.GetNumRooms(); ++room) {
     Vector2d center_before_rotation(0, 0);
-    for (const auto& wall : line_room.walls)
-      center_before_rotation += wall;
-    if (line_room.walls.empty()) {
-      cerr << "Impossible." << endl;
-      exit (1);
+    for (int w = 0; w < input.floorplan.GetNumWalls(room); ++w) {
+      center_before_rotation += input.floorplan.GetRoomVertexLocal(room, w);
     }
-    center_before_rotation /= line_room.walls.size();
+    center_before_rotation /= input.floorplan.GetNumWalls(room);
     const Vector3d room_center =
-      input.floorplan_to_global * Vector3d(center_before_rotation[0],
-                                center_before_rotation[1],
-                                (line_room.floor_height + line_room.ceiling_height) / 2.0);
+      input.floorplan.GetFloorplanToGlobal() * Vector3d(center_before_rotation[0],
+                                                        center_before_rotation[1],
+                                                        (input.floorplan.GetFloorHeight(room) +
+                                                         (input.floorplan.GetCeilingHeight(room)) / 2.0));
 
     // Find the best panorama. Inside the room, but most outside.
     const int kFindPanoramaMethod = 1;
@@ -286,8 +268,8 @@ void FindPanoramaClosestToTheRoomCenter(const Input& input) {
       best_panorama =
         FindInsidePanorama(input.panorama_configurations,
                            room_center,
-                           line_room,
-                           input.floorplan_to_global);
+                           input.floorplan,
+                           room);
       if (best_panorama == -1) {
         cerr << "Cannot find a panorama inside a room." << endl;
         best_panorama = FindClosestPanorama(input.panorama_configurations, room_center);
@@ -311,20 +293,21 @@ void FindPanoramaClosestToTheRoomCenter(const Input& input) {
 }
 
 void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
-  for (int room = 0; room < (int)input.line_floorplan.line_rooms.size(); ++room) {
+  for (int room = 0; room < input.floorplan.GetNumRooms(); ++room) {
     double length_unit = 0.0;
-    const auto& walls = input.line_floorplan.line_rooms[room].walls;
-    for (int w = 0; w < (int)walls.size(); ++w) {
-      const int next_w = (w + 1) % (int)walls.size();
-      length_unit += (walls[w] - walls[next_w]).norm();
+    const int num_walls = input.floorplan.GetNumWalls(room);
+    for (int w = 0; w < num_walls; ++w) {
+      const int next_w = (w + 1) % num_walls;
+      length_unit += (input.floorplan.GetRoomVertexLocal(room, w) -
+                      input.floorplan.GetRoomVertexLocal(room, next_w)).norm();
     }
     length_unit /= 100;
     
     for (int p = 0; p < (int)input.panoramas.size(); ++p) {
       const Vector3d panorama_center =
-        input.floorplan_to_global.transpose() * input.panorama_configurations[p].center;
+        input.floorplan.GetFloorplanToGlobal().transpose() * input.panorama_configurations[p].center;
       const Vector2d panorama_center2(panorama_center[0], panorama_center[1]);
-      if (!IsInside(input.line_floorplan.line_rooms[room], panorama_center2))
+      if (!IsInside(input.floorplan, room, panorama_center2))
         continue;
 
       // Compute the area of a room that is visible from a panorama.
@@ -335,7 +318,7 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
                      sin(2 * M_PI * a / kNumAngleSamples));
         for (int radius = 1; ;++radius) {
           const Vector2d point = panorama_center2 + radius * length_unit * ray;
-          if (IsInside(input.line_floorplan.line_rooms[room], point))
+          if (IsInside(input.floorplan, room, point))
             ++visible[a];
           else
             break;
@@ -363,7 +346,7 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
       Vector3d ray(cos(2 * M_PI * best_angle_index / kNumAngleSamples),
                    sin(2 * M_PI * best_angle_index / kNumAngleSamples),
                    0.0);
-      ray = input.floorplan_to_global * ray;
+      ray = input.floorplan.GetFloorplanToGlobal() * ray;
       ray[2] = 0.0;
       const Vector3d look_at = input.panorama_configurations[p].center + ray;
 
@@ -402,11 +385,11 @@ int main(int argc, char* argv[]) {
     FindPanoramaClosestToTheRoomCenter(input);
   };
     
-  if (0) {
+  if (1) {
     FindFarPanoramaInRoom(input);
   }
 
-  if (1) {
+  if (0) {
     FindThumbnailPerRoomFromEachPanorama(input);
   }
   

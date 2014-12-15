@@ -101,12 +101,12 @@ int main(int argc, char* argv[]) {
   {
     ReadPanoramaToGlobals(file_io, FLAGS_num_panorams, &panorama_to_globals);
   }
-  LineFloorplan line_floorplan;
+  Floorplan floorplan;
   {
-    const string filename = file_io.GetLineFloorplan();
+    const string filename = file_io.GetFloorplan();
     ifstream ifstr;
     ifstr.open(filename.c_str());
-    ifstr >> line_floorplan;
+    ifstr >> floorplan;
     ifstr.close();
   }
   vector<Matrix4d> global_to_panoramas;
@@ -114,4 +114,6 @@ int main(int argc, char* argv[]) {
     Invert(panorama_to_globals, &global_to_panoramas);
   }
 
+  
+  
 }
