@@ -29,12 +29,14 @@ class FloorplanRenderer : protected QGLFunctions {
   void Render(const FloorplanStyle& style, const double alpha);
 
  private:
+  /*
   void RenderShape(const Shape& shape,
                    const double floor_height,
                    const PolygonStyle& style,
                    const double alpha);
+  */
   
-  Floorplan floorplan;
+  //Floorplan floorplan;
   Eigen::Matrix3d floorplan_to_global;
 };
 

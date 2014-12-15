@@ -2,6 +2,7 @@
 #define NAVIGATION_H__
 
 #include <Eigen/Dense>
+#include <map>
 #include <vector>
 
 class PanoramaRenderer;
@@ -70,7 +71,9 @@ struct CameraPanoramaTour {
 class Navigation {
  public:
   Navigation(const std::vector<PanoramaRenderer>& panorama_renderers,
-             const PolygonRenderer& polygon_renderer);
+             const PolygonRenderer& polygon_renderer,
+             const std::map<int, int>& panorama_to_room,
+             const std::map<int, int>& room_to_panorama);
 
   // Accessors.
   Eigen::Vector3d GetCenter() const;
@@ -125,6 +128,8 @@ class Navigation {
 
   const std::vector<PanoramaRenderer>& panorama_renderers;
   const PolygonRenderer& polygon_renderer;
+  const std::map<int, int>& panorama_to_room;
+  const std::map<int, int>& room_to_panorama;
 };
 
 #endif  // NAVIGATION_H__

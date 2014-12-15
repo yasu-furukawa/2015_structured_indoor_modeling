@@ -103,19 +103,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named floorplan_generation_cli
-
-# Build rule for target.
-floorplan_generation_cli: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 floorplan_generation_cli
-.PHONY : floorplan_generation_cli
-
-# fast build rule for target.
-floorplan_generation_cli/fast:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/build
-.PHONY : floorplan_generation_cli/fast
-
-#=============================================================================
 # Target rules for targets named generate_thumbnail_cli
 
 # Build rule for target.
@@ -157,7 +144,6 @@ floorplan.o: floorplan.cc.o
 
 # target to build an object file
 floorplan.cc.o:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan.cc.o
 	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/floorplan.cc.o
 .PHONY : floorplan.cc.o
 
@@ -166,7 +152,6 @@ floorplan.i: floorplan.cc.i
 
 # target to preprocess a source file
 floorplan.cc.i:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan.cc.i
 	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/floorplan.cc.i
 .PHONY : floorplan.cc.i
 
@@ -175,57 +160,8 @@ floorplan.s: floorplan.cc.s
 
 # target to generate assembly for a file
 floorplan.cc.s:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan.cc.s
 	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/floorplan.cc.s
 .PHONY : floorplan.cc.s
-
-floorplan_generation_cli.o: floorplan_generation_cli.cc.o
-.PHONY : floorplan_generation_cli.o
-
-# target to build an object file
-floorplan_generation_cli.cc.o:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_generation_cli.cc.o
-.PHONY : floorplan_generation_cli.cc.o
-
-floorplan_generation_cli.i: floorplan_generation_cli.cc.i
-.PHONY : floorplan_generation_cli.i
-
-# target to preprocess a source file
-floorplan_generation_cli.cc.i:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_generation_cli.cc.i
-.PHONY : floorplan_generation_cli.cc.i
-
-floorplan_generation_cli.s: floorplan_generation_cli.cc.s
-.PHONY : floorplan_generation_cli.s
-
-# target to generate assembly for a file
-floorplan_generation_cli.cc.s:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_generation_cli.cc.s
-.PHONY : floorplan_generation_cli.cc.s
-
-floorplan_util.o: floorplan_util.cc.o
-.PHONY : floorplan_util.o
-
-# target to build an object file
-floorplan_util.cc.o:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_util.cc.o
-.PHONY : floorplan_util.cc.o
-
-floorplan_util.i: floorplan_util.cc.i
-.PHONY : floorplan_util.i
-
-# target to preprocess a source file
-floorplan_util.cc.i:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_util.cc.i
-.PHONY : floorplan_util.cc.i
-
-floorplan_util.s: floorplan_util.cc.s
-.PHONY : floorplan_util.s
-
-# target to generate assembly for a file
-floorplan_util.cc.s:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/floorplan_util.cc.s
-.PHONY : floorplan_util.cc.s
 
 generate_thumbnail_cli.o: generate_thumbnail_cli.cc.o
 .PHONY : generate_thumbnail_cli.o
@@ -251,30 +187,6 @@ generate_thumbnail_cli.cc.s:
 	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/generate_thumbnail_cli.cc.s
 .PHONY : generate_thumbnail_cli.cc.s
 
-polygon_triangulation2.o: polygon_triangulation2.cc.o
-.PHONY : polygon_triangulation2.o
-
-# target to build an object file
-polygon_triangulation2.cc.o:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/polygon_triangulation2.cc.o
-.PHONY : polygon_triangulation2.cc.o
-
-polygon_triangulation2.i: polygon_triangulation2.cc.i
-.PHONY : polygon_triangulation2.i
-
-# target to preprocess a source file
-polygon_triangulation2.cc.i:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/polygon_triangulation2.cc.i
-.PHONY : polygon_triangulation2.cc.i
-
-polygon_triangulation2.s: polygon_triangulation2.cc.s
-.PHONY : polygon_triangulation2.s
-
-# target to generate assembly for a file
-polygon_triangulation2.cc.s:
-	$(MAKE) -f CMakeFiles/floorplan_generation_cli.dir/build.make CMakeFiles/floorplan_generation_cli.dir/polygon_triangulation2.cc.s
-.PHONY : polygon_triangulation2.cc.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -282,7 +194,6 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
-	@echo "... floorplan_generation_cli"
 	@echo "... generate_thumbnail_cli"
 	@echo "... rebuild_cache"
 	@echo "... Users/furukawa/research/structured_indoor_modeling/code/viewer/configuration.o"
@@ -291,18 +202,9 @@ help:
 	@echo "... floorplan.o"
 	@echo "... floorplan.i"
 	@echo "... floorplan.s"
-	@echo "... floorplan_generation_cli.o"
-	@echo "... floorplan_generation_cli.i"
-	@echo "... floorplan_generation_cli.s"
-	@echo "... floorplan_util.o"
-	@echo "... floorplan_util.i"
-	@echo "... floorplan_util.s"
 	@echo "... generate_thumbnail_cli.o"
 	@echo "... generate_thumbnail_cli.i"
 	@echo "... generate_thumbnail_cli.s"
-	@echo "... polygon_triangulation2.o"
-	@echo "... polygon_triangulation2.i"
-	@echo "... polygon_triangulation2.s"
 .PHONY : help
 
 

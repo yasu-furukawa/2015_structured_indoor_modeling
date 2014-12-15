@@ -13,8 +13,9 @@ FloorplanRenderer::FloorplanRenderer() {
 FloorplanRenderer::~FloorplanRenderer() {
 }
 
-void FloorplanRenderer::Init(const std::string data_directory,
-                             const Eigen::Matrix3d& floorplan_to_global_tmp) {
+void FloorplanRenderer::Init(const std::string /*data_directory*/,
+                             const Eigen::Matrix3d& /*floorplan_to_global_tmp*/) {
+  /*
   file_io::FileIO file_io(data_directory);
   {
     ifstream ifstr;
@@ -23,8 +24,10 @@ void FloorplanRenderer::Init(const std::string data_directory,
     ifstr.close();
   }
   floorplan_to_global = floorplan_to_global_tmp;
+  */
 }
 
+  /*
 void FloorplanRenderer::RenderShape(const Shape& shape,
                                     const double floor_height,
                                     const PolygonStyle& style,
@@ -56,8 +59,10 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
 
   //glDisable(GL_BLEND);
 }
+  */
 
-void FloorplanRenderer::Render(const FloorplanStyle& style, const double alpha) {
+void FloorplanRenderer::Render(const FloorplanStyle& /*style*/, const double /*alpha*/) {
+  /*
   for (const auto& component : floorplan.components) {
     RenderShape(component.outer_shape,
                 floorplan.floor_height,
@@ -70,4 +75,5 @@ void FloorplanRenderer::Render(const FloorplanStyle& style, const double alpha) 
                   alpha);
     }
   }
+  */
 }
