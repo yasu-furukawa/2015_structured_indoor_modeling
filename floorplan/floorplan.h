@@ -27,7 +27,7 @@ class Floorplan {
 
   double GetFloorHeight(const int room) const;
   double GetCeilingHeight(const int room) const;
-
+  
   const std::vector<std::string>& GetRoomName(const int room) const;
   
   int GetNumRooms() const;
@@ -42,6 +42,10 @@ class Floorplan {
   int GetNumFloorTriangles(const int room) const;
   int GetNumCeilingTriangles(const int room) const;
 
+  const WallTriangulation& GetWallTriangulation(const int room, const int wall) const;
+  const FloorCeilingTriangulation& GetFloorTriangulation(const int room) const;
+  const FloorCeilingTriangulation& GetCeilingTriangulation(const int room) const;
+  
  private:
   //----------------------------------------------------------------------
   // Transformation from floorplan to global.

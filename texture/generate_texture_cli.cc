@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
 
   // Read data from the directory.
   file_io::FileIO file_io(argv[1]);
-  vector<cv::Mat> panoramas;
+  vector<vector<cv::Mat> > panoramas;
   {
     ReadPanoramas(file_io,
                   FLAGS_num_panoramas,
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
   vector<Matrix4d> panorama_to_globals;
   {
     ReadPanoramaToGlobals(file_io, FLAGS_num_panorams, &panorama_to_globals);
-  }
+   }
   Floorplan floorplan;
   {
     const string filename = file_io.GetFloorplan();
@@ -114,6 +114,12 @@ int main(int argc, char* argv[]) {
     Invert(panorama_to_globals, &global_to_panoramas);
   }
 
+  // For each wall rectangle, floor, and ceiling,
+  // 1. grab texture
+  // 2. stitch
+  
+  
+  
   
   
 }

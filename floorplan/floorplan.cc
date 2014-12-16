@@ -295,6 +295,19 @@ int Floorplan::GetNumCeilingTriangles(const int room) const {
   return static_cast<int>(line_rooms[room].ceiling_triangulation.triangles.size());
 }
 
+const WallTriangulation& Floorplan::GetWallTriangulation(const int room,
+                                                         const int wall) const {
+  return line_rooms[room].wall_triangulations[wall];
+}
+
+const FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) const {
+  return line_rooms[room].floor_triangulation];
+}
+
+const FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) const {
+  return line_rooms[room].ceiling_triangulation];
+}
+
 //----------------------------------------------------------------------
 istream& operator>>(istream& istr, Floorplan& floorplan) {
   for (int y = 0; y < 3; ++y)
