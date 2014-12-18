@@ -115,9 +115,32 @@ int main(int argc, char* argv[]) {
   }
 
   // For each wall rectangle, floor, and ceiling,
-  // 1. grab texture
-  // 2. stitch
-  
+  // 0. Identify visible panoramas.
+  // 1. Grab texture
+  // 2. Stitch
+
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+      const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
+      Domain domain;
+      domain.vertices[0] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, wall)[1],
+                                    floorplan.GetFloorHeight(room));
+      domain.vertices[1] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, next_wall)[1],
+                                    floorplan.GetFloorHeight(room));
+      domain.vertices[2] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, next_wall)[1],
+                                    floorplan.GetCeilingHeight(room));
+      domain.vertices[3] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, wall)[1],
+                                    floorplan.GetCeilingHeight(room));
+      
+      // Identify visible panoramas.
+      vector<int> visible_panoramas;
+      FindVisiblePanoramas(global_to_panoramas, domain
+                   
+      
   
   
   
