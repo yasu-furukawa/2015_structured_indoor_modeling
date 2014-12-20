@@ -166,13 +166,14 @@ PolygonRenderer::PolygonRenderer() {
 PolygonRenderer::~PolygonRenderer() {
 }
 
-void PolygonRenderer::RenderWireframe(const int room, const double alpha) {
+void PolygonRenderer::RenderWireframe(const int /*room*/, const double /*alpha*/) {
+  /*
   if (room < 0 ||
-      static_cast<int>(line_floorplan.line_rooms.size()) <= room) {
+      static_cast<int>(floorplan.line_rooms.size()) <= room) {
     cerr << "Index out of bounds: " << room << endl;
     exit (1);
   }
-  const LineRoom& line_room = line_floorplan.line_rooms[room];
+  const LineRoom& line_room = floorplan.line_rooms[room];
 
   // Floor.
   glDisable(GL_TEXTURE_2D);
@@ -198,10 +199,10 @@ void PolygonRenderer::RenderWireframe(const int room, const double alpha) {
                              line_room.walls[nextc][1],
                              line_room.ceiling_height);
     
-    floor0 = line_floorplan.floorplan_to_global * floor0;
-    floor1 = line_floorplan.floorplan_to_global * floor1;
-    ceiling0 = line_floorplan.floorplan_to_global * ceiling0;
-    ceiling1 = line_floorplan.floorplan_to_global * ceiling1;
+    floor0 = floorplan.floorplan_to_global * floor0;
+    floor1 = floorplan.floorplan_to_global * floor1;
+    ceiling0 = floorplan.floorplan_to_global * ceiling0;
+    ceiling1 = floorplan.floorplan_to_global * ceiling1;
 
     glVertex3f(floor0[0], floor0[1], floor0[2]);
     glVertex3f(floor1[0], floor1[1], floor1[2]);
@@ -211,23 +212,15 @@ void PolygonRenderer::RenderWireframe(const int room, const double alpha) {
 
     glVertex3f(floor0[0], floor0[1], floor0[2]);
     glVertex3f(ceiling0[0], ceiling0[1], ceiling0[2]);
-               
-    /*
-    glVertex3f(line_room.walls[c][0],
-               line_room.walls[c][1],
-               line_room.floor_height);
-    glVertex3f(line_room.walls[nextc][0],
-               line_room.walls[nextc][1],
-               line_room.floor_height);
-    */
   }
   glEnd();
   glDisable(GL_BLEND);
   glEnable(GL_DEPTH_TEST);
+  */
 }
 
 void PolygonRenderer::RenderWireframeAll(const double alpha) {
-  for (int r = 0; r < static_cast<int>(line_floorplan.line_rooms.size()); ++r) {
+  for (int r = 0; r < floorplan.GetNumRooms(); ++r) {
     RenderWireframe(r, alpha);
   }
 }
@@ -236,40 +229,42 @@ void PolygonRenderer::Init(const string data_directory) {
   file_io::FileIO file_io(data_directory);
   
   ifstream ifstr;
-  ifstr.open(file_io.GetLineFloorplan().c_str());
-  ifstr >> line_floorplan;
+  ifstr.open(file_io.GetFloorplan().c_str());
+  ifstr >> floorplan;
   ifstr.close();
 
   //----------------------------------------------------------------------
-  room_centers.resize(line_floorplan.line_rooms.size());
-  for (int room = 0; room < (int)room_centers.size(); ++room) {
-    const LineRoom& line_room = line_floorplan.line_rooms[room];
-    
-    room_centers[room] = Vector2d(0, 0);
+  const int num_room = floorplan.GetNumRooms();
+  room_centers_local.resize(num_room);
+  for (int room = 0; room < num_room; ++room) {
+    const int num_wall = floorplan.GetNumWalls(room);
+    room_centers_local[room] = Vector2d(0, 0);
     double denom = 0;
-    const int wall_num = (int)line_room.walls.size();
-    for (int w = 0; w < wall_num; ++w) {
-      const int prev_w = ((w - 1) + wall_num) % wall_num;
-      const int next_w = (w + 1) % wall_num;
-      const double length = (line_room.walls[w] - line_room.walls[prev_w]).norm() +
-        (line_room.walls[w] - line_room.walls[next_w]).norm();
-      room_centers[room] += line_room.walls[w] * length;
+    for (int wall = 0; wall < num_wall; ++wall) {
+      const int prev_wall = ((wall - 1) + num_wall) % num_wall;
+      const int next_wall = (wall + 1) % num_wall;
+      const double length =
+        (floorplan.GetRoomVertexLocal(room, wall) -
+         floorplan.GetRoomVertexLocal(room, prev_wall)).norm() +
+        (floorplan.GetRoomVertexLocal(room, wall) -
+         floorplan.GetRoomVertexLocal(room, next_wall)).norm();
+      room_centers_local[room] += floorplan.GetRoomVertexLocal(room, wall) * length;
       denom += length;
     }
     if (denom == 0.0) {
       cerr << "Impossible." << endl;
       exit (1);
     }
-    room_centers[room] /= denom;
+    room_centers_local[room] /= denom;
     /*
     for (const auto& wall : line_room.walls) {
-      room_centers[room] += wall;
+      room_centers_local[room] += wall;
     }
     if (line_room.walls.empty()) {
       cerr << "Impossible." << endl;
       exit (1);
     }
-    room_centers[room] /= line_room.walls.size();
+    room_centers_local[room] /= line_room.walls.size();
     */
   }  
 }
@@ -281,17 +276,17 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const int room_not_rendered,
                                     const int room_highlighted,
                                     const bool render_room_id) {
-  const Vector3d local_center = line_floorplan.floorplan_to_global.transpose() * center;
+  const Vector3d local_center = floorplan.GetFloorplanToGlobal().transpose() * center;
 
-  vector<double> distances(room_centers.size(), 0.0);
-  for (int room = 0; room < (int)room_centers.size(); ++room) {
+  vector<double> distances(room_centers_local.size(), 0.0);
+  for (int room = 0; room < (int)room_centers_local.size(); ++room) {
     distances[room] = (Vector2d(local_center[0], local_center[1]) -
-                       room_centers[room]).norm();
+                       room_centers_local[room]).norm();
   }
-  vector<int> room_orders(room_centers.size(), -1);
+  vector<int> room_orders(room_centers_local.size(), -1);
   {
     vector<pair<double, int> > distances_room;
-    for (int room = 0; room < (int)room_centers.size(); ++room) {
+    for (int room = 0; room < (int)room_centers_local.size(); ++room) {
       if (room == room_not_rendered)
         continue;
       distances_room.push_back(pair<double, int>(distances[room], room));
@@ -304,14 +299,15 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
 
   double average_length = 0.0;
   {
-    for (const auto& line_room : line_floorplan.line_rooms) {
-      average_length += line_room.floor_height - line_room.ceiling_height; // ????
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      average_length += floorplan.GetCeilingHeight(room) -
+        floorplan.GetFloorHeight(room);
     }
-    average_length /= (int)line_floorplan.line_rooms.size();
+    average_length /= floorplan.GetNumRooms();
   }
   
   Walls walls;
-  for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     if (room == room_not_rendered)
       continue;
 
@@ -320,27 +316,28 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
       color = Vector3d(1, 1, 1);
     const Vector3i colori(0, 0, room + 1);
     
-    const LineRoom& line_room = line_floorplan.line_rooms[room];
-    for (int w = 0; w < (int)line_room.walls.size(); ++w) {
-      const int next_w = (w + 1) % line_room.walls.size();
+    // const LineRoom& line_room = floorplan.line_rooms[room];
+    const int num_walls = floorplan.GetNumWalls(room);
+    for (int w = 0; w < num_walls; ++w) {
+      const int next_w = (w + 1) % num_walls;
       Wall wall;
-      wall.points[0] = line_room.walls[w];
-      wall.points[1] = line_room.walls[next_w];
-      wall.floor_height   = line_room.ceiling_height;
+      wall.points[0] = floorplan.GetRoomVertexLocal(room, w);
+      wall.points[1] = floorplan.GetRoomVertexLocal(room, next_w);
+      wall.floor_height   = floorplan.GetFloorHeight(room);
       //????
       //      wall.floor_height   = line_room.ceiling_height + (line_room.floor_height - line_room.ceiling_height) * 0.1;
 
       double target_length;
       if (depth_order_height_adjustment) {
         target_length =
-          average_length * (room_orders[room] + 1) / ((int)room_centers.size() - 1);
+          average_length * (room_orders[room] + 1) / ((int)room_centers_local.size() - 1);
       }
       else {
         target_length = average_length * 0.2;
       }
-      const double target_ceiling_height = line_room.ceiling_height + target_length;
+      const double target_ceiling_height = floorplan.GetFloorHeight(room) + target_length;
 
-      wall.ceiling_height = line_room.floor_height + (target_ceiling_height - line_room.floor_height) * height_adjustment;
+      wall.ceiling_height = floorplan.GetCeilingHeight(room) + (target_ceiling_height - floorplan.GetCeilingHeight(room)) * height_adjustment;
       
       wall.color = color;
       wall.colori = colori;
@@ -350,6 +347,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   
   SortWalls(Vector2d(local_center[0], local_center[1]), &walls);
 
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   glBegin(GL_TRIANGLES);
   for (const auto& wall : walls) {
     Eigen::Vector3d floor0(wall.points[0][0],
@@ -366,10 +364,10 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                            wall.points[1][1],
                            wall.ceiling_height);
     
-    floor0   = line_floorplan.floorplan_to_global * floor0;
-    floor1   = line_floorplan.floorplan_to_global * floor1;
-    ceiling0 = line_floorplan.floorplan_to_global * ceiling0;
-    ceiling1 = line_floorplan.floorplan_to_global * ceiling1;
+    floor0   = floorplan_to_global * floor0;
+    floor1   = floorplan_to_global * floor1;
+    ceiling0 = floorplan_to_global * ceiling0;
+    ceiling1 = floorplan_to_global * ceiling1;
 
     if (render_room_id)
       glColor4ub(wall.colori[0], wall.colori[1], wall.colori[2], 255);

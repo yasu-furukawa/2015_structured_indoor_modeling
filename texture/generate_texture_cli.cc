@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
 
   // Read data from the directory.
   file_io::FileIO file_io(argv[1]);
-  vector<cv::Mat> panoramas;
+  vector<vector<cv::Mat> > panoramas;
   {
     ReadPanoramas(file_io,
                   FLAGS_num_panoramas,
@@ -100,13 +100,13 @@ int main(int argc, char* argv[]) {
   vector<Matrix4d> panorama_to_globals;
   {
     ReadPanoramaToGlobals(file_io, FLAGS_num_panorams, &panorama_to_globals);
-  }
-  LineFloorplan line_floorplan;
+   }
+  Floorplan floorplan;
   {
-    const string filename = file_io.GetLineFloorplan();
+    const string filename = file_io.GetFloorplan();
     ifstream ifstr;
     ifstr.open(filename.c_str());
-    ifstr >> line_floorplan;
+    ifstr >> floorplan;
     ifstr.close();
   }
   vector<Matrix4d> global_to_panoramas;
@@ -114,4 +114,35 @@ int main(int argc, char* argv[]) {
     Invert(panorama_to_globals, &global_to_panoramas);
   }
 
+  // For each wall rectangle, floor, and ceiling,
+  // 0. Identify visible panoramas.
+  // 1. Grab texture
+  // 2. Stitch
+
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+      const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
+      Domain domain;
+      domain.vertices[0] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, wall)[1],
+                                    floorplan.GetFloorHeight(room));
+      domain.vertices[1] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, next_wall)[1],
+                                    floorplan.GetFloorHeight(room));
+      domain.vertices[2] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, next_wall)[1],
+                                    floorplan.GetCeilingHeight(room));
+      domain.vertices[3] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
+                                    floorplan.GetRoomVertexLocal(room, wall)[1],
+                                    floorplan.GetCeilingHeight(room));
+      
+      // Identify visible panoramas.
+      vector<int> visible_panoramas;
+      FindVisiblePanoramas(global_to_panoramas, domain
+                   
+      
+  
+  
+  
+  
 }

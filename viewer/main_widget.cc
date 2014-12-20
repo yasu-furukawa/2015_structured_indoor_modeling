@@ -15,14 +15,19 @@ using namespace std;
 
 const int kNumBuffers = 2;
 
+const double MainWidget::kRenderMargin = 0.2;
+const double MainWidget::kFadeInSeconds = 0.2;
+const double MainWidget::kFadeOutSeconds = 1.5;
+
 namespace {
 
-bool IsInside(const LineRoom& line_room, const Vector2d& point) {
+bool IsInside(const Floorplan floorplan, const int room, const Vector2d& point) {
   const cv::Point2f point_tmp(point[0], point[1]);
 
   vector<cv::Point> contour;
-  for (int w = 0; w < (int)line_room.walls.size(); ++w) {
-    contour.push_back(cv::Point(line_room.walls[w][0], line_room.walls[w][1]));
+  for (int w = 0; w < floorplan.GetNumWalls(room); ++w) {
+    const Eigen::Vector2d local = floorplan.GetRoomVertexLocal(room, w);
+    contour.push_back(cv::Point(local[0], local[1]));
   }
 
   if (cv::pointPolygonTest(contour, point_tmp, true) >= 0.0)
@@ -37,7 +42,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   configuration(configuration),
   panel_renderer(polygon_renderer, viewport),  
-  navigation(panorama_renderers, polygon_renderer) {
+  navigation(panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
 
   panorama_renderers.resize(configuration.panorama_configurations.size());
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
@@ -45,7 +50,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   }
   polygon_renderer.Init(configuration.data_directory);
   floorplan_renderer.Init(configuration.data_directory,
-                          polygon_renderer.GetLineFloorplan().floorplan_to_global);
+                          polygon_renderer.GetFloorplan().GetFloorplanToGlobal());
   panel_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
@@ -181,6 +186,12 @@ void MainWidget::SetMatrices() {
     exit (1);
   }
 
+  if (isnan(center[0]) || isnan(center[1]) || isnan(center[2]) ||
+      isnan(direction[0]) || isnan(direction[1]) || isnan(direction[2]))
+    cerr << "black?" << endl
+         << center << endl
+         << direction << endl;
+  
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],
             0, 0, 1);
@@ -463,11 +474,12 @@ void MainWidget::RenderThumbnail(const double alpha, const int room_highlighted)
 
 void MainWidget::RenderAllThumbnails(const double alpha, const int room_highlighted) {
   // Make thumbnails smaller when rendering everything.
-  const double kScale = 0.7;
+  const double kScale = 0.5;
 
-  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
-  vector<Vector2i> room_centers((int)line_floorplan.line_rooms.size());
-  for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+  const Floorplan& floorplan = polygon_renderer.GetFloorplan();
+  const int num_room = floorplan.GetNumRooms();
+  vector<Vector2i> room_centers(num_room);
+  for (int room = 0; room < num_room; ++room) {
     const Vector3d& center = polygon_renderer.GetRoomCenterFloorGlobal(room);
     GLdouble u, v, w;
     gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
@@ -682,10 +694,10 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
         RightAfterSimpleClick(0.0)) {
       const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
                                                                 mousePressPosition[1]));
-      
       //simple_click_time.start();
       if (room_highlighted != -1) {
         vector<int> indexes;
+
         FindPanoramaPath(navigation.GetCameraPanorama().start_index,
                          room_to_panorama[room_highlighted],
                          &indexes);
@@ -902,8 +914,8 @@ double MainWidget::HeightAdjustmentFunction(const double elapsed,
 }
 
 void MainWidget::SetPanoramaToRoom() {
-  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
-  const Eigen::Matrix3d& floorplan_to_global = polygon_renderer.GetFloorplanToGlobal();
+  const Floorplan& floorplan = polygon_renderer.GetFloorplan();
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
     const Vector3d global_center = panorama_renderers[p].GetCenter();
@@ -911,8 +923,8 @@ void MainWidget::SetPanoramaToRoom() {
     const Vector2d floorplan_center2(floorplan_center[0], floorplan_center[1]);
            
     int room_id = -1;
-    for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
-      if (IsInside(line_floorplan.line_rooms[room], floorplan_center2)) {
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      if (IsInside(floorplan, room, floorplan_center2)) {
         room_id = room;
         break;
       }
@@ -922,10 +934,10 @@ void MainWidget::SetPanoramaToRoom() {
 }
 
 void MainWidget::SetRoomToPanorama() {
-  const LineFloorplan& line_floorplan = polygon_renderer.GetLineFloorplan();
-  const Eigen::Matrix3d& floorplan_to_global = polygon_renderer.GetFloorplanToGlobal();
+  const Floorplan& floorplan = polygon_renderer.GetFloorplan();
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
 
-  for (int room = 0; room < (int)line_floorplan.line_rooms.size(); ++room) {
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const Vector2d room_center = polygon_renderer.GetRoomCenter(room);
     
     // Find the closest panorama.

@@ -21,30 +21,28 @@ class PolygonRenderer : protected QGLFunctions {
   void Init(const std::string data_directory);
   // void InitGL();
 
-  const LineFloorplan& GetLineFloorplan() const { return line_floorplan; }
-  const Eigen::Matrix3d& GetFloorplanToGlobal() const { return floorplan_to_global; }
-  Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers[room]; }
+  const Floorplan& GetFloorplan() const { return floorplan; }
+  Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers_local[room]; }
   Eigen::Vector3d GetRoomCenterGlobal(const int room) const {
     const Eigen::Vector2d center = GetRoomCenter(room);
-    return floorplan_to_global *
+    return floorplan.GetFloorplanToGlobal() *
       Eigen::Vector3d(center[0],
                       center[1],
-                      (line_floorplan.line_rooms[room].floor_height + 
-                       line_floorplan.line_rooms[room].ceiling_height) / 2.0);
+                      (floorplan.GetFloorHeight(room) +
+                       floorplan.GetCeilingHeight(room)) / 2.0);
   }
   Eigen::Vector3d GetRoomCenterFloorGlobal(const int room) const {
     const Eigen::Vector2d center = GetRoomCenter(room);
-    return floorplan_to_global *
+    return floorplan.GetFloorplanToGlobal() *
       Eigen::Vector3d(center[0],
                       center[1],
-                      line_floorplan.line_rooms[room].ceiling_height);
+                      floorplan.GetFloorHeight(room));
   }
   
  private:  
-  LineFloorplan line_floorplan;
-  Eigen::Matrix3d floorplan_to_global;
+  Floorplan floorplan;
 
-  std::vector<Eigen::Vector2d> room_centers;
+  std::vector<Eigen::Vector2d> room_centers_local;
 };
 
 #endif  // POLYGON_RENDERER_H__

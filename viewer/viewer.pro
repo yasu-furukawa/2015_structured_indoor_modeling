@@ -31,7 +31,8 @@ qtHaveModule(opengl) {
         panel_renderer.h \
         polygon_renderer.h \
         ../calibration/file_io.h \
-        ../floorplan/floorplan.h
+        ../floorplan/floorplan.h \
+        ../floorplan/floorplan_internal.h
 
     RESOURCES += \
         shaders.qrc
