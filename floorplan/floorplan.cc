@@ -301,11 +301,11 @@ const WallTriangulation& Floorplan::GetWallTriangulation(const int room,
 }
 
 const FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) const {
-  return line_rooms[room].floor_triangulation];
+  return line_rooms[room].floor_triangulation;
 }
 
 const FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) const {
-  return line_rooms[room].ceiling_triangulation];
+  return line_rooms[room].ceiling_triangulation;
 }
 
 //----------------------------------------------------------------------

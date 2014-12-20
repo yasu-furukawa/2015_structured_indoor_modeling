@@ -10,15 +10,15 @@
 class Panorama {
 public:
   Panorama();
-  void Init(const file_io::FileIO& file_io,
+  bool Init(const file_io::FileIO& file_io,
             const int panorama);
 
   Eigen::Vector2d Project(const Eigen::Vector3d& global) const;
   Eigen::Vector3d Unproject(const Eigen::Vector2d& pixel,
                             const double distance) const;
 
-  Eigen::Vector3d GlobalToLocal(const Eigen::Vector3d& global_xyz) const;
-  Eigen::Vector3d LocalToGlobal(const Eigen::Vector3d& local_xyz) const;
+  Eigen::Vector3d GlobalToLocal(const Eigen::Vector3d& global) const;
+  Eigen::Vector3d LocalToGlobal(const Eigen::Vector3d& local) const;
 
   const Eigen::Vector3d& GetCenter() const { return center; }
 
@@ -33,6 +33,11 @@ public:
   int Height() const { return height; }
   int DepthWidth() const { return depth_width; }
   int DepthHeight() const { return depth_height; }
+
+  bool IsInsideRGB(const Eigen::Vector2d& pixel) const;
+  bool IsInsideDepth(const Eigen::Vector2d& depth_pixel) const;
+
+  void ResizeRGB(const Eigen::Vector2i& size);
   
 private:
   void InitDepthImage(const file_io::FileIO& file_io,

@@ -187,6 +187,30 @@ generate_thumbnail_cli.cc.s:
 	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/generate_thumbnail_cli.cc.s
 .PHONY : generate_thumbnail_cli.cc.s
 
+panorama.o: panorama.cc.o
+.PHONY : panorama.o
+
+# target to build an object file
+panorama.cc.o:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/panorama.cc.o
+.PHONY : panorama.cc.o
+
+panorama.i: panorama.cc.i
+.PHONY : panorama.i
+
+# target to preprocess a source file
+panorama.cc.i:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/panorama.cc.i
+.PHONY : panorama.cc.i
+
+panorama.s: panorama.cc.s
+.PHONY : panorama.s
+
+# target to generate assembly for a file
+panorama.cc.s:
+	$(MAKE) -f CMakeFiles/generate_thumbnail_cli.dir/build.make CMakeFiles/generate_thumbnail_cli.dir/panorama.cc.s
+.PHONY : panorama.cc.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -205,6 +229,9 @@ help:
 	@echo "... generate_thumbnail_cli.o"
 	@echo "... generate_thumbnail_cli.i"
 	@echo "... generate_thumbnail_cli.s"
+	@echo "... panorama.o"
+	@echo "... panorama.i"
+	@echo "... panorama.s"
 .PHONY : help
 
 

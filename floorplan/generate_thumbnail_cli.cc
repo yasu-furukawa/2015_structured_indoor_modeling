@@ -5,8 +5,9 @@
 #include <Eigen/Dense>
 
 #include "floorplan.h"
+#include "panorama.h"
 #include "../calibration/file_io.h"
-#include "../viewer/configuration.h"
+// #include "../viewer/configuration.h"
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -25,58 +26,24 @@ struct Input {
   // Input (panorama data).
   int panorama_width;
   int panorama_height;
-  vector<cv::Mat> panoramas;
-
-  vector<PanoramaConfiguration> panorama_configurations;
+  vector<Panorama> panoramas;
 
   // Input (floorplan).
   Floorplan floorplan;
 };
-
-Eigen::Vector2d Project(const Eigen::Vector3d& xyz,
-                        const PanoramaConfiguration& panorama_configuration,
-                        const int width,
-                        const int height) {
-  Vector3d projected_coordinate =
-    panorama_configuration.local_to_global.transpose() * (xyz - panorama_configuration.center);
-  // x coordinate.
-  double theta = -atan2(projected_coordinate.y(), projected_coordinate.x());
-  if (theta < 0.0)
-    theta += 2 * M_PI;
-  double theta_ratio = max(0.0, min(1.0, theta / (2 * M_PI)));
-  if (theta_ratio == 1.0)
-    theta_ratio = 0.0;
-
-  Vector2d uv;
-  uv[0] = theta_ratio * width;
-  const double depth = sqrt(projected_coordinate.x() * projected_coordinate.x() +
-                           projected_coordinate.y() * projected_coordinate.y());
-  double phi = atan2(projected_coordinate.z(), depth);
-  const double phi_per_pixel = panorama_configuration.phi_range / height;
-  const double pixel_offset_from_center = phi / phi_per_pixel;
-  uv[1] = height / 2.0 - pixel_offset_from_center;
-
-  return uv;
-}
 
 void Init(const string& data_directory, Input *input) {
   input->data_directory = data_directory;
 
   const file_io::FileIO file_io(data_directory);
   for (int p = 0; ; ++p) {
-    string buffer = file_io.GetPanoramaImage(p);
-    cv::Mat panorama_raw = cv::imread(buffer, 1);
-    if (panorama_raw.empty())
+    Panorama panorama;
+    if (!panorama.Init(file_io, p))
       break;
+    
+    panorama.ResizeRGB(Vector2i(input->panorama_width, input->panorama_height));
 
-    cv::Mat panorama;
-    cv::resize(panorama_raw, panorama, cv::Size(input->panorama_width, input->panorama_height));
     input->panoramas.push_back(panorama);
-  }
-
-  input->panorama_configurations.resize((int)input->panoramas.size());
-  for (int p = 0; p < (int)input->panoramas.size(); ++p) {
-    ReadPanoramaConfiguration(data_directory, p, &input->panorama_configurations[p]);
   }
 
   {
@@ -87,12 +54,12 @@ void Init(const string& data_directory, Input *input) {
   }
 }
 
-int FindClosestPanorama(const vector<PanoramaConfiguration>& panorama_configurations,
+int FindClosestPanorama(const vector<Panorama>& panoramas,
                         const Vector3d& room_center) {
   double best_distance = 0.0;
   int best_panorama = -1;
-  for (int p = 0; p < panorama_configurations.size(); ++p) {
-    const double distance = (panorama_configurations[p].center - room_center).norm();
+  for (int p = 0; p < panoramas.size(); ++p) {
+    const double distance = (panoramas[p].GetCenter() - room_center).norm();
     if (distance < best_distance || best_panorama == -1) {
       best_distance = distance;
       best_panorama = p;
@@ -101,7 +68,7 @@ int FindClosestPanorama(const vector<PanoramaConfiguration>& panorama_configurat
   return best_panorama;
 }
 
-int FindInsidePanorama(const vector<PanoramaConfiguration>& panorama_configurations,
+int FindInsidePanorama(const vector<Panorama>& panoramas,
                        const Vector3d& room_center,
                        const Floorplan& floorplan,
                        const int room) {
@@ -113,12 +80,12 @@ int FindInsidePanorama(const vector<PanoramaConfiguration>& panorama_configurati
   
   int best_panorama = -1;
   double best_distance = 0.0;
-  for (int p = 0; p < panorama_configurations.size(); ++p) {
-    const Vector3d panorama_center = floorplan.GetFloorplanToGlobal().transpose() * panorama_configurations[p].center;
+  for (int p = 0; p < panoramas.size(); ++p) {
+    const Vector3d panorama_center = floorplan.GetFloorplanToGlobal().transpose() * panoramas[p].GetCenter();
     const cv::Point2f panorama_center2(panorama_center[0], panorama_center[1]);
     
     if (cv::pointPolygonTest(contour, panorama_center2, true) >= 0.0) {
-      const double distance = (panorama_configurations[p].center - room_center).norm();
+      const double distance = (panoramas[p].GetCenter() - room_center).norm();
       if (best_panorama == -1 || distance > best_distance) {
         best_distance = distance;
         best_panorama = p;
@@ -128,19 +95,17 @@ int FindInsidePanorama(const vector<PanoramaConfiguration>& panorama_configurati
   return best_panorama;
 }
 
-void Render(const PanoramaConfiguration& panorama_configuration,
-            const cv::Mat& panorama,
-            const int panorama_width,
-            const int panorama_height,
+void Render(const Panorama& panorama,
             const Vector3d& look_at,
             const double horizontal_angle,
             const int width,
             const int height,
-            cv::Mat* thumbnail) {
+            cv::Mat* thumbnail,
+            std::vector<Vector3d>* depth_points) {
   const int kOffset = height * 0.2;
   *thumbnail = cv::Mat(height, width, CV_8UC3);
   // Render.
-  Vector3d optical_center = panorama_configuration.center;
+  Vector3d optical_center = panorama.GetCenter();
   Vector3d optical_axis = look_at - optical_center;
   optical_axis[2] = 0.0;
   optical_axis.normalize();
@@ -151,48 +116,46 @@ void Render(const PanoramaConfiguration& panorama_configuration,
   const double pixel_size = x_diameter / width;
   x_axis *= pixel_size;
   y_axis *= pixel_size;
-  
+
+  if (depth_points != NULL)
+    depth_points->clear();
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       const Vector3d coordinate =
         optical_center + optical_axis + (x - width / 2) * x_axis + (y - height / 2 + kOffset) * y_axis;
-      const Vector2d pixel = Project(coordinate,
-                                     panorama_configuration,
-                                     panorama_width,
-                                     panorama_height);
-      
-      const int u0 = static_cast<int>(floor(pixel[0]));
-      const int v0 = static_cast<int>(floor(pixel[1]));
-      const int u1 = u0 + 1;
-      const int v1 = v0 + 1;
-      
-      const double weight00 = (u1 - pixel[0]) * (v1 - pixel[1]);
-      const double weight01 = (pixel[0] - u0) * (v1 - pixel[1]);
-      const double weight10 = (u1 - pixel[0]) * (pixel[1] - v0);
-      const double weight11 = (pixel[0] - u0) * (pixel[1] - v0);
-      const int u1_corrected = (u1 % panorama_width);
-      
-      const cv::Vec3b& color00 = panorama.at<cv::Vec3b>(v0, u0);
-      const cv::Vec3b& color01 = panorama.at<cv::Vec3b>(v0, u1_corrected);
-      const cv::Vec3b& color10 = panorama.at<cv::Vec3b>(v1, u0);
-      const cv::Vec3b& color11 = panorama.at<cv::Vec3b>(v1, u1_corrected);
-      
-      cv::Vec3b interpolated_color(static_cast<unsigned char>(weight00 * color00[0] +
-                                                              weight01 * color01[0] +
-                                                              weight10 * color10[0] +
-                                                              weight11 * color11[0]),
-                                   static_cast<unsigned char>(weight00 * color00[1] +
-                                                              weight01 * color01[1] +
-                                                              weight10 * color10[1] +
-                                                              weight11 * color11[1]),
-                                   static_cast<unsigned char>(weight00 * color00[2] +
-                                                              weight01 * color01[2] +
-                                                              weight10 * color10[2] +
-                                                              weight11 * color11[2]));
-        
-      thumbnail->at<cv::Vec3b>(y, x) = interpolated_color;
+      const Vector2d pixel = panorama.Project(coordinate);
+      const Vector3f rgb = panorama.GetRGB(pixel);
+      thumbnail->at<cv::Vec3b>(y, x) =
+        cv::Vec3b(min(255, static_cast<int>(round(rgb[0]))),
+                  min(255, static_cast<int>(round(rgb[1]))),
+                  min(255, static_cast<int>(round(rgb[2]))));
+
+      if (depth_points != NULL) {
+        const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+        const double depth = panorama.GetDepth(depth_pixel);
+        Vector3d local(pixel_size * (x - width / 2), pixel_size * (y - height / 2 + kOffset), 1.0);
+        local *= depth;
+        depth_points->push_back(local);
+      }
     }
   }
+}
+
+void WriteDepthPoints(const string buffer, const int depth_width, const int depth_height,
+                      const vector<Vector3d>& depth_points) {
+  ofstream ofstr;
+  ofstr.open(buffer.c_str());
+  ofstr << "# DEPTH_POINTS " << endl
+        << depth_width << ' ' << depth_height << endl;
+  if (depth_points.size() != depth_width * depth_height) {
+    cerr << "Dimensions do not agree: "
+         << (int)depth_points.size() << ' ' << depth_width << ' ' << depth_height << endl;
+    exit (1);
+  }
+  for (const auto& point : depth_points) {
+    ofstr << "v " << point[0] << ' ' << point[1] << ' ' << point[2] << endl;
+  }
+  ofstr.close();
 }
 
 bool IsInside(const Floorplan& floorplan, const int room, const Vector2d& point) {
@@ -213,34 +176,33 @@ bool IsInside(const Floorplan& floorplan, const int room, const Vector2d& point)
 //----------------------------------------------------------------------
 // Using the panorama closest to the center. The thumbnail points to the center of the room.
 void FindFarPanoramaInRoom(const Input& input) {
-  const int panorama_num = input.panorama_configurations.size();
+  const int panorama_num = input.panoramas.size();
   for (int p = 0; p < panorama_num; ++p) {
-      const PanoramaConfiguration& panorama_configuration = input.panorama_configurations[p];
-      const cv::Mat& panorama = input.panoramas[p];
+    Vector3d optical_center = input.panoramas[p].GetCenter();
+    Vector3d optical_axis(1, 0, 0);
+    Matrix3d rotation;
+    const int kRotationNum = 10;
+    const double angle = 2 * M_PI / kRotationNum;
+    rotation <<
+      cos(angle), -sin(angle), 0,
+      sin(angle), cos(angle), 0,
+      0, 0, 1;
       
-      Vector3d optical_center = panorama_configuration.center;
-      Vector3d optical_axis(1, 0, 0);
-      Matrix3d rotation;
-      const int kRotationNum = 10;
-      const double angle = 2 * M_PI / kRotationNum;
-      rotation <<
-        cos(angle), -sin(angle), 0,
-        sin(angle), cos(angle), 0,
-        0, 0, 1;
-      
-      for (int r = 0; r < kRotationNum; ++r) {
-        Vector3d look_at = optical_center + optical_axis;
-        optical_axis = rotation * optical_axis;
-        cv::Mat thumbnail;
-        Render(panorama_configuration, panorama, input.panorama_width, input.panorama_height,
-               look_at, input.thumbnail_horizontal_angle, input.thumbnail_width, input.thumbnail_height,
-               &thumbnail);
+    for (int r = 0; r < kRotationNum; ++r) {
+      Vector3d look_at = optical_center + optical_axis;
+      optical_axis = rotation * optical_axis;
+      cv::Mat thumbnail;
+      vector<Vector3d> depth_points;
+      Render(input.panoramas[p], look_at, input.thumbnail_horizontal_angle,
+             input.thumbnail_width, input.thumbnail_height, &thumbnail, &depth_points);
         
-        // const file_io::FileIO file_io(argv[1]);
-        char buffer[1024];
-        sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.png", input.data_directory.c_str(), p, r);
-        cv::imwrite(buffer, thumbnail);
-      }
+      // const file_io::FileIO file_io(argv[1]);
+      char buffer[1024];
+      sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.png", input.data_directory.c_str(), p, r);
+      cv::imwrite(buffer, thumbnail);
+      sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.obj", input.data_directory.c_str(), p, r);
+      WriteDepthPoints(buffer, input.thumbnail_width, input.thumbnail_height, depth_points);
+    }
   }
 }
 
@@ -263,29 +225,27 @@ void FindPanoramaClosestToTheRoomCenter(const Input& input) {
     int best_panorama = -1;
     // Find the one closest to the center.
     if (kFindPanoramaMethod == 0) {
-      best_panorama = FindClosestPanorama(input.panorama_configurations, room_center);
+      best_panorama = FindClosestPanorama(input.panoramas, room_center);
     } else if (kFindPanoramaMethod == 1) {
       best_panorama =
-        FindInsidePanorama(input.panorama_configurations,
+        FindInsidePanorama(input.panoramas,
                            room_center,
                            input.floorplan,
                            room);
       if (best_panorama == -1) {
         cerr << "Cannot find a panorama inside a room." << endl;
-        best_panorama = FindClosestPanorama(input.panorama_configurations, room_center);
+        best_panorama = FindClosestPanorama(input.panoramas, room_center);
       }
     }
     
     cv::Mat thumbnail;
-    Render(input.panorama_configurations[best_panorama],
-           input.panoramas[best_panorama],
-           input.panorama_width,
-           input.panorama_height,
+    Render(input.panoramas[best_panorama],
            room_center,
            input.thumbnail_horizontal_angle,
            input.thumbnail_width,
            input.thumbnail_height,
-           &thumbnail);
+           &thumbnail,
+           NULL);
 
     const file_io::FileIO file_io(input.data_directory);
     cv::imwrite(file_io.GetRoomThumbnail(room), thumbnail);
@@ -305,7 +265,7 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
     
     for (int p = 0; p < (int)input.panoramas.size(); ++p) {
       const Vector3d panorama_center =
-        input.floorplan.GetFloorplanToGlobal().transpose() * input.panorama_configurations[p].center;
+        input.floorplan.GetFloorplanToGlobal().transpose() * input.panoramas[p].GetCenter();
       const Vector2d panorama_center2(panorama_center[0], panorama_center[1]);
       if (!IsInside(input.floorplan, room, panorama_center2))
         continue;
@@ -348,14 +308,11 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
                    0.0);
       ray = input.floorplan.GetFloorplanToGlobal() * ray;
       ray[2] = 0.0;
-      const Vector3d look_at = input.panorama_configurations[p].center + ray;
+      const Vector3d look_at = input.panoramas[p].GetCenter() + ray;
 
       cv::Mat thumbnail;
-      Render(input.panorama_configurations[p], input.panoramas[p],
-             input.panorama_width, input.panorama_height,
-             look_at, input.thumbnail_horizontal_angle,
-             input.thumbnail_width, input.thumbnail_height,
-             &thumbnail);
+      Render(input.panoramas[p], look_at, input.thumbnail_horizontal_angle,
+             input.thumbnail_width, input.thumbnail_height, &thumbnail, NULL);
 
       char buffer[1024];
       sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d_%08d.png",
