@@ -1,17 +1,14 @@
-all: preprocess_cli transform_cli
+all: door_detection_cli
 
 ######################################################################
 CXX = clang++
 
 CXXFLAGS = -O2 -Wall -Wno-deprecated -Wno-c++11-extensions -I/usr/local/Cellar/boost/1.54.0/include -I/usr/local/Cellar/boost/1.53.0/include -I/usr/local/include -D_GLIBCXX_DEBUG
 
-SRC = preprocess_cli.cc preprocess.cc evidence.cc transform.cc reconstruct_2d.cc dynamic_programming.cc
+SRC = door_detection_cli.cc door_detection.cc ../submodular/evidence.cc ../submodular/transform.cc ../base/ply/points.cc ../base/imageProcess/morphological_operation.cc
 MYLDFLAGS = ../base/mrf/libMRF.a
-preprocess_cli: ${SRC}
+door_detection_cli: ${SRC}
 	${CXX} ${LDFLAGS} ${MYLDFLAGS} ${CXXFLAGS} -o $@ ${SRC} ${LDFLAGS}
-
-transform_cli: transform_cli.cc data.h
-	${CXX} ${LDFLAGS} ${CXXFLAGS} -o $@ transform_cli.cc ${LDFLAGS}
 
 ######################################################################
 # implicit rules
@@ -32,7 +29,7 @@ transform_cli: transform_cli.cc data.h
 
 ######################################################################
 clean:
-	/bin/rm -f core core.* preprocess_cli *.o
+	/bin/rm -f core core.* door_detection_cli *.o
 
 ######################################################################
 depend:
