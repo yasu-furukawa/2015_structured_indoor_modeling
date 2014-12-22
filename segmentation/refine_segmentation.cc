@@ -75,7 +75,7 @@ void PrepareDataArray(const floored::Frame& frame,
 
 MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_label) {
   if (no_smooth)
-    return 0.01;
+    return 0.001;
   
   const MRF::CostVal kSmoothPenalty = 0.4;
   const MRF::CostVal kLarge = 100.0f;
