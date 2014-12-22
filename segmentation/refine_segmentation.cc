@@ -79,6 +79,8 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
   
   const MRF::CostVal kSmoothPenalty = 0.4;
   const MRF::CostVal kLarge = 100.0f;
+
+  cout << lhs << ' ' << rhs << ' ' << (int)point_evidence_ptr->size() << endl;
   
   if (lhs_label == rhs_label)
     return 0.0;
@@ -205,11 +207,13 @@ void RefineSegmentation(const floored::Frame& frame,
   Expansion expansion(vnum, label_num, &energy);
   MRF* mrf = &expansion;
 
+  cout << "setn" << endl;
   SetNeighbors(frame, mrf);
 
   mrf->initialize();
   no_smooth = true;
   float t;
+  cout << "top" << endl;
   mrf->optimize(1, t);
   no_smooth = false;
 
