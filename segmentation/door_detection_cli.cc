@@ -6,9 +6,9 @@
 
 #include <Eigen/Dense>
 
-#include "../submodular/data.h"
-#include "../submodular/evidence.h"
-#include "../submodular/transform.h"
+#include "data.h"
+#include "evidence.h"
+#include "transform.h"
 #include "door_detection.h"
 // #include "preprocess.h"
 // #include "reconstruct_2d.h"
@@ -20,15 +20,14 @@ using namespace room_segmentation;
 
 namespace {
 
-void ReadSweeps(const string directory, const string file_prefix,
-                vector<Sweep>* sweeps) {
+void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
   sweeps->clear();
   cerr << "Reading points... " << flush;
 
   const int kMaxNum = 200;
   for (int s = 0; s < kMaxNum; ++s) {
     char buffer[1024];
-    sprintf(buffer, "%s%s%03d.ply", directory.c_str(), file_prefix.c_str(), s);
+    sprintf(buffer, "%sply/%03d.ply", directory.c_str(), s + 1);
 
     ifstream ifstr;
     ifstr.open(buffer);
@@ -37,8 +36,102 @@ void ReadSweeps(const string directory, const string file_prefix,
 
     cerr << buffer << endl;
 
+    ifstream ifstr2;
+    sprintf(buffer, "%stransformations/%03d.txt", directory.c_str(), s + 1);
+    ifstr2.open(buffer);
+    Matrix4d transformation;
+    char ctmp;
+    ifstr2 >> ctmp;
+    for (int y = 0; y < 3; ++y)
+      for (int x = 0; x < 4; ++x)
+        ifstr2 >> transformation(y, x);
+    transformation(3, 0) = 0;
+    transformation(3, 1) = 0;
+    transformation(3, 2) = 0;
+    transformation(3, 3) = 1;
+    ifstr2.close();
+
+    {
+      ifstream ifstr3;
+      sprintf(buffer, "%srotationmat.txt", directory.c_str());
+      ifstr3.open(buffer);
+      Matrix4d rot;
+      for (int y = 0; y < 4; ++y)
+        for (int x = 0; x < 4; ++x)
+          rot(y, x) = 0;
+      for (int y = 0; y < 3; ++y)
+        for (int x = 0; x < 3; ++x)
+          ifstr3 >> rot(y, x);
+      rot(3, 3) = 1;
+
+      transformation = rot.transpose() * transformation;
+
+      ifstr3.close();
+    }
+    
     ply::Points points;
-    ifstr >> points;
+    {
+      string header;
+      for (int i = 0; i < 6; ++i)
+        ifstr >> header;
+      int num_points;
+      ifstr >> num_points;
+      for (int i = 0; i < 37; ++i)
+        ifstr >> header;
+
+      ply::Point point;
+      point.position = Vector3f(transformation(0, 3),
+                                transformation(1, 3),
+                                transformation(2, 3));
+      point.normal = Vector3f(0, 0, 0);
+      point.color = Vector3f(0, 0, 0);
+                                
+      points.push_back(point);
+      
+      for (int p = 0; p < num_points; ++p) {
+        int itmp;
+        ifstr >> itmp >> itmp;
+        Vector4d local;
+        for (int i = 0; i < 3; ++i)
+          ifstr >> local(i);
+        local(3) = 1.0;
+        Vector4d global = transformation * local;
+
+        ply::Point point;
+        for (int i = 0; i < 3; ++i)
+          point.position(i) = global(i);
+
+        for (int i = 0; i < 3; ++i) {
+          ifstr >> point.color[i];
+          point.color[i] /= 255.0;
+        }
+        
+        Vector4d local_normal;
+        for (int i = 0; i < 3; ++i)
+          ifstr >> local_normal(i);
+        local_normal(3) = 0.0;
+
+        //????
+        ifstr >> point.intensity;
+        
+        if (local_normal.dot(local) > 0.0)
+          local_normal = -local_normal;
+        
+        // This normal should point to the origin.
+        Vector4d global_normal = transformation * local_normal;
+        
+        for (int i = 0; i < 3; ++i)
+          point.normal(i) = global_normal(i);
+
+
+        // Filter.
+        if (point.intensity < 40)
+          continue;
+
+        
+        points.push_back(point);
+      }
+    }
     ifstr.close();
 
 
@@ -152,21 +245,22 @@ void InitializeEvidence(const std::vector<Sweep>& sweeps,
 
 //----------------------------------------------------------------------
 int main(int argc, char* argv[]) {
-  if (argc < 3) {
+  if (argc < 2) {
     cerr << "Usage: " << argv[0]
-         << " directory_prefix ply_prefix skip_reading" << endl
-         << "./room_segmentation ../data/mobile/ transformed_0" << endl;
+         << " directory_prefix skip_reading" << endl
+         << "./room_segmentation ../data/mobile/" << endl;
     return 1;
   }
 
   bool skip_reading = false;
-  if (argc >= 4 && atoi(argv[3]))
+  if (argc >= 3 && atoi(argv[2]))
     skip_reading = true;
   
   vector<Sweep> sweeps;
   if (!skip_reading)
-    ReadSweeps(argv[1], argv[2], &sweeps);
+    ReadSweeps(argv[1], &sweeps);
   const float average_distance = ComputeAverageDistance(sweeps);
+  cout << average_distance << endl;
   
   Frame frame;
   InitializeFrame(argv[1], sweeps, average_distance, &frame);

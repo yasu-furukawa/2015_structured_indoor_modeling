@@ -252,7 +252,7 @@ void PolygonRenderer::Init(const string data_directory) {
       denom += length;
     }
     if (denom == 0.0) {
-      cerr << "Impossible." << endl;
+      cerr << "Impossible polygonRender." << endl;
       exit (1);
     }
     room_centers_local[room] /= denom;

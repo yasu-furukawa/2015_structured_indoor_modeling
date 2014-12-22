@@ -173,8 +173,9 @@ void SetPointEvidence(const std::vector<Sweep>& sweeps,
         dot_product= fabs(point.normal.dot(frame.axes[2]));
         dot_product = max(0.0, 2.0 * (dot_product - 0.5));
       }
-      const double weight = max(1.0, 1.0 - dot_product) * point.weight;
+      const double weight = min(1.0, 1.0 - dot_product) * point.weight;
       set<pair<int, int> > pixels;
+
       for (int i = kFirstStep; i < kLastStep; ++i) {
         const Vector2f ptmp = position - (i * kStep) * normal;
         const int x = static_cast<int>(round(ptmp[0]));

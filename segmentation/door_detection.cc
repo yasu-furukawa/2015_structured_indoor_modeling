@@ -5,8 +5,8 @@
 #include <queue>
 #include <Eigen/Dense>
 
-#include "../submodular/data.h"
-#include "../submodular/evidence.h"
+#include "data.h"
+#include "evidence.h"
 #include "../base/imageProcess/morphological_operation.h"
 
 using namespace Eigen;
@@ -30,7 +30,8 @@ const int kVisibilityMargin = 10;
 
 const int kInitialClusterNum = 20;
 
-const float kMergeThreshold = 0.5;
+  // const float kMergeThreshold = 0.5;
+  const float kMergeThreshold = 0.3;
  
 
 struct ShortestPathNode {
@@ -805,7 +806,7 @@ void ConvertPointsToSweep(const ply::Points& points, Sweep* sweep) {
   for (int i = 1; i < points.size(); ++i) {
     sweep->points[i - 1].position = points[i].position;
     sweep->points[i - 1].normal   = points[i].normal;
-    sweep->points[i - 1].weight   = 1.0;
+    sweep->points[i - 1].weight   = points[i].intensity / 255.0;
   }
 }
   
@@ -839,6 +840,11 @@ void SetRanges(const vector<Sweep>& sweeps,
 
     frame->ranges[a][0] = (*pos_5)  - margin;
     frame->ranges[a][1] = (*pos_95) + margin;
+
+
+    //?????
+    if (a == 0)
+      frame->ranges[a][0] -= 1000;
   }
 
   //----------------------------------------------------------------------
@@ -896,6 +902,74 @@ float ComputeAverageDistance(const std::vector<Sweep>& sweeps) {
   return average_distance / count;
 }
 
+void LoadClustering(const std::string filename,
+                    std::vector<Eigen::Vector2i>* centers,
+                    std::vector<std::vector<Eigen::Vector2i> >* clusters) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+
+  string header;
+  int width, height;
+  ifstr >> header >> width >> height;
+  int num_cluster;
+  ifstr >> num_cluster;
+  centers->clear();
+  clusters->clear();
+
+  centers->resize(num_cluster);
+  clusters->resize(num_cluster);
+  for (int c = 0; c < num_cluster; ++c) {
+    ifstr >> centers->at(c)[0] >> centers->at(c)[1];
+  }
+
+  for (int c = 0; c < num_cluster; ++c) {
+    int num_point;
+    ifstr >> num_point;
+    clusters->at(c).resize(num_point);
+    for (int p = 0; p < num_point; ++p) {
+      ifstr >> clusters->at(c)[p][0] >> clusters->at(c)[p][1];
+    }
+  }  
+  ifstr.close();
+}
+  
+void WriteClustering(const int width,
+                     const int height,
+                     const std::vector<int>& centers,
+                     const std::vector<std::vector<int> >& clusters,
+                     const int subsample,
+                     const string filename) {
+  const int subsampled_width  = width / subsample;
+  const int subsampled_height = height / subsample;
+
+  ofstream ofstr;
+  ofstr.open(filename.c_str());
+  ofstr << "INITIAL_CLUSTER" << endl
+        << width << ' ' << height << endl;
+
+  ofstr << (int)centers.size() << endl;
+  for (int i = 0; i < (int)centers.size(); ++i) {
+    const int subsampled_x = centers[i] % subsampled_width;
+    const int subsampled_y = centers[i] / subsampled_width;
+    const int x = kClusteringSubsample * subsampled_x;
+    const int y = kClusteringSubsample * subsampled_y;
+    ofstr << x << ' ' << y << endl;
+  }
+  
+  for (int i = 0; i < (int)clusters.size(); ++i) {
+    ofstr << (int)clusters[i].size() << endl;
+    for (int j = 0; j < (int)clusters[i].size(); ++j) {
+      const int index = clusters[i][j];
+      const int subsampled_x = index % subsampled_width;
+      const int subsampled_y = index / subsampled_width;
+      const int x = kClusteringSubsample * subsampled_x;
+      const int y = kClusteringSubsample * subsampled_y;
+      ofstr << x << ' ' << y << endl;
+    }
+  }
+  ofstr.close();
+}    
+  
 void DetectDoors(const vector<Sweep>& sweeps,
                  const Frame& frame,
                  const std::string directory,
@@ -949,7 +1023,8 @@ void DetectDoors(const vector<Sweep>& sweeps,
 			      boundary, visibility, &weighted_visibility);
 
   // K-means clustering.
-  for (int s = 0; s < 5; ++s) {
+  // for (int s = 0; s < 5; ++s) {
+  for (int s = 0; s < 1; ++s) {
     vector<int> centers;
     // Initialize centers.
     for (int i = 0; i < weighted_visibility.size(); ++i) {
@@ -970,6 +1045,9 @@ void DetectDoors(const vector<Sweep>& sweeps,
     DrawCluster(frame.size[0], frame.size[1], kClusteringSubsample,
                 buffer, centers, clusters);
     cerr << "Wrote: " << buffer << endl;
+
+    sprintf(buffer, "%sinitial_cluster.dat", directory.c_str());
+    WriteClustering(frame.size[0], frame.size[1], centers, clusters, kClusteringSubsample, buffer);
   }
   
 

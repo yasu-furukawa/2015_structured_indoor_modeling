@@ -185,7 +185,7 @@ void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_ra
   ifstr.close();
 
   if (denom == 0) {
-    cerr << "Impossible." << endl;
+    cerr << "Impossible in initdepthmesh: " << filename << endl;
     exit (1);
   }
   average_distance /= denom;

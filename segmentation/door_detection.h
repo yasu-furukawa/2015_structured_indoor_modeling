@@ -1,8 +1,9 @@
 #ifndef ROOM_SEGMENTATION_DOOR_DETECTION_H_
 #define ROOM_SEGMENTATION_DOOR_DETECTION_H_
 
+#include <Eigen/Dense>
 #include "../base/ply/points.h"
-#include "../submodular/data.h"
+#include "data.h"
 
 namespace room_segmentation {
   void ConvertPointsToSweep(const ply::Points& points, floored::Sweep* sweep);
@@ -25,6 +26,17 @@ namespace room_segmentation {
                    const std::vector<float>& free_space_evidence,
                    std::vector<float>* door_detection);
 
+  void WriteClustering(const int width,
+                       const int height,
+                       const std::vector<int>& centers,
+                       const std::vector<std::vector<int> >& clusters,
+                       const int subsample,
+                       const std::string filename);
+
+  void LoadClustering(const std::string filename,
+                      std::vector<Eigen::Vector2i>* centers,
+                      std::vector<std::vector<Eigen::Vector2i> >* clusters);
+  
 }  // namespace room_segmentation
 
 #endif // ROOM_SEGMENTATION_DOOR_DETECTION_H_

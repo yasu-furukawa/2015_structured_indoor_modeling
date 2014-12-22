@@ -7,13 +7,6 @@
 
 namespace texture {
 
-struct Data {
-  std::vector<std::vector<cv::Mat> > panoramas;
-  std::vector<Eigen::Matrix4d> panorama_to_globals;
-  std::vector<Eigen::Matrix4d> global_to_panoramas;
-  Floorplan floorplan;
-};
-
 // Domain where texture is generated.
 struct Domain {
   Eigen::Vector3d vertices[4];
