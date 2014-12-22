@@ -419,14 +419,22 @@ void InitializeParameters(const FileIO& file_io, const int p, vector<double>* pa
   params->at(5) = 0.0;
   params->at(6) = 0.0;
 
-    // lumber-cashew
+  // lumber-cashew
   //params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.5529;
+
   // equal-sky
   //params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.4829;
-  // equal sky (last image).
-  params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;
-  params->at(4) = -ReadOffsetZ(filename) + 60;
 
+  // equal sky (last image).
+  // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;
+  // params->at(4) = -ReadOffsetZ(filename) + 60;
+
+  // new-breeze
+  params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;
+  params->at(4) = -ReadOffsetZ(filename) - 60;
+  // and pyramid_level 2.
+
+  
 
   double dtmp[] = {2.19772, -3.14159e-06, 2.55223, -3.14159e-06, 127.213, -2.36926, 0.632438 };
   for (int i = 0; i < 7; ++i)
