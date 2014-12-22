@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
-#include "../base/mrf/GCoptimization.h"
+#include "refine_segmentation.h"
 #include "door_detection.h"
 #include "evidence.h"
 
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
   Frame frame;
   {
     char buffer[1024];
-    sprintf(buffer, "%s/frame.dat", directory.c_str());
+    sprintf(buffer, "%sframe.dat", directory.c_str());
     ifstream ifstr;
     ifstr.open(buffer);
     ifstr >> frame;
@@ -40,6 +40,22 @@ int main(int argc, char* argv[]) {
     const string free_space_evidence_filename = directory + "free_space_evidence.dat";
     LoadEvidence(point_evidence_filename, &point_evidence);
     LoadEvidence(free_space_evidence_filename, &free_space_evidence);
+
+    {
+      const double kMinSigma = -0.3;
+      const double kMaxSigma = 0.0;
+      NormalizeEvidence(kMinSigma, kMaxSigma, &point_evidence);
+    }
+    {
+      const double kMinSigma = -1.0;
+      const double kMaxSigma = 0.2;
+      NormalizeEvidence(kMinSigma, kMaxSigma, &free_space_evidence);
+    }
+    const double kScale = 255.0;
+    const string point_image = directory + "point_normalized.ppm";
+    DrawEvidence(frame.size[0], frame.size[1], point_evidence, point_image, kScale);
+    const string free_space_image = directory + "free_space_normalized.ppm";
+    DrawEvidence(frame.size[0], frame.size[1], free_space_evidence, free_space_image, kScale);
   }
 
   vector<Vector2i> centers;
@@ -48,10 +64,26 @@ int main(int argc, char* argv[]) {
     const string cluster_file = directory + "initial_cluster.dat";
     LoadClustering(cluster_file, &centers, &clusters);
   }
+  vector<vector<pair<int, float> > > visibility;
+  {
+    const string visibility_file = directory + "visibility.dat";
+    int width, height, subsample;
+    LoadVisibility(visibility_file, &visibility, &width, &height, &subsample);
+    if (width != frame.size[0] || height != frame.size[1]) {
+      cerr << "Incompatible dimension: " << width << ' ' << height << ' ' << frame.size[0] << ' ' << frame.size[1] << endl;
+      exit (1);
+    }
+    ExpandVisibility(width, height, &visibility);
+  }
 
-  
-  
-  
+  vector<int> segmentation;
+  RefineSegmentation(frame, point_evidence, free_space_evidence, centers, clusters, visibility,
+                     &segmentation);
+
+  {
+    const string output_file = directory + "segmentation.ppm";
+    WriteSegmentation(output_file, segmentation, frame.size[0], frame.size[1], centers.size() + 1);
+  }
 
   return 0;
 }

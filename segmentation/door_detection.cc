@@ -12,6 +12,7 @@
 using namespace Eigen;
 using namespace floored;
 using namespace std;
+using namespace room_segmentation;
 
 namespace {
 const float kInvalidScore = numeric_limits<float>::max();
@@ -24,7 +25,7 @@ const double kDoorDetectionScale = 0.01;
 const float kGoodFreeSpaceEvidence = 100.0;
 const float kBoundarySubsampleRatio = 0.2;
 
- const int kClusteringSubsample = 4;
+const int kClusteringSubsample = 4;
 const float kMarginFromBoundaryForVisibility = 5;
 const int kVisibilityMargin = 10;
 
@@ -516,35 +517,6 @@ void AssociateWeightToVisibility(const int width,
   }     
 }
 
-float VisibilityDistance(const vector<pair<int, float> >& lhs,
-                         const vector<pair<int, float> >& rhs) {
-  int lhs_index = 0;
-  int rhs_index = 0;
-
-  float distance = 0.0;
-  while (lhs_index < lhs.size() || rhs_index < rhs.size()) {
-    if (lhs_index == lhs.size()) {
-      distance += rhs[rhs_index].second;
-      ++rhs_index;
-    } else if (rhs_index == rhs.size()) {
-      distance += lhs[lhs_index].second;
-      ++lhs_index;
-    } else if (lhs[lhs_index].first == rhs[rhs_index].first) {
-      ++lhs_index;
-      ++rhs_index;
-    } else if (lhs[lhs_index].first < rhs[rhs_index].first) {
-      distance += lhs[lhs_index].second;
-      ++lhs_index;
-    } else {
-      distance += rhs[rhs_index].second;
-      ++rhs_index;
-    }
-  }
-
-  // By dividing by 2, the maximum distance is 1.0.
-  return distance / 2.0;
-}
-
 int IdentifyClosestCenterIndex(const vector<vector<pair<int, float> > >& weighted_visibility,
                                const int index,
                                const vector<int>& centers) {
@@ -969,7 +941,65 @@ void WriteClustering(const int width,
   }
   ofstr.close();
 }    
+
+void WriteVisibility(const string& filename,
+                     const std::vector<std::vector<std::pair<int, float> > >& visibility,
+                     const int width,
+                     const int height,
+                     const int subsample) {
+  const int subsampled_width = width / subsample;
+  const int subsampled_height = height / subsample;
+
+  ofstream ofstr;
+  ofstr.open(filename.c_str());
+
+  ofstr << "VISIBILITY" << endl
+        << width << ' ' << height << ' ' << subsample << endl;
+  int index = 0;
+  for (int y = 0; y < subsampled_height; ++y) {
+    for (int x = 0; x < subsampled_width; ++x, ++index) {
+      ofstr << (int)visibility[index].size() << endl;
+      for (const auto& value : visibility[index]) {
+        ofstr << value.first << ' ' << value.second << ' ';
+      }
+    }
+  }
   
+  ofstr.close();
+}
+
+void LoadVisibility(const string& filename,
+                    std::vector<std::vector<std::pair<int, float> > >* visibility_no_subsampling,
+                    int* width,
+                    int* height,
+                    int* subsample) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+
+  string header;
+  ifstr >> header >> *width >> *height >> *subsample;
+
+  const int subsampled_width = (*width) / (*subsample);
+  const int subsampled_height = (*height) / (*subsample);
+  visibility_no_subsampling->resize((*width) * (*height));
+
+  for (int y = 0; y < subsampled_height; ++y) {
+    const int y_no_subsampling = y * (*subsample);
+    for (int x = 0; x < subsampled_width; ++x) {
+      const int x_no_subsampling = x * (*subsample);
+
+      const int index_no_subsampling = y_no_subsampling * (*width) + x_no_subsampling;
+      int length;
+      ifstr >> length;
+      visibility_no_subsampling->at(index_no_subsampling).resize(length);
+      for (int i = 0; i < length; ++i)
+        ifstr >> visibility_no_subsampling->at(index_no_subsampling)[i].first
+              >> visibility_no_subsampling->at(index_no_subsampling)[i].second;
+    }
+  } 
+  ifstr.close();
+}
+
 void DetectDoors(const vector<Sweep>& sweeps,
                  const Frame& frame,
                  const std::string directory,
@@ -1021,6 +1051,12 @@ void DetectDoors(const vector<Sweep>& sweeps,
   vector<vector<pair<int, float> > > weighted_visibility;
   AssociateWeightToVisibility(frame.size[0], frame.size[1], kClusteringSubsample,
 			      boundary, visibility, &weighted_visibility);
+
+  {
+    char buffer[1024];
+    sprintf(buffer, "%svisibility.dat", directory.c_str());
+    WriteVisibility(buffer, weighted_visibility, frame.size[0], frame.size[1], kClusteringSubsample);
+  }
 
   // K-means clustering.
   // for (int s = 0; s < 5; ++s) {
@@ -1083,4 +1119,33 @@ void DetectDoors(const vector<Sweep>& sweeps,
   */
 }
 
+float VisibilityDistance(const vector<pair<int, float> >& lhs,
+                         const vector<pair<int, float> >& rhs) {
+  int lhs_index = 0;
+  int rhs_index = 0;
+
+  float distance = 0.0;
+  while (lhs_index < lhs.size() || rhs_index < rhs.size()) {
+    if (lhs_index == lhs.size()) {
+      distance += rhs[rhs_index].second;
+      ++rhs_index;
+    } else if (rhs_index == rhs.size()) {
+      distance += lhs[lhs_index].second;
+      ++lhs_index;
+    } else if (lhs[lhs_index].first == rhs[rhs_index].first) {
+      ++lhs_index;
+      ++rhs_index;
+    } else if (lhs[lhs_index].first < rhs[rhs_index].first) {
+      distance += lhs[lhs_index].second;
+      ++lhs_index;
+    } else {
+      distance += rhs[rhs_index].second;
+      ++rhs_index;
+    }
+  }
+
+  // By dividing by 2, the maximum distance is 1.0.
+  return distance / 2.0;
+}
+  
 }  // namespace room_segmentation

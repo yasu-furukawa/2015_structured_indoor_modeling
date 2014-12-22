@@ -48,6 +48,7 @@ double ScalePointEvidence(const double input) {
   }
 
   const double scaled_input = input / kGoodPointEvidence;
+
   return 100.0 * min(2.55, max(0.0, scaled_input - 0.5));
 }
 
@@ -117,7 +118,7 @@ void LoadEvidence(const string& filename, vector<float>* evidence) {
   evidence->resize(length);
   ifstr.read(reinterpret_cast<char*>(&evidence->at(0)), sizeof(float) * length);
 
-  ifstr.close();
+  ifstr.close();  
 }
 
 void WriteEvidence(const string& filename, const vector<float>& evidence) {

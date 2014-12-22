@@ -10,7 +10,7 @@ MYLDFLAGS = ./libMRF.a
 door_detection_cli: ${SRC}
 	${CXX} ${LDFLAGS} ${MYLDFLAGS} ${CXXFLAGS} -o $@ ${SRC} ${LDFLAGS}
 
-SRC2 = refine_segmentation_cli.cc door_detection.cc evidence.cc ../base/imageProcess/morphological_operation.cc
+SRC2 = refine_segmentation_cli.cc refine_segmentation.cc door_detection.cc evidence.cc ../base/imageProcess/morphological_operation.cc
 MYLDFLAGS2 = ./libMRF.a
 
 refine_segmentation_cli: ${SRC2}
@@ -35,7 +35,7 @@ refine_segmentation_cli: ${SRC2}
 
 ######################################################################
 clean:
-	/bin/rm -f core core.* door_detection_cli *.o
+	/bin/rm -f core core.* door_detection_cli refine_segmentation_cli *.o
 
 ######################################################################
 depend:

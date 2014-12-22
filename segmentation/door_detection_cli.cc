@@ -241,13 +241,29 @@ void InitializeEvidence(const std::vector<Sweep>& sweeps,
   }
 }
 
+void RotateSweeps(const double angle, vector<Sweep>* sweeps) {
+  Eigen::Matrix3f rotation;
+  rotation <<
+    cos(angle), -sin(angle), 0,
+    sin(angle), cos(angle), 0,
+    0, 0, 1;
+
+  for (auto& sweep : *sweeps) {
+    sweep.center = rotation * sweep.center;
+    for (auto& point : sweep.points) {
+      point.position = rotation * point.position;
+      point.normal = rotation * point.normal;
+    }
+  }
+}
+  
 }  // namespace
 
 //----------------------------------------------------------------------
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     cerr << "Usage: " << argv[0]
-         << " directory_prefix skip_reading" << endl
+         << " directory_prefix [skip_reading] [angle_in_degrees]" << endl
          << "./room_segmentation ../data/mobile/" << endl;
     return 1;
   }
@@ -257,8 +273,13 @@ int main(int argc, char* argv[]) {
     skip_reading = true;
   
   vector<Sweep> sweeps;
-  if (!skip_reading)
+  if (!skip_reading) {
     ReadSweeps(argv[1], &sweeps);
+    double angle = 0.0;
+    if (argc >= 4)
+      angle = atof(argv[3]) * M_PI / 180.0;
+    RotateSweeps(angle, &sweeps);
+  }
   const float average_distance = ComputeAverageDistance(sweeps);
   cout << average_distance << endl;
   

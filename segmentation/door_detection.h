@@ -36,6 +36,21 @@ namespace room_segmentation {
   void LoadClustering(const std::string filename,
                       std::vector<Eigen::Vector2i>* centers,
                       std::vector<std::vector<Eigen::Vector2i> >* clusters);
+
+  float VisibilityDistance(const std::vector<std::pair<int, float> >& lhs,
+                           const std::vector<std::pair<int, float> >& rhs);
+
+  void WriteVisibility(const std::string& filename,
+                       const std::vector<std::vector<std::pair<int, float> > >& visibility,
+                       const int width,
+                       const int height,
+                       const int subsample);
+  void LoadVisibility(const std::string& filename,
+                      std::vector<std::vector<std::pair<int, float> > >* visibility,
+                      int* width,
+                      int* height,
+                      int* subsample);
+    
   
 }  // namespace room_segmentation
 
