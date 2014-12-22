@@ -49,16 +49,16 @@ void PrepareDataArray(const floored::Frame& frame,
         for (int l = 1; l < num_label; ++l)
           data_array->push_back(kLarge);
       } else if (visibility[index].empty()) {
-        data_array->push_back(10.0 * free_space_evidence_ptr->at(index));
+        data_array->push_back(100.0 * free_space_evidence_ptr->at(index));
         for (int l = 1; l < num_label; ++l) {
-          data_array->push_back(10.0 * (1.0 - free_space_evidence_ptr->at(index)));
+          data_array->push_back(100.0 * (1.0 - free_space_evidence_ptr->at(index)));
         }
       } else {
-        data_array->push_back(1000 * free_space_evidence_ptr->at(index));
+        data_array->push_back(100 * free_space_evidence_ptr->at(index));
         for (int c = 0; c < (int)centers.size(); ++c) {
           const int center_index = centers[c][1] * width + centers[c][0];
           //data_array->push_back(1000 * (1.0f - free_space_evidence_ptr->at(index)) * VisibilityDistance(visibility[index], visibility[center_index]));
-          data_array->push_back(1000 * VisibilityDistance(visibility[index], visibility[center_index]));
+          data_array->push_back(100 * VisibilityDistance(visibility[index], visibility[center_index]));
         }
 
         /*
@@ -75,18 +75,16 @@ void PrepareDataArray(const floored::Frame& frame,
 
 MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_label) {
   if (no_smooth)
-    return 0.001;
+    return 0.0;
   
   const MRF::CostVal kSmoothPenalty = 0.4;
   const MRF::CostVal kLarge = 100.0f;
 
-  cout << lhs << ' ' << rhs << ' ' << (int)point_evidence_ptr->size() << endl;
-  
   if (lhs_label == rhs_label)
     return 0.0;
   // If one is background.
   if (lhs_label == 0 || rhs_label == 0) {
-    return kSmoothPenalty * (1.0 + 0.2 - (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
+    return kSmoothPenalty * (1.0 - (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
     // return kSmoothPenalty;
   }
   return kLarge;
