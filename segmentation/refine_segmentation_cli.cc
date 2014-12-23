@@ -35,12 +35,14 @@ int main(int argc, char* argv[]) {
   }
   
   vector<float> point_evidence, free_space_evidence;
+  vector<Vector3d> normal_evidence;
   {
     const string point_evidence_filename = directory + "point_evidence.dat";
     const string free_space_evidence_filename = directory + "free_space_evidence.dat";
+    const string normal_evidence_filename = directory + "normal_evidence.dat";
     LoadEvidence(point_evidence_filename, &point_evidence);
     LoadEvidence(free_space_evidence_filename, &free_space_evidence);
-
+    LoadEvidence3(normal_evidence_filename, &normal_evidence);
     {
       const double kMinSigma = -0.3;
       const double kMaxSigma = 0.0;
@@ -56,6 +58,8 @@ int main(int argc, char* argv[]) {
     DrawEvidence(frame.size[0], frame.size[1], point_evidence, point_image, kScale);
     const string free_space_image = directory + "free_space_normalized.ppm";
     DrawEvidence(frame.size[0], frame.size[1], free_space_evidence, free_space_image, kScale);
+    const string normal_image = directory + "normal_normalized.ppm";
+    DrawEvidence3(frame.size[0], frame.size[1], frame.axes[0], frame.axes[1], normal_evidence, normal_image);
   }
 
   vector<Vector2i> centers;
@@ -77,8 +81,8 @@ int main(int argc, char* argv[]) {
   }
 
   vector<int> segmentation;
-  RefineSegmentation(frame, point_evidence, free_space_evidence, centers, clusters, visibility,
-                     &segmentation);
+  RefineSegmentation(frame, point_evidence, free_space_evidence, normal_evidence,
+                     centers, clusters, visibility, &segmentation);
 
   {
     const string output_file = directory + "segmentation.ppm";

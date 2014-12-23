@@ -12,6 +12,7 @@ using namespace std;
 bool no_smooth = false;
 const std::vector<float>* point_evidence_ptr;
 const std::vector<float>* free_space_evidence_ptr;
+const std::vector<Vector3d>* normal_evidence_ptr;
 const floored::Frame* frame_ptr;
 
 namespace {
@@ -86,6 +87,9 @@ void PrepareDataArray(const floored::Frame& frame,
 MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_label) {
   if (no_smooth)
     return 0.0;
+
+  const int width = frame_ptr->size[0];
+  const int height = frame_ptr->size[1];
   
   const MRF::CostVal kSmoothPenalty = 1.0;
   const MRF::CostVal kLarge = 100.0f;
@@ -94,7 +98,27 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
     return 0.0;
   // If one is background.
   if (lhs_label == 0 || rhs_label == 0) {
-    return kSmoothPenalty * (1.2 - (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
+    const int lhs_x = lhs % width;
+    const int lhs_y = lhs / width;
+    const int rhs_x = rhs % width;
+    const int rhs_y = rhs / width;
+    Vector3f expected_normal = (rhs_x - lhs_x) * frame_ptr->axes[0] + (rhs_y - lhs_y) * frame_ptr->axes[1];
+    if (rhs_label == 0) {
+      expected_normal = -expected_normal;
+    }
+
+    const Vector3d normal = normal_evidence_ptr->at(lhs) + normal_evidence_ptr->at(rhs);
+    double length = normal.norm();
+    if (length == 0.0)
+      return kSmoothPenalty * 1.2;
+
+    // At least 3 points.
+    length = max(3.0, length);
+    
+    Vector3f normalf(normal[0], normal[1], normal[2]);
+    const double factor = (normalf.dot(expected_normal) / length + 1.0) / 2.0;
+    
+    return kSmoothPenalty * (1.2 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
     // return kSmoothPenalty;
   }
   return kLarge;
@@ -162,6 +186,36 @@ void NormalizeEvidence(const double min_sigma,
   ofstr.close();
 }
 
+void DrawEvidence3(const int width, const int height,
+                   const Eigen::Vector3f& x_axis,
+                   const Eigen::Vector3f& y_axis,
+                   const std::vector<Eigen::Vector3d>& evidence,
+                   const std::string& filename) {
+  ofstream ofstr;
+  ofstr.open(filename.c_str());
+  ofstr << "P3" << endl
+        << width << ' ' << height << endl
+        << 255 << endl;
+
+  for (auto normal : evidence) {
+    if (normal.norm() == 0.0) {
+      ofstr << "0 0 0 ";
+    } else {
+      double length = max(30.0, normal.norm());
+      normal = normal / length;
+      Vector3f normalf(normal[0], normal[1], normal[2]);
+      const double dot_x = normalf.dot(x_axis);
+      const double dot_y = normalf.dot(y_axis);
+
+      int red = min(255, max(0, (int)round((dot_x + 1.0) / 2.0 * 255.0)));
+      int green = min(255, max(0, (int)round((dot_y + 1.0) / 2.0 * 255.0)));
+      int blue = 127;
+      ofstr << red << ' ' << green << ' ' << blue << ' ';
+    }
+  }
+  ofstr.close();
+}
+
 void DrawEvidence(const int width, const int height,
                   const std::vector<float>& evidence,
                   const std::string& filename,
@@ -189,10 +243,10 @@ void DrawEvidence(const int width, const int height,
   ofstr.close();
 }
 
-
 void RefineSegmentation(const floored::Frame& frame,
                         const std::vector<float>& point_evidence,
                         const std::vector<float>& free_space_evidence,
+                        const std::vector<Eigen::Vector3d>& normal_evidence,
                         const std::vector<Eigen::Vector2i>& centers,
                         const std::vector<std::vector<Eigen::Vector2i> >& clusters,
                         const std::vector<std::vector<std::pair<int, float> > > visibility,
@@ -200,6 +254,7 @@ void RefineSegmentation(const floored::Frame& frame,
   frame_ptr = &frame;
   point_evidence_ptr = &point_evidence;
   free_space_evidence_ptr = &free_space_evidence;
+  normal_evidence_ptr = &normal_evidence;
     
   cerr << "Prepare data" << endl;
   // Labels are [background, centers].

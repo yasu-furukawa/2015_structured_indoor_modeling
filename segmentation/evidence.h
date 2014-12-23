@@ -9,14 +9,22 @@
 namespace floored {
 
 void LoadEvidence(const std::string& filename, std::vector<float>* evidence);
-
 void WriteEvidence(const std::string& filename, const std::vector<float>& evidence);
+
+void LoadEvidence3(const std::string& filename, std::vector<Eigen::Vector3d>* evidence);
+void WriteEvidence3(const std::string& filename, const std::vector<Eigen::Vector3d>& evidence);
 
 void SetPointEvidence(const std::vector<Sweep>& sweeps,
                       const Frame& frame,
                       const std::string& directory,
                       std::vector<float>* point_evidence);
 
+void SetPointEvidence(const std::vector<Sweep>& sweeps,
+                      const Frame& frame,
+                      const std::string& directory,
+                      std::vector<float>* point_evidence,
+                      std::vector<Eigen::Vector3d>* normal_evidence);
+ 
 void SetFreeSpaceEvidence(const std::vector<Sweep>& sweeps,
                           const Frame& frame,
                           const std::string& directory,

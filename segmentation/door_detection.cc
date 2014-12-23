@@ -785,6 +785,13 @@ void ConvertPointsToSweep(const ply::Points& points, Sweep* sweep) {
 void SetRanges(const vector<Sweep>& sweeps,
                const float average_distance,
                Frame* frame) {
+
+
+
+
+  make ranges small
+
+  
   // Do not take into account point weights.
   vector<double> histogram[3];
 
@@ -815,8 +822,8 @@ void SetRanges(const vector<Sweep>& sweeps,
 
 
     //?????
-    if (a == 0)
-      frame->ranges[a][0] -= 1000;
+    // if (a == 0)
+    // frame->ranges[a][0] -= 1000;
   }
 
   //----------------------------------------------------------------------

@@ -132,6 +132,106 @@ void WriteEvidence(const string& filename, const vector<float>& evidence) {
   ofstr.close();
 }
 
+void LoadEvidence3(const string& filename, vector<Vector3d>* evidence) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+
+  int length;
+  ifstr >> length;
+  evidence->clear();
+  evidence->resize(length);
+  for (int i = 0; i < length; ++i) {
+    for (int j = 0; j < 3; ++j)
+      ifstr >> evidence->at(i)[j];
+  }
+  
+  ifstr.close();  
+}
+
+void WriteEvidence3(const string& filename, const vector<Vector3d>& evidence) {
+  ofstream ofstr;
+  ofstr.open(filename.c_str());
+
+  int length = evidence.size();
+  ofstr << length << endl;
+  for (int i = 0; i < length; ++i) {
+    for (int j = 0; j < 3; ++j)
+      ofstr << evidence[i][j] << ' ';
+  }
+
+  ofstr.close();
+}
+  
+void SetPointEvidence(const std::vector<Sweep>& sweeps,
+                      const Frame& frame,
+                      const std::string& directory,
+                      std::vector<float>* point_evidence,
+                      std::vector<Eigen::Vector3d>* normal_evidence) {
+  const int width  = frame.size[0];
+  const int height = frame.size[1];
+  
+  point_evidence->clear();
+  point_evidence->resize(width * height, 0.0f);
+
+  normal_evidence->clear();
+  normal_evidence->resize(width * height, Eigen::Vector3d(0, 0, 0));
+
+  /*
+  // Draw points.
+  for (const auto& sweep : sweeps) {
+    for (const auto& point : sweep.points) {
+      const int x = static_cast<int>(round((point.position[0])));
+      const int y = static_cast<int>(round((point.position[1])));
+      if (0 <= x && x < width && 0 <= y && y < height) {
+        double dot_product= fabs(point.normal.dot(frame.axes[2]));
+        dot_product = max(0.0, 2.0 * (dot_product - 0.5));
+        point_evidence->at(y * width + x) += max(1.0, 1.0 - dot_product) * point.weight;
+      }
+    }
+  }
+*/
+  const float kStep = 0.5;
+  const int kFirstStep = 0;
+  const int kLastStep  = 6;
+
+  for (const auto& sweep : sweeps) {
+    for (const auto& point : sweep.points) {
+      Vector2f position(point.position[0], point.position[1]);
+
+      double dot_product;
+      Vector2f normal(point.normal[0], point.normal[1]);
+      if (point.normal == Vector3f(0, 0, 0)) {
+        dot_product = 1.0;
+      } else {
+        normal.normalize();
+        
+        dot_product= fabs(point.normal.dot(frame.axes[2]));
+        dot_product = max(0.0, 2.0 * (dot_product - 0.5));
+      }
+      const double weight = min(1.0, 1.0 - dot_product) * point.weight;
+      set<pair<int, int> > pixels;
+
+      for (int i = kFirstStep; i < kLastStep; ++i) {
+        const Vector2f ptmp = position - (i * kStep) * normal;
+        const int x = static_cast<int>(round(ptmp[0]));
+        const int y = static_cast<int>(round(ptmp[1]));
+        pixels.insert(make_pair(x, y));
+      }
+      for (const auto& pixel : pixels) {
+        const int x = pixel.first;
+        const int y = pixel.second;
+        if (0 <= x && x < width && 0 <= y && y < height) {
+          const int index = y * width + x;
+          point_evidence->at(index) += weight;
+          normal_evidence->at(index) += Vector3d(point.normal[0],
+                                                 point.normal[1],
+                                                 point.normal[2]);
+        }
+      }
+    }
+  }
+}
+  
 void SetPointEvidence(const std::vector<Sweep>& sweeps,
                       const Frame& frame,
                       const std::string& directory,

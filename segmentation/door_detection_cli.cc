@@ -209,19 +209,24 @@ void InitializeEvidence(const std::vector<Sweep>& sweeps,
                         const Frame& frame,
                         const string directory,
                         vector<float>* point_evidence,
-                        vector<float>* free_space_evidence) {
+                        vector<float>* free_space_evidence,
+                        vector<Vector3d>* normal_evidence) {
   const string point_evidence_filename = directory + "point_evidence.dat";
   const string free_space_evidence_filename = directory + "free_space_evidence.dat";
-  ifstream ifstr0, ifstr1;
+  const string normal_evidence_filename = directory + "normal_evidence.dat";
+  ifstream ifstr0, ifstr1, ifstr2;
   ifstr0.open(point_evidence_filename.c_str());
   ifstr1.open(free_space_evidence_filename.c_str());
+  ifstr2.open(normal_evidence_filename.c_str());
 
-  if (ifstr0.is_open() && ifstr1.is_open()) {
+  if (ifstr0.is_open() && ifstr1.is_open() && ifstr2.is_open()) {
     ifstr0.close();
     ifstr1.close();
+    ifstr2.close();
     cerr << "Loading evidence..." << flush;
     LoadEvidence(point_evidence_filename, point_evidence);
     LoadEvidence(free_space_evidence_filename, free_space_evidence);
+    LoadEvidence3(normal_evidence_filename, normal_evidence);
 
     DrawEvidenceToImage(frame, directory, *point_evidence, *free_space_evidence);
     
@@ -230,7 +235,7 @@ void InitializeEvidence(const std::vector<Sweep>& sweeps,
     ifstr0.close();
     ifstr1.close();
     cerr << "Computing evidence..." << flush;
-    SetPointEvidence(sweeps, frame, directory, point_evidence);
+    SetPointEvidence(sweeps, frame, directory, point_evidence, normal_evidence);
     SetFreeSpaceEvidence(sweeps, frame, directory, free_space_evidence);
 
     DrawEvidenceToImage(frame, directory, *point_evidence, *free_space_evidence);
@@ -238,6 +243,7 @@ void InitializeEvidence(const std::vector<Sweep>& sweeps,
     cerr << "done." << endl;
     WriteEvidence(point_evidence_filename, *point_evidence);
     WriteEvidence(free_space_evidence_filename, *free_space_evidence);
+    WriteEvidence3(normal_evidence_filename, *normal_evidence);
   }
 }
 
@@ -289,7 +295,8 @@ int main(int argc, char* argv[]) {
   ConvertSweepsToFrame(frame, &sweeps);
   
   vector<float> point_evidence, free_space_evidence;
-  InitializeEvidence(sweeps, frame, argv[1], &point_evidence, &free_space_evidence);
+  vector<Eigen::Vector3d> normal_evidence;
+  InitializeEvidence(sweeps, frame, argv[1], &point_evidence, &free_space_evidence, &normal_evidence);
 
   vector<float> door_detection;
   DetectDoors(sweeps, frame, argv[1], point_evidence, free_space_evidence, &door_detection);
