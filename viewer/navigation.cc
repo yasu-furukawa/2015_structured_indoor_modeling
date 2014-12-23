@@ -557,10 +557,6 @@ void Navigation::PanoramaToAir() {
       ComputeAirDirectionFromPanorama(camera_panorama.start_direction,
                                       air_height,
                                       air_angle);
-
-    cout << "hof" << endl;
-    cout << camera_air.ground_center << endl
-         << camera_air.start_direction << endl;
   }
   
   camera_between_panorama_and_air.progress = 0.0;  

@@ -10,10 +10,12 @@ using namespace room_segmentation;
 using namespace std;
 
 bool no_smooth = false;
+
+const floored::Frame* frame_ptr;
 const std::vector<float>* point_evidence_ptr;
 const std::vector<float>* free_space_evidence_ptr;
 const std::vector<Vector3d>* normal_evidence_ptr;
-const floored::Frame* frame_ptr;
+int num_cluster;
 
 std::vector<int> segmentation_tmp;
 std::vector<int> horizontal_counts;
@@ -22,6 +24,28 @@ std::vector<int> vertical_counts;
 bool debug = false;
 
 namespace {
+
+void SetCounts() {
+  horizontal_counts.clear();
+  horizontal_counts.resize(frame_ptr->size[0], 0);
+
+  vertical_counts.clear();
+  vertical_counts.resize(frame_ptr->size[1], 0);
+
+  for (int y = 0; y < frame_ptr->size[1]; ++y) {
+    for (int x = 0; x < frame_ptr->size[0]; ++x) {
+      const int index = y * frame_ptr->size[0] + x;
+      if (x != frame_ptr->size[0] - 1) {
+        if (segmentation_tmp[index] != segmentation_tmp[index + 1])
+          ++horizontal_counts[x];
+      }
+      if (y != frame_ptr->size[1] - 1) {
+        if (segmentation_tmp[index] != segmentation_tmp[index + frame_ptr->size[0]])
+          ++vertical_counts[y];
+      }
+    }
+  }
+}
 
 void PrepareDataArray(const floored::Frame& frame,
                       const std::vector<Eigen::Vector2i>& centers,
@@ -74,9 +98,32 @@ void PrepareDataArray(const floored::Frame& frame,
   }
 }
 
+double RobustFunction(const int count) {
+  const int kMaxCount = 50;
+  return 1.0 - 0.9 * min(1.0, count / (double)kMaxCount);
+}
+  
+double ComputeHigherOrder(const int lhs, const int rhs) {
+  if (horizontal_counts.empty())
+    return 1.0;
+  
+  if (abs(lhs - rhs) == 1) {
+    const int lhs_x = lhs % frame_ptr->size[0];
+    const int rhs_x = rhs % frame_ptr->size[0];
+    return RobustFunction(horizontal_counts[min(lhs_x, rhs_x)]);
+  } else {
+    const int lhs_y = lhs / frame_ptr->size[0];
+    const int rhs_y = rhs / frame_ptr->size[0];
+    return RobustFunction(vertical_counts[min(lhs_y, rhs_y)]);
+  }
+}
+  
 MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_label) {
-  if (no_smooth)
+  if (no_smooth) {
     return 0.0;
+  }
+
+  double higher_order = ComputeHigherOrder(lhs, rhs);
 
   const int width = frame_ptr->size[0];
   const int height = frame_ptr->size[1];
@@ -84,8 +131,9 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
   const MRF::CostVal kSmoothPenalty = 30.0;
   const MRF::CostVal kLarge = 100.0f;
 
-  if (lhs_label == rhs_label)
+  if (lhs_label == rhs_label) {
     return 0.0;
+  }
   // If one is background.
   if (lhs_label == 0 || rhs_label == 0) {
     const int lhs_x = lhs % width;
@@ -99,8 +147,9 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
 
     const Vector3d normal = normal_evidence_ptr->at(lhs) + normal_evidence_ptr->at(rhs);
     double length = normal.norm();
-    if (length == 0.0)
-      return kSmoothPenalty * 1.2;
+    if (length == 0.0) {
+      return higher_order * kSmoothPenalty * 1.0;
+    }
 
     // At least 3 points.
     length = max(3.0, length);
@@ -108,7 +157,8 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
     Vector3f normalf(normal[0], normal[1], normal[2]);
     const double factor = (normalf.dot(expected_normal) / length + 1.0) / 2.0;
 
-    return kSmoothPenalty * (1.0 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
+    //???
+    return higher_order * kSmoothPenalty * (1.5 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
     // return kSmoothPenalty;
   }
   return kLarge;
@@ -249,6 +299,7 @@ void RefineSegmentation(const floored::Frame& frame,
   point_evidence_ptr = &point_evidence;
   free_space_evidence_ptr = &free_space_evidence;
   normal_evidence_ptr = &normal_evidence;
+  num_cluster = clusters.size();
     
   cerr << "Prepare data" << endl;
   // Labels are [background, centers].
@@ -275,22 +326,26 @@ void RefineSegmentation(const floored::Frame& frame,
        << mrf->totalEnergy() << ' '
        << mrf->dataEnergy() << ' '
        << mrf->smoothnessEnergy() << endl;
+
+  for (int i = 0; i < 6; ++i) {
+    cout << "optim..." << flush;
+    mrf->optimize(1, t);
+    cout << "done." << endl;
   
-  mrf->optimize(6, t);
+    cout << "Energy at end (total/data/smooth): "
+         << mrf->totalEnergy() << ' '
+         << mrf->dataEnergy() << ' '
+         << mrf->smoothnessEnergy() << endl;
 
-  
-  cout << "Energy at end (total/data/smooth): "
-       << mrf->totalEnergy() << ' '
-       << mrf->dataEnergy() << ' '
-       << mrf->smoothnessEnergy() << endl;
-
-  debug = true;
-  cout << mrf->smoothnessEnergy() << endl;
-
-  segmentation->clear();
-  segmentation->resize(frame.size[0] * frame.size[1]);
-  for (int i = 0; i < frame.size[0] * frame.size[1]; ++i)
-    segmentation->at(i) = mrf->getLabel(i);
+    segmentation->clear();
+    segmentation->resize(frame.size[0] * frame.size[1]);
+    segmentation_tmp.clear();
+    segmentation_tmp.resize(frame.size[0] * frame.size[1]);
+    for (int i = 0; i < frame.size[0] * frame.size[1]; ++i) {
+      segmentation_tmp[i] = segmentation->at(i) = mrf->getLabel(i);
+    }
+    SetCounts();
+  }
   
   
   /*  
