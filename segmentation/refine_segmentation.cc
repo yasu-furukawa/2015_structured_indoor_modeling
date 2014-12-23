@@ -99,7 +99,7 @@ void PrepareDataArray(const floored::Frame& frame,
 }
 
 double RobustFunction(const int count) {
-  const int kMaxCount = 50;
+  const int kMaxCount = 100;
   return 1.0 - 0.9 * min(1.0, count / (double)kMaxCount);
 }
   
@@ -128,8 +128,8 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
   const int width = frame_ptr->size[0];
   const int height = frame_ptr->size[1];
   
-  const MRF::CostVal kSmoothPenalty = 30.0;
-  const MRF::CostVal kLarge = 100.0f;
+  const MRF::CostVal kSmoothPenalty = 60.0;
+  const MRF::CostVal kLarge = 10000.0f;
 
   if (lhs_label == rhs_label) {
     return 0.0;
@@ -151,14 +151,18 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
       return higher_order * kSmoothPenalty * 1.0;
     }
 
-    // At least 3 points.
-    length = max(3.0, length);
+    // At most 30 points.
+    length = max(30.0, length);
     
     Vector3f normalf(normal[0], normal[1], normal[2]);
-    const double factor = (normalf.dot(expected_normal) / length + 1.0) / 2.0;
+    const double factor = (1.0 - normalf.dot(expected_normal) / length) / 2.0;
 
+
+    return kSmoothPenalty * (higher_order + factor);
+
+    
     //???
-    return higher_order * kSmoothPenalty * (1.5 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
+    // return higher_order * kSmoothPenalty * (1.5 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
     // return kSmoothPenalty;
   }
   return kLarge;

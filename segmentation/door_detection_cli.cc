@@ -243,13 +243,13 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
   cerr << endl;
 }
   
-void InitializeFrame(const string directory, const std::vector<Sweep>& sweeps,
+void InitializeFrame(const bool recompute, const string directory, const std::vector<Sweep>& sweeps,
                      const float average_distance, Frame* frame) {
   char buffer[1024];
   sprintf(buffer, "%s/frame.dat", directory.c_str());
   ifstream ifstr;
   ifstr.open(buffer);
-  if (ifstr.is_open()) {
+  if (!recompute && ifstr.is_open()) {
     ifstr >> *frame;
     ifstr.close();
   } else {
@@ -264,7 +264,8 @@ void InitializeFrame(const string directory, const std::vector<Sweep>& sweeps,
   }
 }
 
-void InitializeEvidence(const std::vector<Sweep>& sweeps,
+  void InitializeEvidence(const bool recompute,
+                          const std::vector<Sweep>& sweeps,
                         const Frame& frame,
                         const string directory,
                         vector<float>* point_evidence,
@@ -278,7 +279,7 @@ void InitializeEvidence(const std::vector<Sweep>& sweeps,
   ifstr1.open(free_space_evidence_filename.c_str());
   ifstr2.open(normal_evidence_filename.c_str());
 
-  if (ifstr0.is_open() && ifstr1.is_open() && ifstr2.is_open()) {
+  if (!recompute && ifstr0.is_open() && ifstr1.is_open() && ifstr2.is_open()) {
     ifstr0.close();
     ifstr1.close();
     ifstr2.close();
@@ -328,40 +329,36 @@ void RotateSweeps(const double angle, vector<Sweep>* sweeps) {
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     cerr << "Usage: " << argv[0]
-         << " directory_prefix [skip_reading] [angle_in_degrees]" << endl
+         << " directory_prefix [recompute] [angle_in_degrees]" << endl
          << "./room_segmentation ../data/mobile/" << endl;
     return 1;
   }
 
-  bool skip_reading = false;
+  bool recompute = false;
   if (argc >= 3 && atoi(argv[2]))
-    skip_reading = true;
+    recompute = true;
   
   vector<Sweep> sweeps;
-  if (!skip_reading) {
-    ReadSweeps(argv[1], &sweeps);
-    double angle = 0.0;
-    if (argc >= 4)
-      angle = atof(argv[3]) * M_PI / 180.0;
-    RotateSweeps(angle, &sweeps);
-  }
+  ReadSweeps(argv[1], &sweeps);
+  double angle = 0.0;
+  if (argc >= 4)
+    angle = atof(argv[3]) * M_PI / 180.0;
+  RotateSweeps(angle, &sweeps);
+
   const float average_distance = ComputeAverageDistance(sweeps);
   cout << average_distance << endl;
   
   Frame frame;
-  InitializeFrame(argv[1], sweeps, average_distance, &frame);
+  InitializeFrame(recompute, argv[1], sweeps, average_distance, &frame);
 
   ConvertSweepsToFrame(frame, &sweeps);
   
   vector<float> point_evidence, free_space_evidence;
   vector<Eigen::Vector3d> normal_evidence;
-  InitializeEvidence(sweeps, frame, argv[1], &point_evidence, &free_space_evidence, &normal_evidence);
+  InitializeEvidence(recompute, sweeps, frame, argv[1], &point_evidence, &free_space_evidence, &normal_evidence);
 
   vector<float> door_detection;
   DetectDoors(sweeps, frame, argv[1], point_evidence, free_space_evidence, &door_detection);
-
-  
-
   
   return 0;
 }

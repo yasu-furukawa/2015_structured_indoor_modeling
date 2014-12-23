@@ -544,6 +544,7 @@ void UpdateCenters(const int width,
                    const vector<vector<pair<int, float> > >& weighted_visibility,
                    const vector<vector<int> >& clusters,
                    vector<int>* centers) {
+  /* k-medoid
   centers->clear();
   centers->resize(clusters.size());
   for (int c = 0; c < clusters.size(); ++c) {
@@ -564,6 +565,42 @@ void UpdateCenters(const int width,
     const int min_index =
       min_element(distances.begin(), distances.end()) - distances.begin();
     centers->at(c) = cluster[min_index];
+  }
+  */
+
+  const int subsampled_width = width / subsample;
+  const int subsampled_height = height / subsample;
+  
+  centers->clear();
+  centers->resize(clusters.size());
+  for (int c = 0; c < clusters.size(); ++c) {
+    const vector<int>& cluster = clusters[c];
+    if (cluster.empty())
+      continue;
+    Vector2d subsampled_sum(0, 0);
+    for (int i = 0; i < cluster.size(); ++i) {
+      const int subsampled_x = cluster[i] % subsampled_width;
+      const int subsampled_y = cluster[i] / subsampled_width;
+      subsampled_sum[0] += subsampled_x;
+      subsampled_sum[1] += subsampled_y;
+    }
+    subsampled_sum /= cluster.size();
+
+    // Find the closest one.
+    int best_index = -1;
+    double best_distance = 0.0;
+    for (int i = 0; i < cluster.size(); ++i) {
+      const int subsampled_x = cluster[i] % subsampled_width;
+      const int subsampled_y = cluster[i] / subsampled_width;
+      const double distance =
+        (subsampled_x - subsampled_sum[0]) * (subsampled_x - subsampled_sum[0]) +
+        (subsampled_y - subsampled_sum[1]) * (subsampled_y - subsampled_sum[1]);
+      if (best_index == -1 || distance < best_distance) {
+        best_index = cluster[i];
+        best_distance = distance;
+      }
+    }
+    centers->at(c) = best_index;
   }
 }
  
@@ -822,7 +859,8 @@ void SetRanges(const vector<Sweep>& sweeps,
   //----------------------------------------------------------------------
   // Initial guess of unit.
   //???????
-  double unit = average_distance / 150.0;
+  //double unit = average_distance / 150.0;
+  double unit = average_distance / 100.0;
   //double unit = average_distance / 50.0;
   // Compute resolution.
   const int width  = static_cast<int>(round((frame->ranges[0][1] - frame->ranges[0][0]) / unit));
