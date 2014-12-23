@@ -15,17 +15,26 @@ const std::vector<float>* free_space_evidence_ptr;
 const std::vector<Vector3d>* normal_evidence_ptr;
 const floored::Frame* frame_ptr;
 
+std::vector<int> segmentation_tmp;
+std::vector<int> horizontal_counts;
+std::vector<int> vertical_counts;
+
+bool debug = false;
+
 namespace {
 
 void PrepareDataArray(const floored::Frame& frame,
                       const std::vector<Eigen::Vector2i>& centers,
                       const std::vector<std::vector<std::pair<int, float> > > visibility,
                       std::vector<MRF::CostVal>* data_array) {  
-  const MRF::CostVal kBackground = 0.8;
   const MRF::CostVal kLarge = 10000.0f;
   const int width = frame.size[0];
   const int height = frame.size[1];
   const int num_label = 1 + (int)centers.size();
+
+  const MRF::CostVal kDataWeight = 10.0;
+  // Free space is the same as background with this confidence.
+  const double kFreeSpaceSameAsBackground = 0.1;
 
   // Check.
   {
@@ -50,35 +59,16 @@ void PrepareDataArray(const floored::Frame& frame,
         for (int l = 1; l < num_label; ++l)
           data_array->push_back(kLarge);
       } else if (visibility[index].empty()) {
-        const double new_free_space = 2.0 * max(0.0, free_space_evidence_ptr->at(index) - 0.5);
-
-        data_array->push_back(100.0 * new_free_space);
+        data_array->push_back(kDataWeight * free_space_evidence_ptr->at(index));
         for (int l = 1; l < num_label; ++l) {
-          data_array->push_back(1.0);
+          data_array->push_back(kDataWeight * kFreeSpaceSameAsBackground);
         }
-        
-        /*
-        data_array->push_back(100.0 * free_space_evidence_ptr->at(index));
-        for (int l = 1; l < num_label; ++l) {
-          data_array->push_back(100.0 * (1.0 - free_space_evidence_ptr->at(index)));
-        }
-        */
       } else {
-        const double new_free_space = 2.0 * max(0.0, free_space_evidence_ptr->at(index) - 0.5);
-        data_array->push_back(100 * new_free_space);
+        data_array->push_back(kDataWeight * free_space_evidence_ptr->at(index));
         for (int c = 0; c < (int)centers.size(); ++c) {
           const int center_index = centers[c][1] * width + centers[c][0];
-          //data_array->push_back(1000 * (1.0f - free_space_evidence_ptr->at(index)) * VisibilityDistance(visibility[index], visibility[center_index]));
-          data_array->push_back(100 * VisibilityDistance(visibility[index], visibility[center_index]));
+          data_array->push_back(4.0 * kDataWeight * VisibilityDistance(visibility[index], visibility[center_index]));
         }
-
-        /*
-        data_array->push_back(kBackground);
-        for (int c = 0; c < (int)centers.size(); ++c) {
-          const int center_index = centers[c][1] * width + centers[c][0];
-          data_array->push_back(VisibilityDistance(visibility[index], visibility[center_index]));
-        }
-        */
       }
     }
   }
@@ -91,7 +81,7 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
   const int width = frame_ptr->size[0];
   const int height = frame_ptr->size[1];
   
-  const MRF::CostVal kSmoothPenalty = 10.0;
+  const MRF::CostVal kSmoothPenalty = 30.0;
   const MRF::CostVal kLarge = 100.0f;
 
   if (lhs_label == rhs_label)
@@ -117,8 +107,8 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
     
     Vector3f normalf(normal[0], normal[1], normal[2]);
     const double factor = (normalf.dot(expected_normal) / length + 1.0) / 2.0;
-    
-    return kSmoothPenalty * (1.1 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
+
+    return kSmoothPenalty * (1.0 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
     // return kSmoothPenalty;
   }
   return kLarge;
@@ -227,18 +217,22 @@ void DrawEvidence(const int width, const int height,
         << 255 << endl;
 
   for (const auto& value : evidence) {
-    const int gray_scale = min(255, static_cast<int>(scale * value));
-    int red, green, blue;
-    if (gray_scale < 128) {
-      green  = gray_scale * 2;
-      blue = 255 - green;
-      red   = 0;
+    if (value == 0) {
+      ofstr << "0 0 0 ";
     } else {
-      blue  = 0;
-      red   = (gray_scale - 128) * 2;
-      green = 255 - red;
+      const int gray_scale = min(255, static_cast<int>(scale * value));
+      int red, green, blue;
+      if (gray_scale < 128) {
+        green  = gray_scale * 2;
+        blue = 255 - green;
+        red   = 0;
+      } else {
+        blue  = 0;
+        red   = (gray_scale - 128) * 2;
+        green = 255 - red;
+      }
+      ofstr << red << ' ' << green << ' ' << blue << ' ';
     }
-    ofstr << red << ' ' << green << ' ' << blue << ' ';
   }
   ofstr.close();
 }
@@ -260,7 +254,6 @@ void RefineSegmentation(const floored::Frame& frame,
   // Labels are [background, centers].
   vector<MRF::CostVal> data_array;
   PrepareDataArray(frame, centers, visibility, &data_array);
-  cout << "done" << endl;
   
   DataCost data(&data_array[0]);
   SmoothnessCost smooth(&SmoothFunc);
@@ -270,13 +263,11 @@ void RefineSegmentation(const floored::Frame& frame,
   Expansion expansion(vnum, label_num, &energy);
   MRF* mrf = &expansion;
 
-  cout << "setn" << endl;
   SetNeighbors(frame, mrf);
 
   mrf->initialize();
   no_smooth = true;
   float t;
-  cout << "top" << endl;
   mrf->optimize(1, t);
   no_smooth = false;
 
@@ -286,11 +277,15 @@ void RefineSegmentation(const floored::Frame& frame,
        << mrf->smoothnessEnergy() << endl;
   
   mrf->optimize(6, t);
-    
+
+  
   cout << "Energy at end (total/data/smooth): "
        << mrf->totalEnergy() << ' '
        << mrf->dataEnergy() << ' '
        << mrf->smoothnessEnergy() << endl;
+
+  debug = true;
+  cout << mrf->smoothnessEnergy() << endl;
 
   segmentation->clear();
   segmentation->resize(frame.size[0] * frame.size[1]);
@@ -313,7 +308,6 @@ void RefineSegmentation(const floored::Frame& frame,
   */
     
 }
-
 
 void WriteSegmentation(const std::string& output_file,
                        const std::vector<int>& segmentation,

@@ -338,15 +338,15 @@ int main(int argc, char* argv[]) {
 
   Init(argv[1], &input);
 
-  if (0) {
+  if (1) {
     FindPanoramaClosestToTheRoomCenter(input);
   };
     
-  if (1) {
+  if (0) {
     FindFarPanoramaInRoom(input);
   }
 
-  if (0) {
+  if (1) {
     FindThumbnailPerRoomFromEachPanorama(input);
   }
   

@@ -48,7 +48,7 @@ void NormalizeIntensity(ply::Points* points) {
   for (auto& point : *points) {
     point.intensity =
       (point.intensity - average_intensity) / deviation;
-    point.intensity = 255 * max(0.0, min(1.0, (point.intensity + 2.0) / 4.0));
+    point.intensity = 255 * max(0.0, min(1.0, (point.intensity + 1.0) / 1.0));
   }
 
   //----------------------------------------------------------------------

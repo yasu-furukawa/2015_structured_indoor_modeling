@@ -49,8 +49,8 @@ int main(int argc, char* argv[]) {
       NormalizeEvidence(kMinSigma, kMaxSigma, &point_evidence);
     }
     {
-      const double kMinSigma = -1.0;
-      const double kMaxSigma = 0.2;
+      const double kMinSigma = -0.75;
+      const double kMaxSigma = 0.1;
       NormalizeEvidence(kMinSigma, kMaxSigma, &free_space_evidence);
     }
     const double kScale = 255.0;

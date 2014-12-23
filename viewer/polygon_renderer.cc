@@ -110,6 +110,7 @@ int FrontBackTest(const Eigen::Vector2d& optical_center, const Wall& lhs, const 
   }
 
   cerr << "Rare case. a bug..." << optical_center[0] << ' ' << optical_center[1] << endl;
+  exit (1);
   return 0;
 }
 

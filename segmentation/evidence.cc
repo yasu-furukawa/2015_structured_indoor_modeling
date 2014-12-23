@@ -14,7 +14,7 @@ namespace floored {
 // 1: floored first [0.6, 0.8]
 // 2: henry
 // 3: rhouse
-  const int dataset = 4;
+const int dataset = 4;
   
 
 double ScalePointEvidence(const double input) {

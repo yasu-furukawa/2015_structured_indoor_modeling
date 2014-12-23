@@ -16,6 +16,7 @@ Eigen::Vector3d ComputeAirDirectionFromPanorama(const Eigen::Vector3d& panorama_
   // Lift up by the angle.
   direction += -tan(air_angle)* Vector3d(0, 0, 1);
   direction *= air_height / tan(air_angle);
+
   return direction;
 }
 
@@ -557,6 +558,9 @@ void Navigation::PanoramaToAir() {
                                       air_height,
                                       air_angle);
 
+    cout << "hof" << endl;
+    cout << camera_air.ground_center << endl
+         << camera_air.start_direction << endl;
   }
   
   camera_between_panorama_and_air.progress = 0.0;  
