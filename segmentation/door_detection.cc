@@ -785,13 +785,6 @@ void ConvertPointsToSweep(const ply::Points& points, Sweep* sweep) {
 void SetRanges(const vector<Sweep>& sweeps,
                const float average_distance,
                Frame* frame) {
-
-
-
-
-  make ranges small
-
-  
   // Do not take into account point weights.
   vector<double> histogram[3];
 
@@ -829,8 +822,8 @@ void SetRanges(const vector<Sweep>& sweeps,
   //----------------------------------------------------------------------
   // Initial guess of unit.
   //???????
-  //double unit = average_distance / 200.0;
-  double unit = average_distance / 50.0;
+  double unit = average_distance / 150.0;
+  //double unit = average_distance / 50.0;
   // Compute resolution.
   const int width  = static_cast<int>(round((frame->ranges[0][1] - frame->ranges[0][0]) / unit));
   const int height = static_cast<int>(round((frame->ranges[1][1] - frame->ranges[1][0]) / unit));

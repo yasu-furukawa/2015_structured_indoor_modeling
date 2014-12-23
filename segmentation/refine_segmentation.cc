@@ -54,7 +54,7 @@ void PrepareDataArray(const floored::Frame& frame,
 
         data_array->push_back(100.0 * new_free_space);
         for (int l = 1; l < num_label; ++l) {
-          data_array->push_back(0.0);
+          data_array->push_back(1.0);
         }
         
         /*
@@ -91,7 +91,7 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
   const int width = frame_ptr->size[0];
   const int height = frame_ptr->size[1];
   
-  const MRF::CostVal kSmoothPenalty = 1.0;
+  const MRF::CostVal kSmoothPenalty = 10.0;
   const MRF::CostVal kLarge = 100.0f;
 
   if (lhs_label == rhs_label)
@@ -118,7 +118,7 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
     Vector3f normalf(normal[0], normal[1], normal[2]);
     const double factor = (normalf.dot(expected_normal) / length + 1.0) / 2.0;
     
-    return kSmoothPenalty * (1.2 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
+    return kSmoothPenalty * (1.1 - factor * (point_evidence_ptr->at(lhs) + point_evidence_ptr->at(rhs)) / 2.0);
     // return kSmoothPenalty;
   }
   return kLarge;

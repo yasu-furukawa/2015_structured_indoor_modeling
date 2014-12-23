@@ -20,6 +20,46 @@ using namespace room_segmentation;
 
 namespace {
 
+void NormalizeIntensity(ply::Points* points) {
+  double average_intensity = 0.0;
+  int denom = 0;
+  for (const auto& point : *points) {
+    if (point.intensity != 0.0) {
+      average_intensity += point.intensity;
+      ++denom;
+    }
+  }
+
+  if (denom == 0.0) {
+    cerr << "No non-zero intensity point?" << endl;
+    exit (1);
+  }
+  average_intensity /= denom;
+  double deviation = 0.0;
+  for (const auto& point : *points) {
+    if (point.intensity != 0.0) {
+      deviation += (point.intensity - average_intensity) *
+        (point.intensity - average_intensity);
+    }
+  }
+  deviation /= denom;
+  deviation = sqrt(deviation);
+
+  for (auto& point : *points) {
+    point.intensity =
+      (point.intensity - average_intensity) / deviation;
+    point.intensity = 255 * max(0.0, min(1.0, (point.intensity + 2.0) / 4.0));
+  }
+
+  //----------------------------------------------------------------------
+  ply::Points points_tmp = *points;
+  points->clear();
+  for (const auto& point : points_tmp) {
+    if (point.intensity != 0.0)
+      points->push_back(point);
+  }
+}
+
 void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
   sweeps->clear();
   cerr << "Reading points... " << flush;
@@ -51,6 +91,7 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
     transformation(3, 3) = 1;
     ifstr2.close();
 
+    /*
     {
       ifstream ifstr3;
       sprintf(buffer, "%srotationmat.txt", directory.c_str());
@@ -68,6 +109,25 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
 
       ifstr3.close();
     }
+    */
+    {
+      ifstream ifstr3;
+      sprintf(buffer, "%sfloorplan.txt", directory.c_str());
+      ifstr3.open(buffer);
+      Matrix4d rot;
+      for (int y = 0; y < 4; ++y)
+        for (int x = 0; x < 4; ++x)
+          rot(y, x) = 0;
+      for (int y = 0; y < 3; ++y)
+        for (int x = 0; x < 3; ++x)
+          ifstr3 >> rot(y, x);
+      rot(3, 3) = 1;
+
+      transformation = rot.transpose() * transformation;
+
+      ifstr3.close();
+    }
+
     
     ply::Points points;
     {
@@ -125,15 +185,14 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
 
 
         // Filter.
-        if (point.intensity < 40)
-          continue;
-
-        
+        //if (point.intensity < 40)
+        //continue;
         points.push_back(point);
       }
     }
     ifstr.close();
 
+    NormalizeIntensity(&points);
 
     //?????
     // Autodesk
