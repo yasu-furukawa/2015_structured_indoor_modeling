@@ -673,16 +673,16 @@ void DrawCluster(const int width,
   ofstr.close();
 }
 
-void Cluster(const int width,
+void Cluster(const vector<pair<int, int> >& boundary_array,
+             const int width,
              const int height,
              const int subsample,
              const vector<vector<pair<int, float> > >& weighted_visibility,
              vector<int>* centers,
              vector<vector<int> >* clusters) {
+  const int subsampled_width = width / subsample;
+  const int subsampled_height = height / subsample;
   if (clusters->empty()) {
-    const int subsampled_width = width / subsample;
-    const int subsampled_height = height / subsample;
-
     // K-means clustering.
     clusters->clear();
     clusters->resize(centers->size());
@@ -705,9 +705,6 @@ void Cluster(const int width,
     return;
   }
   cerr << "Real routine." << endl;
-
-  const int subsampled_width = width / subsample;
-  const int subsampled_height = height / subsample;
 
   // Based on the current centers, associate elements to centers.
   // From boundary.
@@ -755,28 +752,53 @@ void Cluster(const int width,
 
       // clusters->at(IdentifyClosestCenterIndex(weighted_visibility, i, *centers)).push_back(i);
       // Find the best cluster.
-      map<int, double> cluster_weight;
 
       // Angle sampling.
       const int kNumAngleSamples = 180;
-      vector<pair<int, double> > angle_to_cluster_weight(kNumAngleSamples);
+      vector<pair<int, double> > angle_to_cluster_weight(kNumAngleSamples, make_pair(-1, 0));
+
+      const int subsampled_x = p % subsampled_width;
+      const int subsampled_y = p / subsampled_width;
+      const int x = subsampled_x * subsample;
+      const int y = subsampled_y * subsample;
       
       for (int i = 0; i < weighted_visibility[p].size(); ++i) {
         const int boundary = weighted_visibility[p][i].first;
 
         if (boundary_to_pixel.find(boundary) == boundary_to_pixel.end())
           continue;
+
+        const int bx = boundary_array[boundary].first;
+        const int by = boundary_array[boundary].second;
+
+        const double angle_d = atan2(by - y, bx - x) / M_PI * 180;
+        const int angle_i = max(0, min(kNumAngleSamples - 1,
+                                       (int)(angle_d / 360.0 * kNumAngleSamples)));
+
+        // Get the best pixel_weight.
+        int best_cluster = -1;
+        double best_weight = 0.0;
         for (const auto& item : boundary_to_pixel[boundary]) {
           const int pixel = item.first;
           const double weight = item.second;
           const int cluster = pixel_to_cluster[pixel];
 
-          
+          if (weight > best_weight) {
+            best_weight = weight;
+            best_cluster = cluster;
+          }
+        }
+        if (best_weight > angle_to_cluster_weight[angle_i].second) {
+          angle_to_cluster_weight[angle_i].second = best_weight;
+          angle_to_cluster_weight[angle_i].first= best_cluster;
+        }
+      }
 
-
-          
-
-          cluster_weight[cluster] += weight;
+      map<int, double> cluster_weight;
+      for (const auto& item : angle_to_cluster_weight) {
+        const int cluster = item.first;
+        if (cluster != -1) {
+          cluster_weight[cluster] += item.second;
         }
       }
       
@@ -869,7 +891,8 @@ bool Merge(const int width,
   return true;
 }
  
-void ClusterMerge(const int width,
+void ClusterMerge(const vector<pair<int, int> >& boundary,
+                  const int width,
                   const int height,
                   const int subsample,
                   const vector<vector<pair<int, float> > >& weighted_visibility,
@@ -879,7 +902,7 @@ void ClusterMerge(const int width,
   const int kTimes = 5;
   for (int t = 0; t < kTimes; ++t) {
     cerr << "Cluster" << endl;
-    Cluster(width, height, subsample, weighted_visibility,
+    Cluster(boundary, width, height, subsample, weighted_visibility,
             centers, clusters);
     cerr << "Merge" << endl;
     const bool merged =
@@ -889,7 +912,7 @@ void ClusterMerge(const int width,
       break;
   }
   // Last one should be Cluster instead of Merge.
-  Cluster(width, height, subsample, weighted_visibility,
+  Cluster(boundary, width, height, subsample, weighted_visibility,
           centers, clusters);
 } 
 
@@ -1205,7 +1228,7 @@ void DetectDoors(const vector<Sweep>& sweeps,
     //----------------------------------------------------------------------
     vector<vector<int> > clusters;
     cerr << "ClusterMerge..." << endl;
-    ClusterMerge(frame.size[0], frame.size[1], kClusteringSubsample,
+    ClusterMerge(boundary, frame.size[0], frame.size[1], kClusteringSubsample,
                  weighted_visibility, &centers, &clusters);
 
     char buffer[1024];
