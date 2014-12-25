@@ -18,8 +18,8 @@ const std::vector<Vector3d>* normal_evidence_ptr;
 int num_cluster;
 
 std::vector<int> segmentation_tmp;
-std::vector<int> horizontal_counts;
-std::vector<int> vertical_counts;
+std::vector<pair<int, int> > horizontal_counts;
+std::vector<pair<int, int> > vertical_counts;
 
 bool debug = false;
 
@@ -27,21 +27,29 @@ namespace {
 
 void SetCounts() {
   horizontal_counts.clear();
-  horizontal_counts.resize(frame_ptr->size[0], 0);
+  horizontal_counts.resize(frame_ptr->size[0], make_pair(0, 0));
 
   vertical_counts.clear();
-  vertical_counts.resize(frame_ptr->size[1], 0);
+  vertical_counts.resize(frame_ptr->size[1], make_pair(0, 0));
 
   for (int y = 0; y < frame_ptr->size[1]; ++y) {
     for (int x = 0; x < frame_ptr->size[0]; ++x) {
       const int index = y * frame_ptr->size[0] + x;
       if (x != frame_ptr->size[0] - 1) {
-        if (segmentation_tmp[index] != segmentation_tmp[index + 1])
-          ++horizontal_counts[x];
+        if (segmentation_tmp[index] != segmentation_tmp[index + 1]) {
+          if (segmentation_tmp[index] == 0)
+            ++horizontal_counts[x].first;
+          else if (segmentation_tmp[index + 1] == 0)
+            ++horizontal_counts[x].second;
+        }
       }
       if (y != frame_ptr->size[1] - 1) {
-        if (segmentation_tmp[index] != segmentation_tmp[index + frame_ptr->size[0]])
-          ++vertical_counts[y];
+        if (segmentation_tmp[index] != segmentation_tmp[index + frame_ptr->size[0]]) {
+          if (segmentation_tmp[index] == 0)
+            ++vertical_counts[y].first;
+          else if (segmentation_tmp[index + frame_ptr->size[0]] == 0)
+            ++vertical_counts[y].second;
+        }
       }
     }
   }
@@ -102,20 +110,41 @@ double RobustFunction(const int count) {
   const int kMaxCount = 100;
   return 1.0 - 0.9 * min(1.0, count / (double)kMaxCount);
 }
-  
-double ComputeHigherOrder(const int lhs, const int rhs) {
+
+double ComputeHigherOrderCore(const int lhs, const int rhs,
+                              const MRF::Label lhs_label, const MRF::Label rhs_label) {
   if (horizontal_counts.empty())
     return 1.0;
   
   if (abs(lhs - rhs) == 1) {
     const int lhs_x = lhs % frame_ptr->size[0];
     const int rhs_x = rhs % frame_ptr->size[0];
-    return RobustFunction(horizontal_counts[min(lhs_x, rhs_x)]);
+    if (lhs_label == 0)
+      return RobustFunction(horizontal_counts[min(lhs_x, rhs_x)].first);
+    else if (rhs_label == 0)
+      return RobustFunction(horizontal_counts[min(lhs_x, rhs_x)].second);
+    else
+      return 1.0;
   } else {
     const int lhs_y = lhs / frame_ptr->size[0];
     const int rhs_y = rhs / frame_ptr->size[0];
-    return RobustFunction(vertical_counts[min(lhs_y, rhs_y)]);
+    if (lhs_label == 0)
+      return RobustFunction(vertical_counts[min(lhs_y, rhs_y)].first);
+    else if (rhs_label == 0)
+      return RobustFunction(vertical_counts[min(lhs_y, rhs_y)].second);
+    else
+      return 1.0;
   }
+}
+  
+double ComputeHigherOrder(const int lhs, const int rhs,
+                          const MRF::Label lhs_label, const MRF::Label rhs_label) {
+  return 0.5;
+  
+  if (lhs < rhs)
+    return ComputeHigherOrderCore(lhs, rhs, lhs_label, rhs_label);
+  else
+    return ComputeHigherOrderCore(rhs, lhs, rhs_label, lhs_label);
 }
   
 MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_label) {
@@ -123,17 +152,18 @@ MRF::CostVal SmoothFunc(int lhs, int rhs, MRF::Label lhs_label, MRF::Label rhs_l
     return 0.0;
   }
 
-  double higher_order = ComputeHigherOrder(lhs, rhs);
+  if (lhs_label == rhs_label) {
+    return 0.0;
+  }
+  
+  double higher_order = ComputeHigherOrder(lhs, rhs, lhs_label, rhs_label);
 
   const int width = frame_ptr->size[0];
   const int height = frame_ptr->size[1];
   
-  const MRF::CostVal kSmoothPenalty = 60.0;
+  const MRF::CostVal kSmoothPenalty = 10.0;
   const MRF::CostVal kLarge = 10000.0f;
 
-  if (lhs_label == rhs_label) {
-    return 0.0;
-  }
   // If one is background.
   if (lhs_label == 0 || rhs_label == 0) {
     const int lhs_x = lhs % width;

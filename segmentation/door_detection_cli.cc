@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -76,20 +77,21 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
 
     cerr << buffer << endl;
 
-    ifstream ifstr2;
-    sprintf(buffer, "%stransformations/%03d.txt", directory.c_str(), s + 1);
-    ifstr2.open(buffer);
     Matrix4d transformation;
-    char ctmp;
-    ifstr2 >> ctmp;
-    for (int y = 0; y < 3; ++y)
-      for (int x = 0; x < 4; ++x)
-        ifstr2 >> transformation(y, x);
-    transformation(3, 0) = 0;
-    transformation(3, 1) = 0;
-    transformation(3, 2) = 0;
-    transformation(3, 3) = 1;
-    ifstr2.close();
+    {
+      ifstream ifstr2;
+      sprintf(buffer, "%stransformations/%03d.txt", directory.c_str(), s + 1);
+      ifstr2.open(buffer);
+      char ctmp;
+      ifstr2 >> ctmp;
+      for (int y = 0; y < 3; ++y)
+        for (int x = 0; x < 4; ++x)
+          ifstr2 >> transformation(y, x);
+      transformation(3, 0) = 0;
+      transformation(3, 1) = 0;
+      transformation(3, 2) = 0;
+      transformation(3, 3) = 1;
+      ifstr2.close();
 
     /*
     {
@@ -110,26 +112,28 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
       ifstr3.close();
     }
     */
-    {
-      ifstream ifstr3;
-      sprintf(buffer, "%sfloorplan.txt", directory.c_str());
-      ifstr3.open(buffer);
-      Matrix4d rot;
-      for (int y = 0; y < 4; ++y)
-        for (int x = 0; x < 4; ++x)
-          rot(y, x) = 0;
-      for (int y = 0; y < 3; ++y)
-        for (int x = 0; x < 3; ++x)
-          ifstr3 >> rot(y, x);
-      rot(3, 3) = 1;
-
-      transformation = rot.transpose() * transformation;
-
-      ifstr3.close();
+      {
+        ifstream ifstr3;
+        sprintf(buffer, "%sfloorplan.txt", directory.c_str());
+        ifstr3.open(buffer);
+        Matrix4d rot;
+        for (int y = 0; y < 4; ++y)
+          for (int x = 0; x < 4; ++x)
+            rot(y, x) = 0;
+        for (int y = 0; y < 3; ++y)
+          for (int x = 0; x < 3; ++x)
+            ifstr3 >> rot(y, x);
+        rot(3, 3) = 1;
+        
+        transformation = rot.transpose() * transformation;
+        
+        ifstr3.close();
+      }
     }
 
-    
-    ply::Points points;
+    map<pair<int, int>, ply::Point> points_map;
+    int width = 0;
+    int height = 0;
     {
       string header;
       for (int i = 0; i < 6; ++i)
@@ -138,19 +142,14 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
       ifstr >> num_points;
       for (int i = 0; i < 37; ++i)
         ifstr >> header;
-
-      ply::Point point;
-      point.position = Vector3f(transformation(0, 3),
-                                transformation(1, 3),
-                                transformation(2, 3));
-      point.normal = Vector3f(0, 0, 0);
-      point.color = Vector3f(0, 0, 0);
-                                
-      points.push_back(point);
       
       for (int p = 0; p < num_points; ++p) {
-        int itmp;
-        ifstr >> itmp >> itmp;
+        int x, y;
+        ifstr >> x >> y;
+        --x;
+        --y;
+        width = max(width, x + 1);
+        height = max(height, y + 1);
         Vector4d local;
         for (int i = 0; i < 3; ++i)
           ifstr >> local(i);
@@ -187,15 +186,29 @@ void ReadSweeps(const string directory, vector<Sweep>* sweeps) {
         // Filter.
         //if (point.intensity < 40)
         //continue;
-        points.push_back(point);
+        points_map[make_pair(x, y)] = point;
       }
     }
     ifstr.close();
 
+    //FilterIntensity(&points_map);
+
+    ply::Points points;
+    {
+      ply::Point point;
+      point.position = Vector3f(transformation(0, 3),
+                                transformation(1, 3),
+                                transformation(2, 3));
+      point.normal = Vector3f(0, 0, 0);
+      point.color = Vector3f(0, 0, 0);
+      points.push_back(point);
+    }
+    for (const auto& point : points_map)
+      points.push_back(point.second);
     NormalizeIntensity(&points);
 
-    //?????
-    // Autodesk
+
+    
     /*
     {
       ply::Points points_tmp;
