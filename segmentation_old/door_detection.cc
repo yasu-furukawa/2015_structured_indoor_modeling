@@ -23,17 +23,16 @@ const float kInvalidScore = numeric_limits<float>::max();
 const int kSeedStep = 10;
 const int kMaxDistanceRadius = 10;
 const double kDoorDetectionScale = 0.01;
-  const float kGoodFreeSpaceEvidence = 50;//100.0;
+  const float kGoodFreeSpaceEvidence = 30; // 50;//100.0;
 const float kBoundarySubsampleRatio = 0.2;
 
-const int kClusteringSubsample = 6;
+const int kClusteringSubsample = 4;
 const float kMarginFromBoundaryForVisibility = 5;
 const int kVisibilityMargin = 10;
 
 const int kInitialClusterNum = 20;
 
-const float kMergeThreshold = 0.10;
-//const float kMergeThreshold = 0.3;
+const float kMergeThreshold = 0.3;
  
 
 struct ShortestPathNode {
@@ -428,7 +427,7 @@ void ComputeVisibility(const int width,
 		       const vector<pair<int, int> >& boundary,
 		       const vector<bool>& mask,
 		       const vector<float>& distance_to_boundary,
-		       vector<vector<int> >* visibility) {
+		       vector<vector<int> >* visibility) {  
   const int subsampled_width = width / subsample;
   const int subsampled_height = height / subsample;
   visibility->clear();
@@ -441,15 +440,18 @@ void ComputeVisibility(const int width,
       const int x = subsampled_x * subsample;
 
       // Compute visibility only for a pixel inside a mask.
-      if (!mask[y * width + x])
+      if (!mask[y * width + x]) {
 	continue;
-      if (distance_to_boundary[y * width + x] < kMarginFromBoundaryForVisibility)
+      }
+      if (distance_to_boundary[y * width + x] < kMarginFromBoundaryForVisibility) {
 	continue;
+      }
 
       // Test against all the boundary points.
-      for (int b = 0; b < boundary.size(); ++b) {
-	if (IsVisible(width, height, mask, make_pair(x, y), boundary[b]))
+      for (int b = 0; b < boundary.size(); ++b) {        
+	if (IsVisible(width, height, mask, make_pair(x, y), boundary[b])) {
 	  visibility->at(visibility_index).push_back(b);
+        }
       }
 
       /*
@@ -749,21 +751,34 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
         cerr << p << ' ' << flush;
       if (weighted_visibility[p].empty())
         continue;
-
+      
       // clusters->at(IdentifyClosestCenterIndex(weighted_visibility, i, *centers)).push_back(i);
       // Find the best cluster.
 
       // Angle sampling.
-      const int kNumAngleSamples = 180;
+      const int kNumAngleSamples = 60;
       vector<pair<int, double> > angle_to_cluster_weight(kNumAngleSamples, make_pair(-1, 0));
 
       const int subsampled_x = p % subsampled_width;
       const int subsampled_y = p / subsampled_width;
       const int x = subsampled_x * subsample;
       const int y = subsampled_y * subsample;
+
+
+      bool flag = false;
+      /*
+      if (count > 2 && abs(162 - x) <= subsample && abs(95 - y) <= subsample) {
+        flag = true;
+        cout << "flag true " << p << endl;
+      }
+      */
       
       for (int i = 0; i < weighted_visibility[p].size(); ++i) {
         const int boundary = weighted_visibility[p][i].first;
+
+        if (flag) {
+          cout << "Boundary: " << boundary_array[boundary].first << ' ' << boundary_array[boundary].second << ' ';
+        }
 
         if (boundary_to_pixel.find(boundary) == boundary_to_pixel.end())
           continue;
@@ -771,28 +786,45 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
         const int bx = boundary_array[boundary].first;
         const int by = boundary_array[boundary].second;
 
-        const double angle_d = atan2(by - y, bx - x) / M_PI * 180;
+        double angle_d = atan2(by - y, bx - x) / M_PI * 180;
+        if (angle_d < 0.0)
+          angle_d += 2 * M_PI;
         const int angle_i = max(0, min(kNumAngleSamples - 1,
                                        (int)(angle_d / 360.0 * kNumAngleSamples)));
 
         // Get the best pixel_weight.
         int best_cluster = -1;
         double best_weight = 0.0;
+        int best_pixel = -1;
         for (const auto& item : boundary_to_pixel[boundary]) {
           const int pixel = item.first;
           const double weight = item.second;
           const int cluster = pixel_to_cluster[pixel];
-
+          
           if (weight > best_weight) {
             best_weight = weight;
             best_cluster = cluster;
+            best_pixel = pixel;
           }
         }
+        
+        if (flag) {
+          cout << "P " << best_pixel % subsampled_width * subsample << ' ' << best_pixel / subsampled_width * subsample << ' ' << best_cluster << ' ' << best_weight << endl;
+        }
+        
         if (best_weight > angle_to_cluster_weight[angle_i].second) {
           angle_to_cluster_weight[angle_i].second = best_weight;
           angle_to_cluster_weight[angle_i].first= best_cluster;
         }
       }
+
+      if (flag) {
+        for (int i = 0; i < angle_to_cluster_weight.size(); ++i)
+          if (angle_to_cluster_weight[i].first != -1)
+            cout << i * 2 << ' ' << angle_to_cluster_weight[i].first << ' '
+                 << angle_to_cluster_weight[i].second << endl;
+      }
+      
 
       map<int, double> cluster_weight;
       for (const auto& item : angle_to_cluster_weight) {
@@ -977,8 +1009,8 @@ void SetRanges(const vector<Sweep>& sweeps,
   // Initial guess of unit.
   //???????
   //double unit = average_distance / 150.0;
-  double unit = average_distance / 80.0;
-  //double unit = average_distance / 50.0;
+  // double unit = average_distance / 80.0;
+  double unit = average_distance / 50.0;
   // Compute resolution.
   const int width  = static_cast<int>(round((frame->ranges[0][1] - frame->ranges[0][0]) / unit));
   const int height = static_cast<int>(round((frame->ranges[1][1] - frame->ranges[1][0]) / unit));
@@ -1171,7 +1203,7 @@ void DetectDoors(const vector<Sweep>& sweeps,
   }
 
   const int kKernelWidth = 9;
-  for (int i = 0; i < 20; ++i)
+  for (int i = 0; i < 40; ++i)
     image_process::Open(frame.size[0], frame.size[1], kKernelWidth, &mask);
 
   {

@@ -354,9 +354,10 @@ int main(int argc, char* argv[]) {
   vector<Sweep> sweeps;
   ReadSweeps(argv[1], &sweeps);
   double angle = 0.0;
-  if (argc >= 4)
+  if (argc >= 4) {
     angle = atof(argv[3]) * M_PI / 180.0;
-  RotateSweeps(angle, &sweeps);
+    RotateSweeps(angle, &sweeps);
+  }
 
   const float average_distance = ComputeAverageDistance(sweeps);
   cout << average_distance << endl;
