@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <queue>
 #include <Eigen/Dense>
 
@@ -22,17 +23,17 @@ const float kInvalidScore = numeric_limits<float>::max();
 const int kSeedStep = 10;
 const int kMaxDistanceRadius = 10;
 const double kDoorDetectionScale = 0.01;
-const float kGoodFreeSpaceEvidence = 100.0;
+  const float kGoodFreeSpaceEvidence = 50;//100.0;
 const float kBoundarySubsampleRatio = 0.2;
 
-const int kClusteringSubsample = 4;
+const int kClusteringSubsample = 6;
 const float kMarginFromBoundaryForVisibility = 5;
 const int kVisibilityMargin = 10;
 
 const int kInitialClusterNum = 20;
 
-  // const float kMergeThreshold = 0.5;
-  const float kMergeThreshold = 0.3;
+const float kMergeThreshold = 0.10;
+//const float kMergeThreshold = 0.3;
  
 
 struct ShortestPathNode {
@@ -678,28 +679,111 @@ void Cluster(const int width,
              const vector<vector<pair<int, float> > >& weighted_visibility,
              vector<int>* centers,
              vector<vector<int> >* clusters) {
+  if (clusters->empty()) {
+    const int subsampled_width = width / subsample;
+    const int subsampled_height = height / subsample;
+
+    // K-means clustering.
+    clusters->clear();
+    clusters->resize(centers->size());
+
+    // Typically converges after 10 iterations.
+    const int kTimes = 10;
+    for (int t = 0; t < kTimes; ++t) {
+      // Based on the current centers, associate elements to centers.
+      clusters->clear();
+      clusters->resize(centers->size());
+      for (int i = 0; i < weighted_visibility.size(); ++i) {
+        if (weighted_visibility[i].empty())
+          continue;
+        
+        clusters->at(IdentifyClosestCenterIndex(weighted_visibility, i, *centers)).push_back(i);
+      }
+      // Update centers based on the assignments.
+      UpdateCenters(width, height, subsample, weighted_visibility, *clusters, centers);
+    }
+    return;
+  }
+  cerr << "Real routine." << endl;
+
   const int subsampled_width = width / subsample;
   const int subsampled_height = height / subsample;
 
-  // K-means clustering.
-  clusters->clear();
-  clusters->resize(centers->size());
+  // Based on the current centers, associate elements to centers.
+  // From boundary.
+  map<int, map<int, double> > boundary_to_pixel;
+  {
+    for (int p = 0; p < weighted_visibility.size(); ++p) {
+      for (int i = 0; i < weighted_visibility[p].size(); ++i) {
+        const int boundary = weighted_visibility[p][i].first;
+        const double weight = weighted_visibility[p][i].second;
+        boundary_to_pixel[boundary][p] += weight;
+      }
+    }
+  }
 
+  static int count = 0;
+  
   // Typically converges after 10 iterations.
-  const int kTimes = 10;
+  const int kTimes = 5; // ???10;
   for (int t = 0; t < kTimes; ++t) {
-    // Based on the current centers, associate elements to centers.
+    {    
+      char buffer[1024];
+      sprintf(buffer, "cluster_%02d.ppm", count++);
+      DrawCluster(width, height, subsample,
+                  buffer, *centers, *clusters);
+    }
+
+    cerr << "T " << t << ' ' << kTimes << endl;
+    const vector<vector<int> > clusters_org = *clusters;
+    map<int, int> pixel_to_cluster;
+    {
+      for (int c = 0; c < clusters_org.size(); ++c) {
+        for (int i = 0; i < clusters_org[c].size(); ++i) {
+          pixel_to_cluster[clusters_org[c][i]] = c;
+        }
+      }
+    }
+    
     clusters->clear();
     clusters->resize(centers->size());
-    for (int i = 0; i < weighted_visibility.size(); ++i) {
-      if (weighted_visibility[i].empty())
+    for (int p = 0; p < weighted_visibility.size(); ++p) {
+      if (p % 100 == 0)
+        cerr << p << ' ' << flush;
+      if (weighted_visibility[p].empty())
         continue;
 
-      clusters->at(IdentifyClosestCenterIndex(weighted_visibility, i, *centers)).push_back(i);
+      // clusters->at(IdentifyClosestCenterIndex(weighted_visibility, i, *centers)).push_back(i);
+      // Find the best cluster.
+      map<int, double> cluster_weight;
+      for (int i = 0; i < weighted_visibility[p].size(); ++i) {
+        const int boundary = weighted_visibility[p][i].first;
+
+        if (boundary_to_pixel.find(boundary) == boundary_to_pixel.end())
+          continue;
+        for (const auto& item : boundary_to_pixel[boundary]) {
+          const int pixel = item.first;
+          const double weight = item.second;
+          const int cluster = pixel_to_cluster[pixel];
+
+          cluster_weight[cluster] += weight;
+        }
+      }
+      
+      int best_cluster = -1;
+      double best_weight = 0.0;
+      for (auto& item : cluster_weight) {
+        if (best_cluster == -1 || item.second > best_weight) {
+          best_weight = item.second;
+          best_cluster = item.first;
+        }
+      }
+      
+      clusters->at(best_cluster).push_back(p);
     }
-    // Update centers based on the assignments.
-    UpdateCenters(width, height, subsample, weighted_visibility, *clusters, centers);
   }
+  // Update centers based on the assignments.
+  UpdateCenters(width, height, subsample, weighted_visibility, *clusters, centers);
 }
 
 bool Merge(const int width,
@@ -860,7 +944,7 @@ void SetRanges(const vector<Sweep>& sweeps,
   // Initial guess of unit.
   //???????
   //double unit = average_distance / 150.0;
-  double unit = average_distance / 100.0;
+  double unit = average_distance / 80.0;
   //double unit = average_distance / 50.0;
   // Compute resolution.
   const int width  = static_cast<int>(round((frame->ranges[0][1] - frame->ranges[0][0]) / unit));
