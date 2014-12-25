@@ -756,6 +756,11 @@ void Cluster(const int width,
       // clusters->at(IdentifyClosestCenterIndex(weighted_visibility, i, *centers)).push_back(i);
       // Find the best cluster.
       map<int, double> cluster_weight;
+
+      // Angle sampling.
+      const int kNumAngleSamples = 180;
+      vector<pair<int, double> > angle_to_cluster_weight(kNumAngleSamples);
+      
       for (int i = 0; i < weighted_visibility[p].size(); ++i) {
         const int boundary = weighted_visibility[p][i].first;
 
@@ -765,6 +770,11 @@ void Cluster(const int width,
           const int pixel = item.first;
           const double weight = item.second;
           const int cluster = pixel_to_cluster[pixel];
+
+          
+
+
+          
 
           cluster_weight[cluster] += weight;
         }
