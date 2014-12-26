@@ -32,11 +32,11 @@ struct Input {
   Floorplan floorplan;
 };
 
-void Init(const string& data_directory, Input *input) {
+void Init(const string& data_directory, const int start_panorama, Input *input) {
   input->data_directory = data_directory;
 
   const file_io::FileIO file_io(data_directory);
-  for (int p = 0; ; ++p) {
+  for (int p = start_panorama; ; ++p) {
     Panorama panorama;
     if (!panorama.Init(file_io, p))
       break;
@@ -324,7 +324,7 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " data_directory" << endl;
+    cerr << "Usage: " << argv[0] << " data_directory start_panorama" << endl;
     exit (1);
   }
 
@@ -336,7 +336,11 @@ int main(int argc, char* argv[]) {
   input.panorama_width = 1024;
   input.panorama_height = input.panorama_width / 2;
 
-  Init(argv[1], &input);
+  int start_panorama = 0;
+  if (argc >= 3)
+    start_panorama = atoi(argv[2]);
+  
+  Init(argv[1], start_panorama, &input);
 
   if (1) {
     FindPanoramaClosestToTheRoomCenter(input);

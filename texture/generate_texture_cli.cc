@@ -3,82 +3,22 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include <gflags/gflags.h>
+
 
 #include "../calibration/file_io.h"
 #include "../floorplan/floorplan.h"
+#include "../floorplan/panorama.h"
+#include "generate_texture.h"
 
 DEFINE_int32(num_panoramas, 1, "Number of panorama images.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
+DEFINE_double(texel_size_rescale, 1.0, "Less than 1 to increase resolution.");
+DEFINE_int32(max_texture_size_per_patch, 1024, "Maximum texture size for each patch.");
 
-using namespace std;
 using namespace Eigen;
-
-void ReadPanoramas(const file_io::FileIO& file_io,
-                   const int num_panoramas,
-                   const int num_pyramid_levels,
-                   vector<vector<cv::Mat> >* panoramas) {
-  panoramas->resize(num_pyramid_levels);
-
-  const int kFirstLevel = 0;
-  panoramas->at(kFirstLevel).resize(num_panoramas);
-
-  for (int p = 0; p < num_panoramas; ++p) {
-    (*panoramas)[kFirstLevel][p] = cv::imread(file_io.GetPanoramaImage(p), 1);
-    if ((*panoramas)[kFirstLevel][p].empty()) {
-      cerr << "Image does not exist." << endl;
-      exit (1);      
-    }
-  }
-  for (int level = 1; level < num_pyramid_levels; ++level) {
-    panoramas->at(level).resize(num_panoramas);
-    for (int p = 0; p < num_panoramas; ++p) {
-      pyrDown((*panoramas)[level - 1][p], (*panoramas)[level][p],
-              Size((*panoramas)[level - 1][p].cols / 2,
-                   (*panoramas)[level - 1][p].rows / 2));
-    }
-  }
-}
-
-void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
-                           const int num_panoramas,
-                           vector<Matrix4d>* panorama_to_globals) {
-  panorama_to_globals->resize(num_panoramas);
-  for (int p = 0; p < num_panoramas; ++p) {
-    const string filename = file_io.GetPanoramaToGlobalTransformation(p);
-    ifstream ifstr;
-    ifstr.open(filename.c_str());
-    string header;
-    for (int y = 0; y < 4; ++y) {
-      for (int x = 0; x < 4; ++x) {
-        ifstr >> (*panorama_to_globals)[p](y, x);
-      }
-    }
-    ifstr.close();
-  }
-}
-
-void Invert(const vector<Matrix4d>& panorama_to_globals,
-            vector<Matrix4d>* global_to_panoramas) {
-  global_to_panoramas.resize(panorama_to_globals.size());
-  for (int i = 0; i < panorama_to_globals.size(); ++i) {
-    Matrix3d rotation = panorama_to_globals[i].block(0, 0, 3, 3);
-    global_to_panoramas->at(i).block(0, 0, 3, 3) = rotation.transpose();
-    global_to_panoramas->at(i).block(0, 3, 3, 1) =
-      - rotation.transpose() * panorama_to_globals[i].block(0, 3, 3, 1);
-    global_to_panoramas->at(i)(3, 0) = 0.0;
-    global_to_panoramas->at(i)(3, 1) = 0.0;
-    global_to_panoramas->at(i)(3, 2) = 0.0;
-    global_to_panoramas->at(i)(3, 3) = 1.0;
-    
-    // debug.
-    Matrix4d a = global_to_panoramas->at(i) * panorama_to_globals[i];
-    for (int y = 0; y < 4; ++y) {
-      for (int x = 0; x < 4; ++x)
-        cout << a(y, x) << ' ';
-      cout << endl;
-    }
-  }
-}
+using namespace std;
+using namespace texture;
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -86,11 +26,11 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   google::ParseCommandLineFlags(&argc, &argv, true);
-  google::InitGoogleLogging(argv[0]);
+  // google::InitGoogleLogging(argv[0]);
 
   // Read data from the directory.
   file_io::FileIO file_io(argv[1]);
-  vector<vector<cv::Mat> > panoramas;
+  vector<vector<Panorama> > panoramas;
   {
     ReadPanoramas(file_io,
                   FLAGS_num_panoramas,
@@ -99,7 +39,7 @@ int main(int argc, char* argv[]) {
   }
   vector<Matrix4d> panorama_to_globals;
   {
-    ReadPanoramaToGlobals(file_io, FLAGS_num_panorams, &panorama_to_globals);
+    ReadPanoramaToGlobals(file_io, FLAGS_num_panoramas, &panorama_to_globals);
    }
   Floorplan floorplan;
   {
@@ -114,35 +54,48 @@ int main(int argc, char* argv[]) {
     Invert(panorama_to_globals, &global_to_panoramas);
   }
 
+  // Unit for a texel.
+  double texel_size;
+  ComputeTexelSize(panoramas);
+  texel_size *= FLAGS_texel_size_rescale;
+  
   // For each wall rectangle, floor, and ceiling,
   // 0. Identify visible panoramas.
   // 1. Grab texture
   // 2. Stitch
-
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
       const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
-      Domain domain;
-      domain.vertices[0] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
-                                    floorplan.GetRoomVertexLocal(room, wall)[1],
-                                    floorplan.GetFloorHeight(room));
-      domain.vertices[1] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
-                                    floorplan.GetRoomVertexLocal(room, next_wall)[1],
-                                    floorplan.GetFloorHeight(room));
-      domain.vertices[2] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
-                                    floorplan.GetRoomVertexLocal(room, next_wall)[1],
-                                    floorplan.GetCeilingHeight(room));
-      domain.vertices[3] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
-                                    floorplan.GetRoomVertexLocal(room, wall)[1],
-                                    floorplan.GetCeilingHeight(room));
+      Patch patch;
+      patch.vertices[0] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
+                                   floorplan.GetRoomVertexLocal(room, wall)[1],
+                                   floorplan.GetCeilingHeight(room));
+      patch.vertices[1] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
+                                   floorplan.GetRoomVertexLocal(room, next_wall)[1],
+                                   floorplan.GetCeilingHeight(room));
+      patch.vertices[2] = Vector3d(floorplan.GetRoomVertexLocal(room, next_wall)[0],
+                                   floorplan.GetRoomVertexLocal(room, next_wall)[1],
+                                   floorplan.GetFloorHeight(room));
+      patch.vertices[3] = Vector3d(floorplan.GetRoomVertexLocal(room, wall)[0],
+                                   floorplan.GetRoomVertexLocal(room, wall)[1],
+                                   floorplan.GetFloorHeight(room));
+
+      patch.x_axis = (patch.vertices[1] - patch.vertices[0]).normalized();
+      patch.y_axis = (patch.vertices[3] - patch.vertices[0]).normalized();
       
       // Identify visible panoramas.
-      vector<int> visible_panoramas;
-      FindVisiblePanoramas(global_to_panoramas, domain
-                   
+      vector<pair<double, int> > visible_panoramas_weights;
+      FindVisiblePanoramas(panoramas, global_to_panoramas, patch, &visible_panoramas_weights);
+
+      // Keep the best one only.
+      const int best_panorama = visible_panoramas_weights[0].second;
+
+      SetTextureSize(texel_size, FLAGS_max_texture_size_per_patch, &patch);
+      // Grab texture.
+      GrabTexture(panoramas[best_panorama], &patch);
+
+
       
-  
-  
-  
-  
+    }      
+  }
 }

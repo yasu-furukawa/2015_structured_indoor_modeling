@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <queue>
+#include <set>
 #include <Eigen/Dense>
 
 #include "data.h"
@@ -30,7 +31,7 @@ const int kClusteringSubsample = 6;
 const float kMarginFromBoundaryForVisibility = 5;
 const int kVisibilityMargin = 10;
 
-const int kInitialClusterNum = 20;
+const int kInitialClusterNum = 40;
 
 const float kMergeThreshold = 0.3;
  
@@ -726,8 +727,19 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
     for (int p = 0; p < weighted_visibility.size(); ++p) {
       for (int i = 0; i < weighted_visibility[p].size(); ++i) {
         const int boundary = weighted_visibility[p][i].first;
-        const double weight = weighted_visibility[p][i].second;
-        boundary_to_pixel[boundary][p] += weight;
+
+        const int bx = boundary_array[boundary].first;
+        const int by = boundary_array[boundary].second;
+
+        const int subsampled_x = p % subsampled_width;
+        const int subsampled_y = p / subsampled_width;
+        const int x = subsampled_x * subsample;
+        const int y = subsampled_y * subsample;
+
+        if ((bx - x) * (bx - x) + (by - y) * (by - y) < 50 * 50) {
+          const double weight = weighted_visibility[p][i].second;
+          boundary_to_pixel[boundary][p] += weight;
+        }
       }
     }
   }
@@ -752,12 +764,40 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
         }
       }
     }
-    
+
     clusters->clear();
     clusters->resize(centers->size());
+
+    vector<int> boundary_to_cluster(boundary_array.size(), -1);
+    for (int b = 0; b < boundary_array.size(); ++b) {
+      const int bx = boundary_array[b].first;
+      const int by = boundary_array[b].second;
+
+      map<int, double> cluster_to_weight;
+      for (const auto& item : boundary_to_pixel[b]) {
+        const int p = item.first;
+        const double weight = item.second;
+        const int cluster = pixel_to_cluster[p];
+        cluster_to_weight[cluster] += weight;
+      }
+
+      int best_cluster = -1;
+      double best_weight = 0.0;
+      for (const auto& item : cluster_to_weight) {
+        if (best_cluster == -1 || item.second > best_weight) {
+          best_weight = item.second;
+          best_cluster = item.first;
+        }
+      }
+      boundary_to_cluster[b] = best_cluster;
+    }
+    vector<int> cluster_size(centers->size(), 0);
+    for (int b = 0; b < boundary_to_cluster.size(); ++b) {
+      if (boundary_to_cluster[b] != -1)
+        ++cluster_size[boundary_to_cluster[b]];
+    }
+    
     for (int p = 0; p < weighted_visibility.size(); ++p) {
-      if (p % 100 == 0)
-        cerr << p << ' ' << flush;
       if (weighted_visibility[p].empty())
         continue;
       
@@ -773,7 +813,6 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
       const int x = subsampled_x * subsample;
       const int y = subsampled_y * subsample;
 
-
       bool flag = false;
       /*
       if (count > 2 && abs(162 - x) <= subsample && abs(95 - y) <= subsample) {
@@ -781,7 +820,29 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
         cout << "flag true " << p << endl;
       }
       */
-      
+      vector<int> visible_cluster_count(centers->size(), 0);
+      for (int i = 0; i < weighted_visibility[p].size(); ++i) {
+        const int boundary = weighted_visibility[p][i].first;
+        const int cluster = boundary_to_cluster[boundary];
+        if (cluster == -1) {
+          continue;
+        }
+        ++visible_cluster_count[cluster];
+      }
+
+      const double kMinVisibleRatio = 0.3;
+      set<int> valid_clusters;
+      /*
+      for (int c = 0; c < centers->size(); ++c) {
+        if (kMinVisibleRatio < visible_cluster_count[c] / (cluster_size[c] + 1))
+          valid_clusters.insert(c);
+      }
+      */
+      if (valid_clusters.empty()) {
+        for (int c = 0; c < centers->size(); ++c)
+          valid_clusters.insert(c);
+      }
+
       for (int i = 0; i < weighted_visibility[p].size(); ++i) {
         const int boundary = weighted_visibility[p][i].first;
 
@@ -801,29 +862,14 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
         const int angle_i = max(0, min(kNumAngleSamples - 1,
                                        (int)(angle_d / 360.0 * kNumAngleSamples)));
 
-        // Get the best pixel_weight.
-        int best_cluster = -1;
-        double best_weight = 0.0;
-        int best_pixel = -1;
-        for (const auto& item : boundary_to_pixel[boundary]) {
-          const int pixel = item.first;
-          const double weight = item.second;
-          const int cluster = pixel_to_cluster[pixel];
-          
-          if (weight > best_weight) {
-            best_weight = weight;
-            best_cluster = cluster;
-            best_pixel = pixel;
+        const int cluster = boundary_to_cluster[boundary];
+        if (cluster != -1) {
+          const double weight = 1.0 / (1.0 + sqrt((bx - x) * (bx - x) + (by - y) * (by - y)));
+        
+          if (weight > angle_to_cluster_weight[angle_i].second) {
+            angle_to_cluster_weight[angle_i].second = weight;
+            angle_to_cluster_weight[angle_i].first= cluster;
           }
-        }
-        
-        if (flag) {
-          cout << "P " << best_pixel % subsampled_width * subsample << ' ' << best_pixel / subsampled_width * subsample << ' ' << best_cluster << ' ' << best_weight << endl;
-        }
-        
-        if (best_weight > angle_to_cluster_weight[angle_i].second) {
-          angle_to_cluster_weight[angle_i].second = best_weight;
-          angle_to_cluster_weight[angle_i].first= best_cluster;
         }
       }
 
@@ -834,7 +880,6 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
                  << angle_to_cluster_weight[i].second << endl;
       }
       
-
       map<int, double> cluster_weight;
       for (const auto& item : angle_to_cluster_weight) {
         const int cluster = item.first;
@@ -846,13 +891,21 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
       int best_cluster = -1;
       double best_weight = 0.0;
       for (auto& item : cluster_weight) {
+        /*
+        if (valid_clusters.find(item.first) != valid_clusters.end() &&
+            (best_cluster == -1 || item.second > best_weight)) {
+        */
         if (best_cluster == -1 || item.second > best_weight) {
           best_weight = item.second;
           best_cluster = item.first;
         }
       }
-      
-      clusters->at(best_cluster).push_back(p);
+      if (best_cluster != -1) {
+        clusters->at(best_cluster).push_back(p);
+      } else {
+        cerr << "exceptional" << endl;
+        clusters->at(pixel_to_cluster[p]);
+      }
     }
   }
   // Update centers based on the assignments.
