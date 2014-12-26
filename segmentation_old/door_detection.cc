@@ -26,7 +26,7 @@ const double kDoorDetectionScale = 0.01;
   const float kGoodFreeSpaceEvidence = 30; // 50;//100.0;
 const float kBoundarySubsampleRatio = 0.2;
 
-const int kClusteringSubsample = 4;
+const int kClusteringSubsample = 6;
 const float kMarginFromBoundaryForVisibility = 5;
 const int kVisibilityMargin = 10;
 
@@ -684,6 +684,9 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
              vector<vector<int> >* clusters) {
   const int subsampled_width = width / subsample;
   const int subsampled_height = height / subsample;
+
+  static int count = 0;
+  
   if (clusters->empty()) {
     // K-means clustering.
     clusters->clear();
@@ -704,6 +707,14 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
       // Update centers based on the assignments.
       UpdateCenters(width, height, subsample, weighted_visibility, *clusters, centers);
     }
+
+    {    
+      char buffer[1024];
+      sprintf(buffer, "cluster_%02d.ppm", count++);
+      DrawCluster(width, height, subsample,
+                  buffer, *centers, *clusters);
+    }
+    
     return;
   }
   cerr << "Real routine." << endl;
@@ -720,8 +731,6 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
       }
     }
   }
-
-  static int count = 0;
   
   // Typically converges after 10 iterations.
   const int kTimes = 5; // ???10;
@@ -788,7 +797,7 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
 
         double angle_d = atan2(by - y, bx - x) / M_PI * 180;
         if (angle_d < 0.0)
-          angle_d += 2 * M_PI;
+          angle_d += 360.0;
         const int angle_i = max(0, min(kNumAngleSamples - 1,
                                        (int)(angle_d / 360.0 * kNumAngleSamples)));
 
@@ -821,7 +830,7 @@ void Cluster(const vector<pair<int, int> >& boundary_array,
       if (flag) {
         for (int i = 0; i < angle_to_cluster_weight.size(); ++i)
           if (angle_to_cluster_weight[i].first != -1)
-            cout << i * 2 << ' ' << angle_to_cluster_weight[i].first << ' '
+            cout << i << ' ' << angle_to_cluster_weight[i].first << ' '
                  << angle_to_cluster_weight[i].second << endl;
       }
       
@@ -1009,8 +1018,8 @@ void SetRanges(const vector<Sweep>& sweeps,
   // Initial guess of unit.
   //???????
   //double unit = average_distance / 150.0;
-  // double unit = average_distance / 80.0;
-  double unit = average_distance / 50.0;
+  double unit = average_distance / 80.0;
+   //double unit = average_distance / 50.0;
   // Compute resolution.
   const int width  = static_cast<int>(round((frame->ranges[0][1] - frame->ranges[0][0]) / unit));
   const int height = static_cast<int>(round((frame->ranges[1][1] - frame->ranges[1][0]) / unit));
