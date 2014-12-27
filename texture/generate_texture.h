@@ -28,7 +28,7 @@ struct Patch {
   double texel_size;
   int texture_width;
   int texture_height;
-  std::vector<Eigen::Matrix<unsigned char, 3, 1> > texture;
+  std::vector<unsigned char> texture;
 
   //----------------------------------------------------------------------  
   Eigen::Vector3d Interpolate(const Eigen::Vector2d& uv) const {
@@ -53,10 +53,10 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
                           const Patch& patch,
                           std::vector<std::pair<double, int> >* visible_panoramas_weights);
 
-double ComputeTexelSize(const std::vector<std::vector<Panorama> >& panoramas);
+// double ComputeTexelSize(const std::vector<std::vector<Panorama> >& panoramas);
 
-void SetTextureSize(const double texel_size,
-                    const int max_texture_size_per_patch,
+void SetTextureSize(const int max_texture_size_per_patch,
+                    const int texture_height_per_wall,
                     Patch* patch);
 
 void GrabTexture(const std::vector<Panorama>& panorama,
@@ -64,6 +64,48 @@ void GrabTexture(const std::vector<Panorama>& panorama,
 
 int ChoosePyramidLevel(const std::vector<Panorama>& panorama,
                        const Patch& patch);
+
+void ConvertPatchToMat(const Patch& patch, cv::Mat* mat);
+
+void PackWallTextures(const std::vector<std::vector<Patch> >& wall_patches,
+                      const int texture_image_size,
+                      Floorplan* floorplan);
+
+void CopyTextures(const Floorplan& floorplan,
+                  const std::vector<std::vector<Patch> >& patches,
+                  std::vector<cv::Mat>* texture_images);
+
+void SetFloorPatch(const Floorplan& floorplan,
+                   const std::vector<std::vector<Panorama> >& panoramas,
+                   const std::vector<Eigen::Matrix4d>& global_to_panoramas,
+                   const int max_texture_size_per_floor_patch,
+                   std::vector<std::vector<Patch> >* wall_patches);
+
+void SetWallPatches(const Floorplan& floorplan,
+                    const std::vector<std::vector<Panorama> >& panoramas,
+                    const std::vector<Eigen::Matrix4d>& global_to_panoramas,
+                    const int max_texture_size_per_wall_patch,
+                    const int texture_height_per_wall,
+                    std::vector<std::vector<Patch> >* wall_patches);
+
+void PackFloorTexture(const Patch& floor_patch,
+                      const int texture_image_size,
+                      Floorplan* floorplan,
+                      std::pair<int, Eigen::Vector2i>* iuv);
+
+void PackWallTextures(const std::vector<std::vector<Patch> >& patches,
+                      const int texture_image_size,
+                      Floorplan* floorplan,
+                      std::pair<int, Eigen::Vector2i>* iuv);
+
+void PackWallTexture(const Patch& patch,
+                     const WallTriangulation& wall_triangulation,
+                     const int texture_image_size,
+                     std::pair<int, Eigen::Vector2i>* iuv);
+
+ void UpdateIUV(std::pair<int, Eigen::Vector2i> iuv0,
+                std::pair<int, Eigen::Vector2i> iuv1,
+                
  
 }  // namespace texture
  

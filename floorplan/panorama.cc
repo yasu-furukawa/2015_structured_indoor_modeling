@@ -18,10 +18,8 @@ bool Panorama::Init(const file_io::FileIO& file_io,
   }
   width  = rgb_image.cols;
   height = rgb_image.rows;
-
   InitDepthImage(file_io, panorama);
   InitCameraParameters(file_io, panorama);
-
   phi_per_pixel = phi_range / height;
   phi_per_depth_pixel = phi_range / depth_height;
   return true;
@@ -44,7 +42,8 @@ Eigen::Vector2d Panorama::Project(const Eigen::Vector3d& global) const {
                             local.y() * local.y());
   double phi = atan2(local.z(), depth);
   const double pixel_offset_from_center = phi / phi_per_pixel;
-  uv[1] = height / 2.0 - pixel_offset_from_center;
+  // uv[1] = height / 2.0 - pixel_offset_from_center;
+  uv[1] = max(0.0, min(height - 1.1, height / 2.0 - pixel_offset_from_center));
 
   return uv;
 }
@@ -76,17 +75,18 @@ Eigen::Vector3d Panorama::LocalToGlobal(const Eigen::Vector3d& local) const {
 
 Eigen::Vector2d Panorama::RGBToDepth(const Eigen::Vector2d& pixel) const {
   return Vector2d(pixel[0] * depth_width / width,
-                  pixel[1] * depth_height / height);
+                  min(depth_height - 1.1, pixel[1] * depth_height / height));
 }
 
 Eigen::Vector2d Panorama::DepthToRGB(const Eigen::Vector2d& depth_pixel) const {
   return Vector2d(depth_pixel[0] * width / depth_width,
-                  depth_pixel[1] * height / depth_height);
+                  min(height - 1.1, depth_pixel[1] * height / depth_height));
 }
 
 Eigen::Vector3f Panorama::GetRGB(const Eigen::Vector2d& pixel) const {
   if (!IsInsideRGB(pixel)) {
-    cerr << "Pixel outside." << endl;
+    cerr << "Pixel outside: " << pixel[0] << ' ' << pixel[1] << ' '
+         << width << ' ' << height << endl;
     exit (1);
   }
   
@@ -117,7 +117,8 @@ Eigen::Vector3f Panorama::GetRGB(const Eigen::Vector2d& pixel) const {
 
 double Panorama::GetDepth(const Eigen::Vector2d& depth_pixel) const {
   if (!IsInsideDepth(depth_pixel)) {
-    cerr << "Pixel outside." << endl;
+    cerr << "Depth pixel outside: " << depth_pixel[0] << ' ' << depth_pixel[1] << ' '
+         << depth_width << ' ' << depth_height << endl;
     exit (1);
   }
   
@@ -173,6 +174,10 @@ void Panorama::InitDepthImage(const file_io::FileIO& file_io,
                               const int panorama) {
   ifstream ifstr;
   ifstr.open(file_io.GetDepthPanorama(panorama));
+  if (!ifstr.is_open()) {
+    cerr << "Cannot open a file: " << file_io.GetDepthPanorama(panorama) << endl;
+    exit (1);
+  }
 
   string header;
   double min_depth, max_depth;
@@ -208,8 +213,9 @@ void Panorama::InitCameraParameters(const file_io::FileIO& file_io,
   for (int y = 0; y < 4; ++y) {
     for (int x = 0; x < 4; ++x)
       ifstr >> local_to_global(y, x);
-    center(y) = local_to_global(y, 3);
   }
+  for (int y = 0; y < 3; ++y)
+    center(y) = local_to_global(y, 3);
 
   const Matrix3d rotation = local_to_global.block(0, 0, 3, 3);
   global_to_local.block(0, 0, 3, 3) = rotation.transpose();

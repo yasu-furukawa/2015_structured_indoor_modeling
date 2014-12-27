@@ -235,6 +235,10 @@ Eigen::Vector3d Floorplan::GetDoorVertexGlobal(const int door, const int vertex)
   return GetWallVertexGlobal(room, wall, wall_vertex);
 }
 
+const Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) const {
+  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
+}
+
 const Triangle& Floorplan::GetFloorTriangle(const int room, const int triangle) const {
   return line_rooms[room].floor_triangulation.triangles[triangle];
 }
@@ -243,12 +247,36 @@ const Triangle& Floorplan::GetCeilingTriangle(const int room, const int triangle
   return line_rooms[room].ceiling_triangulation.triangles[triangle];
 }
 
-const Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) const {
+const Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) const {
+  return line_doors[door].triangles[triangle];
+}
+
+Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) {
   return line_rooms[room].wall_triangulations[wall].triangles[triangle];
 }
 
-const Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) const {
+Triangle& Floorplan::GetFloorTriangle(const int room, const int triangle) {
+  return line_rooms[room].floor_triangulation.triangles[triangle];
+}
+
+Triangle& Floorplan::GetCeilingTriangle(const int room, const int triangle) {
+  return line_rooms[room].ceiling_triangulation.triangles[triangle];
+}
+
+Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) {
   return line_doors[door].triangles[triangle];
+}
+
+WallTriangulation& Floorplan::GetWallTriangulation(const int room, const int wall) {
+  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
+}
+
+FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) {
+  return line_rooms[room].floor_triangulation.triangles[triangle];
+}
+
+FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) {
+  return line_rooms[room].ceiling_triangulation.triangles[triangle];
 }
 
 double Floorplan::GetFloorHeight(const int room) const {

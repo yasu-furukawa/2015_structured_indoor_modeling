@@ -24,6 +24,10 @@ class Floorplan {
   const Triangle& GetCeilingTriangle(const int room, const int triangle) const;
   const Triangle& GetWallTriangle(const int room, const int wall, const int triangle) const;
   const Triangle& GetDoorTriangle(const int door, const int triangle) const;
+  Triangle& GetFloorTriangle(const int room, const int triangle);
+  Triangle& GetCeilingTriangle(const int room, const int triangle);
+  Triangle& GetWallTriangle(const int room, const int wall, const int triangle);
+  Triangle& GetDoorTriangle(const int door, const int triangle);
 
   double GetFloorHeight(const int room) const;
   double GetCeilingHeight(const int room) const;
@@ -45,6 +49,10 @@ class Floorplan {
   const WallTriangulation& GetWallTriangulation(const int room, const int wall) const;
   const FloorCeilingTriangulation& GetFloorTriangulation(const int room) const;
   const FloorCeilingTriangulation& GetCeilingTriangulation(const int room) const;
+
+  WallTriangulation& GetWallTriangulation(const int room, const int wall);
+  FloorCeilingTriangulation& GetFloorTriangulation(const int room);
+  FloorCeilingTriangulation& GetCeilingTriangulation(const int room);
   
  private:
   //----------------------------------------------------------------------
