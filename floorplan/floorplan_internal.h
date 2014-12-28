@@ -14,17 +14,6 @@ struct Triangle {
   Eigen::Vector2d uvs[3];
 };
 
-struct LineDoorFace {
-  int room_id;
-  int wall_id;
-  Eigen::Vector4i vertex_indices;
-};
-
-struct LineDoor {
-  LineDoorFace line_door_faces[2];
-  Triangle triangles[8];
-};
-
 // Wall triangulation needs to store the vertex information.
 struct WallTriangulation {
   // uv coordinates specify the coordinate.
@@ -36,6 +25,17 @@ struct WallTriangulation {
 // because they are given by the vertices.
 struct FloorCeilingTriangulation {
   std::vector<Triangle> triangles;
+};
+
+struct LineDoorFace {
+  int room_id;
+  int wall_id;
+  Eigen::Vector4i vertex_indices;
+};
+
+struct LineDoor {
+  LineDoorFace line_door_faces[2];
+  Triangle triangles[8];
 };
 
 struct LineRoom {

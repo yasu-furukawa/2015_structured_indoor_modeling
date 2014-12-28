@@ -61,6 +61,11 @@ class FileIO {
     sprintf(buffer, "%s/floorplan.txt", data_directory.c_str());
     return buffer;
   }
+
+  std::string GetTextureImage(const int index) const {
+    sprintf(buffer, "%s/panorama/texture_image_%03d.png", data_directory.c_str(), index);
+    return buffer;
+  }
   /*
   std::string GetFloorplan() const {
     sprintf(buffer, "%s/floorplan.dat", data_directory.c_str());

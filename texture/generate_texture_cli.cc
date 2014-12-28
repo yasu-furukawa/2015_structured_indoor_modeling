@@ -68,15 +68,16 @@ int main(int argc, char* argv[]) {
   // 0. Identify visible panoramas.
   // 1. Grab texture
   // 2. Stitch
-  const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-
   // Floor texture.
   Patch floor_patch;
+  Vector2d min_xy_local, max_xy_local;
   SetFloorPatch(floorplan,
                 panoramas,
                 global_to_panoramas,
                 FLAGS_max_texture_size_per_floor_patch,
-                &floor_patch);
+                &floor_patch,
+                &min_xy_local,
+                &max_xy_local);
 
   // Wall textures.
   vector<vector<Patch> > wall_patches;
@@ -87,16 +88,17 @@ int main(int argc, char* argv[]) {
                  FLAGS_texture_height_per_wall,
                  &wall_patches);
 
+  // Texture image.
+  vector<vector<unsigned char> > texture_images;
   // Texture coordinate.
   pair<int, Vector2i> iuv(0, Vector2i(0, 0));
+  int max_texture_height = 0;
 
   // Set texture coordinates.
-  PackFloorTexture(floor_patch, FLAGS_texture_image_size, &floorplan, &iuv);
-  PackWallTextures(wall_patches, FLAGS_texture_image_size, &floorplan, &iuv);
+  PackFloorTexture(floor_patch, min_xy_local, max_xy_local, FLAGS_texture_image_size,
+                   &floorplan, &texture_images, &iuv, &max_texture_height);
+  PackWallTextures(wall_patches, FLAGS_texture_image_size,
+                   &floorplan, &texture_images, &iuv, &max_texture_height);
 
-  //  vector<cv::Mat> texture_images;
-  //  CopyTextures(floorplan, wall_patches, &texture_images);
-      
-
-      
+  WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
 }

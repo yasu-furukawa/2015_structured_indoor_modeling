@@ -267,18 +267,6 @@ Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) {
   return line_doors[door].triangles[triangle];
 }
 
-WallTriangulation& Floorplan::GetWallTriangulation(const int room, const int wall) {
-  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
-}
-
-FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) {
-  return line_rooms[room].floor_triangulation.triangles[triangle];
-}
-
-FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) {
-  return line_rooms[room].ceiling_triangulation.triangles[triangle];
-}
-
 double Floorplan::GetFloorHeight(const int room) const {
   return line_rooms[room].floor_height;
 }
@@ -333,6 +321,18 @@ const FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room
 }
 
 const FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) const {
+  return line_rooms[room].ceiling_triangulation;
+}
+
+WallTriangulation& Floorplan::GetWallTriangulation(const int room, const int wall) {
+  return line_rooms[room].wall_triangulations[wall];
+}
+
+FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) {
+  return line_rooms[room].floor_triangulation;
+}
+
+FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) {
   return line_rooms[room].ceiling_triangulation;
 }
 
