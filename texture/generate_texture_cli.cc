@@ -41,12 +41,10 @@ int main(int argc, char* argv[]) {
                   FLAGS_num_pyramid_levels,
                   &panoramas);
   }
-
   vector<Matrix4d> panorama_to_globals;
   {
     ReadPanoramaToGlobals(file_io, FLAGS_num_panoramas, &panorama_to_globals);
   }
-
   Floorplan floorplan;
   {
     const string filename = file_io.GetFloorplan();
@@ -55,7 +53,6 @@ int main(int argc, char* argv[]) {
     ifstr >> floorplan;
     ifstr.close();
   }
-
   vector<Matrix4d> global_to_panoramas;
   {
     Invert(panorama_to_globals, &global_to_panoramas);

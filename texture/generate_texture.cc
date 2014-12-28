@@ -190,7 +190,7 @@ void SetFloorPatch(const Floorplan& floorplan,
 
   const int kLevelZero = 0;
   const double floor_height = floorplan.GetFloorHeight(kFirstRoom);
-  
+
   // Grab color.
   int index = 0;
   floor_patch->texture.clear();
@@ -209,6 +209,7 @@ void SetFloorPatch(const Floorplan& floorplan,
         floor_patch->texture.push_back(static_cast<unsigned char>(round(rgb[i])));
     }
   }
+  
   /*
   {
     vector<Vector3i> colors(panoramas.size());
@@ -278,15 +279,11 @@ void PackFloorTexture(const Patch& floor_patch,
                       std::vector<std::vector<unsigned char> >* texture_images,
                       std::pair<int, Eigen::Vector2i>* iuv,
                       int* max_texture_height) {
-  cout << "c" << endl;
   UpdateIUV(floor_patch.texture_size, texture_image_size, iuv, max_texture_height);
   // Copy texel data.
-  cout << "d" << endl;
   CopyTexel(floor_patch, texture_image_size, *iuv, texture_images);
   // Update IUV in floorplan.
-  cout << "a" << endl;
   SetIUVInFloor(floor_patch, min_xy_local, max_xy_local, texture_image_size, *iuv, floorplan);
-  cout << "b" << endl;
   // Update iuv.
   iuv->second[0] += floor_patch.texture_size[0];
 }
@@ -642,7 +639,7 @@ void SetManhattanDelaunay(const Floorplan& floorplan,
   const double floor_height = floorplan.GetFloorHeight(kFirstRoom);
   
   // Minimum valid angle to see texture.
-  const double kMinimumValidAngle = 80.0 * M_PI / 180.0;
+  const double kMinimumValidAngle = 40.0 * M_PI / 180.0;
 
   vector<Vector3d> panorama_centers_local(panoramas.size());
   vector<Vector3d> panorama_centers_on_floor_local(panoramas.size());
