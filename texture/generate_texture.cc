@@ -338,8 +338,24 @@ void PackWallTexture(const Patch& patch,
   }
   
 }
-  
 
+void UpdateIUV(const Eigen::Vector2i& size,
+               const int texture_image_size,
+               const std::pair<int, Eigen::Vector2i>& before_iuv,
+               std::pair<int, Eigen::Vector2i>* after_iuv) {
+  *after_iuv = before_iuv;
+  after_iuv->second += size;
+
+  if (after_iuv->second[0] <= texture_image_size &&
+      after_iuv->second[1] <= texture_image_size) {
+    return;
+  }
+
+  ++after_iuv->first;
+  after_iuv->second = size;
+}
+  
+  /*
 void CopyTextures(const Floorplan& floorplan,
                   const std::vector<std::vector<Patch> >& patches,
                   std::vector<cv::Mat>* texture_images) {
@@ -347,5 +363,6 @@ void CopyTextures(const Floorplan& floorplan,
 
 
 }
+  */
 
 }  // namespace texture

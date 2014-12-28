@@ -103,8 +103,10 @@ void PackWallTexture(const Patch& patch,
                      const int texture_image_size,
                      std::pair<int, Eigen::Vector2i>* iuv);
 
- void UpdateIUV(std::pair<int, Eigen::Vector2i> iuv0,
-                std::pair<int, Eigen::Vector2i> iuv1,
+void UpdateIUV(const Eigen::Vector2i& size,
+               const int texture_image_size,
+               const std::pair<int, Eigen::Vector2i>& before_iuv,
+               std::pair<int, Eigen::Vector2i>* after_iuv);
                 
  
 }  // namespace texture
