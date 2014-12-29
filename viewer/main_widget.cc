@@ -44,6 +44,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   panel_renderer(polygon_renderer, viewport),  
   navigation(panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
 
+  object_renderer.Init(configuration.data_directory);
   panorama_renderers.resize(configuration.panorama_configurations.size());
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
     panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
@@ -428,6 +429,7 @@ void MainWidget::RenderPanoramaToAirTransition() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
   RenderTexturedPolygon(kFullOpacity);
+  RenderObjects(kFullOpacity);
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
@@ -457,6 +459,7 @@ void MainWidget::RenderAirToPanoramaTransition() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
   RenderTexturedPolygon(kFullOpacity);
+  RenderObjects(kFullOpacity);
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
@@ -475,6 +478,10 @@ void MainWidget::RenderAirToPanoramaTransition() {
   const double kNoHeightAdjustment = 0.0;
   RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
   */
+}
+
+void MainWidget::RenderObjects(const double alpha) {
+  object_renderer.RenderAll(alpha);
 }
 
 void MainWidget::RenderPolygon(const int room_not_rendered,
@@ -680,9 +687,11 @@ void MainWidget::paintGL() {
       */
       //????
       RenderTexturedPolygon(1.0);
+      RenderObjects(1.0);
     } else {
       const double alpha = Fade();
       RenderTexturedPolygon(1.0 - alpha * 0.7);
+      RenderObjects(1.0 - alpha * 0.7);
       // RenderFloorplan(alpha / 2.0);
 
       int room_highlighted = -1;
@@ -703,6 +712,7 @@ void MainWidget::paintGL() {
     // const double kNoHeightAdjustment = 0.0;
     // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
     RenderTexturedPolygon(1.0);
+    RenderObjects(1.0);
     break;
   }
   case kPanoramaToAirTransition: {

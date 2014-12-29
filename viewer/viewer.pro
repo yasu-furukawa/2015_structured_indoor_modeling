@@ -17,6 +17,7 @@ qtHaveModule(opengl) {
        configuration.cc \
        navigation.cc \
        floorplan_renderer.cc \
+       object_renderer.cc \
        panel_renderer.cc \
        panorama_renderer.cc \
        polygon_renderer.cc \
@@ -27,6 +28,7 @@ qtHaveModule(opengl) {
         configuration.h \
         navigation.h \
         floorplan_renderer.h \
+        object_renderer.h \
         panorama_renderer.h \
         panel_renderer.h \
         polygon_renderer.h \

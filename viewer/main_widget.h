@@ -17,6 +17,7 @@
 #include "configuration.h"
 #include "navigation.h"
 #include "floorplan_renderer.h"
+#include "object_renderer.h"
 #include "panel_renderer.h"
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
@@ -46,6 +47,7 @@ private:
     // Indoor data.
     const Configuration configuration;
     std::vector<PanoramaRenderer> panorama_renderers;
+    ObjectRenderer object_renderer;
     PolygonRenderer polygon_renderer;
     FloorplanRenderer floorplan_renderer;
     PanelRenderer panel_renderer;
@@ -91,6 +93,7 @@ private:
                                   const int end_index,
                                   const double start_weight);
     void BlendFrames(const double weight, const int divide_by_alpha_mode);
+    void RenderObjects(const double alpha);
     void RenderPolygon(const int room_not_rendered,
                        const double alpha,
                        const double height_adjustment,
