@@ -6,6 +6,15 @@
 #include <QImage>
 
 #include "../floorplan/floorplan.h"
+
+struct Triangle2 {
+  Eigen::Vector3d vertices[3];
+  Eigen::Vector3d colors[3];
+  Eigen::Vector3i colori;
+};
+
+typedef std::vector<Triangle2> Triangles;
+
 class PolygonRenderer : protected QGLFunctions {
  public:
   PolygonRenderer();
@@ -41,7 +50,22 @@ class PolygonRenderer : protected QGLFunctions {
                       floorplan.GetFloorHeight(room));
   }
   
- private:  
+ private:
+  void SetTargetCeilingHeights(const Eigen::Vector3d& center,
+                               const bool depth_order_height_adjustment,
+                               const int room_not_rendered,
+                               std::vector<double>* target_ceiling_heights);
+  void AddTrianglesFromWalls(const double height_adjustment,
+                             const int room_not_rendered,
+                             const int room_highlighted,
+                             const std::vector<double>& target_ceiling_heights,
+                             Triangles* triangles);
+  void AddTrianglesFromCeiling(const double height_adjustment,
+                               const int room_not_rendered,
+                               const int room_highlighted,
+                               const std::vector<double>& target_ceiling_heights,
+                               Triangles* triangles);
+  
   QGLWidget* widget;
   Floorplan floorplan;
 

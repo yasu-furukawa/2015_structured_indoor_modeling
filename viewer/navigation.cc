@@ -259,7 +259,7 @@ void Navigation::Init() {
   air_height *= kHeightScale;
   
   // air_angle = 45.0 * M_PI / 180.0;
-  air_angle = 45.0 * M_PI / 180.0;
+  air_angle = 60.0 * M_PI / 180.0;
 
   average_distance = 0.0;
   for (const auto& panorama : panorama_renderers) {
@@ -295,7 +295,7 @@ void Navigation::Tick() {
     break;
   }
   case kPanoramaToAirTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.01;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
       camera_status = kAir;
@@ -306,7 +306,7 @@ void Navigation::Tick() {
     break;
   }
   case kAirToPanoramaTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.01;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
       /*

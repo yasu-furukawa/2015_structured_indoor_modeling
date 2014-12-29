@@ -1,18 +1,43 @@
 uniform sampler2D tex0;
 uniform sampler2D tex1;
 uniform float weight;
+uniform int divide_by_alpha;
 
 void main() {
   vec4 rgba0 = texture2D(tex0, gl_TexCoord[0].st);
   vec4 rgba1 = texture2D(tex1, gl_TexCoord[0].st);
-  if (rgba0.r == 0.0 && rgba0.g == 0.0 && rgba0.b == 0.0) {
-    gl_FragColor = rgba1;
-  } else if (rgba1.r == 0.0 && rgba1.g == 0.0 && rgba1.b == 0.0) {
-    gl_FragColor = rgba0;
-  } else {
+
+
+  if (divide_by_alpha == 0) {
     gl_FragColor = rgba0 * weight + rgba1 * (1.0 - weight);
+  } else if (divide_by_alpha == 1) {
+    if (rgba0.r == 0.0 && rgba0.g == 0.0 && rgba0.b == 0.0) {
+      gl_FragColor = rgba1;
+    } else if (rgba1.r == 0.0 && rgba1.g == 0.0 && rgba1.b == 0.0) {
+      gl_FragColor = rgba0;
+    } else {
+      gl_FragColor = rgba0 * weight + rgba1 * (1.0 - weight);
+    }
+  } else if (divide_by_alpha == 2) {
+    if (rgba0.r == 0.0 && rgba0.g == 0.0 && rgba0.b == 0.0) {
+      gl_FragColor = rgba1;
+    } else {
+      gl_FragColor = rgba0 * weight + rgba1 * (1.0 - weight);
+    }
+  } else {
+    if (rgba1.r == 0.0 && rgba1.g == 0.0 && rgba1.b == 0.0) {
+      gl_FragColor = rgba0;
+    } else {
+      gl_FragColor = rgba0 * weight + rgba1 * (1.0 - weight);
+    }
   }
 
+
+
+
+
+
+  
 
   //gl_FragColor = texture2D(tex0, gl_TexCoord[0].st);
   //  gl_FragColor = texture2D(tex0, vec2(0.5, 0.5));

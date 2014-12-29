@@ -84,10 +84,13 @@ private:
     
     void RenderFloorplan(const double alpha);
     void RenderPanorama(const double alpha);
+    void RenderPanoramaToAirTransition();
+    void RenderAirToPanoramaTransition();
     void RenderPanoramaTransition();
     void RenderPanoramaTransition(const int start_index,
                                   const int end_index,
                                   const double start_weight);
+    void BlendFrames(const double weight, const int divide_by_alpha_mode);
     void RenderPolygon(const int room_not_rendered,
                        const double alpha,
                        const double height_adjustment,

@@ -263,6 +263,7 @@ void MainWidget::RenderFloorplan(const double alpha) {
 
 void MainWidget::RenderPanorama(const double alpha) {
   glEnable(GL_TEXTURE_2D);
+  glEnable(GL_CULL_FACE);
 
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
@@ -337,13 +338,23 @@ void MainWidget::RenderPanoramaTransition(const int start_index,
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
+  const int kDivideByAlpha = 1;
+  BlendFrames(start_weight, kDivideByAlpha);
+}
+
+// divide_by_alpha_mode
+// 0: Do not divide by alpha.
+// 1: Divide by alpha.
+// 2: Divide by alpha and overwrite the first.
+// 3: Divide by alpha and overwrite the second.
+void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
     
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   glLoadIdentity();
-    
+  
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
@@ -357,8 +368,8 @@ void MainWidget::RenderPanoramaTransition(const int start_index,
     exit (1);
   }
 
-  program.setUniformValue("weight",
-                          static_cast<float>(start_weight));
+  program.setUniformValue("weight", static_cast<float>(weight));
+  program.setUniformValue("divide_by_alpha", divide_by_alpha_mode);
   
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texids[0]);
@@ -402,6 +413,69 @@ void MainWidget::RenderPanoramaTransition(const int start_index,
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
 }  
+
+void MainWidget::RenderPanoramaToAirTransition() {
+  const bool kUniformHeightAdjustment = false;
+
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  const double kFullOpacity = 1.0;
+  RenderPanorama(kFullOpacity);
+  
+  // Render the target pano.
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  RenderTexturedPolygon(kFullOpacity);
+
+  // Blend the two.
+  // const double weight_end = 1.0 - weight_start;
+  double weight = navigation.ProgressInverse();
+  weight = 1.0 - cos(weight * M_PI / 2);
+  const int kKeepPolygon = 2;
+  BlendFrames(weight, kKeepPolygon);
+
+  /*
+  RenderFloorplan(1.0 - alpha);
+  const double kNoHeightAdjustment = 0.0;
+  RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+  */
+}
+
+void MainWidget::RenderAirToPanoramaTransition() {
+  const bool kUniformHeightAdjustment = false;
+
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  const double kFullOpacity = 1.0;
+  RenderPanorama(kFullOpacity);
+  
+  // Render the target pano.
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  RenderTexturedPolygon(kFullOpacity);
+
+  // Blend the two.
+  // const double weight_end = 1.0 - weight_start;
+  double weight = 1.0 - navigation.ProgressInverse();
+  weight = 1.0 - cos(weight * M_PI / 2);
+  
+  const int kKeepPolygon = 2;
+  BlendFrames(weight, kKeepPolygon);
+
+
+  /*
+  const bool kUniformHeightAdjustment = false;
+  const double alpha = 1.0 - navigation.ProgressInverse();
+  RenderPanorama(alpha);
+  RenderFloorplan(1.0 - alpha);
+  const double kNoHeightAdjustment = 0.0;
+  RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+  */
+}
 
 void MainWidget::RenderPolygon(const int room_not_rendered,
                                const double alpha,
@@ -632,19 +706,11 @@ void MainWidget::paintGL() {
     break;
   }
   case kPanoramaToAirTransition: {
-    const double alpha = navigation.ProgressInverse();
-    RenderPanorama(alpha);
-    RenderFloorplan(1.0 - alpha);
-    const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    RenderPanoramaToAirTransition();
     break;
   }
   case kAirToPanoramaTransition: {
-    const double alpha = 1.0 - navigation.ProgressInverse();
-    RenderPanorama(alpha);
-    RenderFloorplan(1.0 - alpha);
-    const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    RenderAirToPanoramaTransition();
     break;
   }
   case kPanoramaTour: {
