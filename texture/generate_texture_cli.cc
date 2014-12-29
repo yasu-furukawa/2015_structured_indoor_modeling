@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
   // 1. Grab texture
   // 2. Stitch
   // Floor texture.
+  cerr << "Set floor patch..." << flush;
   Patch floor_patch;
   Vector2d min_xy_local, max_xy_local;
   SetFloorPatch(floorplan,
@@ -75,7 +76,8 @@ int main(int argc, char* argv[]) {
                 &floor_patch,
                 &min_xy_local,
                 &max_xy_local);
-
+  cerr << "done." << endl
+       << "Set wall patches..." << flush;
   // Wall textures.
   vector<vector<Patch> > wall_patches;
   SetWallPatches(floorplan,
@@ -84,7 +86,8 @@ int main(int argc, char* argv[]) {
                  FLAGS_max_texture_size_per_wall_patch,
                  FLAGS_texture_height_per_wall,
                  &wall_patches);
-
+  cerr << "done." << endl
+       << "Pack textures..." << flush;
   // Texture image.
   vector<vector<unsigned char> > texture_images;
   // Texture coordinate.
@@ -96,7 +99,7 @@ int main(int argc, char* argv[]) {
                    &floorplan, &texture_images, &iuv, &max_texture_height);
   PackWallTextures(wall_patches, FLAGS_texture_image_size,
                    &floorplan, &texture_images, &iuv, &max_texture_height);
-
+  cerr << "done." << endl;
   WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
   {
     ofstream ofstr;

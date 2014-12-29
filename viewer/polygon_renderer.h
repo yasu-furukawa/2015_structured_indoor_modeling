@@ -10,7 +10,7 @@ class PolygonRenderer : protected QGLFunctions {
  public:
   PolygonRenderer();
   virtual ~PolygonRenderer();
-  void RenderTextureMappedRooms(const double alpha);
+  void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha);
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,
                      const double height_adjustment,

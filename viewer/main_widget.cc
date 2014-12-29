@@ -433,17 +433,21 @@ void MainWidget::RenderPolygon(const int room_not_rendered,
 
 void MainWidget::RenderTexturedPolygon(const double alpha) {
   glEnable(GL_TEXTURE_2D);
-  // glEnable(GL_BLEND);
-  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDisable(GL_CULL_FACE);
-
-  polygon_renderer.RenderTextureMappedRooms(alpha);
-
-  //polygon_renderer.RenderWireframeAll(alpha);
-
-  // glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
-  // glDisable(GL_BLEND);
+
+  {
+    glCullFace(GL_FRONT);
+    glDisable(GL_TEXTURE_2D);
+    polygon_renderer.RenderTextureMappedRooms(alpha * 0.5, alpha * 0.2);
+  }
+
+  {
+    glCullFace(GL_BACK);
+    glEnable(GL_TEXTURE_2D);
+    polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
+  }
+  
+  glDisable(GL_CULL_FACE);
   glDisable(GL_TEXTURE_2D);
 }
 
@@ -569,7 +573,7 @@ void MainWidget::paintGL() {
     } else {
       const double alpha = Fade();
       RenderPanorama(1.0 - alpha * 0.7);
-      RenderFloorplan(alpha / 2.0);
+      // RenderFloorplan(alpha / 2.0);
 
       // Checks if any room should be highlighted.
       int room_highlighted = -1;
@@ -587,8 +591,10 @@ void MainWidget::paintGL() {
     break;
   }
   case kAir: {
+    const double kNoHeightAdjustment = 0.0;
     if (fresh_screen_for_air && !mouse_down) {
-      RenderPolygonLabels(-1, HeightAdjustment(), kUniformHeightAdjustment);
+      // RenderPolygonLabels(-1, HeightAdjustment(), kUniformHeightAdjustment);
+      RenderPolygonLabels(-1, kNoHeightAdjustment, kUniformHeightAdjustment);
       fresh_screen_for_air = false;
     }
         
@@ -602,13 +608,15 @@ void MainWidget::paintGL() {
       RenderTexturedPolygon(1.0);
     } else {
       const double alpha = Fade();
-      RenderFloorplan(alpha / 2.0);
+      RenderTexturedPolygon(1.0 - alpha * 0.7);
+      // RenderFloorplan(alpha / 2.0);
 
       int room_highlighted = -1;
       if (!mouse_down)
         room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
                                                         mouseMovePosition[1]));
-      RenderPolygon(-1, 1.0 / 3.0, HeightAdjustment(), kUniformHeightAdjustment, room_highlighted);
+      // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, room_highlighted);
+      RenderPolygon(-1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
       RenderAllThumbnails(alpha, room_highlighted);
     }
     break;
@@ -616,10 +624,11 @@ void MainWidget::paintGL() {
   case kAirTransition: {
     //if (RightAfterSimpleClick(0.0)) {
     //const double alpha = Fade();
-    RenderFloorplan(1.0);
+    // RenderFloorplan(1.0);
       //}
-    const double kNoHeightAdjustment = 0.0;
-    RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    // const double kNoHeightAdjustment = 0.0;
+    // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+    RenderTexturedPolygon(1.0);
     break;
   }
   case kPanoramaToAirTransition: {

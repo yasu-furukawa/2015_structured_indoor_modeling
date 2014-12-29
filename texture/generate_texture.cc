@@ -156,7 +156,6 @@ void SetFloorPatch(const Floorplan& floorplan,
       }      
     }
   }
-
   const int kFirstRoom = 0;
   floor_patch->vertices[0] =
     Vector3d((*min_xy_local)[0], (*min_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
@@ -183,7 +182,7 @@ void SetFloorPatch(const Floorplan& floorplan,
   // Mark walls to kWall.
   // MarkWalls(floorplan, floor_patch, min_xy_local, max_xy_local, kWall,
   // max_texture_size_per_floor_patch, &panorama_id_for_texture_mapping);
-  
+
   // Set panorama ID.
   SetManhattanDelaunay(floorplan, panoramas, *floor_patch, *min_xy_local, *max_xy_local,
                        &panorama_id_for_texture_mapping);
@@ -203,10 +202,14 @@ void SetFloorPatch(const Floorplan& floorplan,
       const Vector3d global = floorplan.GetFloorplanToGlobal() * floor_point;
 
       const int panorama = panorama_id_for_texture_mapping[index];
-      Vector2d pixel = panoramas[panorama][kLevelZero].Project(global);
-      Vector3f rgb = panoramas[panorama][kLevelZero].GetRGB(pixel);
-      for (int i = 0; i < 3; ++i)
-        floor_patch->texture.push_back(static_cast<unsigned char>(round(rgb[i])));
+      if (panorama < 0) {
+        floor_patch->texture.push_back(0);
+      } else {
+        Vector2d pixel = panoramas[panorama][kLevelZero].Project(global);
+        Vector3f rgb = panoramas[panorama][kLevelZero].GetRGB(pixel);
+        for (int i = 0; i < 3; ++i)
+          floor_patch->texture.push_back(static_cast<unsigned char>(round(rgb[i])));
+      }
     }
   }
   
@@ -242,6 +245,7 @@ void SetWallPatches(const Floorplan& floorplan,
   wall_patches->clear();
   wall_patches->resize(floorplan.GetNumRooms());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    cerr << room << '/' << floorplan.GetNumRooms() << ' ' << flush;
     wall_patches->at(room).resize(floorplan.GetNumWalls(room));
     for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
       const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
@@ -583,7 +587,7 @@ void SetIUVInWall(const Vector2i& texture_size,
       Vector2d uv_in_wall = wall_triangulation->vertices_in_uv[triangle.indices[i]];
       // May need to change depending on the definition of uv(0, 0).
       triangle.uvs[i] = top_left_uv + Vector2d(uv_in_wall[0] * uv_diff[0],
-                                               uv_in_wall[1] * uv_diff[1]);
+                                               (1.0 - uv_in_wall[1]) * uv_diff[1]);
 
       for (int j = 0; j < 2; ++j)
         triangle.uvs[i][j] = min(1.0, triangle.uvs[i][j]);

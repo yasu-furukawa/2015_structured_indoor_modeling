@@ -11,6 +11,14 @@ using namespace std;
 
 namespace {
 
+struct Triangle2 {
+  Eigen::Vector3d vertices[3];
+  Eigen::Vector3d colors[3];
+  Eigen::Vector3i colori;
+};
+
+typedef vector<Triangle2> Triangles;
+
 struct Wall {
   Eigen::Vector2d points[2];
   double floor_height;
@@ -114,6 +122,12 @@ int FrontBackTest(const Eigen::Vector2d& optical_center, const Wall& lhs, const 
   return 0;
 }
 
+void SortTriangles(const Eigen::Vector3d& center, Triangles* triangles) {
+
+
+
+}
+  
 void SortWalls(const Eigen::Vector2d& center, Walls* walls) {
   for (int i = 0; i < (int)walls->size(); ++i) {
     for (int j = i + 1; j < (int)walls->size(); ++j) {
@@ -279,7 +293,7 @@ void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
   }
   texture_images.resize(num_texture_images);
   for (int t = 0; t < num_texture_images; ++t) {
-    texture_images[t].load(file_io.GetTextureImage(num_texture_images).c_str());
+    texture_images[t].load(file_io.GetTextureImage(t).c_str());
   }
 }
 
@@ -294,10 +308,7 @@ void PolygonRenderer::InitGL() {
   }
 }
 
-void PolygonRenderer::RenderTextureMappedRooms(const double alpha) {
-  glBegin(GL_TRIANGLES);
-  glColor4f(alpha, alpha, alpha, 1.0);
-  
+void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) {
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
     glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
@@ -305,13 +316,18 @@ void PolygonRenderer::RenderTextureMappedRooms(const double alpha) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBegin(GL_TRIANGLES);
     
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
         const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
         const Vector3d v00 = floorplan.GetFloorVertexGlobal(room, wall);
-        const Vector3d x_diff = floorplan.GetFloorVertexGlobal(room, next_wall) - v00;
-        const Vector3d y_diff = floorplan.GetCeilingVertexGlobal(room, wall) - v00;
+        const Vector3d v10 = floorplan.GetFloorVertexGlobal(room, next_wall);
+        const Vector3d v01 = floorplan.GetCeilingVertexGlobal(room, wall);
+        const Vector3d v11 = floorplan.GetCeilingVertexGlobal(room, next_wall);
+        const Vector3d x_diff = v10 - v00;
+        const Vector3d y_diff = v01 - v00;
         
         const WallTriangulation wall_triangulation =
           floorplan.GetWallTriangulation(room, wall);
@@ -324,7 +340,22 @@ void PolygonRenderer::RenderTextureMappedRooms(const double alpha) {
             glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
             const int index = triangle.indices[i];
             const Vector2d vertex_in_uv = wall_triangulation.vertices_in_uv[index];
-            const Vector3d position = v00 + x_diff * vertex_in_uv[0] + y_diff * vertex_in_uv[1];
+
+            Vector3d position;
+            if (vertex_in_uv[0] == 0.0 && vertex_in_uv[1] == 0.0)
+              position = v00;
+            else if (vertex_in_uv[0] == 1.0 && vertex_in_uv[1] == 0.0)
+              position = v10;
+            else if (vertex_in_uv[0] == 0.0 && vertex_in_uv[1] == 1.0)
+              position = v01;
+            else if (vertex_in_uv[0] == 1.0 && vertex_in_uv[1] == 1.0)
+              position = v11;
+            else
+              position = v00 + x_diff * vertex_in_uv[0] + y_diff * vertex_in_uv[1];
+
+            const double alpha = vertex_in_uv[1] * (top_alpha - bottom_alpha) + bottom_alpha;
+            glColor4f(alpha, alpha, alpha, 1.0);
+            
             glVertex3d(position[0], position[1], position[2]);
           }
         }
@@ -344,8 +375,8 @@ void PolygonRenderer::RenderTextureMappedRooms(const double alpha) {
         }
       }
     }
+    glEnd();
   }
-  glEnd();
 }
 
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
@@ -355,6 +386,143 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const int room_not_rendered,
                                     const int room_highlighted,
                                     const bool render_room_id) {
+  vector<double> target_ceiling_heights(floorplan.GetNumRooms());
+
+  {    
+    const Vector3d local_center = floorplan.GetFloorplanToGlobal().transpose() * center;
+
+    vector<double> distances(room_centers_local.size(), 0.0);
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      distances[room] = (Vector2d(local_center[0], local_center[1]) -
+                         room_centers_local[room]).norm();
+    }
+    vector<int> room_orders(room_centers_local.size(), -1);
+    {
+      vector<pair<double, int> > distances_room;
+      for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+        if (room == room_not_rendered)
+          continue;
+        distances_room.push_back(pair<double, int>(distances[room], room));
+      }
+      sort(distances_room.begin(), distances_room.end());
+      for (int i = 0; i < (int)distances_room.size(); ++i) {
+        room_orders[distances_room[i].second] = i;
+      }
+    }
+    double average_length = 0.0;
+    {
+      for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+        average_length += floorplan.GetCeilingHeight(room) -
+          floorplan.GetFloorHeight(room);
+      }
+      average_length /= floorplan.GetNumRooms();
+    }
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      double target_length;
+      if (depth_order_height_adjustment) {
+        target_length =
+          average_length * (room_orders[room] + 1) / ((int)room_centers_local.size() - 1);
+      }
+      else {
+        target_length = average_length * 0.2;
+      }
+      target_ceiling_heights[room] = floorplan.GetFloorHeight(room) + target_length;
+    }
+  }
+
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  Triangles triangles;
+  // Add triangles from walls.
+  {
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      if (room == room_not_rendered)
+        continue;
+      
+      Vector3d color = GenerateRoomColor(room);
+      if (room_highlighted == room)
+        color = Vector3d(1, 1, 1);
+      const Vector3i colori(0, 0, room + 1);
+      
+      // const LineRoom& line_room = floorplan.line_rooms[room];
+      const int num_walls = floorplan.GetNumWalls(room);
+      for (int w = 0; w < num_walls; ++w) {
+        const int next_w = (w + 1) % num_walls;
+        const Vector2d v0 = floorplan.GetRoomVertexLocal(room, w);
+        const Vector2d v1 = floorplan.GetRoomVertexLocal(room, next_w);
+        
+        const double ceiling_height = floorplan.GetCeilingHeight(room) + (target_ceiling_heights[room] - floorplan.GetCeilingHeight(room)) * height_adjustment;
+        
+        Triangle2 triangle0, triangle1;
+        triangle0.vertices[0] = floorplan_to_global * Vector3d(v0[0], v0[1], floorplan.GetFloorHeight(room));
+        triangle0.vertices[1] = floorplan_to_global * Vector3d(v1[0], v1[1], floorplan.GetFloorHeight(room));
+        triangle0.vertices[2] = floorplan_to_global * Vector3d(v1[0], v1[1], ceiling_height);
+        
+        triangle1.vertices[0] = floorplan_to_global * Vector3d(v0[0], v0[1], floorplan.GetFloorHeight(room));
+        triangle1.vertices[1] = floorplan_to_global * Vector3d(v1[0], v1[1], ceiling_height);
+        triangle1.vertices[2] = floorplan_to_global * Vector3d(v0[0], v0[1], ceiling_height);
+          
+        triangle0.colors[0] = color / 3;
+        triangle0.colors[1] = color / 3;
+        triangle0.colors[2] = color;
+        triangle0.colori = colori;
+        triangle1.colors[0] = color / 3;
+        triangle1.colors[1] = color;
+        triangle1.colors[2] = color;
+        triangle1.colori = colori;
+        triangles.push_back(triangle0);
+        triangles.push_back(triangle1);
+      }
+    }
+  }
+  
+  // Add triangles from ceiling.
+  {
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      if (room == room_not_rendered)
+        continue;
+
+      const double ceiling_height = floorplan.GetCeilingHeight(room) + (target_ceiling_heights[room] - floorplan.GetCeilingHeight(room)) * height_adjustment;
+      
+      const FloorCeilingTriangulation& ceiling_triangulation = floorplan.GetCeilingTriangulation(room);
+      for (const auto& triangle : ceiling_triangulation.triangles) {
+        Triangle2 triangle2;
+        for (int i = 0; i < 3; ++i) {
+          const Vector2d xy_local = floorplan.GetRoomVertexLocal(room, triangle.indices[i]);
+          triangle2.vertices[2 - i] =
+            floorplan_to_global * Vector3d(xy_local[0], xy_local[1], ceiling_height);
+        }
+        if (room_highlighted == room) {
+          for (int i = 0; i < 3; ++i)
+            triangle2.colors[i] = Vector3d(1, 1, 1);
+        } else {
+          for (int i = 0; i < 3; ++i)
+            triangle2.colors[i] = GenerateRoomColor(room);
+        }
+        triangle2.colori = Vector3i(0, 0, room + 1);
+
+        triangles.push_back(triangle2);
+      }
+    }
+  }
+  
+
+  SortTriangles(center, &triangles);
+
+  glBegin(GL_TRIANGLES);
+  for (const auto& triangle : triangles) {
+    for (int i = 0; i < 3; ++i) {
+      if (render_room_id)
+        glColor4ub(triangle.colori[0], triangle.colori[1], triangle.colori[2], 255);
+      else
+        glColor4f(triangle.colors[i][0], triangle.colors[i][1], triangle.colors[i][2], alpha);
+      
+      glVertex3d(triangle.vertices[i][0], triangle.vertices[i][1], triangle.vertices[i][2]);
+    }
+  }
+  glEnd();
+
+
+  /*
   const Vector3d local_center = floorplan.GetFloorplanToGlobal().transpose() * center;
 
   vector<double> distances(room_centers_local.size(), 0.0);
@@ -462,5 +630,6 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
     glVertex3f(ceiling1[0], ceiling1[1], ceiling1[2]);
   }
   glEnd();
+  */
 }
 
