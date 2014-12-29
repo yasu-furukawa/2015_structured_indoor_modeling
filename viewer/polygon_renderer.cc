@@ -154,9 +154,6 @@ Vector3d GenerateRoomColor(const int room) {
     return Vector3d(1.0, 1.0, 1.0);
   }
 }
-
-
-
   
 } // namespace
 
@@ -165,6 +162,8 @@ PolygonRenderer::PolygonRenderer() {
 }
 
 PolygonRenderer::~PolygonRenderer() {
+  for (int t = 0; t < (int)texture_ids.size(); ++t)
+    widget->deleteTexture(texture_ids[t]);
 }
 
 void PolygonRenderer::RenderWireframe(const int /*room*/, const double /*alpha*/) {
@@ -226,11 +225,13 @@ void PolygonRenderer::RenderWireframeAll(const double alpha) {
   }
 }
 
-void PolygonRenderer::Init(const string data_directory) {
+void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
+  widget = widget_tmp;
+  
   file_io::FileIO file_io(data_directory);
   
   ifstream ifstr;
-  ifstr.open(file_io.GetFloorplan().c_str());
+  ifstr.open(file_io.GetFloorplanFinal().c_str());
   ifstr >> floorplan;
   ifstr.close();
 
@@ -267,7 +268,84 @@ void PolygonRenderer::Init(const string data_directory) {
     }
     room_centers_local[room] /= line_room.walls.size();
     */
-  }  
+  }
+
+  int num_texture_images;
+  for (num_texture_images = 0; ; ++num_texture_images) {
+    ifstream ifstr;
+    ifstr.open(file_io.GetTextureImage(num_texture_images).c_str());
+    if (!ifstr.is_open())
+      break;
+  }
+  texture_images.resize(num_texture_images);
+  for (int t = 0; t < num_texture_images; ++t) {
+    texture_images[t].load(file_io.GetTextureImage(num_texture_images).c_str());
+  }
+}
+
+void PolygonRenderer::InitGL() {
+  initializeGLFunctions();
+
+  texture_ids.resize(texture_images.size());
+  
+  glEnable(GL_TEXTURE_2D);
+  for (int t = 0; t < (int)texture_images.size(); ++t) {
+    texture_ids[t] = widget->bindTexture(texture_images[t]);
+  }
+}
+
+void PolygonRenderer::RenderTextureMappedRooms(const double alpha) {
+  glBegin(GL_TRIANGLES);
+  glColor4f(alpha, alpha, alpha, 1.0);
+  
+  // For each texture.
+  for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
+    glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+        const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
+        const Vector3d v00 = floorplan.GetFloorVertexGlobal(room, wall);
+        const Vector3d x_diff = floorplan.GetFloorVertexGlobal(room, next_wall) - v00;
+        const Vector3d y_diff = floorplan.GetCeilingVertexGlobal(room, wall) - v00;
+        
+        const WallTriangulation wall_triangulation =
+          floorplan.GetWallTriangulation(room, wall);
+
+        for (const auto& triangle : wall_triangulation.triangles) {
+          if (triangle.image_index != texture)
+            continue;
+
+          for (int i = 0; i < 3; ++i) {
+            glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+            const int index = triangle.indices[i];
+            const Vector2d vertex_in_uv = wall_triangulation.vertices_in_uv[index];
+            const Vector3d position = v00 + x_diff * vertex_in_uv[0] + y_diff * vertex_in_uv[1];
+            glVertex3d(position[0], position[1], position[2]);
+          }
+        }
+      }
+
+      // Floor.
+      const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
+      for (const auto& triangle : floor_triangulation.triangles) {
+        if (triangle.image_index != texture)
+          continue;
+
+        for (int i = 0; i < 3; ++i) {
+          glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+          const int index = triangle.indices[i];
+          const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
+          glVertex3d(position[0], position[1], position[2]);
+        }
+      }
+    }
+  }
+  glEnd();
 }
 
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,

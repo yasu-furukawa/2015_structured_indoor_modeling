@@ -98,4 +98,10 @@ int main(int argc, char* argv[]) {
                    &floorplan, &texture_images, &iuv, &max_texture_height);
 
   WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
+  {
+    ofstream ofstr;
+    ofstr.open(file_io.GetFloorplanFinal().c_str());
+    ofstr << floorplan;
+    ofstr.close();
+  }
 }

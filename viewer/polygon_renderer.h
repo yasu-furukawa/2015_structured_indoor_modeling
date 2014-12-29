@@ -3,12 +3,14 @@
 
 #include <Eigen/Dense>
 #include <QGLFunctions>
+#include <QImage>
 
 #include "../floorplan/floorplan.h"
 class PolygonRenderer : protected QGLFunctions {
  public:
   PolygonRenderer();
   virtual ~PolygonRenderer();
+  void RenderTextureMappedRooms(const double alpha);
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,
                      const double height_adjustment,
@@ -18,8 +20,8 @@ class PolygonRenderer : protected QGLFunctions {
                      const bool render_room_id);
   void RenderWireframeAll(const double alpha);
   void RenderWireframe(const int room, const double alpha);
-  void Init(const std::string data_directory);
-  // void InitGL();
+  void Init(const std::string data_directory, QGLWidget* widget);
+  void InitGL();
 
   const Floorplan& GetFloorplan() const { return floorplan; }
   Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers_local[room]; }
@@ -40,9 +42,13 @@ class PolygonRenderer : protected QGLFunctions {
   }
   
  private:  
+  QGLWidget* widget;
   Floorplan floorplan;
 
   std::vector<Eigen::Vector2d> room_centers_local;
+
+  std::vector<QImage> texture_images;
+  std::vector<GLint> texture_ids;
 };
 
 #endif  // POLYGON_RENDERER_H__

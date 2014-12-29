@@ -48,7 +48,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
     panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
   }
-  polygon_renderer.Init(configuration.data_directory);
+  polygon_renderer.Init(configuration.data_directory, this);
   floorplan_renderer.Init(configuration.data_directory,
                           polygon_renderer.GetFloorplan().GetFloorplanToGlobal());
   panel_renderer.Init(configuration.data_directory);
@@ -150,9 +150,9 @@ void MainWidget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
+  polygon_renderer.InitGL();
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
-
   panel_renderer.InitGL(this);
   
   // Use QBasicTimer because its faster than QTimer
@@ -431,6 +431,22 @@ void MainWidget::RenderPolygon(const int room_not_rendered,
   glEnable(GL_TEXTURE_2D);
 }
 
+void MainWidget::RenderTexturedPolygon(const double alpha) {
+  glEnable(GL_TEXTURE_2D);
+  // glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_CULL_FACE);
+
+  polygon_renderer.RenderTextureMappedRooms(alpha);
+
+  //polygon_renderer.RenderWireframeAll(alpha);
+
+  // glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  // glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
+}
+
 void MainWidget::RenderPolygonLabels(const int room_not_rendered,
                                      const double height_adjustment,
                                      const bool depth_order_height_adjustment) {
@@ -577,9 +593,13 @@ void MainWidget::paintGL() {
     }
         
     if (!RightAfterSimpleClick(0.0)) {
+      /*
       RenderFloorplan(1.0);
       const double kNoHeightAdjustment = 0.0;
       RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
+      */
+      //????
+      RenderTexturedPolygon(1.0);
     } else {
       const double alpha = Fade();
       RenderFloorplan(alpha / 2.0);

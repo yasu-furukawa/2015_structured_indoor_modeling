@@ -93,6 +93,8 @@ private:
                        const double height_adjustment,
                        const bool depth_order_height_adjustment,
                        const int room_highlighted);
+    void RenderTexturedPolygon(const double alpha);
+
     void RenderPolygonLabels(const int room_not_rendered,
                              const double height_adjustment,
                              const bool depth_order_height_adjustment);
