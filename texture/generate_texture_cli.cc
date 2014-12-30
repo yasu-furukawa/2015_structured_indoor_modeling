@@ -11,7 +11,7 @@
 #include "../floorplan/panorama.h"
 #include "generate_texture.h"
 
-DEFINE_int32(num_panoramas, 1, "Number of panorama images.");
+DEFINE_int32(start_panorama, 0, "First panorama id.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 // DEFINE_double(texel_size_rescale, 1.0, "Less than 1 to increase resolution.");
 DEFINE_int32(max_texture_size_per_floor_patch, 2048, "Maximum texture size for each floor patch.");
@@ -34,16 +34,19 @@ int main(int argc, char* argv[]) {
   // Read data from the directory.
   file_io::FileIO file_io(argv[1]);
 
+  const int end_panorama = GetEndPanorama(file_io, FLAGS_start_panorama);
+
   vector<vector<Panorama> > panoramas;
   {
     ReadPanoramas(file_io,
-                  FLAGS_num_panoramas,
+                  FLAGS_start_panorama,
+                  end_panorama,
                   FLAGS_num_pyramid_levels,
                   &panoramas);
   }
-  vector<Matrix4d> panorama_to_globals;
+  vector<base::PointCloud> point_clouds;
   {
-    ReadPanoramaToGlobals(file_io, FLAGS_num_panoramas, &panorama_to_globals);
+    ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &point_clouds);                    
   }
   Floorplan floorplan;
   {
@@ -52,10 +55,6 @@ int main(int argc, char* argv[]) {
     ifstr.open(filename.c_str());
     ifstr >> floorplan;
     ifstr.close();
-  }
-  vector<Matrix4d> global_to_panoramas;
-  {
-    Invert(panorama_to_globals, &global_to_panoramas);
   }
 
   // Unit for a texel.
@@ -71,7 +70,7 @@ int main(int argc, char* argv[]) {
   Vector2d min_xy_local, max_xy_local;
   SetFloorPatch(floorplan,
                 panoramas,
-                global_to_panoramas,
+                point_clouds,
                 FLAGS_max_texture_size_per_floor_patch,
                 &floor_patch,
                 &min_xy_local,
@@ -82,7 +81,6 @@ int main(int argc, char* argv[]) {
   vector<vector<Patch> > wall_patches;
   SetWallPatches(floorplan,
                  panoramas,
-                 global_to_panoramas,
                  FLAGS_max_texture_size_per_wall_patch,
                  FLAGS_texture_height_per_wall,
                  &wall_patches);

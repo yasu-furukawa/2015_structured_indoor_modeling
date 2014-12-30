@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include "../base/point_cloud.h"
 
 namespace file_io {
   class FileIO;
@@ -33,15 +34,24 @@ struct Patch {
   }
 };
 
+int GetEndPanorama(const file_io::FileIO& file_io, const int start_panorama);
+ 
 void ReadPanoramas(const file_io::FileIO& file_io,
-                   const int num_panoramas,
+                   const int start_panorama,
+                   const int end_panorama,
                    const int num_pyramid_levels,
                    std::vector<std::vector<Panorama> >* panoramas);
 
 void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
-                           const int num_panoramas,
+                           const int start_panorama,
+                           const int end_panorama,
                            std::vector<Eigen::Matrix4d>* panorama_to_globals);
 
+void ReadPointClouds(const file_io::FileIO& file_io,
+                     const int start_panorama,
+                     const int end_panorama,
+                     std::vector<base::PointCloud>* point_clouds);
+ 
 void Invert(const std::vector<Eigen::Matrix4d>& panorama_to_globals,
             std::vector<Eigen::Matrix4d>* global_to_panoramas);
 
@@ -54,7 +64,6 @@ void PackWallTextures(const std::vector<std::vector<Patch> >& wall_patches,
 // Walls.
 void SetWallPatches(const Floorplan& floorplan,
                     const std::vector<std::vector<Panorama> >& panoramas,
-                    const std::vector<Eigen::Matrix4d>& global_to_panoramas,
                     const int max_texture_size_per_wall_patch,
                     const int texture_height_per_wall,
                     std::vector<std::vector<Patch> >* wall_patches);
@@ -69,7 +78,7 @@ void PackWallTextures(const std::vector<std::vector<Patch> >& patches,
 // Floor.
 void SetFloorPatch(const Floorplan& floorplan,
                    const std::vector<std::vector<Panorama> >& panoramas,
-                   const std::vector<Eigen::Matrix4d>& global_to_panoramas,
+                   const std::vector<base::PointCloud>& point_clouds,
                    const int max_texture_size_per_floor_patch,
                    Patch* floor_patch,
                    Eigen::Vector2d* min_xy_local,

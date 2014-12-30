@@ -28,9 +28,11 @@ int main(int argc, char *argv[]) {
   app.setApplicationName("viewer");
 #ifndef QT_NO_OPENGL
   QWidget window;
-  window.resize(1280, 720);
+  window.resize(1024, 720);
+  // window.resize(1280, 720);
   //window.resize(1000, 600);
-  
+
+  /*
   QWidget* side_panel = new QWidget();
   QVBoxLayout* side_layout = new QVBoxLayout();
   {
@@ -40,6 +42,7 @@ int main(int argc, char *argv[]) {
     side_layout->addWidget(new QPushButton("four"));
   }
   side_layout->addWidget(side_panel);
+  */
 
   MainWidget* main_widget = new MainWidget(configuration);
   QHBoxLayout* layout = new QHBoxLayout();
@@ -49,10 +52,12 @@ int main(int argc, char *argv[]) {
     layout->addWidget(main_widget);
     layout->setStretch(kMainIndex, kMainSize);
 
+    /*
     const int kSideIndex = 1;
     const int kSideSize = 1;
     layout->addLayout(side_layout);
     layout->setStretch(kSideIndex, kSideSize);
+    */
   }
 
   window.setLayout(layout);

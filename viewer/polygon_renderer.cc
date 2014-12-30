@@ -382,6 +382,28 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const dou
     }
     glEnd();
   }
+
+  /*
+  {
+    glDisable(GL_TEXTURE_2D);
+    // Floor.
+    glBegin(GL_TRIANGLES);
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
+      for (const auto& triangle : floor_triangulation.triangles) {
+        for (int i = 0; i < 3; ++i) {
+          // glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+          glColor4f(0.5, 0.5, 0.5, 1.0);
+          const int index = triangle.indices[i];
+          const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
+          glVertex3d(position[0], position[1], position[2]);
+        }
+      }
+    }
+    glEnd();
+    glEnable(GL_TEXTURE_2D);
+  }
+  */
 }
 
 void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,

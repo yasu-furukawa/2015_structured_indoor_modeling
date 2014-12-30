@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "../floorplan/floorplan.h"
 #include "generate_texture.h"
+#include "../floorplan/floorplan.h"
 #include "../calibration/file_io.h"
 #include "../floorplan/panorama.h"
 
@@ -14,7 +14,6 @@ namespace texture {
 namespace {
 
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
-                          const std::vector<Eigen::Matrix4d>& global_to_panoramas,
                           const Patch& patch,
                           vector<pair<double, int> >* visible_panoramas_weights);
 
@@ -76,21 +75,38 @@ void SetIUVInFloor(const Patch& floor_patch,
   
 }  // namespace
 
+int GetEndPanorama(const file_io::FileIO& file_io, const int start_panorama) {
+  int panorama = start_panorama;
+  while (1) {
+    const string filename = file_io.GetPanoramaImage(panorama);
+    ifstream ifstr;
+    ifstr.open(filename.c_str());
+    if (!ifstr.is_open()) {
+      ifstr.close();
+      return panorama;
+    }
+    ifstr.close();
+    ++panorama;
+  }
+}
+  
 void ReadPanoramas(const file_io::FileIO& file_io,
-                   const int num_panoramas,
+                   const int start_panorama,
+                   const int end_panorama,
                    const int num_pyramid_levels,
                    vector<vector<Panorama> >* panoramas) {
-  panoramas->resize(num_panoramas);
+  panoramas->resize(end_panorama - start_panorama);
   cerr << "Reading panoramas" << flush;
-  for (int p = 0; p < num_panoramas; ++p) {
+  for (int p = start_panorama; p < end_panorama; ++p) {
     cerr << '.' << flush;
-    panoramas->at(p).resize(num_pyramid_levels);
+    const int p_index = p - start_panorama;
+    panoramas->at(p_index).resize(num_pyramid_levels);
     for (int level = 0; level < num_pyramid_levels; ++level) {
-      panoramas->at(p)[level].Init(file_io, p);
+      panoramas->at(p_index)[level].Init(file_io, p);
       if (level != 0) {
-        const int new_width  = panoramas->at(p)[level].Width()  / (0x01 << level);
-        const int new_height = panoramas->at(p)[level].Height() / (0x01 << level);
-        panoramas->at(p)[level].ResizeRGB(Vector2i(new_width, new_height));
+        const int new_width  = panoramas->at(p_index)[level].Width()  / (0x01 << level);
+        const int new_height = panoramas->at(p_index)[level].Height() / (0x01 << level);
+        panoramas->at(p_index)[level].ResizeRGB(Vector2i(new_width, new_height));
       }
     }
   }
@@ -98,10 +114,12 @@ void ReadPanoramas(const file_io::FileIO& file_io,
 }
 
 void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
-                           const int num_panoramas,
+                           const int start_panorama,
+                           const int end_panorama,
                            vector<Matrix4d>* panorama_to_globals) {
-  panorama_to_globals->resize(num_panoramas);
-  for (int p = 0; p < num_panoramas; ++p) {
+  panorama_to_globals->resize(end_panorama - start_panorama);
+  for (int p = start_panorama; p < end_panorama; ++p) {
+    const int p_index = p - start_panorama;
     const string filename = file_io.GetPanoramaToGlobalTransformation(p);
     ifstream ifstr;
     ifstr.open(filename.c_str());
@@ -113,12 +131,24 @@ void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
     ifstr >> header;
     for (int y = 0; y < 4; ++y) {
       for (int x = 0; x < 4; ++x) {
-        ifstr >> (*panorama_to_globals)[p](y, x);
+        ifstr >> (*panorama_to_globals)[p_index](y, x);
       }
     }
     ifstr.close();
   }
 }
+
+void ReadPointClouds(const file_io::FileIO& file_io,
+                     const int start_panorama,
+                     const int end_panorama,
+                     std::vector<base::PointCloud>* point_clouds) {
+  point_clouds->resize(end_panorama - start_panorama);
+  for (int p = start_panorama; p < end_panorama; ++p) {
+    const int p_index = p - start_panorama;
+    point_clouds->at(p_index).Init(file_io, p);
+    point_clouds->at(p_index).ToGlobal(file_io, p);
+  }
+}  
 
 void Invert(const vector<Matrix4d>& panorama_to_globals,
             vector<Matrix4d>* global_to_panoramas) {
@@ -135,13 +165,124 @@ void Invert(const vector<Matrix4d>& panorama_to_globals,
   }
 }
 
+bool IsOnFloor(const Floorplan& floorplan,
+               const double average_floor_height,
+               const double average_ceiling_height,
+               const Point& point) {
+  const Vector3d local_position = floorplan.GetFloorplanToGlobal().transpose() * point.position;
+  Vector3d local_normal = floorplan.GetFloorplanToGlobal().transpose() * point.normal;
+
+  const double kPositionError = 0.1;
+  const double kNormalError = cos(30 * M_PI / 180.0);
+
+  const double margin = (average_ceiling_height - average_floor_height) * kPositionError;
+  
+  if (fabs(local_position[2] - average_floor_height) > margin)
+    return false;
+
+  if (local_normal.normalize().dot(Vector3d(0, 0, 1)) < kNormalError)
+    return false;
+  
+  return true;
+}
+  
 void SetFloorPatch(const Floorplan& floorplan,
                    const std::vector<std::vector<Panorama> >& panoramas,
-                   const std::vector<Eigen::Matrix4d>& global_to_panoramas,
+                   const std::vector<base::PointCloud>& point_clouds,
                    const int max_texture_size_per_floor_patch,
                    Patch* floor_patch,
                    Eigen::Vector2d* min_xy_local,
-                   Eigen::Vector2d* max_xy_local) {
+                   Eigen::Vector2d* max_xy_local) {    
+  // Collect min-max x-y in local.
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
+      const Vector2d local = floorplan.GetRoomVertexLocal(room, vertex);
+      if (room == 0 && vertex == 0) {
+        *min_xy_local = *max_xy_local = local;
+      } else {
+        for (int i = 0; i < 2; ++i) {
+          (*min_xy_local)[i] = min((*min_xy_local)[i], local[i]);
+          (*max_xy_local)[i] = max((*max_xy_local)[i], local[i]);
+        }
+      }      
+    }
+  }
+  const int kFirstRoom = 0;
+  floor_patch->vertices[0] =
+    Vector3d((*min_xy_local)[0], (*min_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
+  floor_patch->vertices[1] =
+    Vector3d((*max_xy_local)[0], (*min_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
+  floor_patch->vertices[2] =
+    Vector3d((*max_xy_local)[0], (*max_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
+  floor_patch->vertices[3] =
+    Vector3d((*min_xy_local)[0], (*max_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
+
+  // Map (min_xy_local, max_xy_local) to the image.
+  const double floor_width_3d  = (*max_xy_local)[0] - (*min_xy_local)[0];
+  const double floor_height_3d = (*max_xy_local)[1] - (*min_xy_local)[1];
+  const double max_floor_size  = max(floor_width_3d, floor_height_3d);
+  floor_patch->texture_size[0] =
+    static_cast<int>(round(floor_width_3d / max_floor_size * max_texture_size_per_floor_patch));
+  floor_patch->texture_size[1] =
+    static_cast<int>(round(floor_height_3d / max_floor_size * max_texture_size_per_floor_patch));
+
+  const int width  = floor_patch->texture_size[0];
+  const int height = floor_patch->texture_size[1];
+
+  double average_floor_height = 0.0;
+  double average_ceiling_height = 0.0;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    average_floor_height += floorplan.GetFloorHeight(room);
+    average_ceiling_height += floorplan.GetCeilingHeight(room);
+  }
+  average_floor_height /= floorplan.GetNumRooms();
+  average_ceiling_height /= floorplan.GetNumRooms();
+  
+  const int kLevel = 0;
+  for (int p = 0; p < panoramas.size(); ++p) {
+    const int depth_width  = panoramas[p][kLevel].DepthWidth();
+    const int depth_height = panoramas[p][kLevel].DepthHeight();
+    const int kInitial = 0;
+    const int kFloor = 1;
+    vector<int> floor_mask(depth_width * depth_height, kInitial);
+
+    for (const auto& point : point_clouds[p]) {
+      if (IsOnFloor(floorplan, average_floor_height, average_ceiling_height, point)) {
+        continue;
+      }
+      const Vector2d pixel = panoramas[p][kLevel].Project(point.first);
+      const Vector2d depth_pixel = panoramas[p][kLevel].RGBToDepth(pixel);
+      const int x = static_cast<int>(round(depth_pixel[0]));
+      const int y = static_cast<int>(round(depth_pixel[1]));
+
+      if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
+        floor_mask[y * depth_width + x] = kFloor;
+      }
+    }
+
+    
+    // Compute a depthimage that corresponds to the floor.
+    cv::Mat texture(height, width, CV_8UC3);
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        texture.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+      }
+    }
+    
+
+
+
+    
+  }
+}
+  
+void SetFloorPatchOld(const Floorplan& floorplan,
+                      const std::vector<std::vector<Panorama> >& panoramas,
+                      const std::vector<Eigen::Matrix4d>& global_to_panoramas,
+                      const int max_texture_size_per_floor_patch,
+                      Patch* floor_patch,
+                      Eigen::Vector2d* min_xy_local,
+                      Eigen::Vector2d* max_xy_local) {
   // Collect min-max x-y in local.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
@@ -238,7 +379,6 @@ void SetFloorPatch(const Floorplan& floorplan,
 
 void SetWallPatches(const Floorplan& floorplan,
                     const std::vector<std::vector<Panorama> >& panoramas,
-                    const std::vector<Eigen::Matrix4d>& global_to_panoramas,
                     const int max_texture_size_per_wall_patch,
                     const int texture_height_per_wall,
                     std::vector<std::vector<Patch> >* wall_patches) {
@@ -257,7 +397,7 @@ void SetWallPatches(const Floorplan& floorplan,
 
       // Identify visible panoramas.
       vector<pair<double, int> > visible_panoramas_weights;
-      FindVisiblePanoramas(panoramas, global_to_panoramas, patch, &visible_panoramas_weights);
+      FindVisiblePanoramas(panoramas, patch, &visible_panoramas_weights);
       
       // Keep the best one only.
       const int best_panorama = visible_panoramas_weights[0].second;
@@ -330,7 +470,6 @@ void WriteTextureImages(const file_io::FileIO& file_io,
 //----------------------------------------------------------------------  
 namespace {
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
-                          const std::vector<Eigen::Matrix4d>& global_to_panoramas,
                           const Patch& patch,
                           vector<pair<double, int> >* visible_panoramas_weights) {
   const int kFirstLevel = 0;
