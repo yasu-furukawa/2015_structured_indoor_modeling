@@ -1,0 +1,12 @@
+#include "panorama.h"
+
+using namespace Eigen;
+
+Panorama::Panorama();
+
+void Panorama::Init(const file_io::FileIO& file_io,
+                    const int panorama) {
+
+
+
+}

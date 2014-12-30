@@ -2,11 +2,13 @@
 #include <iostream>
 
 #include "generate_texture.h"
+#include "../base/point_cloud.h"
 #include "../floorplan/floorplan.h"
 #include "../calibration/file_io.h"
 #include "../floorplan/panorama.h"
 
 using namespace Eigen;
+using namespace base;
 using namespace std;
 
 namespace texture {
@@ -172,7 +174,8 @@ bool IsOnFloor(const Floorplan& floorplan,
   const Vector3d local_position = floorplan.GetFloorplanToGlobal().transpose() * point.position;
   Vector3d local_normal = floorplan.GetFloorplanToGlobal().transpose() * point.normal;
 
-  const double kPositionError = 0.1;
+  //???? critical.
+  const double kPositionError = 0.05;
   const double kNormalError = cos(30 * M_PI / 180.0);
 
   const double margin = (average_ceiling_height - average_floor_height) * kPositionError;
@@ -180,8 +183,10 @@ bool IsOnFloor(const Floorplan& floorplan,
   if (fabs(local_position[2] - average_floor_height) > margin)
     return false;
 
-  if (local_normal.normalize().dot(Vector3d(0, 0, 1)) < kNormalError)
+  /*
+  if (local_normal.normalized().dot(Vector3d(0, 0, 1)) < kNormalError)
     return false;
+  */
   
   return true;
 }
@@ -192,7 +197,7 @@ void SetFloorPatch(const Floorplan& floorplan,
                    const int max_texture_size_per_floor_patch,
                    Patch* floor_patch,
                    Eigen::Vector2d* min_xy_local,
-                   Eigen::Vector2d* max_xy_local) {    
+                   Eigen::Vector2d* max_xy_local) {
   // Collect min-max x-y in local.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
@@ -226,9 +231,6 @@ void SetFloorPatch(const Floorplan& floorplan,
   floor_patch->texture_size[1] =
     static_cast<int>(round(floor_height_3d / max_floor_size * max_texture_size_per_floor_patch));
 
-  const int width  = floor_patch->texture_size[0];
-  const int height = floor_patch->texture_size[1];
-
   double average_floor_height = 0.0;
   double average_ceiling_height = 0.0;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -239,19 +241,24 @@ void SetFloorPatch(const Floorplan& floorplan,
   average_ceiling_height /= floorplan.GetNumRooms();
   
   const int kLevel = 0;
-  for (int p = 0; p < panoramas.size(); ++p) {
-    const int depth_width  = panoramas[p][kLevel].DepthWidth();
-    const int depth_height = panoramas[p][kLevel].DepthHeight();
+  for (int i = 0; i < panoramas.size(); ++i) {
+    const Panorama& panorama = panoramas[i][kLevel];
+    cout << i << ' ' << flush;
+    const int width  = panorama.Width();
+    const int height = panorama.Height();
+    const int depth_width  = panorama.DepthWidth();
+    const int depth_height = panorama.DepthHeight();
     const int kInitial = 0;
     const int kFloor = 1;
     vector<int> floor_mask(depth_width * depth_height, kInitial);
 
-    for (const auto& point : point_clouds[p]) {
-      if (IsOnFloor(floorplan, average_floor_height, average_ceiling_height, point)) {
+    for (int p = 0; p < point_clouds[i].GetNumPoints(); ++p) {
+      const auto& point = point_clouds[i].GetPoint(p);
+      if (!IsOnFloor(floorplan, average_floor_height, average_ceiling_height, point)) {
         continue;
       }
-      const Vector2d pixel = panoramas[p][kLevel].Project(point.first);
-      const Vector2d depth_pixel = panoramas[p][kLevel].RGBToDepth(pixel);
+      const Vector2d pixel = panorama.Project(point.position);
+      const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
       const int x = static_cast<int>(round(depth_pixel[0]));
       const int y = static_cast<int>(round(depth_pixel[1]));
 
@@ -265,15 +272,28 @@ void SetFloorPatch(const Floorplan& floorplan,
     cv::Mat texture(height, width, CV_8UC3);
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
-        texture.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+        const Vector2d pixel(x, y);
+        Vector3f color = panorama.GetRGB(pixel);
+        const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+        const int mask_index =
+          static_cast<int>(round(depth_pixel[1])) * depth_width +
+          static_cast<int>(round(depth_pixel[0]));
+
+        if (floor_mask[mask_index] != kFloor) {
+          color /= 3.0;
+          color[2] = 0.0;
+        }
+        
+        texture.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<unsigned char>(color[0]),
+                                                static_cast<unsigned char>(color[1]),
+                                                static_cast<unsigned char>(color[2]));
       }
     }
-    
-
-
-
-    
+    char buffer[1024];
+    sprintf(buffer, "floor_%02d.png", i);
+    cv::imwrite(buffer, texture);
   }
+  cout << "done" << endl;
 }
   
 void SetFloorPatchOld(const Floorplan& floorplan,

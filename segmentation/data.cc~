@@ -1,0 +1,13 @@
+#include "data.h"
+
+Eigen::Vector3d Frame::ToLocalPosition(const Eigen::Vector3d& position) const {
+  return Eigen::Vector3d((position.dot(axes[0]) - ranges[0][0]) / unit,
+                         (position.dot(axes[1]) - ranges[1][0]) / unit,
+                         (position.dot(axes[2]) - ranges[2][0]) / unit);
+}
+
+Eigen::Vector3d Frame::ToLocalNormal(const Eigen::Vector3d& normal) const {
+  return Eigen::Vector3d(normal.dot(axes[0]),
+                         normal.dot(axes[1]),
+                         normal.dot(axes[2])).normalized();
+}
