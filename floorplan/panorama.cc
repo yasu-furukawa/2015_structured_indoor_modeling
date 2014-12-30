@@ -94,13 +94,15 @@ Eigen::Vector3f Panorama::GetRGB(const Eigen::Vector2d& pixel) const {
   const int u0 = static_cast<int>(floor(pixel[0]));
   const int v0 = static_cast<int>(floor(pixel[1]));
   const int u1 = u0 + 1;
-  const int v1 = v0 + 1;
+  int v1 = v0 + 1;
   
   const double weight00 = (u1 - pixel[0]) * (v1 - pixel[1]);
   const double weight01 = (pixel[0] - u0) * (v1 - pixel[1]);
   const double weight10 = (u1 - pixel[0]) * (pixel[1] - v0);
   const double weight11 = (pixel[0] - u0) * (pixel[1] - v0);
   const int u1_corrected = (u1 % width);
+
+  v1 = min(v1, height - 1);
       
   const cv::Vec3b& color00 = rgb_image.at<cv::Vec3b>(v0, u0);
   const cv::Vec3b& color01 = rgb_image.at<cv::Vec3b>(v0, u1_corrected);
@@ -126,14 +128,16 @@ double Panorama::GetDepth(const Eigen::Vector2d& depth_pixel) const {
   const int u0 = static_cast<int>(floor(depth_pixel[0]));
   const int v0 = static_cast<int>(floor(depth_pixel[1]));
   const int u1 = u0 + 1;
-  const int v1 = v0 + 1;
+  int v1 = v0 + 1;
   
   const double weight00 = (u1 - depth_pixel[0]) * (v1 - depth_pixel[1]);
   const double weight01 = (depth_pixel[0] - u0) * (v1 - depth_pixel[1]);
   const double weight10 = (u1 - depth_pixel[0]) * (depth_pixel[1] - v0);
   const double weight11 = (depth_pixel[0] - u0) * (depth_pixel[1] - v0);
   const int u1_corrected = (u1 % depth_width);
-      
+
+  v1 = min(v1, depth_height - 1);
+  
   return
     weight00 * depth_image[v0 * depth_width + u0] +
     weight01 * depth_image[v0 * depth_width + u1_corrected] +
@@ -143,7 +147,7 @@ double Panorama::GetDepth(const Eigen::Vector2d& depth_pixel) const {
 
 bool Panorama::IsInsideRGB(const Eigen::Vector2d& pixel) const {
   if (pixel[0] < 0.0 || width <= pixel[0] ||
-      pixel[1] < 0.0 || height - 1 <= pixel[1]) {
+      pixel[1] < 0.0 || height - 1 < pixel[1]) {
     return false;
   } else {
     return true;
@@ -152,7 +156,7 @@ bool Panorama::IsInsideRGB(const Eigen::Vector2d& pixel) const {
 
 bool Panorama::IsInsideDepth(const Eigen::Vector2d& depth_pixel) const {
   if (depth_pixel[0] < 0.0 || depth_width <= depth_pixel[0] ||
-      depth_pixel[1] < 0.0 || depth_height - 1 <= depth_pixel[1]) {
+      depth_pixel[1] < 0.0 || depth_height - 1 < depth_pixel[1]) {
     return false;
   } else {
     return true;
