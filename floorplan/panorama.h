@@ -17,6 +17,8 @@ public:
   Eigen::Vector3d Unproject(const Eigen::Vector2d& pixel,
                             const double distance) const;
 
+  Eigen::Vector2d ProjectToDepth(const Eigen::Vector3d& global) const;
+
   Eigen::Vector3d GlobalToLocal(const Eigen::Vector3d& global) const;
   Eigen::Vector3d LocalToGlobal(const Eigen::Vector3d& local) const;
 

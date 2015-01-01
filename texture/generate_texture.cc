@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "generate_texture.h"
+#include "../base/imageProcess/morphological_operation.h"
 #include "../base/point_cloud.h"
 #include "../floorplan/floorplan.h"
 #include "../calibration/file_io.h"
@@ -230,6 +231,8 @@ void SetFloorPatch(const Floorplan& floorplan,
     static_cast<int>(round(floor_width_3d / max_floor_size * max_texture_size_per_floor_patch));
   floor_patch->texture_size[1] =
     static_cast<int>(round(floor_height_3d / max_floor_size * max_texture_size_per_floor_patch));
+  const int texture_width  = floor_patch->texture_size[0];
+  const int texture_height = floor_patch->texture_size[1];
 
   double average_floor_height = 0.0;
   double average_ceiling_height = 0.0;
@@ -241,6 +244,9 @@ void SetFloorPatch(const Floorplan& floorplan,
   average_ceiling_height /= floorplan.GetNumRooms();
   
   const int kLevel = 0;
+  const int kNumChannels = 3;
+  vector<float> average_floor_texture(texture_width * texture_height * kNumChannels, 0.0);
+  vector<int> denoms(texture_width * texture_height, 0);
   for (int i = 0; i < panoramas.size(); ++i) {
     const Panorama& panorama = panoramas[i][kLevel];
     cout << i << ' ' << flush;
@@ -248,50 +254,131 @@ void SetFloorPatch(const Floorplan& floorplan,
     const int height = panorama.Height();
     const int depth_width  = panorama.DepthWidth();
     const int depth_height = panorama.DepthHeight();
-    const int kInitial = 0;
-    const int kFloor = 1;
-    vector<int> floor_mask(depth_width * depth_height, kInitial);
+    vector<bool> floor_mask(depth_width * depth_height, false);
 
     for (int p = 0; p < point_clouds[i].GetNumPoints(); ++p) {
       const auto& point = point_clouds[i].GetPoint(p);
       if (!IsOnFloor(floorplan, average_floor_height, average_ceiling_height, point)) {
         continue;
       }
-      const Vector2d pixel = panorama.Project(point.position);
-      const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+      const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
       const int x = static_cast<int>(round(depth_pixel[0]));
       const int y = static_cast<int>(round(depth_pixel[1]));
 
       if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
-        floor_mask[y * depth_width + x] = kFloor;
+        floor_mask[y * depth_width + x] = true;
       }
     }
 
-    
-    // Compute a depthimage that corresponds to the floor.
-    cv::Mat texture(height, width, CV_8UC3);
-    for (int y = 0; y < height; ++y) {
-      for (int x = 0; x < width; ++x) {
-        const Vector2d pixel(x, y);
-        Vector3f color = panorama.GetRGB(pixel);
-        const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
-        const int mask_index =
-          static_cast<int>(round(depth_pixel[1])) * depth_width +
-          static_cast<int>(round(depth_pixel[0]));
+    {    
+      const int kKernelWidth = 5;
+      const int kTime = 3;
+      for (int t = 0; t < kTime; ++t)
+        image_process::Erode(depth_width, depth_height, kKernelWidth, &floor_mask);
+    }
 
-        if (floor_mask[mask_index] != kFloor) {
-          color /= 3.0;
-          color[2] = 0.0;
-        }
+    // cv::Mat texture_from_panorama(texture_height, texture_width, CV_8UC3);
+    const Vector2d xy_diff = *max_xy_local - *min_xy_local;
+    for (int y = 0; y < texture_height; ++y) {
+      for (int x = 0; x < texture_width; ++x) {
+        const Vector2d local((*min_xy_local)[0] + xy_diff[0] * x / texture_width,
+                             (*min_xy_local)[1] + xy_diff[1] * y / texture_height);
+        const Vector3d floor_point(local[0], local[1], average_floor_height);
+        const Vector3d global = floorplan.GetFloorplanToGlobal() * floor_point;
         
-        texture.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<unsigned char>(color[0]),
-                                                static_cast<unsigned char>(color[1]),
-                                                static_cast<unsigned char>(color[2]));
+        // Project to the depth_mask.
+        const Vector2d pixel = panorama.Project(global);
+        const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+        const int depth_x = min(depth_width - 1, static_cast<int>(round(depth_pixel[0])));
+        const int depth_y = min(depth_height - 1, static_cast<int>(round(depth_pixel[1])));
+        
+        if (floor_mask[depth_y * depth_width + depth_x]) {
+          Vector3f rgb = panorama.GetRGB(pixel);
+
+          for (int i = 0; i < 3; ++i)
+            average_floor_texture[kNumChannels * (y * texture_width + x) + i] += rgb[i];
+          denoms[y * texture_width + x] += 1;
+        }
+          
+          /*
+          for (int i = 0; i < 3; ++i)
+            texture_from_panorama.at<cv::Vec3b>(y, x)[i] = static_cast<unsigned char>(rgb[i]);
+        } else {
+          for (int i = 0; i < 3; ++i)
+            texture_from_panorama.at<cv::Vec3b>(y, x)[i] = 0;
+        }
+          */
       }
     }
+  }
+
+  cv::Mat average(texture_height, texture_width, CV_8UC3);
+  for (int y = 0; y < texture_height; ++y)
+    for (int x = 0; x < texture_width; ++x)
+      average.at<cv::Vec3b>(y, x) = 
+
+    cv::imshow("texture", texture_from_panorama);
+
     char buffer[1024];
     sprintf(buffer, "floor_%02d.png", i);
-    cv::imwrite(buffer, texture);
+    cv::imwrite(buffer, texture_from_panorama);
+
+      
+    /*
+    {
+      // Compute a depthimage that corresponds to the floor.
+      cv::Mat texture(height, width, CV_8UC3);
+      for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+          const Vector2d pixel(x, y);
+          Vector3f color = panorama.GetRGB(pixel);
+          const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+          const int mask_index =
+            static_cast<int>(round(depth_pixel[1])) * depth_width +
+            static_cast<int>(round(depth_pixel[0]));
+          
+          if (!floor_mask[mask_index]) {
+            color /= 3.0;
+            color[2] = 0.0;
+          }
+          
+          texture.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<unsigned char>(color[0]),
+                                                  static_cast<unsigned char>(color[1]),
+                                                  static_cast<unsigned char>(color[2]));
+        }
+      }
+      cv::imshow("before", texture);
+    }
+
+    {
+      // Compute a depthimage that corresponds to the floor.
+      cv::Mat texture(height, width, CV_8UC3);
+      for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+          const Vector2d pixel(x, y);
+          Vector3f color = panorama.GetRGB(pixel);
+          const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+          const int mask_index =
+            static_cast<int>(round(depth_pixel[1])) * depth_width +
+            static_cast<int>(round(depth_pixel[0]));
+          
+          if (!floor_mask[mask_index]) {
+            color /= 3.0;
+            color[2] = 0.0;
+          }
+          
+          texture.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<unsigned char>(color[0]),
+                                                  static_cast<unsigned char>(color[1]),
+                                                  static_cast<unsigned char>(color[2]));
+        }
+      }
+      cv::imshow("after", texture);
+      //char buffer[1024];
+      //sprintf(buffer, "floor_%02d.png", i);
+      //cv::imwrite(buffer, texture);
+    }
+    cv::waitKey(0);
+    */
   }
   cout << "done" << endl;
 }

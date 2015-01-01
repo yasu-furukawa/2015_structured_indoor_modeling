@@ -61,6 +61,11 @@ Eigen::Vector3d Panorama::Unproject(const Eigen::Vector2d& pixel,
   return LocalToGlobal(local);
 }
 
+Eigen::Vector2d Panorama::ProjectToDepth(const Eigen::Vector3d& global) const {
+  const Eigen::Vector2d pixel = Project(global);
+  return RGBToDepth(pixel);
+}
+
 Eigen::Vector3d Panorama::GlobalToLocal(const Eigen::Vector3d& global) const {
   const Vector4d global4(global[0], global[1], global[2], 1.0);
   const Vector4d local4 = global_to_local * global4;
