@@ -299,8 +299,7 @@ void SetFloorPatch(const Floorplan& floorplan,
             average_floor_texture[kNumChannels * (y * texture_width + x) + i] += rgb[i];
           denoms[y * texture_width + x] += 1;
         }
-          
-          /*
+        /*
           for (int i = 0; i < 3; ++i)
             texture_from_panorama.at<cv::Vec3b>(y, x)[i] = static_cast<unsigned char>(rgb[i]);
         } else {
@@ -313,17 +312,25 @@ void SetFloorPatch(const Floorplan& floorplan,
   }
 
   cv::Mat average(texture_height, texture_width, CV_8UC3);
+  int index = 0;
   for (int y = 0; y < texture_height; ++y)
-    for (int x = 0; x < texture_width; ++x)
-      average.at<cv::Vec3b>(y, x) = 
+    for (int x = 0; x < texture_width; ++x, ++index) {
+      if (denoms[index] == 0) {
+	for (int i = 0; i < 3; ++i)
+	  average.at<cv::Vec3b>(y, x)[i] = 0;
+      } else {
+	for (int i = 0; i < 3; ++i)
+	  average.at<cv::Vec3b>(y, x)[i] = 
+	    static_cast<unsigned char>(round(average_floor_texture[3 * index + i] / denoms[index]));
+      }
+    }
+  
+  cv::imshow("texture", average);
+  
+  char buffer[1024];
+  sprintf(buffer, "average_floor.png");
+  cv::imwrite(buffer, average);
 
-    cv::imshow("texture", texture_from_panorama);
-
-    char buffer[1024];
-    sprintf(buffer, "floor_%02d.png", i);
-    cv::imwrite(buffer, texture_from_panorama);
-
-      
     /*
     {
       // Compute a depthimage that corresponds to the floor.
@@ -379,7 +386,6 @@ void SetFloorPatch(const Floorplan& floorplan,
     }
     cv::waitKey(0);
     */
-  }
   cout << "done" << endl;
 }
   
@@ -979,10 +985,6 @@ void SetIUVInFloor(const Patch& floor_patch,
 
 
 
-  
-
 }
-  
-}  // namespace
-  
+}  // namespace  
 }  // namespace texture
