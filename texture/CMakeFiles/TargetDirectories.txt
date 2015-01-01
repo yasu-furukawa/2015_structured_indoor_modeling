@@ -1,2 +1,0 @@
-/Users/furukawa/research/structured_indoor_modeling/code/texture/CMakeFiles/color_point_cloud_cli.dir
-/Users/furukawa/research/structured_indoor_modeling/code/texture/CMakeFiles/generate_texture_cli.dir
