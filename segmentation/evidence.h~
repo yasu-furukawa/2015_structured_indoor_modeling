@@ -1,0 +1,13 @@
+#ifndef SEGMENTATION_EVIDENCE_H_
+#define SEGMENTATION_EVIDENCE_H_
+
+
+
+void LoadEvidence(const std::string& filename, std::vector<float>* evidence);
+void WriteEvidence(const std::string& filename, const std::vector<float>& evidence);
+
+void LoadEvidence3(const std::string& filename, std::vector<Eigen::Vector3d>* evidence);
+void WriteEvidence3(const std::string& filename, const std::vector<Eigen::Vector3d>& evidence);
+
+
+#endif  // SEGMENTATION_EVIDENCE_H_

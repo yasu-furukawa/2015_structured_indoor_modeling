@@ -1,0 +1,1 @@
+/Users/furukawa/research/structured_indoor_modeling/code/segmentation/CMakeFiles/segmentation_cli.dir

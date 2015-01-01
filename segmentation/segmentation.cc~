@@ -1,0 +1,41 @@
+
+
+void NormalizeIntensity(ply::Points* points) {
+  double average_intensity = 0.0;
+  int denom = 0;
+  for (const auto& point : *points) {
+    if (point.intensity != 0.0) {
+      average_intensity += point.intensity;
+      ++denom;
+    }
+  }
+
+  if (denom == 0.0) {
+    cerr << "No non-zero intensity point?" << endl;
+    exit (1);
+  }
+  average_intensity /= denom;
+  double deviation = 0.0;
+  for (const auto& point : *points) {
+    if (point.intensity != 0.0) {
+      deviation += (point.intensity - average_intensity) *
+        (point.intensity - average_intensity);
+    }
+  }
+  deviation /= denom;
+  deviation = sqrt(deviation);
+
+  for (auto& point : *points) {
+    point.intensity =
+      (point.intensity - average_intensity) / deviation;
+    point.intensity = 255 * max(0.0, min(1.0, (point.intensity + 1.0) / 1.0));
+  }
+
+  //----------------------------------------------------------------------
+  ply::Points points_tmp = *points;
+  points->clear();
+  for (const auto& point : points_tmp) {
+    if (point.intensity != 0.0)
+      points->push_back(point);
+  }
+}
