@@ -5,12 +5,14 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "../calibration/file_io.h"
+#include "file_io.h"
+
+namespace structured_indoor_modeling {
 
 class Panorama {
 public:
   Panorama();
-  bool Init(const file_io::FileIO& file_io,
+  bool Init(const FileIO& file_io,
             const int panorama);
 
   Eigen::Vector2d Project(const Eigen::Vector3d& global) const;
@@ -42,9 +44,9 @@ public:
   void ResizeRGB(const Eigen::Vector2i& size);
   
 private:
-  void InitDepthImage(const file_io::FileIO& file_io,
+  void InitDepthImage(const FileIO& file_io,
                       const int panorama);
-  void InitCameraParameters(const file_io::FileIO& file_io,
+  void InitCameraParameters(const FileIO& file_io,
                             const int panorama);
 
   Eigen::Matrix4d global_to_local;
@@ -66,5 +68,7 @@ private:
 
   double average_distance;
 };
+
+}  // namespace structured_indoor_modeling
 
 #endif  // PANORAMA_H_

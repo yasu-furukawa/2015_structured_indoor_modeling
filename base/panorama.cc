@@ -6,10 +6,12 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 Panorama::Panorama() {
 }
 
-bool Panorama::Init(const file_io::FileIO& file_io,
+bool Panorama::Init(const FileIO& file_io,
                     const int panorama) {
   rgb_image = cv::imread(file_io.GetPanoramaImage(panorama), 1);
   if (rgb_image.cols == 0 && rgb_image.rows == 0) {
@@ -179,7 +181,7 @@ void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
   phi_per_pixel = phi_range / height;
 }
 
-void Panorama::InitDepthImage(const file_io::FileIO& file_io,
+void Panorama::InitDepthImage(const FileIO& file_io,
                               const int panorama) {
   ifstream ifstr;
   ifstr.open(file_io.GetDepthPanorama(panorama));
@@ -207,7 +209,7 @@ void Panorama::InitDepthImage(const file_io::FileIO& file_io,
   average_distance /= depth_width * depth_height;
 }
   
-void Panorama::InitCameraParameters(const file_io::FileIO& file_io,
+void Panorama::InitCameraParameters(const FileIO& file_io,
                                     const int panorama) {
   const string buffer = file_io.GetPanoramaToGlobalTransformation(panorama);
 
@@ -239,3 +241,6 @@ void Panorama::InitCameraParameters(const file_io::FileIO& file_io,
   
   ifstr.close();
 }  
+
+}  // namespace structured_indoor_modeling
+  

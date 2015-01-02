@@ -6,10 +6,10 @@
 
 #include "data.h"
 #include "segmentation.h"
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 
 using namespace Eigen;
-using namespace segmentation;
+using namespace structured_indoor_modeling;
 using namespace std;
 
 const double kMinSigmaIntensity = -2.5;
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     exit (1);
   }
 
-  file_io::FileIO file_io(argv[1]);
+  FileIO file_io(argv[1]);
   vector<Sweep> sweeps;
   ReadSweeps(file_io, &sweeps);
   for (auto& sweep : sweeps) {

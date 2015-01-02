@@ -10,7 +10,7 @@
 #include "align_images.h"
 #include "ceres/ceres.h"
 #include "depthmap_refiner.h"
-#include "file_io.h"
+#include "../base/file_io.h"
 #include "gflags/gflags.h"
 #include "transformation.h"
 
@@ -18,6 +18,7 @@ using namespace std;
 using namespace Eigen;
 using namespace file_io;
 using namespace cv;
+using namespace structured_indoor_modeling;
 
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 DEFINE_int32(start_panorama, 0, "Start panorama index.");

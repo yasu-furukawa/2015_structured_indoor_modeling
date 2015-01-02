@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+namespace structured_indoor_modeling {
+
 struct Triangle {
   // Vertex indices.
   Eigen::Vector3i indices;
@@ -56,4 +58,6 @@ struct LineRoom {
   FloorCeilingTriangulation ceiling_triangulation;
 };
 
+}  // namespace structured_indoor_modeling
+ 
 #endif  // FLOORPLAN_INTERNAL_H_

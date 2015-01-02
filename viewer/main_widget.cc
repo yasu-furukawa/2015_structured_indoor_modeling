@@ -13,6 +13,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 const int kNumBuffers = 2;
 
 const double MainWidget::kRenderMargin = 0.2;
@@ -1172,3 +1174,5 @@ void MainWidget::FindPanoramaPath(const int start_panorama, const int goal_panor
     cout << indexes->at(i) << ' ';
   cout << endl;
 }
+
+}  // namespace structured_indoor_modeling

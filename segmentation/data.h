@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <vector>
 
-namespace segmentation {
+namespace structured_indoor_modeling {
 
 struct OrientedPoint {
   Eigen::Vector3d position;
@@ -37,6 +37,6 @@ Eigen::Vector3d ConvertPoint(const Eigen::Vector3d& point,
 Eigen::Vector3d ConvertNormal(const Eigen::Vector3d& normal,
                               const Eigen::Matrix4d& transformation);
 
-}  // namespace segmentation
+}  // namespace structured_indoor_modeling
 
 #endif  // DATA_H_

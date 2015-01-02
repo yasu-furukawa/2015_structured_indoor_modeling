@@ -6,9 +6,9 @@
 #include <gflags/gflags.h>
 
 
-#include "../calibration/file_io.h"
-#include "../floorplan/floorplan.h"
-#include "../floorplan/panorama.h"
+#include "../base/file_io.h"
+#include "../base/floorplan.h"
+#include "../base/panorama.h"
 #include "generate_texture.h"
 
 DEFINE_int32(start_panorama, 0, "First panorama id.");

@@ -4,7 +4,9 @@
 #include <Eigen/Dense>
 #include <QGLFunctions>
 
-#include "../floorplan/floorplan.h"
+#include "../base/floorplan.h"
+
+namespace structured_indoor_modeling {
 
 struct PolygonStyle {
 public:
@@ -40,4 +42,6 @@ class FloorplanRenderer : protected QGLFunctions {
   Eigen::Matrix3d floorplan_to_global;
 };
 
+}  // namespace structured_indoor_modeling
+ 
 #endif  // FLOORPLAN_RENDERER_H__

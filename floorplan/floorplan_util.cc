@@ -9,6 +9,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 typedef Kernel::Point_2                                   Point_2;
 typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
@@ -444,3 +446,5 @@ void FloorplanToSVG(const Floorplan& floorplan, const string filename, const str
   }    
 }
 
+}  // namespace structured_indoor_modeling
+  

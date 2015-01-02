@@ -6,6 +6,8 @@
 #include <Eigen/Dense>
 #include <vector>
 
+namespace structured_indoor_modeling {
+
 class MainWidget;
 class PolygonRenderer;
 
@@ -34,5 +36,7 @@ const QImage& GetRoomThumbnail(const int room) { return room_thumbnails[room]; }
   const GLint* viewport;
   GLuint thumbnail_texid;
 };
+
+}  // namespace structured_indoor_modeling
 
 #endif  // PANEL_RENDERER_H_

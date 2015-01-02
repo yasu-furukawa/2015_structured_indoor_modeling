@@ -2,6 +2,8 @@
 
 using namespace Eigen;
 
+namespace structured_indoor_modeling {
+
 Matrix3d RotationX(const double rx) {
   Matrix3d rotation;
   rotation << 1, 0, 0, 0, cos(rx), -sin(rx), 0, sin(rx), cos(rx);
@@ -42,3 +44,5 @@ void ConvertPanoramaToLocal(const int panorama_width, const int panorama_height,
   (*ray)[1] = sin(-theta) * cos(phi);
   (*ray)[0] = cos(-theta) * cos(phi);
 }
+
+}  // namespace structured_indoor_modeling

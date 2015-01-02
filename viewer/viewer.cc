@@ -15,6 +15,7 @@
 #endif
 
 using namespace std;
+using namespace structured_indoor_modeling;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {

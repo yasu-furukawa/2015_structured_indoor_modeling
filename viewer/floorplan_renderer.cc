@@ -3,9 +3,11 @@
 #include <iostream>
 #include <fstream>
 
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 
 using namespace std;
+
+namespace structured_indoor_modeling {
 
 FloorplanRenderer::FloorplanRenderer() {
 }
@@ -16,7 +18,7 @@ FloorplanRenderer::~FloorplanRenderer() {
 void FloorplanRenderer::Init(const std::string /*data_directory*/,
                              const Eigen::Matrix3d& /*floorplan_to_global_tmp*/) {
   /*
-  file_io::FileIO file_io(data_directory);
+  FileIO file_io(data_directory);
   {
     ifstream ifstr;
     ifstr.open(file_io.GetFloorplan().c_str());
@@ -77,3 +79,5 @@ void FloorplanRenderer::Render(const FloorplanStyle& /*style*/, const double /*a
   }
   */
 }
+
+}  // namespace structured_indoor_modeling

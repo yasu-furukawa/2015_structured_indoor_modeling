@@ -5,6 +5,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 ObjectRenderer::ObjectRenderer() {
 }
 
@@ -13,7 +15,7 @@ ObjectRenderer::~ObjectRenderer() {
 }
 
 void ObjectRenderer::Init(const string data_directory) {
-  file_io::FileIO file_io(data_directory);
+  FileIO file_io(data_directory);
 
   colored_point_clouds.resize(1);
   colored_point_clouds[0].resize(1);
@@ -114,3 +116,6 @@ void ObjectRenderer::RenderRoom(const int room) {
 void ObjectRenderer::RenderObject(const int room, const int object) {
 
 }
+
+}  // namespace structured_indoor_modeling
+  

@@ -6,13 +6,13 @@
 #include <vector>
 #include <gflags/gflags.h>
 
-#include "../calibration/file_io.h"
-#include "../floorplan/panorama.h"
+#include "../base/file_io.h"
+#include "../base/panorama.h"
 #include "generate_texture.h"
 
 using namespace Eigen;
 using namespace std;
-using namespace texture;
+using namespace structured_indoor_modeling;
 
 DEFINE_int32(start_panorama, 0, "First panorama ID.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
   }
   google::ParseCommandLineFlags(&argc, &argv, true);
 
-  file_io::FileIO file_io(argv[1]);
+  FileIO file_io(argv[1]);
   const int end_panorama = GetEndPanorama(file_io, FLAGS_start_panorama);
 
   vector<vector<Panorama> > panoramas;

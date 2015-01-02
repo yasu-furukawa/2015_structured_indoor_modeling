@@ -7,7 +7,7 @@
 using namespace Eigen;
 using namespace std;
 
-namespace segmentation {
+namespace structured_indoor_modeling {
 
 // 0: floored first full
 // 4: floored cvpr14
@@ -403,4 +403,4 @@ void DrawEvidenceToImage(const Frame& frame,
   }
 }
 
-}  // namespace segmentation
+}  // namespace structured_indoor_modeling

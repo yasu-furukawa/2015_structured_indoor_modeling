@@ -16,6 +16,8 @@ using namespace Eigen;
 using namespace file_io;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 namespace {
 
 Matrix3d LocalParamsToRotation(const double* const local_params) {
@@ -681,3 +683,6 @@ void BlendPanorama(const int num_images, const vector<double>& global_params,
     BlendImageToPanorama(&local_params[0], images[i], phi_per_pixel, panorama, &alpha);
   }
 }
+
+}  // namespace structured_indoor_modeling
+  

@@ -4,16 +4,16 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include "floorplan.h"
-#include "panorama.h"
-#include "../calibration/file_io.h"
-// #include "../viewer/configuration.h"
+#include "../base/floorplan.h"
+#include "../base/panorama.h"
+#include "../base/file_io.h"
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 using namespace Eigen;
 using namespace std;
+using namespace structured_indoor_modeling;
 
 struct Input {
   string data_directory;
@@ -35,7 +35,7 @@ struct Input {
 void Init(const string& data_directory, const int start_panorama, Input *input) {
   input->data_directory = data_directory;
 
-  const file_io::FileIO file_io(data_directory);
+  const FileIO file_io(data_directory);
   for (int p = start_panorama; ; ++p) {
     Panorama panorama;
     if (!panorama.Init(file_io, p))
@@ -196,7 +196,7 @@ void FindFarPanoramaInRoom(const Input& input) {
       Render(input.panoramas[p], look_at, input.thumbnail_horizontal_angle,
              input.thumbnail_width, input.thumbnail_height, &thumbnail, &depth_points);
         
-      // const file_io::FileIO file_io(argv[1]);
+      // const FileIO file_io(argv[1]);
       char buffer[1024];
       sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.png", input.data_directory.c_str(), p, r);
       cv::imwrite(buffer, thumbnail);
@@ -247,7 +247,7 @@ void FindPanoramaClosestToTheRoomCenter(const Input& input) {
            &thumbnail,
            NULL);
 
-    const file_io::FileIO file_io(input.data_directory);
+    const FileIO file_io(input.data_directory);
     cv::imwrite(file_io.GetRoomThumbnail(room), thumbnail);
   }
 }

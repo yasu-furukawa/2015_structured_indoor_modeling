@@ -4,15 +4,14 @@
 #include "generate_texture.h"
 #include "../base/imageProcess/morphological_operation.h"
 #include "../base/point_cloud.h"
-#include "../floorplan/floorplan.h"
-#include "../calibration/file_io.h"
-#include "../floorplan/panorama.h"
+#include "../base/floorplan.h"
+#include "../base/file_io.h"
+#include "../base/panorama.h"
 
 using namespace Eigen;
-using namespace base;
 using namespace std;
 
-namespace texture {
+namespace structured_indoor_modeling {
 
 namespace {
 
@@ -78,7 +77,7 @@ void SetIUVInFloor(const Patch& floor_patch,
   
 }  // namespace
 
-int GetEndPanorama(const file_io::FileIO& file_io, const int start_panorama) {
+int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
   int panorama = start_panorama;
   while (1) {
     const string filename = file_io.GetPanoramaImage(panorama);
@@ -93,7 +92,7 @@ int GetEndPanorama(const file_io::FileIO& file_io, const int start_panorama) {
   }
 }
   
-void ReadPanoramas(const file_io::FileIO& file_io,
+void ReadPanoramas(const FileIO& file_io,
                    const int start_panorama,
                    const int end_panorama,
                    const int num_pyramid_levels,
@@ -116,7 +115,7 @@ void ReadPanoramas(const file_io::FileIO& file_io,
   cerr << " done." << endl;
 }
 
-void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
+void ReadPanoramaToGlobals(const FileIO& file_io,
                            const int start_panorama,
                            const int end_panorama,
                            vector<Matrix4d>* panorama_to_globals) {
@@ -141,10 +140,10 @@ void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
   }
 }
 
-void ReadPointClouds(const file_io::FileIO& file_io,
+void ReadPointClouds(const FileIO& file_io,
                      const int start_panorama,
                      const int end_panorama,
-                     std::vector<base::PointCloud>* point_clouds) {
+                     std::vector<PointCloud>* point_clouds) {
   point_clouds->resize(end_panorama - start_panorama);
   for (int p = start_panorama; p < end_panorama; ++p) {
     const int p_index = p - start_panorama;
@@ -194,7 +193,7 @@ bool IsOnFloor(const Floorplan& floorplan,
   
 void SetFloorPatch(const Floorplan& floorplan,
                    const std::vector<std::vector<Panorama> >& panoramas,
-                   const std::vector<base::PointCloud>& point_clouds,
+                   const std::vector<PointCloud>& point_clouds,
                    const int max_texture_size_per_floor_patch,
                    Patch* floor_patch,
                    Eigen::Vector2d* min_xy_local,
@@ -555,7 +554,7 @@ void PackWallTextures(const std::vector<std::vector<Patch> >& patches,
   }
 }
 
-void WriteTextureImages(const file_io::FileIO& file_io,
+void WriteTextureImages(const FileIO& file_io,
                         const int texture_image_size,
                         const std::vector<std::vector<unsigned char> >& texture_images) {
   for (int t = 0; t < texture_images.size(); ++t) {
@@ -985,4 +984,4 @@ void SetIUVInFloor(const Patch& floor_patch,
   
 }  // namespace
   
-}  // namespace texture
+}  // namespace structured_indoor_modeling

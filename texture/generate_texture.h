@@ -6,15 +6,12 @@
 #include <vector>
 #include "../base/point_cloud.h"
 
-namespace file_io {
-  class FileIO;
-}  // namespace file_io
+namespace structured_indoor_modeling {
 
+class FileIO;
 class Floorplan;
 class Panorama;
 class WallTriangulation;
-
-namespace texture {
 
 // Patch where texture is generated.
 struct Patch {
@@ -34,23 +31,23 @@ struct Patch {
   }
 };
 
-int GetEndPanorama(const file_io::FileIO& file_io, const int start_panorama);
+int GetEndPanorama(const FileIO& file_io, const int start_panorama);
  
-void ReadPanoramas(const file_io::FileIO& file_io,
+void ReadPanoramas(const FileIO& file_io,
                    const int start_panorama,
                    const int end_panorama,
                    const int num_pyramid_levels,
                    std::vector<std::vector<Panorama> >* panoramas);
 
-void ReadPanoramaToGlobals(const file_io::FileIO& file_io,
+void ReadPanoramaToGlobals(const FileIO& file_io,
                            const int start_panorama,
                            const int end_panorama,
                            std::vector<Eigen::Matrix4d>* panorama_to_globals);
 
-void ReadPointClouds(const file_io::FileIO& file_io,
+void ReadPointClouds(const FileIO& file_io,
                      const int start_panorama,
                      const int end_panorama,
-                     std::vector<base::PointCloud>* point_clouds);
+                     std::vector<PointCloud>* point_clouds);
  
 void Invert(const std::vector<Eigen::Matrix4d>& panorama_to_globals,
             std::vector<Eigen::Matrix4d>* global_to_panoramas);
@@ -78,7 +75,7 @@ void PackWallTextures(const std::vector<std::vector<Patch> >& patches,
 // Floor.
 void SetFloorPatch(const Floorplan& floorplan,
                    const std::vector<std::vector<Panorama> >& panoramas,
-                   const std::vector<base::PointCloud>& point_clouds,
+                   const std::vector<PointCloud>& point_clouds,
                    const int max_texture_size_per_floor_patch,
                    Patch* floor_patch,
                    Eigen::Vector2d* min_xy_local,
@@ -93,10 +90,10 @@ void PackFloorTexture(const Patch& floor_patch,
                       std::pair<int, Eigen::Vector2i>* iuv,
                       int* max_texture_height);
 
-void WriteTextureImages(const file_io::FileIO& file_io,
+void WriteTextureImages(const FileIO& file_io,
                         const int texture_image_size,
                         const std::vector<std::vector<unsigned char> >& texture_images);
  
-}  // namespace texture
+}  // namespace structured_indoor_modeling
  
 #endif  // GENERATE_TEXTURE_H_

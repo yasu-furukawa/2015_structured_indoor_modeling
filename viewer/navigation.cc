@@ -7,6 +7,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 namespace {
 
 Eigen::Vector3d ComputeAirDirectionFromPanorama(const Eigen::Vector3d& panorama_direction,
@@ -634,3 +636,5 @@ double Navigation::GetFieldOfViewInDegrees() const {
   }
   }
 }
+
+}  namespace structured_indoor_modeling

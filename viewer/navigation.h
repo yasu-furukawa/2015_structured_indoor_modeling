@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 
+namespace structured_indoor_modeling {
+
 class PanoramaRenderer;
 class PolygonRenderer;
 
@@ -131,5 +133,7 @@ class Navigation {
   const std::map<int, int>& panorama_to_room;
   const std::map<int, int>& room_to_panorama;
 };
+
+}  // namespace structured_indoor_modeling
 
 #endif  // NAVIGATION_H__

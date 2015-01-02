@@ -2,9 +2,9 @@
 #define BASE_POINT_CLOUD_H_
 
 #include <vector>
-#include "../calibration/file_io.h"
+#include "file_io.h"
 
-namespace base {
+namespace structured_indoor_modeling {
 
 struct Point {
   Eigen::Vector2i depth_position;
@@ -17,8 +17,8 @@ struct Point {
 class PointCloud {
  public:
   PointCloud();
-  bool Init(const file_io::FileIO& file_io, const int panorama);
-  void ToGlobal(const file_io::FileIO& file_io, const int panorama);
+  bool Init(const FileIO& file_io, const int panorama);
+  void ToGlobal(const FileIO& file_io, const int panorama);
 
   // void Write(const string filename) const;
 
@@ -36,6 +36,6 @@ class PointCloud {
 
 typedef std::vector<PointCloud> PointClouds;
 
-}  // namespace base
+}  // namespace structured_indoor_modeling
 
 #endif  // BASE_POINT_CLOUD_H_

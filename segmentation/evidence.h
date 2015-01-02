@@ -6,7 +6,7 @@
 
 #include "data.h"
 
-namespace segmentation {
+namespace structured_indoor_modeling {
 
 void LoadEvidence(const std::string& filename, std::vector<float>* evidence);
 void WriteEvidence(const std::string& filename, const std::vector<float>& evidence);
@@ -45,6 +45,6 @@ void ConvertEvidence(const int width,
                      const double scale,
                      std::vector<unsigned char>* evidence_int);
 
-}  // namespace segmentation
+}  // namespace structured_indoor_modeling
 
 #endif  // SEGMENTATION_EVIDENCE_H_

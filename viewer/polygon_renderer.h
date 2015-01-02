@@ -5,7 +5,9 @@
 #include <QGLFunctions>
 #include <QImage>
 
-#include "../floorplan/floorplan.h"
+#include "../base/floorplan.h"
+
+namespace structured_indoor_modeling {
 
 struct Triangle2 {
   Eigen::Vector3d vertices[3];
@@ -75,4 +77,6 @@ class PolygonRenderer : protected QGLFunctions {
   std::vector<GLint> texture_ids;
 };
 
+}  // namespace structured_indoor_modeling
+ 
 #endif  // POLYGON_RENDERER_H__

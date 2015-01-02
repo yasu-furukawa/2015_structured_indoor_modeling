@@ -6,7 +6,9 @@
 #include <CGAL/General_polygon_with_holes_2.h>
 #include <CGAL/Polygon_set_2.h>
 
-#include "floorplan.h"
+#include "../base/floorplan.h"
+
+namespace structured_indoor_modeling {
 
 typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 typedef Kernel::Point_2                                   Point_2;
@@ -29,4 +31,6 @@ void FloorplanToSVG(const Floorplan& floorplan,
                     const std::string filename,
                     const std::string filename2);
 
+}  // namespace structured_indoor_modeling
+ 
 #endif  // FLOORPLAN_UTIL_H__

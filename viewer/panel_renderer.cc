@@ -8,6 +8,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 const double PanelRenderer::kWidthRatio = 0.2;
 const int PanelRenderer::kTextHeight = 6;
 const int PanelRenderer::kFrameMargin = 5;
@@ -23,7 +25,7 @@ PanelRenderer::~PanelRenderer() {
 }
 
 void PanelRenderer::Init(const std::string& data_directory) {
-  file_io::FileIO file_io(data_directory);
+  FileIO file_io(data_directory);
 
   const int room_num = polygon_renderer.GetFloorplan().GetNumRooms();
   room_thumbnails.resize(room_num);
@@ -138,3 +140,4 @@ void PanelRenderer::RenderThumbnail(const double alpha,
   glPopMatrix();
 }
 
+}  // namespace structured_indoor_modeling

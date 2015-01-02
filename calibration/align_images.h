@@ -12,9 +12,11 @@
 
 #include "align_images.h"
 #include "ceres/ceres.h"
-#include "file_io.h"
+#include "../base/file_io.h"
 
-void PrepareImages(const file_io::FileIO& file_io,
+namespace structured_indoor_modeling {
+
+void PrepareImages(const FileIO& file_io,
                    const int num_images,
                    const int dynamic_range_index,
                    const int num_pyramid_levels,
@@ -230,7 +232,8 @@ private:
 
 };
 
-
 void PrintParams(const std::vector<double>& global_params);
+
+}  // namespace structured_indoor_modeling
 
 #endif  // ALIGN_IMAGES_H__

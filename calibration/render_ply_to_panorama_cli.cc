@@ -8,6 +8,7 @@
 using namespace Eigen;
 using namespace file_io;
 using namespace std;
+using namespace structured_indoor_modeling;
 
 struct DepthPoint {
   int x;

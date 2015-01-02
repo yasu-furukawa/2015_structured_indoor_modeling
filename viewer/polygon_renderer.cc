@@ -9,6 +9,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 namespace {
 
 struct Wall {
@@ -247,7 +249,7 @@ void PolygonRenderer::RenderWireframeAll(const double alpha) {
 void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
   widget = widget_tmp;
   
-  file_io::FileIO file_io(data_directory);
+  FileIO file_io(data_directory);
   
   ifstream ifstr;
   ifstr.open(file_io.GetFloorplanFinal().c_str());
@@ -693,3 +695,4 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   */
 }
 
+}  // namespace structured_indoor_modeling

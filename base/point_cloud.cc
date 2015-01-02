@@ -5,13 +5,13 @@
 using namespace Eigen;
 using namespace std;
 
-namespace base {
+namespace structured_indoor_modeling {
 
 PointCloud::PointCloud() {
   
 }
 
-bool PointCloud::Init(const file_io::FileIO& file_io, const int panorama) {
+bool PointCloud::Init(const FileIO& file_io, const int panorama) {
   ifstream ifstr;
   ifstr.open(file_io.GetLocalPly(panorama).c_str());
 
@@ -53,7 +53,7 @@ bool PointCloud::Init(const file_io::FileIO& file_io, const int panorama) {
   return true;
 }
 
-void PointCloud::ToGlobal(const file_io::FileIO& file_io, const int panorama) {
+void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Matrix4d local_to_global;
   {
     ifstream ifstr;
@@ -84,4 +84,4 @@ void PointCloud::ToGlobal(const file_io::FileIO& file_io, const int panorama) {
   }
 }
 
-}  // namespace base
+}  // namespace structured_indoor_modeling
