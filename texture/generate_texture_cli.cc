@@ -21,7 +21,7 @@ DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 
 using namespace Eigen;
 using namespace std;
-using namespace texture;
+using namespace structured_indoor_modeling;
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
   // google::InitGoogleLogging(argv[0]);
 
   // Read data from the directory.
-  file_io::FileIO file_io(argv[1]);
+  FileIO file_io(argv[1]);
 
   const int end_panorama = GetEndPanorama(file_io, FLAGS_start_panorama);
 
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
                   FLAGS_num_pyramid_levels,
                   &panoramas);
   }
-  vector<base::PointCloud> point_clouds;
+  vector<PointCloud> point_clouds;
   {
     ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &point_clouds);                    
   }
