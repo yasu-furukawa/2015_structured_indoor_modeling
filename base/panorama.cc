@@ -27,6 +27,13 @@ bool Panorama::Init(const FileIO& file_io,
   return true;
 }
 
+bool Panorama::InitWithoutLoadingImages(const FileIO& file_io, const int panorama) {
+  InitCameraParameters(file_io, panorama);
+  phi_per_pixel = phi_range / height;
+  phi_per_depth_pixel = phi_range / depth_height;
+  return true;
+}    
+
 Eigen::Vector2d Panorama::Project(const Eigen::Vector3d& global) const {
   const Vector3d local = GlobalToLocal(global);
 

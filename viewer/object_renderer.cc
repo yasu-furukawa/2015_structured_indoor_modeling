@@ -79,6 +79,8 @@ void ObjectRenderer::Init(const string data_directory) {
 }
 
 void ObjectRenderer::RenderAll(const double alpha) {
+  return;
+  
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glPointSize(2.0);

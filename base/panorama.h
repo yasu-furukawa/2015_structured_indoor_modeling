@@ -12,8 +12,8 @@ namespace structured_indoor_modeling {
 class Panorama {
 public:
   Panorama();
-  bool Init(const FileIO& file_io,
-            const int panorama);
+  bool Init(const FileIO& file_io, const int panorama);
+  bool InitWithoutLoadingImages(const FileIO& file_io, const int panorama);
 
   Eigen::Vector2d Project(const Eigen::Vector3d& global) const;
   Eigen::Vector3d Unproject(const Eigen::Vector2d& pixel,
@@ -44,10 +44,8 @@ public:
   void ResizeRGB(const Eigen::Vector2i& size);
   
 private:
-  void InitDepthImage(const FileIO& file_io,
-                      const int panorama);
-  void InitCameraParameters(const FileIO& file_io,
-                            const int panorama);
+  void InitDepthImage(const FileIO& file_io, const int panorama);
+  void InitCameraParameters(const FileIO& file_io, const int panorama);
 
   Eigen::Matrix4d global_to_local;
   Eigen::Matrix4d local_to_global;
