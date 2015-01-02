@@ -1,6 +1,6 @@
 #include <iostream>
 #include "object_renderer.h"
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 
 using namespace Eigen;
 using namespace std;

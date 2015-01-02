@@ -637,4 +637,4 @@ double Navigation::GetFieldOfViewInDegrees() const {
   }
 }
 
-}  namespace structured_indoor_modeling
+}  // namespace structured_indoor_modeling

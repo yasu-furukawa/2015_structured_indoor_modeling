@@ -2,11 +2,10 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include "file_io.h"
+#include "../base/file_io.h"
 #include "transformation.h"
 
 using namespace Eigen;
-using namespace file_io;
 using namespace std;
 using namespace structured_indoor_modeling;
 

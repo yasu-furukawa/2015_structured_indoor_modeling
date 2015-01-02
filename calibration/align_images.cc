@@ -13,7 +13,6 @@
 
 using namespace cv;
 using namespace Eigen;
-using namespace file_io;
 using namespace std;
 
 namespace structured_indoor_modeling {
