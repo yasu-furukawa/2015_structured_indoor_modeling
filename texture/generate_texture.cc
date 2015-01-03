@@ -80,13 +80,50 @@ void SetBoundingBox(const Floorplan& floorplan,
                     Eigen::Vector2d* max_xy_local);
 
 void SetRoomSegments(const Floorplan& floorplan,
-                     const int texture_width,
-                     const int texture_height,
+                     const Eigen::Vector2i& texture_size,
                      const unsigned char background,
                      const Eigen::Vector2d& min_xy_local,
-                     const double floor_width_3d,
-                     const double floor_height_3d,
+                     const Eigen::Vector2d& max_xy_local,
                      cv::Mat* room_segments);
+
+void ComputeAverageFloorCeilingHeights(const Floorplan& floorplan,
+                                       double* average_floor_height,
+                                       double* average_ceiling_height);
+  
+Eigen::Vector2i ComputeTextureSize(const Eigen::Vector2d& min_xy_local,
+                                   const Eigen::Vector2d& max_xy_local,
+                                   const int max_texture_size_per_floor_patch);
+  
+Eigen::Vector2d ConvertLocalToTexel(const Eigen::Vector2d& local,
+                                    const Eigen::Vector2d& min_xy_local,
+                                    const Eigen::Vector2d& max_xy_local,
+                                    const Eigen::Vector2i& texture_size);
+
+Eigen::Vector2i ConvertLocalToTexelInt(const Eigen::Vector2d& local,
+                                       const Eigen::Vector2d& min_xy_local,
+                                       const Eigen::Vector2d& max_xy_local,
+                                       const Eigen::Vector2i& texture_size);
+
+int FindClosestPanoramaToRoom(const Floorplan& floorplan,
+                              const std::vector<std::vector<Panorama> >& panoramas,
+                              const Eigen::Vector2d& min_xy_local,
+                              const Eigen::Vector2d& max_xy_local,
+                              const Eigen::Vector2i& texture_size,
+                              const cv::Mat& room_segments,
+                              const int room);
+
+void GenerateFloorTexture(const Floorplan& floorplan,
+                          const std::vector<std::vector<Panorama> >& panoramas,
+                          const std::vector<PointCloud>& point_clouds,
+                          const std::set<int>& panorama_ids,
+                          const Eigen::Vector2d& min_xy_local,
+                          const Eigen::Vector2d& max_xy_local,
+                          const Eigen::Vector2i& texture_size,
+                          const cv::Mat& room_segments,
+                          const int room,
+                          const double average_floor_height,
+                          const double average_ceiling_height,
+                          cv::Mat* floor_texture);
   
 }  // namespace
 
@@ -212,52 +249,53 @@ void SetFloorPatch(const Floorplan& floorplan,
                    Eigen::Vector2d* min_xy_local,
                    Eigen::Vector2d* max_xy_local) {
   SetBoundingBox(floorplan, min_xy_local, max_xy_local);
+  
+  double average_floor_height, average_ceiling_height;
+  ComputeAverageFloorCeilingHeights(floorplan, &average_floor_height, &average_ceiling_height);
 
-  const int kFirstRoom = 0;
-  floor_patch->vertices[0] =
-    Vector3d((*min_xy_local)[0], (*min_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
-  floor_patch->vertices[1] =
-    Vector3d((*max_xy_local)[0], (*min_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
-  floor_patch->vertices[2] =
-    Vector3d((*max_xy_local)[0], (*max_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
-  floor_patch->vertices[3] =
-    Vector3d((*min_xy_local)[0], (*max_xy_local)[1], floorplan.GetFloorHeight(kFirstRoom));
+  floor_patch->vertices[0] = Vector3d((*min_xy_local)[0], (*min_xy_local)[1], average_floor_height);
+  floor_patch->vertices[1] = Vector3d((*max_xy_local)[0], (*min_xy_local)[1], average_floor_height);
+  floor_patch->vertices[2] = Vector3d((*max_xy_local)[0], (*max_xy_local)[1], average_floor_height);
+  floor_patch->vertices[3] = Vector3d((*min_xy_local)[0], (*max_xy_local)[1], average_floor_height);
 
-  // Map (min_xy_local, max_xy_local) to the image.
-  const double floor_width_3d  = (*max_xy_local)[0] - (*min_xy_local)[0];
-  const double floor_height_3d = (*max_xy_local)[1] - (*min_xy_local)[1];
-  const double max_floor_size  = max(floor_width_3d, floor_height_3d);
-  floor_patch->texture_size[0] =
-    static_cast<int>(round(floor_width_3d / max_floor_size * max_texture_size_per_floor_patch));
-  floor_patch->texture_size[1] =
-    static_cast<int>(round(floor_height_3d / max_floor_size * max_texture_size_per_floor_patch));
-  const int texture_width  = floor_patch->texture_size[0];
-  const int texture_height = floor_patch->texture_size[1];
-
-  double average_floor_height = 0.0;
-  double average_ceiling_height = 0.0;
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    average_floor_height += floorplan.GetFloorHeight(room);
-    average_ceiling_height += floorplan.GetCeilingHeight(room);
-  }
-  average_floor_height /= floorplan.GetNumRooms();
-  average_ceiling_height /= floorplan.GetNumRooms();
+  floor_patch->texture_size =
+    ComputeTextureSize(*min_xy_local, *max_xy_local, max_texture_size_per_floor_patch);
   
   // Compute a room segmentation.
   const unsigned char kBackground = 255;
   cv::Mat room_segments;
-  SetRoomSegments(floorplan, texture_width, texture_height, kBackground, *min_xy_local,
-                  floor_width_3d, floor_height_3d, &room_segments);
+  SetRoomSegments(floorplan, floor_patch->texture_size, kBackground, *min_xy_local, *max_xy_local,
+                  &room_segments);
   
   // For each room, put texture.
-  cv::Mat floor_texture(texture_height, texture_width, CV_8UC3, cv::Scalar(0));
-  
+  const int kLevel = 0;
+  cv::Mat floor_texture(floor_patch->texture_size[1], floor_patch->texture_size[0],
+                        CV_8UC3, cv::Scalar(0));
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    // Collect panoramas for room.
+    set<int> panorama_ids;
+    for (int p = 0; p < panoramas.size(); ++p) {
+      const Vector3d local_center =
+        floorplan.GetFloorplanToGlobal().transpose() * panoramas[p][kLevel].GetCenter();
+      const Vector2i texel_int =
+        ConvertLocalToTexelInt(Vector2d(local_center[0], local_center[1]),
+                               *min_xy_local, *max_xy_local, floor_patch->texture_size);
+      if (room_segments.at<unsigned char>(texel_int[1], texel_int[0]) == room)
+        panorama_ids.insert(p);
+    }
 
+    if (panorama_ids.empty()) {
+      panorama_ids.insert(FindClosestPanoramaToRoom(floorplan, panoramas,
+                                                    *min_xy_local, *max_xy_local,
+                                                    floor_patch->texture_size,
+                                                    room_segments, room));
+    }
 
-  //  const int kLevel = 0;
-  // const int kNumChannels = 3;
+    GenerateFloorTexture(floorplan, panoramas, point_clouds, panorama_ids,
+                         *min_xy_local, *max_xy_local, floor_patch->texture_size, room_segments,
+                         room, average_floor_height, average_ceiling_height, &floor_texture);
 
-  
+  }
 }
 
 void SetFloorPatchGlobal(const Floorplan& floorplan,
@@ -1095,29 +1133,24 @@ void SetBoundingBox(const Floorplan& floorplan,
 }
 
 void SetRoomSegments(const Floorplan& floorplan,
-                     const int texture_width,
-                     const int texture_height,
+                     const Eigen::Vector2i& texture_size,
                      const unsigned char background,
                      const Eigen::Vector2d& min_xy_local,
-                     const double floor_width_3d,
-                     const double floor_height_3d,
+                     const Eigen::Vector2d& max_xy_local,
                      cv::Mat* room_segments) {
-  room_segments->create(texture_height, texture_width, CV_8UC1);
+  room_segments->create(texture_size[1], texture_size[0], CV_8UC1);
   
-  for (int y = 0; y < texture_height; ++y)
-    for (int x = 0; x < texture_width; ++x)
+  for (int y = 0; y < texture_size[1]; ++y)
+    for (int x = 0; x < texture_size[0]; ++x)
       room_segments->at<unsigned char>(y, x) = background;
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     vector<cv::Point> points;
     for (int p = 0; p < floorplan.GetNumRoomVertices(room); ++p) {
       const Vector2d local = floorplan.GetRoomVertexLocal(room, p);
-      const Vector2d diff = local - min_xy_local;
-      const int u =
-        min(texture_width - 1, static_cast<int>(round((diff[0] / floor_width_3d) * texture_width)));
-      const int v =
-        min(texture_height - 1, static_cast<int>(round((diff[1] / floor_height_3d) * texture_height)));
-      points.push_back(cv::Point(u, v));
+      const Vector2i texel_int =
+        ConvertLocalToTexelInt(local, min_xy_local, max_xy_local, texture_size);
+      points.push_back(cv::Point(texel_int[0], texel_int[1]));
     }
     // reverse(points.begin(), points.end());
 
@@ -1126,8 +1159,173 @@ void SetRoomSegments(const Floorplan& floorplan,
     const cv::Point* begin = &points[0];
     cv::fillPoly(*room_segments, &begin, &length, kNumContour, room);
   }
+}
 
+Eigen::Vector2i ComputeTextureSize(const Eigen::Vector2d& min_xy_local,
+                                   const Eigen::Vector2d& max_xy_local,
+                                   const int max_texture_size_per_floor_patch) {
+  const double floor_width_3d  = max_xy_local[0] - min_xy_local[0];
+  const double floor_height_3d = max_xy_local[1] - min_xy_local[1];
+  const double max_floor_size  = max(floor_width_3d, floor_height_3d);
+  return Vector2i(static_cast<int>(round(floor_width_3d / max_floor_size * max_texture_size_per_floor_patch)),
+                  static_cast<int>(round(floor_height_3d / max_floor_size * max_texture_size_per_floor_patch)));
+}
+
+void ComputeAverageFloorCeilingHeights(const Floorplan& floorplan,
+                                       double* average_floor_height,
+                                       double* average_ceiling_height) {
+  *average_floor_height = *average_ceiling_height = 0.0;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    *average_floor_height += floorplan.GetFloorHeight(room);
+    *average_ceiling_height += floorplan.GetCeilingHeight(room);
+  }
+  *average_floor_height /= floorplan.GetNumRooms();
+  *average_ceiling_height /= floorplan.GetNumRooms();
+}
+  
+Eigen::Vector2d ConvertLocalToTexel(const Eigen::Vector2d& local,
+                                    const Eigen::Vector2d& min_xy_local,
+                                    const Eigen::Vector2d& max_xy_local,
+                                    const Eigen::Vector2i& texture_size) {
+  const Vector2d diff_3d = max_xy_local - min_xy_local;
+  const Vector2d diff = local - min_xy_local;
+
+  return Vector2d(diff[0] / diff_3d[0] * texture_size[0],
+                  diff[1] / diff_3d[1] * texture_size[1]);
 }  
 
+Eigen::Vector2i ConvertLocalToTexelInt(const Eigen::Vector2d& local,
+                                       const Eigen::Vector2d& min_xy_local,
+                                       const Eigen::Vector2d& max_xy_local,
+                                       const Eigen::Vector2i& texture_size) {
+  const Vector2d texel = ConvertLocalToTexel(local, min_xy_local, max_xy_local, texture_size);
+  
+  return Vector2i(max(0, min(texture_size[0] - 1, static_cast<int>(round((texel[0]))))),
+                  max(0, min(texture_size[1] - 1, static_cast<int>(round((texel[1]))))));
+}  
+
+int FindClosestPanoramaToRoom(const Floorplan& floorplan,
+                              const std::vector<std::vector<Panorama> >& panoramas,
+                              const Eigen::Vector2d& min_xy_local,
+                              const Eigen::Vector2d& max_xy_local,
+                              const Eigen::Vector2i& texture_size,
+                              const cv::Mat& room_segments,
+                              const int room) {
+  Vector2d room_center(0, 0);
+  int denom = 0;
+  for (int y = 0; y < texture_size[1]; ++y) {
+    for (int x = 0; x < texture_size[0]; ++x) {
+      if (room_segments.at<unsigned char>(y, x) == room) {
+        room_center += Vector2d(x, y);
+        ++denom;
+      }
+    }
+  }
+  if (denom == 0) {
+    cerr << "No room pixels..." << room << endl;
+    exit (1);
+  }
+  room_center /= denom;
+      
+  // Find the closest one to the room.
+  const int kInvalid = -1;
+  const int kLevel = 0;
+  int best_panorama = kInvalid;
+  double best_distance = -1.0;
+  for (int p = 0; p < panoramas.size(); ++p) {
+    const Vector3d local_center =
+      floorplan.GetFloorplanToGlobal().transpose() * panoramas[p][kLevel].GetCenter();
+    const Vector2d texel =
+      ConvertLocalToTexel(Vector2d(local_center[0], local_center[1]),
+                          min_xy_local, max_xy_local, texture_size);
+    const double distance = (texel - room_center).norm();
+    if (best_panorama == kInvalid || distance < best_distance) {
+      best_panorama = p;
+      best_distance = distance;
+    }
+  }
+  if (best_panorama == kInvalid) {
+    cerr << "Impossible in finding the closest panorama." << endl;
+    exit (1);
+  }
+  return best_panorama;
+}
+
+void GenerateFloorTexture(const Floorplan& floorplan,
+                          const std::vector<std::vector<Panorama> >& panoramas,
+                          const std::vector<PointCloud>& point_clouds,
+                          const std::set<int>& panorama_ids,
+                          const Eigen::Vector2d& min_xy_local,
+                          const Eigen::Vector2d& max_xy_local,
+                          const Eigen::Vector2i& texture_size,
+                          const cv::Mat& room_segments,
+                          const int room,
+                          const double average_floor_height,
+                          const double average_ceiling_height,
+                          cv::Mat* floor_texture) {
+  const int kLevel = 0;
+
+  vector<cv::Mat> projected_textures;
+  for (const auto panorama_id : panorama_ids) {
+    const Panorama& panorama = panoramas[panorama_id][kLevel];
+    const int width  = panorama.Width();
+    const int height = panorama.Height();
+    const int depth_width  = panorama.DepthWidth();
+    const int depth_height = panorama.DepthHeight();
+    vector<bool> floor_mask(depth_width * depth_height, false);
+    
+    for (int p = 0; p < point_clouds[panorama_id].GetNumPoints(); ++p) {
+      const auto& point = point_clouds[panorama_id].GetPoint(p);
+      if (!IsOnFloor(floorplan, average_floor_height, average_ceiling_height, point)) {
+        continue;
+      }
+      const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
+      const int x = static_cast<int>(round(depth_pixel[0]));
+      const int y = static_cast<int>(round(depth_pixel[1]));
+      if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
+        floor_mask[y * depth_width + x] = true;
+      }
+    }
+    {    
+      const int kKernelWidth = 5;
+      const int kTime = 1;
+      for (int t = 0; t < kTime; ++t)
+        image_process::Erode(depth_width, depth_height, kKernelWidth, &floor_mask);
+    }
+
+    cv::Mat projected_texture(texture_size[1], texture_size[0], CV_8UC3, cv::Scalar(0));
+    const Vector2d xy_diff = max_xy_local - min_xy_local;
+    for (int y = 0; y < texture_size[1]; ++y) {
+      for (int x = 0; x < texture_size[0]; ++x) {
+        if (room_segments.at<unsigned char>(y, x) != room)
+          continue;
+        const Vector2d local(min_xy_local[0] + xy_diff[0] * x / texture_size[0],
+                             min_xy_local[1] + xy_diff[1] * y / texture_size[1]);
+        const Vector3d floor_point(local[0], local[1], average_floor_height);
+        const Vector3d global = floorplan.GetFloorplanToGlobal() * floor_point;
+        
+        // Project to the depth_mask.
+        const Vector2d pixel = panorama.Project(global);
+        const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+        const int depth_x = min(depth_width - 1, static_cast<int>(round(depth_pixel[0])));
+        const int depth_y = min(depth_height - 1, static_cast<int>(round(depth_pixel[1])));
+        
+        if (floor_mask[depth_y * depth_width + depth_x]) {
+          Vector3f rgb = panorama.GetRGB(pixel);
+          for (int i = 0; i < 3; ++i)
+            projected_texture.at<cv::Vec3b>(y, x)[i] = rgb[i];
+        }
+      }
+    }
+    projected_textures.push_back(projected_texture);
+  }
+
+  for (const auto& item : projected_textures) {
+    cv::imshow("test", item);
+    cv::waitKey(0);
+  }
+  
+}
+  
 }  // namespace
 }  // namespace structured_indoor_modeling
