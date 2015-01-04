@@ -36,27 +36,29 @@ int main(int argc, char* argv[]) {
 
   const int end_panorama = GetEndPanorama(file_io, FLAGS_start_panorama);
 
-  vector<vector<Panorama> > panoramas;
+  TextureInput texture_input;
   {
     ReadPanoramas(file_io,
                   FLAGS_start_panorama,
                   end_panorama,
                   FLAGS_num_pyramid_levels,
-                  &panoramas);
+                  &texture_input.panoramas);
   }
-  vector<PointCloud> point_clouds;
   {
-    ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &point_clouds);                    
+    ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &texture_input.point_clouds);
   }
-  Floorplan floorplan;
   {
     const string filename = file_io.GetFloorplan();
     ifstream ifstr;
     ifstr.open(filename.c_str());
-    ifstr >> floorplan;
+    ifstr >> texture_input.floorplan;
     ifstr.close();
   }
-
+  {
+    texture_input.max_texture_size_per_floor_patch = FLAGS_max_texture_size_per_floor_patch;
+    texture_input.max_texture_size_per_wall_patch = FLAGS_max_texture_size_per_wall_patch;
+    texture_input.texture_height_per_wall = FLAGS_texture_height_per_wall;
+  }
   // Unit for a texel.
   // const double texel_size = ComputeTexelSize(panoramas) * FLAGS_texel_size_rescale;
   
@@ -67,25 +69,12 @@ int main(int argc, char* argv[]) {
   // Floor texture.
   cerr << "Set floor patch..." << flush;
   Patch floor_patch;
-  Vector2d min_xy_local, max_xy_local;
-  SetFloorPatch(floorplan,
-                panoramas,
-                point_clouds,
-                FLAGS_max_texture_size_per_floor_patch,
-                &floor_patch,
-                &min_xy_local,
-                &max_xy_local);
-  cerr << "done." << endl
-       << "Set wall patches..." << flush;
+  SetFloorPatch(texture_input, &floor_patch);
+  cerr << "done." << endl << "Set wall patches..." << flush;
   // Wall textures.
   vector<vector<Patch> > wall_patches;
-  SetWallPatches(floorplan,
-                 panoramas,
-                 FLAGS_max_texture_size_per_wall_patch,
-                 FLAGS_texture_height_per_wall,
-                 &wall_patches);
-  cerr << "done." << endl
-       << "Pack textures..." << flush;
+  SetWallPatches(texture_input, &wall_patches);
+  cerr << "done." << endl << "Pack textures..." << flush;
   // Texture image.
   vector<vector<unsigned char> > texture_images;
   // Texture coordinate.
@@ -93,16 +82,16 @@ int main(int argc, char* argv[]) {
   int max_texture_height = 0;
 
   // Set texture coordinates.
-  PackFloorTexture(floor_patch, min_xy_local, max_xy_local, FLAGS_texture_image_size,
-                   &floorplan, &texture_images, &iuv, &max_texture_height);
+  PackFloorTexture(floor_patch, FLAGS_texture_image_size,
+                   &texture_input.floorplan, &texture_images, &iuv, &max_texture_height);
   PackWallTextures(wall_patches, FLAGS_texture_image_size,
-                   &floorplan, &texture_images, &iuv, &max_texture_height);
+                   &texture_input.floorplan, &texture_images, &iuv, &max_texture_height);
   cerr << "done." << endl;
   WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
   {
     ofstream ofstr;
     ofstr.open(file_io.GetFloorplanFinal().c_str());
-    ofstr << floorplan;
+    ofstr << texture_input.floorplan;
     ofstr.close();
   }
 }

@@ -249,5 +249,37 @@ void Panorama::InitCameraParameters(const FileIO& file_io,
   ifstr.close();
 }  
 
+void Panorama::MakeOnlyBackgroundBlack() {
+  // Background must be in [0, kTopRato] or [kBottomRatio, 1].
+  const double kTopRatio = 170 / 1500.0;
+  const double kBottomRatio = 1250 / 1500.0;
+
+  const int top_height = static_cast<int>(round(height * kTopRatio));
+  const int bottom_height = static_cast<int>(round(height * kBottomRatio));
+
+  // Starting from the top most or the bottom most pixel, identify the black pixels.
+  for (int x = 0; x < width; ++x) {
+    int top_index, bottom_index;
+    for (top_index = 0; top_index < top_height; ++top_index) {
+      if (rgb_image.at<cv::Vec3b>(top_index, x) == cv::Vec3b(0, 0, 0))
+        continue;
+      else
+        break;
+    }
+    for (bottom_index = height - 1; bottom_index > bottom_height; --bottom_index) {
+      if (rgb_image.at<cv::Vec3b>(bottom_index, x) == cv::Vec3b(0, 0, 0))
+        continue;
+      else
+        break;
+    }
+
+    // Make black pixels between top_index and bottom_index to (1, 1, 1).
+    for (int y = top_index; y < bottom_index; ++y) {
+      if (rgb_image.at<cv::Vec3b>(y, x) == cv::Vec3b(0, 0, 0))
+        rgb_image.at<cv::Vec3b>(y, x) = cv::Vec3b(1, 1, 1);
+    }
+  }
+}
+
 }  // namespace structured_indoor_modeling
   

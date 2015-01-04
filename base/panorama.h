@@ -30,6 +30,8 @@ public:
   Eigen::Vector2d RGBToDepth(const Eigen::Vector2d& pixel) const;
   Eigen::Vector2d DepthToRGB(const Eigen::Vector2d& depth_pixel) const;
 
+  void MakeOnlyBackgroundBlack();
+
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
   

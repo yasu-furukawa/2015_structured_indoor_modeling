@@ -4,15 +4,35 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include "../base/floorplan.h"
 #include "../base/point_cloud.h"
 
 namespace structured_indoor_modeling {
 
 class FileIO;
-class Floorplan;
 class Panorama;
 class WallTriangulation;
 
+// Input data from cli.cc.
+struct TextureInput {
+  Floorplan floorplan;
+  std::vector<std::vector<Panorama> > panoramas;
+  std::vector<PointCloud> point_clouds;
+  int max_texture_size_per_floor_patch;
+  int max_texture_size_per_wall_patch;
+  int texture_height_per_wall;
+};
+
+struct RoomInput {
+  double average_floor_height;
+  double average_ceiling_height;
+  cv::Mat room_segments;
+
+  // Changes for each room.
+  int room;
+  std::set<int> panorama_ids;
+};
+ 
 // Patch where texture is generated.
 struct Patch {
   // ceiling 0------1
@@ -24,6 +44,17 @@ struct Patch {
   // Texture is stored from 0 in a row major format.
   Eigen::Vector2i texture_size;
   std::vector<unsigned char> texture;
+
+  Eigen::Vector2d min_xy_local;
+  Eigen::Vector2d max_xy_local;
+  
+
+  void InitVertices(const double floor_height) {
+    vertices[0] = Eigen::Vector3d(min_xy_local[0], min_xy_local[1], floor_height);
+    vertices[1] = Eigen::Vector3d(max_xy_local[0], min_xy_local[1], floor_height);
+    vertices[2] = Eigen::Vector3d(max_xy_local[0], max_xy_local[1], floor_height);
+    vertices[3] = Eigen::Vector3d(min_xy_local[0], max_xy_local[1], floor_height);
+  }
 
   //----------------------------------------------------------------------  
   Eigen::Vector3d Interpolate(const Eigen::Vector2d& uv) const {
@@ -59,10 +90,7 @@ void PackWallTextures(const std::vector<std::vector<Patch> >& wall_patches,
                       int* max_texture_height);
 
 // Walls.
-void SetWallPatches(const Floorplan& floorplan,
-                    const std::vector<std::vector<Panorama> >& panoramas,
-                    const int max_texture_size_per_wall_patch,
-                    const int texture_height_per_wall,
+void SetWallPatches(const TextureInput& texture_input,
                     std::vector<std::vector<Patch> >* wall_patches);
 
 void PackWallTextures(const std::vector<std::vector<Patch> >& patches,
@@ -73,17 +101,9 @@ void PackWallTextures(const std::vector<std::vector<Patch> >& patches,
                       int* max_texture_height);
  
 // Floor.
-void SetFloorPatch(const Floorplan& floorplan,
-                   const std::vector<std::vector<Panorama> >& panoramas,
-                   const std::vector<PointCloud>& point_clouds,
-                   const int max_texture_size_per_floor_patch,
-                   Patch* floor_patch,
-                   Eigen::Vector2d* min_xy_local,
-                   Eigen::Vector2d* max_xy_local);
+void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch);
 
 void PackFloorTexture(const Patch& floor_patch,
-                      const Eigen::Vector2d& min_xy_local,
-                      const Eigen::Vector2d& max_xy_local,
                       const int texture_image_size,
                       Floorplan* floorplan,
                       std::vector<std::vector<unsigned char> >* texture_images,
