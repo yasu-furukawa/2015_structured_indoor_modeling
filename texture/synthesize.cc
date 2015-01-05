@@ -120,16 +120,44 @@ void SetDataForBlending(const int width,
       if (!mask[index])
         continue;
 
-      Vector3d laplacian, value;
+      Vector3d laplacian;
       for (int c = 0; c < kNumChannels; ++c) {
-        value[c] = patch.at<cv::Vec3b>(patch_y, patch_x)[c];
-        laplacian[c] += 4.0 * patch.at<cv::Vec3b>(patch_y, patch_x)[c];
-        laplacian[c] -= patch.at<cv::Vec3b>(patch_y, patch_x - 1)[c];
-        laplacian[c] -= patch.at<cv::Vec3b>(patch_y, patch_x + 1)[c];
-        laplacian[c] -= patch.at<cv::Vec3b>(patch_y - 1, patch_x)[c];
-        laplacian[c] -= patch.at<cv::Vec3b>(patch_y + 1, patch_x)[c];
+        int count = 0;
+        if (mask[index - 1]) {
+          laplacian[c] -= patch.at<cv::Vec3b>(patch_y, patch_x - 1)[c];
+          ++count;
+        }
+        if (mask[index + 1]) {
+          laplacian[c] -= patch.at<cv::Vec3b>(patch_y, patch_x + 1)[c];
+          ++count;
+        }
+        if (mask[index - width]) {
+          laplacian[c] -= patch.at<cv::Vec3b>(patch_y - 1, patch_x)[c];
+          ++count;
+        }
+        if (mask[index + width]) {
+          laplacian[c] -= patch.at<cv::Vec3b>(patch_y + 1, patch_x)[c];
+          ++count;
+        }
+
+        laplacian[c] += count * patch.at<cv::Vec3b>(patch_y, patch_x)[c];
       }
       laplacians->at(index).push_back(laplacian);
+    }
+  }
+
+
+  for (int y = y_range[0]; y < y_range[1]; ++y) {
+    const int patch_y = y - y_range[0];
+    for (int x = x_range[0]; x < x_range[1]; ++x) {
+      const int patch_x = x - x_range[0];
+      const int index = y * width + x;
+      if (!mask[index])
+        continue;
+      Vector3d value;
+      for (int c = 0; c < kNumChannels; ++c) {
+        value[c] = patch.at<cv::Vec3b>(patch_y, patch_x)[c];
+      }
       values->at(index).push_back(value);
     }
   }
@@ -155,12 +183,12 @@ void PoissonBlend(const SynthesisData& synthesis_data,
 
   // variable to index.
   vector<Vector2i> indexes;
-  map<Vector2i, int> inverse_indexes;
+  map<pair<int, int>, int> inverse_indexes;
   index = 0;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x, ++index) {
       if (synthesis_data.mask[index]) {
-        inverse_indexes[Vector2i(x, y)] = indexes.size();
+        inverse_indexes[make_pair(x, y)] = indexes.size();
         indexes.push_back(Vector2i(x, y));
       }
     }
@@ -178,26 +206,85 @@ void PoissonBlend(const SynthesisData& synthesis_data,
         // Add a constraint, only when a single value is specified.
         if (values[index].size() != 1)
           continue;
-        const int variable_index = inverse_indexes[Vector2i(x, y)];
+        const int variable_index = inverse_indexes[make_pair(x, y)];
         vector<double> a(indexes.size(), 0);
         a[variable_index] = 1.0;
         A.push_back(a);
-        b.push_back(values[index][0]);
+        b.push_back(values[index][0][c]);
       }
     }
 
     // Laplacian constraints.
     for (int y = 1; y < height - 1; ++y) {
       for (int x = 1; x < width - 1; ++x) {
-        
-
+        const int index = y * width + x;
+        if (laplacians[index].empty())
+          continue;
+        vector<double> a(indexes.size(), 0);
+        int count = 0;
+        if (synthesis_data.mask[index - 1]) {
+          a[inverse_indexes[pair<int, int>(x - 1, y)]] = -1;
+          ++count;
+        }
+        if (synthesis_data.mask[index + 1]) {
+          a[inverse_indexes[pair<int, int>(x + 1, y)]] = -1;
+          ++count;
+        }
+        if (synthesis_data.mask[index - width]) {
+          a[inverse_indexes[pair<int, int>(x, y - 1)]] = -1;
+          ++count;
+        }
+        if (synthesis_data.mask[index + width]) {
+          a[inverse_indexes[pair<int, int>(x, y + 1)]] = -1;
+          ++count;
+        }
+        a[inverse_indexes[pair<int, int>(x, y)]] = count;
+        b.push_back(average_laplacian[index][c]);
       }
     }
 
+    // If no constraint, add value constraints.
+    for (int v = 0; v < (int)indexes.size(); ++v) {
+      bool zero = true;
+      for (int r = 0; r < (int)A.size(); ++r) {
+        if (A[v][r] != 0) {
+          zero = false;
+          break;
+        }
+      }
 
-    SparseMatrix<double> A(
+      if (zero) {
+        const int index = indexes[v][1] * width + indexes[v][0];
+        if (values[index].empty()) {
+          cerr << "Impossible here." << endl;
+          exit (1);
+        }
+        double average = 0.0;
+        for (const auto& value : values[index])
+          average += value[c];
+        average /= values[index].size();
 
+        vector<double> a(indexes.size(), 0);
+        a[v] = 1.0;
+        b.push_back(average);
+      }
+    }
+    
+    CsparseMat<double> A2(A);
+    Cvec<double> b2(b.size());
+    for (int i = 0; i < (int)b.size(); ++i)
+      b2[i] = b[i];
 
+    Cvec<double> x(indexes.size());
+    const int kIteration = 50;
+    GaussSeidel<double>(A2, b2, x, kIteration);
+    // Richardson<double>(A2, b2, x, kIteration, 0.2);
+
+    for (int v = 0; v < (int)x.size(); ++v) {
+      floor_texture->at<cv::Vec3b>(indexes[v][1], indexes[v][0])[c] = 
+        static_cast<unsigned char>(x[v]);
+    }
+  }
 }
   
 }  // namespace

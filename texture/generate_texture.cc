@@ -263,7 +263,9 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
   const int kLevel = 0;
   cv::Mat floor_texture(floor_patch->texture_size[1], floor_patch->texture_size[0],
                         CV_8UC3, cv::Scalar(0));
+  cerr << floorplan.GetNumRooms() << " rooms: " << flush;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    cerr << room << '.' << flush;
     // Collect panoramas for room.
     room_input.room = room;
     room_input.panorama_ids.clear();
@@ -284,6 +286,7 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
 
     GenerateFloorTexture(texture_input, room_input, *floor_patch, &floor_texture);
   }
+  cerr << "done." << endl;
 
   floor_patch->texture.clear();
   for (int y = 0; y < floor_patch->texture_size[1]; ++y) {
