@@ -376,6 +376,8 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const dou
 
         for (int i = 0; i < 3; ++i) {
           glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+          // Make floor darker ?.
+          // glColor4f(alpha / 2.0, alpha / 2.0, alpha / 2.0, 1.0);
           const int index = triangle.indices[i];
           const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
           glVertex3d(position[0], position[1], position[2]);

@@ -21,6 +21,8 @@ struct TextureInput {
   int max_texture_size_per_floor_patch;
   int max_texture_size_per_wall_patch;
   int texture_height_per_wall;
+  double position_error_for_floor;
+  double patch_size_for_synthesis;
 };
 
 struct RoomInput {
