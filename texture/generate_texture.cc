@@ -269,6 +269,8 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
     // Collect panoramas for room.
     room_input.room = room;
     room_input.panorama_ids.clear();
+
+    /*
     for (int p = 0; p < panoramas.size(); ++p) {
       const Vector3d local_center =
         floorplan.GetFloorplanToGlobal().transpose() * panoramas[p][kLevel].GetCenter();
@@ -283,6 +285,9 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
       room_input.panorama_ids.insert(FindClosestPanoramaToRoom(texture_input, *floor_patch,
                                                                room_input.room_segments, room));
     }
+    */
+    for (int p = 0; p < panoramas.size(); ++p)
+      room_input.panorama_ids.insert(p);
 
     GenerateFloorTexture(texture_input, room_input, *floor_patch, &floor_texture);
   }
@@ -998,7 +1003,7 @@ void GenerateFloorTexture(const TextureInput& texture_input,
     cerr << "No patches! Need to tune parameters." << endl;
     return;
   }
-  SynthesizeQuilt(synthesis_data, patches, floor_texture);
+  SynthesizePoisson(synthesis_data, patches, floor_texture);
   
   cv::imshow("result", *floor_texture);
 }

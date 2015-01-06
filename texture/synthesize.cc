@@ -485,7 +485,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
     if (!FindGridWithMostValid(synthesis_data, *floor_texture, visited_grids, &best_grid))
       break;
     visited_grids.insert(pair<int, int>(best_grid[0], best_grid[1]));
-    cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
+    // cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
 
     // Put a texture at best_grid from candidates.
     const int min_x = best_grid[0] * (patch_size - margin);
@@ -511,8 +511,8 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
         candidates.push_back(i);
     }
 
-    cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
-         << min_residual << ' ' << threshold;
+    // cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
+    // << min_residual << ' ' << threshold;
     const int patch_id = candidates[rand() % candidates.size()];
     // cerr << "  patch: " << patch_id << endl;
     CopyPatch(synthesis_data.mask, patches[patch_id], x_range, y_range, floor_texture);
@@ -562,12 +562,12 @@ void SynthesizeQuilt(const SynthesisData& synthesis_data,
 
   set<pair<int, int> > visited_grids;
   while (true) {
-    // Find a grid position with the most constraints.
+    // Find a grid position with the most constraints.p
     Vector2i best_grid;
     if (!FindGridWithMostValid(synthesis_data, *floor_texture, visited_grids, &best_grid))
       break;
     visited_grids.insert(pair<int, int>(best_grid[0], best_grid[1]));
-    cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
+    // cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
 
     // Put a texture at best_grid from candidates.
     const int min_x = best_grid[0] * (patch_size - margin);
@@ -593,8 +593,8 @@ void SynthesizeQuilt(const SynthesisData& synthesis_data,
         candidates.push_back(i);
     }
 
-    cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
-         << min_residual << ' ' << threshold;
+    // cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
+    // << min_residual << ' ' << threshold;
     const int patch_id = candidates[rand() % candidates.size()];
     // cerr << "  patch: " << patch_id << endl;
     CopyPatch(synthesis_data.mask, patches[patch_id], x_range, y_range, floor_texture);
