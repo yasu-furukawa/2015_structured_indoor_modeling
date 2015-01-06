@@ -20,7 +20,7 @@ DEFINE_int32(texture_height_per_wall, 512, "Texture height for each wall patch."
 DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 
 DEFINE_double(position_error_for_floor, 0.08, "How much error is allowed for a point to be on a floor.");
-DEFINE_int32(patch_size_for_synthesis, 40, "Patch size for synthesis.");
+DEFINE_int32(patch_size_for_synthesis, 80, "Patch size for synthesis.");
 
 using namespace Eigen;
 using namespace std;
@@ -72,14 +72,14 @@ int main(int argc, char* argv[]) {
   // 1. Grab texture
   // 2. Stitch
   // Floor texture.
-  cerr << "Set floor patch..." << flush;
+  cerr << "Set floor patch." << endl;
   Patch floor_patch;
   SetFloorPatch(texture_input, &floor_patch);
-  cerr << "done." << endl << "Set wall patches..." << flush;
+  cerr << "done." << endl << "Set wall patches." << endl;
   // Wall textures.
   vector<vector<Patch> > wall_patches;
   SetWallPatches(texture_input, &wall_patches);
-  cerr << "done." << endl << "Pack textures..." << flush;
+  cerr << "done." << endl << "Pack textures." << endl;
   // Texture image.
   vector<vector<unsigned char> > texture_images;
   // Texture coordinate.
