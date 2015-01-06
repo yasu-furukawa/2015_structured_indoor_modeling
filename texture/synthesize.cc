@@ -453,9 +453,9 @@ void CollectCandidatePatches(const SynthesisData& synthesis_data,
   }
 }
 
-void Synthesize(const SynthesisData& synthesis_data,
-                const std::vector<cv::Mat>& patches,
-                cv::Mat* floor_texture) {
+void SynthesizePoisson(const SynthesisData& synthesis_data,
+                       const std::vector<cv::Mat>& patches,
+                       cv::Mat* floor_texture) {
   // First identify the projected texture with the most area.
   const cv::Vec3b kHole(0, 0, 0);
   InitializeTexture(synthesis_data, floor_texture);
@@ -477,53 +477,6 @@ void Synthesize(const SynthesisData& synthesis_data,
   // Constraints for poisson blending later.
   vector<vector<Vector3d> > laplacians(width * height);
   vector<vector<Vector3d> > values(width * height);
-
-  // Identify a grid without any hole, then add to laplacians and values.
-  /*
-  {
-    int no_hole_count = 0;
-    int hole_count = 0;
-    for (int j = 0; j < grid_height; ++j) {
-      const int min_y = j * (patch_size - margin);
-      const int max_y = min(height, min_y + patch_size);
-      for (int i = 0; i < grid_width; ++i) {
-        const int min_x = i * (patch_size - margin);
-        const int max_x = min(width, min_x + patch_size);
-
-        bool no_hole = true;
-        for (int y = min_y; y < max_y; ++y) {
-          for (int x = min_x; x < max_x; ++x) {
-            const int index = y * width + x;
-            if (!synthesis_data.mask[index])
-              continue;
-            
-            if (floor_texture->at<cv::Vec3b>(y, x) == kHole) {
-              no_hole = false;
-              break;
-            }
-          }
-        }
-
-        if (no_hole) {
-          ++no_hole_count;
-          cv::Mat patch(max_y - min_y, max_x - min_x, CV_8UC3);
-          for (int y = min_y; y < max_y; ++y) {
-            for (int x = min_x; x < max_x; ++x) {
-              patch.at<cv::Vec3b>(y - min_y, x - min_x) = floor_texture->at<cv::Vec3b>(y, x);
-            }
-          }
-          Vector2i x_range(min_x, max_x);
-          Vector2i y_range(min_y, max_y);
-          SetDataForBlending(width, synthesis_data.mask, patch, x_range, y_range,
-                             &laplacians, &values);
-        } else {
-          ++hole_count;
-        }
-      }
-    }
-    cerr << "Hole No_hole: " << hole_count << ' ' << no_hole_count << endl;
-  }
-  */
 
   set<pair<int, int> > visited_grids;
   while (true) {
@@ -582,4 +535,86 @@ void Synthesize(const SynthesisData& synthesis_data,
   // cerr << "done" << endl;
 }
 
+void SynthesizeQuilt(const SynthesisData& synthesis_data,
+                     const std::vector<cv::Mat>& patches,
+                     cv::Mat* floor_texture) {
+  // First identify the projected texture with the most area.
+  const cv::Vec3b kHole(0, 0, 0);
+  InitializeTexture(synthesis_data, floor_texture);
+
+  // Simple case. Use one image to synthesize.
+  cv::imshow("source", *floor_texture);
+  // cv::waitKey(0);
+  
+  const double kMarginResidual = 2.5;
+  const int width      = synthesis_data.texture_size[0];
+  const int height     = synthesis_data.texture_size[1];
+  const int patch_size = synthesis_data.patch_size;
+  const int margin     = synthesis_data.margin;
+  // Try patch synthesis at grid points
+  // i * (patch_size - margin), j * (patch_size - margin).
+  const int grid_width  = (width - patch_size - 1) / (patch_size - margin) + 1;
+  const int grid_height = (height - patch_size - 1) / (patch_size - margin) + 1;
+
+  // Constraints for poisson blending later.
+  vector<vector<Vector3d> > laplacians(width * height);
+  vector<vector<Vector3d> > values(width * height);
+
+  set<pair<int, int> > visited_grids;
+  while (true) {
+    // Find a grid position with the most constraints.
+    Vector2i best_grid;
+    if (!FindGridWithMostValid(synthesis_data, *floor_texture, visited_grids, &best_grid))
+      break;
+    visited_grids.insert(pair<int, int>(best_grid[0], best_grid[1]));
+    cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
+
+    // Put a texture at best_grid from candidates.
+    const int min_x = best_grid[0] * (patch_size - margin);
+    const int max_x = min(width, min_x + patch_size);
+    const int min_y = best_grid[1] * (patch_size - margin);
+    const int max_y = min(height, min_y + patch_size);
+    const Vector2i x_range(min_x, max_x);
+    const Vector2i y_range(min_y, max_y);
+
+    vector<double> residuals(patches.size(), 0);
+    const double kLarge = 10000.0;
+    double current_min = kLarge;
+    for (int p = 0; p < patches.size(); ++p) {
+      residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+                                               current_min + kMarginResidual);
+      current_min = min(current_min, residuals[p]);
+    }
+    const double min_residual = *min_element(residuals.begin(), residuals.end());
+    const double threshold = min_residual + kMarginResidual;
+    vector<int> candidates;
+    for (int i = 0; i < (int)residuals.size(); ++i) {
+      if (residuals[i] <= threshold)
+        candidates.push_back(i);
+    }
+
+    cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
+         << min_residual << ' ' << threshold;
+    const int patch_id = candidates[rand() % candidates.size()];
+    // cerr << "  patch: " << patch_id << endl;
+    CopyPatch(synthesis_data.mask, patches[patch_id], x_range, y_range, floor_texture);
+
+    // cout << "setdataforblending" << endl;
+    SetDataForBlending(width,
+                       synthesis_data.mask,
+                       patches[patch_id],
+                       x_range,
+                       y_range,
+                       &laplacians,
+                       &values);
+    // cout << "done" << endl;
+  }
+  // cerr << "blend" << endl;
+  // Poisson blend.
+  cv::imshow("before", *floor_texture);
+
+  PoissonBlend(synthesis_data, laplacians, values, floor_texture);
+  // cerr << "done" << endl;
+}
+  
 }  // namespace structured_indoor_modeling

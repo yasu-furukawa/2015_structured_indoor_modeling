@@ -702,7 +702,8 @@ void MainWidget::paintGL() {
                                                         mouseMovePosition[1]));
       // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, room_highlighted);
       RenderPolygon(-1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
-      RenderAllThumbnails(alpha, room_highlighted);
+      // RenderAllThumbnails(alpha, room_highlighted);
+      RenderThumbnail(1.0, room_highlighted);
     }
     break;
   }

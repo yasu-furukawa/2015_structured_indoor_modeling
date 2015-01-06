@@ -19,10 +19,14 @@ struct SynthesisData {
 void CollectCandidatePatches(const SynthesisData& synthesis_data,
                              std::vector<cv::Mat>* patches);
 
-void Synthesize(const SynthesisData& synthesis_data,
-                const std::vector<cv::Mat>& patches,
-                cv::Mat* floor_texture);
+void SynthesizePoisson(const SynthesisData& synthesis_data,
+                       const std::vector<cv::Mat>& patches,
+                       cv::Mat* floor_texture);
 
+void SynthesizeQuilt(const SynthesisData& synthesis_data,
+                     const std::vector<cv::Mat>& patches,
+                     cv::Mat* floor_texture);
+ 
 }  // namespace structured_indoor_modeling
 
 #endif  // STRUCTURED_INDOOR_MODELING_SYNTHESIZE_H_

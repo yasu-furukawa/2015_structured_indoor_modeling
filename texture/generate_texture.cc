@@ -998,7 +998,7 @@ void GenerateFloorTexture(const TextureInput& texture_input,
     cerr << "No patches! Need to tune parameters." << endl;
     return;
   }
-  Synthesize(synthesis_data, patches, floor_texture);
+  SynthesizeQuilt(synthesis_data, patches, floor_texture);
   
   cv::imshow("result", *floor_texture);
 }
