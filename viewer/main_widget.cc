@@ -153,6 +153,7 @@ void MainWidget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
+  object_renderer.InitGL();
   polygon_renderer.InitGL();
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();

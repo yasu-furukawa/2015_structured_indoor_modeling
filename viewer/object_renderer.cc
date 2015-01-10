@@ -76,6 +76,13 @@ void ObjectRenderer::Init(const string data_directory) {
     ifstr >> dtmp;
   }
   ifstr.close();
+
+
+  point_clouds.clear();
+
+}
+
+void ObjectRenderer::InitGL() {
 }
 
 void ObjectRenderer::RenderAll(const double alpha) {

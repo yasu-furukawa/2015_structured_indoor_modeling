@@ -18,6 +18,7 @@ class ObjectRenderer : protected QGLFunctions {
   virtual ~ObjectRenderer();
 
   void Init(const std::string data_directory);
+  void InitGL();
 
   void RenderAll(const double alpha);
   void RenderRoom(const int room);
@@ -26,6 +27,9 @@ class ObjectRenderer : protected QGLFunctions {
  private:
   // For each room, for each object, a colored point cloud.
   std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
+
+  GLuint vbo;
+  std::vector<float> point_clouds;
 };
 
 }  // namespace structured_indoor_modeling 
