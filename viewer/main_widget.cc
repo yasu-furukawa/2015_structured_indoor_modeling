@@ -899,6 +899,10 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     }
     }
   }
+  else if (e->key() == Qt::Key_O) {
+    object_renderer.Toggle();
+    updateGL();
+  }  
 }
 
 void MainWidget::keyReleaseEvent(QKeyEvent *) {  

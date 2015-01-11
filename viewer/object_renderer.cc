@@ -8,10 +8,16 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 ObjectRenderer::ObjectRenderer() {
+  render = false;
 }
 
 ObjectRenderer::~ObjectRenderer() {
 
+}
+
+bool ObjectRenderer::Toggle() {
+  render = !render;
+  return render;
 }
 
 void ObjectRenderer::Init(const string data_directory) {
@@ -78,15 +84,41 @@ void ObjectRenderer::Init(const string data_directory) {
   ifstr.close();
 
 
-  point_clouds.clear();
+  vertices.clear();
+  colors.clear();
 
+  for (int p = 0; p < num_points; ++p) {
+    for (int i = 0; i < 3; ++i)
+      vertices.push_back(colored_point_clouds[0][0][p].first[i]);
+    for (int i = 0; i < 3; ++i) {
+      colors.push_back(colored_point_clouds[0][0][p].second[i]);
+    }
+  }
 }
 
 void ObjectRenderer::InitGL() {
 }
 
 void ObjectRenderer::RenderAll(const double alpha) {
-  // return;
+  if (!render)
+    return;
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_COLOR_ARRAY);
+	
+  glColorPointer(3, GL_FLOAT, 0, &colors[0]);
+  glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glPointSize(3.0);
+  
+  glDrawArrays(GL_POINTS, 0, ((int)vertices.size()) / 3);
+	
+  glDisableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+
+    /*
   
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -115,7 +147,7 @@ void ObjectRenderer::RenderAll(const double alpha) {
     glVertex3d(colored_point.first[0], colored_point.first[1], colored_point.first[2]);
   }  
   glEnd();
-  
+          */  
 }
 
 void ObjectRenderer::RenderRoom(const int room) {
