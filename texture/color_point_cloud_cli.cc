@@ -101,6 +101,11 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     }
   }
 
+  //????
+  // use only a single pano.
+  visible_panoramas->clear();
+
+  
   if (visible_panoramas->empty()) {
     const int kInvalid = -1;
     double closest_distance = 0.0;

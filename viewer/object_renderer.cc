@@ -104,7 +104,7 @@ void ObjectRenderer::Init(const string data_directory) {
   vertices.clear();
   colors.clear();
 
-  for (int p = 0; p < num_points; ++p) {
+  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
     for (int i = 0; i < 3; ++i)
       vertices.push_back(colored_point_clouds[0][0][p].first[i]);
     for (int i = 0; i < 3; ++i) {
@@ -150,7 +150,7 @@ void ObjectRenderer::RenderAll(const double alpha) {
   // glBlendColor(0, 0, 0, 0.5);
   //glBlendColor(0, 0, 0, 1.0);
   //glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-  glPointSize(3.0);
+  glPointSize(1.0);
 
   glDrawArrays(GL_POINTS, 0, ((int)vertices.size()) / 3);
 	
