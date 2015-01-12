@@ -78,6 +78,48 @@ void WritePly(const string filename, const ColoredPointCloud& colored_point_clou
   ofstr.close();
 }
 
+void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
+                          const Eigen::Vector3d& point,
+                          std::set<int>* visible_panoramas) {  
+  const int kLevel = 0;
+  for (int p = 0; p < (int)panoramas.size(); ++p) {
+    const Panorama& panorama = panoramas[p][kLevel];
+
+    const Vector2d pixel = panorama.Project(point);
+    const Vector3f rgb = panorama.GetRGB(pixel);
+    if (rgb == Vector3f(0, 0, 0))
+      continue;
+    
+    const Vector2d depth_pixel = panorama.ProjectToDepth(point);
+    const double depth = panorama.GetDepth(depth_pixel);
+    const double dtmp = (point - panorama.GetCenter()).norm();
+    const double margin = panorama.GetAverageDistance() / 20.0;
+    if (dtmp < depth + margin) {
+      visible_panoramas->insert(p);
+    }
+  }
+
+  if (visible_panoramas->empty()) {
+    const int kInvalid = -1;
+    double closest_distance = 0.0;
+    int closest_panorama = kInvalid;
+    for (int p = 0; p < (int)panoramas.size(); ++p) {
+      const Panorama& panorama = panoramas[p][kLevel];
+      const Vector2d pixel = panorama.Project(point);
+      const Vector3f rgb = panorama.GetRGB(pixel);
+      if (rgb == Vector3f(0, 0, 0))
+        continue;
+    
+      const double distance = (point - panoramas[p][kLevel].GetCenter()).norm();
+      if (distance < closest_distance || closest_panorama == kInvalid) {
+        closest_distance = distance;
+        closest_panorama = p;
+      }
+    }
+    visible_panoramas->insert(closest_panorama);
+  }
+}
+  
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -111,6 +153,42 @@ int main(int argc, char* argv[]) {
     ReadPly(file_io.GetDataDirectory() + FLAGS_input_ply, &colored_point_cloud);
   }
 
+
+  // Only use the color from 0 and 1 (if not black).
+  const int kLevel = 0;
+
+  ColoredPointCloud new_colored_point_cloud;
+  for (auto& point : colored_point_cloud) {
+    point.second = Vector3d(0, 0, 0);
+    int denom = 0;
+
+    set<int> visible_panoramas;
+    FindVisiblePanoramas(panoramas, point.first, &visible_panoramas);
+    if (visible_panoramas.empty()) {
+      continue;
+    }
+    
+    for (const auto panorama_id : visible_panoramas) {
+      const Vector3f color =
+        panoramas[panorama_id][kLevel].GetRGB(panoramas[panorama_id][kLevel].Project(point.first));
+      if (color != Vector3f(0, 0, 0)) {
+        for (int i = 0; i < 3; ++i)
+          point.second[i] += color[i] / 255.0;
+        ++denom;
+      }
+    }
+    if (denom != 0) {
+      point.second /= denom;
+
+      new_colored_point_cloud.push_back(point);
+    }
+  }
+
+  WritePly(file_io.GetDataDirectory() + FLAGS_output_ply, new_colored_point_cloud);
+
+
+  
+  /*
   // Only use the color from 0 and 1 (if not black).
   vector<int> panorama_ids;
   // panorama_ids.push_back(0);
@@ -135,6 +213,7 @@ int main(int argc, char* argv[]) {
   }
 
   WritePly(file_io.GetDataDirectory() + FLAGS_output_ply, colored_point_cloud);
-
+  */
+  
   return 0;
 }
