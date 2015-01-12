@@ -1,6 +1,7 @@
 #include <iostream>
 #include "object_renderer.h"
 #include "../base/file_io.h"
+#include "../base/point_cloud.h"
 
 using namespace Eigen;
 using namespace std;
@@ -59,6 +60,12 @@ void ObjectRenderer::Init(const string data_directory) {
 
   char buffer[1024];
   sprintf(buffer, "%s/object_cloud2.ply", data_directory.c_str());
+
+  PointCloud point_cloud;
+  point_cloud.Init(buffer);
+
+
+  /*  
   ifstream ifstr;
   // ifstr.open("object_cloud.ply");
   ifstr.open(buffer);
@@ -82,7 +89,17 @@ void ObjectRenderer::Init(const string data_directory) {
     ifstr >> dtmp;
   }
   ifstr.close();
+  */
+  colored_point_clouds[0][0].resize(point_cloud.GetNumPoints());
+  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
+    for (int i = 0; i < 3; ++i)
+      colored_point_clouds[0][0][p].first[i] =
+        point_cloud.GetPoint(p).position[i];
 
+    for (int i = 0; i < 3; ++i)
+      colored_point_clouds[0][0][p].second[i] =
+        point_cloud.GetPoint(p).color[i] / 255.0;
+  }
 
   vertices.clear();
   colors.clear();
