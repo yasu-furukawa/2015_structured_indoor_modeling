@@ -35,6 +35,7 @@ void PanelRenderer::Init(const std::string& data_directory) {
 }
 
 void PanelRenderer::InitGL(MainWidget* /*main_widget*/) {
+  initializeGLFunctions();
   glGenTextures(1, &thumbnail_texid);
 }
 

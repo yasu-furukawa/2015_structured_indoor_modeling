@@ -12,7 +12,7 @@ ObjectRenderer::ObjectRenderer() {
 }
 
 ObjectRenderer::~ObjectRenderer() {
-
+  glDeleteBuffers(2, vbos);
 }
 
 bool ObjectRenderer::Toggle() {
@@ -97,6 +97,23 @@ void ObjectRenderer::Init(const string data_directory) {
 }
 
 void ObjectRenderer::InitGL() {
+  initializeGLFunctions();
+  /*
+  glGenBuffers(1, vbos);
+
+  //glEnableVertexAttribArray(0);
+  //glEnableVertexAttribArray(1);
+  
+  glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof (float),
+               &vertices[0], GL_STATIC_DRAW);
+
+  // glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
+  // glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof (float),
+  // &colors[0], GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  */
 }
 
 void ObjectRenderer::RenderAll(const double alpha) {
@@ -105,20 +122,54 @@ void ObjectRenderer::RenderAll(const double alpha) {
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glEnable(GL_POINT_SMOOTH);
 	
+
   glColorPointer(3, GL_FLOAT, 0, &colors[0]);
   glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glPointSize(3.0);
-  
+  glBlendColor(0, 0, 0, 0.2);
+  glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+  glPointSize(2.0);
+
   glDrawArrays(GL_POINTS, 0, ((int)vertices.size()) / 3);
 	
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
+  glDisable(GL_POINT_SMOOTH);
+  glDisable(GL_BLEND);
+  glEnable(GL_DEPTH_TEST);
+  
 
-    /*
+  /*
+  glEnableVertexAttribArray(0);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+  glVertexPointer(3, GL_FLOAT, 0, 0);
+
+  // glEnableClientState(GL_COLOR_ARRAY);
+  // glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
+  //glColorPointer(3, GL_FLOAT, 0, 0);
+  //                 BUFFER_OFFSET(sizeof(GLfloat) * vertices.size()));
+
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glPointSize(3.0);
+  
+  glDrawArrays(GL_POINTS, 0, vertices.size() / 3);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  // glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+  glEnable(GL_DEPTH_TEST);
+  */
+
+  
+  /*
   
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

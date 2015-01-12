@@ -31,7 +31,6 @@ class ObjectRenderer : protected QGLFunctions {
   // For each room, for each object, a colored point cloud.
   std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
 
-  GLuint vbo;
   std::vector<float> vertices;
   std::vector<float> colors;
 };

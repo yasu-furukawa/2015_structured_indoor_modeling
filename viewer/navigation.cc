@@ -257,7 +257,7 @@ void Navigation::Init() {
     air_height += panorama_renderer.GetAverageDistance();
   }
   air_height /= panorama_renderers.size();
-  const double kHeightScale = 45.0;
+  const double kHeightScale = 30.0;
   air_height *= kHeightScale;
   
   // air_angle = 45.0 * M_PI / 180.0;
