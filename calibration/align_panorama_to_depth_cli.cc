@@ -23,6 +23,7 @@ DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 DEFINE_int32(start_panorama, 0, "Start panorama index.");
 DEFINE_int32(end_panorama, 1, "End panorama index (exclusive).");
 DEFINE_int32(ncc_window_radius, 2, "ncc window radius");
+DEFINE_bool(overwrite, false, "overwrite result");
 
 const double kInvalid = -1.0;
 
@@ -123,7 +124,7 @@ void SetDepthImage(const int depth_width,
 void DetectEdgeDepth(Image* depth_image) {
   const int width  = depth_image->width;
   const int height = depth_image->height;
-  const vector<double>& depth = depth_image->depth;
+  const vector<double>& depth = depth_image->depth;  
   vector<double>* edge = &depth_image->edge;
   
   edge->clear();
@@ -176,12 +177,13 @@ void DetectEdgeDepth(Image* depth_image) {
   }
   mean /= denom;
   variance /= denom;
-  double deviation = sqrt(variance - mean * mean);
+  const double deviation = sqrt(variance - mean * mean);
   
   for (auto& value : (*edge)) {
     if (value == kInvalid)
       continue;
-    value = max(0.0, min(1.0, (value - mean + deviation / 2.0) / (2 * deviation)));
+    // value = max(0.0, min(1.0, (value - mean + deviation / 2.0) / (2 * deviation)));
+    value = max(0.0, min(1.0, (value - (mean - deviation / 2.0)) / (deviation)));
   }
 }  
 
@@ -424,7 +426,7 @@ void InitializeParameters(const FileIO& file_io, const int p, vector<double>* pa
     params->at(i) = dtmp[i];
 
   // lumber-cashew
-  //params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.5529;
+  // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.5529;
 
   // equal-sky
   //params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.4829;
@@ -439,7 +441,7 @@ void InitializeParameters(const FileIO& file_io, const int p, vector<double>* pa
   // and pyramid_level 2.
 
   // red-lion.
-  params->at(4) += 60;
+  // params->at(4) += 60;
   
 
   // salmon palace
@@ -687,7 +689,8 @@ void VisualizeAlignment(const Image& color_image,
       }
 
       if (depth_pixel_flag[index])
-        color[2] = 255;//static_cast<unsigned char>(round(255.0 * depth_edge_in_color[index]));
+        color[2] = static_cast<unsigned char>(round(255.0 * depth_edge_in_color[index]));
+        //color[2] = 255;//static_cast<unsigned char>(round(255.0 * depth_edge_in_color[index]));
 
       blended_panorama.at<Vec3b>(y, x) = color;
     }  
@@ -1184,7 +1187,7 @@ int main(int argc, char* argv[]) {
 
     ifstream ifstr;
     ifstr.open(file_io.GetPanoramaDepthAlignmentCalibration(p));
-    if (ifstr.is_open()) {
+    if (!FLAGS_overwrite && ifstr.is_open()) {
       string stmp;
       ifstr >> stmp;
       const int kNumParams = 7;

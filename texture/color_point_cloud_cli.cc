@@ -81,21 +81,29 @@ void WritePly(const string filename, const ColoredPointCloud& colored_point_clou
 }
 
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
-                          const Eigen::Vector3d& point,
-                          std::set<int>* visible_panoramas) {  
+                          const Point& point,
+                          std::set<int>* visible_panoramas) {
+  visible_panoramas->insert(4);
+  return;
+
+  
   const int kLevel = 0;
   for (int p = 0; p < (int)panoramas.size(); ++p) {
     const Panorama& panorama = panoramas[p][kLevel];
     
-    const Vector2d pixel = panorama.Project(point);
+    const Vector2d pixel = panorama.Project(point.position);
     const Vector3f rgb = panorama.GetRGB(pixel);
     if (rgb == Vector3f(0, 0, 0))
       continue;
+
+    Vector3d point_to_camera = (panorama.GetCenter() - point.position).normalized();
+    if (point_to_camera.dot(point.normal) <= 0.0)
+      continue;
     
-    const Vector2d depth_pixel = panorama.ProjectToDepth(point);
+    const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
     const double depth = panorama.GetDepth(depth_pixel);
-    const double dtmp = (point - panorama.GetCenter()).norm();
-    const double margin = panorama.GetAverageDistance() / 20.0;
+    const double dtmp = (point.position - panorama.GetCenter()).norm();
+    const double margin = panorama.GetAverageDistance() / 100.0; // 20.0;
     if (dtmp < depth + margin) {
       visible_panoramas->insert(p);
     }
@@ -103,7 +111,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
 
   //????
   // use only a single pano.
-  visible_panoramas->clear();
+    // visible_panoramas->clear();
 
   
   if (visible_panoramas->empty()) {
@@ -112,12 +120,12 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     int closest_panorama = kInvalid;
     for (int p = 0; p < (int)panoramas.size(); ++p) {
       const Panorama& panorama = panoramas[p][kLevel];
-      const Vector2d pixel = panorama.Project(point);
+      const Vector2d pixel = panorama.Project(point.position);
       const Vector3f rgb = panorama.GetRGB(pixel);
       if (rgb == Vector3f(0, 0, 0))
         continue;
       
-      const double distance = (point - panoramas[p][kLevel].GetCenter()).norm();
+      const double distance = (point.position - panoramas[p][kLevel].GetCenter()).norm();
       if (distance < closest_distance || closest_panorama == kInvalid) {
         closest_distance = distance;
         closest_panorama = p;
@@ -226,8 +234,7 @@ int main(int argc, char* argv[]) {
     int denom = 0;
       
     set<int> visible_panoramas;
-    FindVisiblePanoramas(panoramas, point.position,
-                         &visible_panoramas);
+    FindVisiblePanoramas(panoramas, point, &visible_panoramas);
     if (visible_panoramas.empty()) {
       continue;
     }
