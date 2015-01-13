@@ -13,6 +13,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 const int kNumBuffers = 2;
 
 const double MainWidget::kRenderMargin = 0.2;
@@ -151,6 +153,7 @@ void MainWidget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
+  object_renderer.InitGL();
   polygon_renderer.InitGL();
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
@@ -700,7 +703,8 @@ void MainWidget::paintGL() {
                                                         mouseMovePosition[1]));
       // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, room_highlighted);
       RenderPolygon(-1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
-      RenderAllThumbnails(alpha, room_highlighted);
+      // RenderAllThumbnails(alpha, room_highlighted);
+      RenderThumbnail(1.0, room_highlighted);
     }
     break;
   }
@@ -895,6 +899,10 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     }
     }
   }
+  else if (e->key() == Qt::Key_O) {
+    object_renderer.Toggle();
+    updateGL();
+  }  
 }
 
 void MainWidget::keyReleaseEvent(QKeyEvent *) {  
@@ -1172,3 +1180,5 @@ void MainWidget::FindPanoramaPath(const int start_panorama, const int goal_panor
     cout << indexes->at(i) << ' ';
   cout << endl;
 }
+
+}  // namespace structured_indoor_modeling

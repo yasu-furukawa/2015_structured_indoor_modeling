@@ -7,6 +7,8 @@
 
 #include <Eigen/Dense>
 
+namespace structured_indoor_modeling {
+
 struct PanoramaConfiguration {
   std::string rgb_image_filename;
   std::string depth_image_filename;
@@ -28,5 +30,7 @@ void ReadPanoramaConfiguration(const std::string& data_directory,
                                const int pano_index,
                                PanoramaConfiguration* panorama_configuration);
 void ReadConfiguration(const std::string filename, Configuration* configuration);
+
+}  // namespace structured_indoor_modeling
 
 #endif  // CONFIGURATION_H__

@@ -1,20 +1,24 @@
 #include <Eigen/Dense>
 #include <fstream>
+#include <iostream>
 #include "point_cloud.h"
 
 using namespace Eigen;
 using namespace std;
 
-namespace base {
+namespace structured_indoor_modeling {
 
 PointCloud::PointCloud() {
   
 }
 
-bool PointCloud::Init(const file_io::FileIO& file_io, const int panorama) {
-  ifstream ifstr;
-  ifstr.open(file_io.GetLocalPly(panorama).c_str());
+bool PointCloud::Init(const FileIO& file_io, const int panorama) {
+  return Init(file_io.GetLocalPly(panorama).c_str());
+}
 
+bool PointCloud::Init(const std::string& filename) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
   if (!ifstr.is_open()) {
     ifstr.close();
     return false;
@@ -53,7 +57,49 @@ bool PointCloud::Init(const file_io::FileIO& file_io, const int panorama) {
   return true;
 }
 
-void PointCloud::ToGlobal(const file_io::FileIO& file_io, const int panorama) {
+void PointCloud::Write(const std::string& filename) {
+  ofstream ofstr;
+  ofstr.open(filename.c_str());
+  if (!ofstr.is_open()) {
+    cerr << "Failed in writing: " << filename << endl;
+    exit (1);
+  }
+
+  ofstr << "ply" << endl
+        << "format ascii 1.0" << endl
+        << "element vertex " << (int)points.size() << endl
+        << "property int height" << endl
+        << "property int width" << endl
+        << "property float x" << endl
+        << "property float y" << endl
+        << "property float z" << endl
+        << "property uchar red" << endl
+        << "property uchar green" << endl
+        << "property uchar blue" << endl
+        << "property float nx" << endl
+        << "property float ny" << endl
+        << "property float nz" << endl
+        << "property uchar intensity" << endl
+        << "end_header" << endl;
+  for (const auto& point : points) {
+    ofstr << point.depth_position[0] << ' '
+          << point.depth_position[1] << ' '
+          << point.position[0] << ' '
+          << point.position[1] << ' '
+          << point.position[2] << ' '
+          << (int)point.color[0] << ' '
+          << (int)point.color[1] << ' '
+          << (int)point.color[2] << ' '
+          << point.normal[0] << ' '
+          << point.normal[1] << ' '
+          << point.normal[2] << ' '
+          << point.intensity << endl;
+  }
+
+  ofstr.close();
+}
+  
+void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Matrix4d local_to_global;
   {
     ifstream ifstr;
@@ -84,4 +130,4 @@ void PointCloud::ToGlobal(const file_io::FileIO& file_io, const int panorama) {
   }
 }
 
-}  // namespace base
+}  // namespace structured_indoor_modeling

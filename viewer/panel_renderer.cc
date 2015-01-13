@@ -1,12 +1,14 @@
 #include <iostream>
 #include <OpenGL/glu.h>
 
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 #include "main_widget.h"
 #include "panel_renderer.h"
 
 using namespace Eigen;
 using namespace std;
+
+namespace structured_indoor_modeling {
 
 const double PanelRenderer::kWidthRatio = 0.2;
 const int PanelRenderer::kTextHeight = 6;
@@ -23,7 +25,7 @@ PanelRenderer::~PanelRenderer() {
 }
 
 void PanelRenderer::Init(const std::string& data_directory) {
-  file_io::FileIO file_io(data_directory);
+  FileIO file_io(data_directory);
 
   const int room_num = polygon_renderer.GetFloorplan().GetNumRooms();
   room_thumbnails.resize(room_num);
@@ -33,6 +35,7 @@ void PanelRenderer::Init(const std::string& data_directory) {
 }
 
 void PanelRenderer::InitGL(MainWidget* /*main_widget*/) {
+  initializeGLFunctions();
   glGenTextures(1, &thumbnail_texid);
 }
 
@@ -138,3 +141,4 @@ void PanelRenderer::RenderThumbnail(const double alpha,
   glPopMatrix();
 }
 
+}  // namespace structured_indoor_modeling

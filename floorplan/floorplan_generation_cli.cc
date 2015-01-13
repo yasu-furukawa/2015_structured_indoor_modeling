@@ -3,11 +3,12 @@
 #include <list>
 #include <vector>
 
-#include "../calibration/file_io.h"
-#include "floorplan.h"
+#include "../base/file_io.h"
+#include "../base/floorplan.h"
 #include "floorplan_util.h"
 
 using namespace std;
+using namespace structured_indoor_modeling;
 
 template<class Kernel, class Container>
 void print_polygon(const CGAL::Polygon_2<Kernel, Container>& P) {
@@ -44,7 +45,7 @@ int main(int argc, char* argv[]) {
     exit (1);
   }
 
-  file_io::FileIO file_io(argv[1]);
+  FileIO file_io(argv[1]);
   LineFloorplan line_floorplan;
   {
     // char buffer[1024];

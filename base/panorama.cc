@@ -6,10 +6,12 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 Panorama::Panorama() {
 }
 
-bool Panorama::Init(const file_io::FileIO& file_io,
+bool Panorama::Init(const FileIO& file_io,
                     const int panorama) {
   rgb_image = cv::imread(file_io.GetPanoramaImage(panorama), 1);
   if (rgb_image.cols == 0 && rgb_image.rows == 0) {
@@ -24,6 +26,13 @@ bool Panorama::Init(const file_io::FileIO& file_io,
   phi_per_depth_pixel = phi_range / depth_height;
   return true;
 }
+
+bool Panorama::InitWithoutLoadingImages(const FileIO& file_io, const int panorama) {
+  InitCameraParameters(file_io, panorama);
+  phi_per_pixel = phi_range / height;
+  phi_per_depth_pixel = phi_range / depth_height;
+  return true;
+}    
 
 Eigen::Vector2d Panorama::Project(const Eigen::Vector3d& global) const {
   const Vector3d local = GlobalToLocal(global);
@@ -179,7 +188,7 @@ void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
   phi_per_pixel = phi_range / height;
 }
 
-void Panorama::InitDepthImage(const file_io::FileIO& file_io,
+void Panorama::InitDepthImage(const FileIO& file_io,
                               const int panorama) {
   ifstream ifstr;
   ifstr.open(file_io.GetDepthPanorama(panorama));
@@ -207,7 +216,7 @@ void Panorama::InitDepthImage(const file_io::FileIO& file_io,
   average_distance /= depth_width * depth_height;
 }
   
-void Panorama::InitCameraParameters(const file_io::FileIO& file_io,
+void Panorama::InitCameraParameters(const FileIO& file_io,
                                     const int panorama) {
   const string buffer = file_io.GetPanoramaToGlobalTransformation(panorama);
 
@@ -239,3 +248,38 @@ void Panorama::InitCameraParameters(const file_io::FileIO& file_io,
   
   ifstr.close();
 }  
+
+void Panorama::MakeOnlyBackgroundBlack() {
+  // Background must be in [0, kTopRato] or [kBottomRatio, 1].
+  const double kTopRatio = 170 / 1500.0;
+  const double kBottomRatio = 1250 / 1500.0;
+
+  const int top_height = static_cast<int>(round(height * kTopRatio));
+  const int bottom_height = static_cast<int>(round(height * kBottomRatio));
+
+  // Starting from the top most or the bottom most pixel, identify the black pixels.
+  for (int x = 0; x < width; ++x) {
+    int top_index, bottom_index;
+    for (top_index = 0; top_index < top_height; ++top_index) {
+      if (rgb_image.at<cv::Vec3b>(top_index, x) == cv::Vec3b(0, 0, 0))
+        continue;
+      else
+        break;
+    }
+    for (bottom_index = height - 1; bottom_index > bottom_height; --bottom_index) {
+      if (rgb_image.at<cv::Vec3b>(bottom_index, x) == cv::Vec3b(0, 0, 0))
+        continue;
+      else
+        break;
+    }
+
+    // Make black pixels between top_index and bottom_index to (1, 1, 1).
+    for (int y = top_index; y < bottom_index; ++y) {
+      if (rgb_image.at<cv::Vec3b>(y, x) == cv::Vec3b(0, 0, 0))
+        rgb_image.at<cv::Vec3b>(y, x) = cv::Vec3b(1, 1, 1);
+    }
+  }
+}
+
+}  // namespace structured_indoor_modeling
+  

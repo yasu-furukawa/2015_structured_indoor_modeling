@@ -3,7 +3,7 @@
 using namespace Eigen;
 using namespace std;
 
-namespace segmentation {
+namespace structured_indoor_modeling {
 
 Eigen::Vector3d Frame::ToLocalPosition(const Eigen::Vector3d& position) const {
   return Eigen::Vector3d((position.dot(axes[0]) - ranges[0][0]) / unit,
@@ -75,4 +75,4 @@ Eigen::Vector3d ConvertNormal(const Eigen::Vector3d& normal,
   return Vector3d(normal4[0], normal4[1], normal4[2]);
 }
 
-}  // namespace segmentation
+}  // namespace structured_indoor_modeling

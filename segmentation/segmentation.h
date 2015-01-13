@@ -2,11 +2,11 @@
 #include <string>
 #include <vector>
 #include "data.h"
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 
-namespace segmentation {
+namespace structured_indoor_modeling {
 
-void ReadSweeps(const file_io::FileIO& file_io,
+void ReadSweeps(const FileIO& file_io,
                 std::vector<Sweep>* sweeps);
   
 void NormalizeIntensity(const double min_sigma,
@@ -43,4 +43,4 @@ void InitializeEvidence(const bool recompute,
                         std::vector<float>* free_space_evidence,
                         std::vector<Eigen::Vector3d>* normal_evidence);
   
-}  // namespace segmentation
+}  // namespace structured_indoor_modeling

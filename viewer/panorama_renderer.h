@@ -9,6 +9,8 @@
 
 #include "configuration.h"
 
+namespace structured_indoor_modeling {
+
 class PanoramaRenderer : protected QGLFunctions {
  public:
   PanoramaRenderer();
@@ -58,4 +60,6 @@ class PanoramaRenderer : protected QGLFunctions {
 
 };
 
+}  // namespace structured_indoor_modeling
+ 
 #endif  // PANORAMA_RENDERER_H__

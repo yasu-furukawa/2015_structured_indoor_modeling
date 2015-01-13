@@ -5,13 +5,15 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "../calibration/file_io.h"
+#include "file_io.h"
+
+namespace structured_indoor_modeling {
 
 class Panorama {
 public:
   Panorama();
-  bool Init(const file_io::FileIO& file_io,
-            const int panorama);
+  bool Init(const FileIO& file_io, const int panorama);
+  bool InitWithoutLoadingImages(const FileIO& file_io, const int panorama);
 
   Eigen::Vector2d Project(const Eigen::Vector3d& global) const;
   Eigen::Vector3d Unproject(const Eigen::Vector2d& pixel,
@@ -28,6 +30,8 @@ public:
   Eigen::Vector2d RGBToDepth(const Eigen::Vector2d& pixel) const;
   Eigen::Vector2d DepthToRGB(const Eigen::Vector2d& depth_pixel) const;
 
+  void MakeOnlyBackgroundBlack();
+
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
   
@@ -42,10 +46,8 @@ public:
   void ResizeRGB(const Eigen::Vector2i& size);
   
 private:
-  void InitDepthImage(const file_io::FileIO& file_io,
-                      const int panorama);
-  void InitCameraParameters(const file_io::FileIO& file_io,
-                            const int panorama);
+  void InitDepthImage(const FileIO& file_io, const int panorama);
+  void InitCameraParameters(const FileIO& file_io, const int panorama);
 
   Eigen::Matrix4d global_to_local;
   Eigen::Matrix4d local_to_global;
@@ -66,5 +68,7 @@ private:
 
   double average_distance;
 };
+
+}  // namespace structured_indoor_modeling
 
 #endif  // PANORAMA_H_

@@ -18,24 +18,24 @@
 #endif
 
 QT_BEGIN_MOC_NAMESPACE
-struct qt_meta_stringdata_MainWidget_t {
+struct qt_meta_stringdata_structured_indoor_modeling__MainWidget_t {
     QByteArrayData data[1];
-    char stringdata[11];
+    char stringdata[39];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
-    qptrdiff(offsetof(qt_meta_stringdata_MainWidget_t, stringdata) + ofs \
+    qptrdiff(offsetof(qt_meta_stringdata_structured_indoor_modeling__MainWidget_t, stringdata) + ofs \
         - idx * sizeof(QByteArrayData)) \
     )
-static const qt_meta_stringdata_MainWidget_t qt_meta_stringdata_MainWidget = {
+static const qt_meta_stringdata_structured_indoor_modeling__MainWidget_t qt_meta_stringdata_structured_indoor_modeling__MainWidget = {
     {
-QT_MOC_LITERAL(0, 0, 10)
+QT_MOC_LITERAL(0, 0, 38)
     },
-    "MainWidget"
+    "structured_indoor_modeling::MainWidget"
 };
 #undef QT_MOC_LITERAL
 
-static const uint qt_meta_data_MainWidget[] = {
+static const uint qt_meta_data_structured_indoor_modeling__MainWidget[] = {
 
  // content:
        7,       // revision
@@ -51,7 +51,7 @@ static const uint qt_meta_data_MainWidget[] = {
        0        // eod
 };
 
-void MainWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+void structured_indoor_modeling::MainWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
     Q_UNUSED(_o);
     Q_UNUSED(_id);
@@ -59,28 +59,28 @@ void MainWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
     Q_UNUSED(_a);
 }
 
-const QMetaObject MainWidget::staticMetaObject = {
-    { &QGLWidget::staticMetaObject, qt_meta_stringdata_MainWidget.data,
-      qt_meta_data_MainWidget,  qt_static_metacall, 0, 0}
+const QMetaObject structured_indoor_modeling::MainWidget::staticMetaObject = {
+    { &QGLWidget::staticMetaObject, qt_meta_stringdata_structured_indoor_modeling__MainWidget.data,
+      qt_meta_data_structured_indoor_modeling__MainWidget,  qt_static_metacall, 0, 0}
 };
 
 
-const QMetaObject *MainWidget::metaObject() const
+const QMetaObject *structured_indoor_modeling::MainWidget::metaObject() const
 {
     return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
 }
 
-void *MainWidget::qt_metacast(const char *_clname)
+void *structured_indoor_modeling::MainWidget::qt_metacast(const char *_clname)
 {
     if (!_clname) return 0;
-    if (!strcmp(_clname, qt_meta_stringdata_MainWidget.stringdata))
+    if (!strcmp(_clname, qt_meta_stringdata_structured_indoor_modeling__MainWidget.stringdata))
         return static_cast<void*>(const_cast< MainWidget*>(this));
     if (!strcmp(_clname, "QGLFunctions"))
         return static_cast< QGLFunctions*>(const_cast< MainWidget*>(this));
     return QGLWidget::qt_metacast(_clname);
 }
 
-int MainWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+int structured_indoor_modeling::MainWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = QGLWidget::qt_metacall(_c, _id, _a);
     if (_id < 0)

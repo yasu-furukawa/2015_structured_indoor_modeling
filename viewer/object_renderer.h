@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 
+namespace structured_indoor_modeling {
+
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
 typedef std::vector<ColoredPoint> ColoredPointCloud;
 
@@ -16,14 +18,23 @@ class ObjectRenderer : protected QGLFunctions {
   virtual ~ObjectRenderer();
 
   void Init(const std::string data_directory);
+  void InitGL();
 
   void RenderAll(const double alpha);
   void RenderRoom(const int room);
   void RenderObject(const int room, const int object);
 
+  bool Toggle();
+
  private:
+  bool render;
   // For each room, for each object, a colored point cloud.
   std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
+
+  std::vector<float> vertices;
+  std::vector<float> colors;
 };
+
+}  // namespace structured_indoor_modeling 
 
 #endif  // OBJECT_RENDERER_H_

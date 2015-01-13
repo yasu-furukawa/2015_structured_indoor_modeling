@@ -1,7 +1,7 @@
 #ifndef FILE_IO_H__
 #define FILE_IO_H__
 
-namespace file_io {
+namespace structured_indoor_modeling {
 
 class FileIO {
  public:
@@ -91,5 +91,6 @@ class FileIO {
   const std::string data_directory;
   mutable char buffer[1024];
 };
-};
+
+}  // namespace structured_indoor_modeling
 #endif  // FILE_IO_H__

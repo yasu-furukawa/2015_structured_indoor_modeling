@@ -5,6 +5,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 PanoramaRenderer::PanoramaRenderer() {
   texture_id = -1;
 }
@@ -195,3 +197,5 @@ Eigen::Vector2d PanoramaRenderer::RGBToDepth(const Eigen::Vector2d& pixel) const
   return Vector2d(pixel[0] * depth_width / rgb_image.width(),
                   pixel[1] * depth_height / rgb_image.height());
 }
+
+}  // namespace structured_indoor_modeling

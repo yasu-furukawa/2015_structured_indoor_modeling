@@ -6,6 +6,8 @@
 #include <vector>
 #include "floorplan_internal.h"
 
+namespace structured_indoor_modeling {
+
 class Floorplan {
  public:
   //----------------------------------------------------------------------
@@ -70,4 +72,6 @@ class Floorplan {
 std::istream& operator>>(std::istream& istr, Floorplan& floorplan);
 std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);
 
+}  // namespace structured_indoor_modeling
+ 
 #endif  // FLOORPLAN_H__

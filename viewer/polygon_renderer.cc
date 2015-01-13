@@ -3,11 +3,13 @@
 #include <numeric>
 #include <Eigen/Dense>
 
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 #include "polygon_renderer.h"
 
 using namespace Eigen;
 using namespace std;
+
+namespace structured_indoor_modeling {
 
 namespace {
 
@@ -118,7 +120,7 @@ void SortTriangles(const Eigen::Vector3d& center, Triangles* triangles) {
   // This is not exact, but should be fine.
   Triangles new_triangles;
   vector<pair<double, int> > weight_triangle_id(triangles->size());
-  for (int t = 0; t < triangles->size(); ++t) {
+  for (int t = 0; t < (int)triangles->size(); ++t) {
     const Vector3d triangle_center = (triangles->at(t).vertices[0] +
                                       triangles->at(t).vertices[1] +
                                       triangles->at(t).vertices[2]) / 3.0;
@@ -127,12 +129,12 @@ void SortTriangles(const Eigen::Vector3d& center, Triangles* triangles) {
   sort(weight_triangle_id.rbegin(), weight_triangle_id.rend());
 
   new_triangles.resize(triangles->size());
-  for (int t = 0; t < triangles->size(); ++t)
+  for (int t = 0; t < (int)triangles->size(); ++t)
     new_triangles[t] = triangles->at(weight_triangle_id[t].second);
 
   triangles->swap(new_triangles);
 }
-  
+
 void SortWalls(const Eigen::Vector2d& center, Walls* walls) {
   for (int i = 0; i < (int)walls->size(); ++i) {
     for (int j = i + 1; j < (int)walls->size(); ++j) {
@@ -247,7 +249,7 @@ void PolygonRenderer::RenderWireframeAll(const double alpha) {
 void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
   widget = widget_tmp;
   
-  file_io::FileIO file_io(data_directory);
+  FileIO file_io(data_directory);
   
   ifstream ifstr;
   ifstr.open(file_io.GetFloorplanFinal().c_str());
@@ -374,6 +376,8 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const dou
 
         for (int i = 0; i < 3; ++i) {
           glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+          // Make floor darker ?.
+          // glColor4f(alpha / 2.0, alpha / 2.0, alpha / 2.0, 1.0);
           const int index = triangle.indices[i];
           const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
           glVertex3d(position[0], position[1], position[2]);
@@ -551,7 +555,7 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                           room_not_rendered,
                           &target_ceiling_heights);
 
-  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  // const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   Triangles triangles;
   AddTrianglesFromWalls(height_adjustment,
                         room_not_rendered,
@@ -693,3 +697,4 @@ void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
   */
 }
 
+}  // namespace structured_indoor_modeling

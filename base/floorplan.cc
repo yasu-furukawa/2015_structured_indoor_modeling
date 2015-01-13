@@ -6,6 +6,8 @@
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 namespace {
 
 //----------------------------------------------------------------------
@@ -502,3 +504,6 @@ std::istream& operator>>(std::istream& istr, Floorplan& floorplan);
 std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);
 
 */  
+
+}  // namespace structured_indoor_modeling
+  

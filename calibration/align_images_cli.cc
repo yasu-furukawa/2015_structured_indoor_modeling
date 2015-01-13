@@ -9,7 +9,7 @@
 
 #include "align_images.h"
 #include "ceres/ceres.h"
-#include "file_io.h"
+#include "../base/file_io.h"
 #include "gflags/gflags.h"
 
 //----------------------------------------------------------------------
@@ -30,6 +30,7 @@
 using namespace cv;
 using namespace Eigen;
 using namespace std;
+using namespace structured_indoor_modeling;
 
 DEFINE_int32(num_pyramid_levels, 6, "Num pyramid levels.");
 DEFINE_double(phi_in_panorama, 0.7 * M_PI, "phi per pixel.");
@@ -52,7 +53,7 @@ int main(int argc, char* argv[]) {
   }
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  const file_io::FileIO file_io(argv[1]);
+  const FileIO file_io(argv[1]);
   const int num_images = FLAGS_num_images;
   for (int p = FLAGS_start_panorama; p < FLAGS_end_panorama; ++p) {
     // Images to be aligned.

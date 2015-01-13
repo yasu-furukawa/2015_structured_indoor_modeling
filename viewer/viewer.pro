@@ -21,7 +21,8 @@ qtHaveModule(opengl) {
        panel_renderer.cc \
        panorama_renderer.cc \
        polygon_renderer.cc \
-       ../floorplan/floorplan.cc
+       ../base/floorplan.cc \
+       ../base/point_cloud.cc
 
     HEADERS += \
         main_widget.h \
@@ -32,9 +33,10 @@ qtHaveModule(opengl) {
         panorama_renderer.h \
         panel_renderer.h \
         polygon_renderer.h \
-        ../calibration/file_io.h \
-        ../floorplan/floorplan.h \
-        ../floorplan/floorplan_internal.h
+        ../base/file_io.h \
+        ../base/floorplan.h \
+        ../base/floorplan_internal.h \
+        ../base/point_cloud.h
 
     RESOURCES += \
         shaders.qrc

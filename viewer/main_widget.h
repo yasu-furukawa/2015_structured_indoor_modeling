@@ -22,6 +22,8 @@
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
 
+namespace structured_indoor_modeling {
+
 class MainWidget : public QGLWidget, protected QGLFunctions {
 Q_OBJECT
 public:
@@ -142,5 +144,7 @@ private:
     static const double kFadeInSeconds;
     static const double kFadeOutSeconds;
 };
+
+}  // namespace structured_indoor_modeling
 
 #endif // MAIN_WIDGET_H__

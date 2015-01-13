@@ -7,9 +7,9 @@
 using namespace Eigen;
 using namespace std;
 
-namespace segmentation {
+namespace structured_indoor_modeling {
 
-void ReadSweeps(const file_io::FileIO& file_io,
+void ReadSweeps(const FileIO& file_io,
                 vector<Sweep>* sweeps) {
   sweeps->clear();
   cerr << "Reading points... " << flush;
@@ -297,5 +297,4 @@ void InitializeEvidence(const bool recompute,
   }
 }
   
-  
-}  // namespace segmentation
+}  // namespace structured_indoor_modeling

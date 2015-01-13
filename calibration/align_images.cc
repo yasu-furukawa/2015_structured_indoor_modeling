@@ -13,8 +13,9 @@
 
 using namespace cv;
 using namespace Eigen;
-using namespace file_io;
 using namespace std;
+
+namespace structured_indoor_modeling {
 
 namespace {
 
@@ -582,8 +583,10 @@ void InitializeParams(const int num_images, const double focal_length, const int
     { 541.323, -0.000987145, -0.0103715, 1.5708, 0, -0.0725574, 0.111371, -0.0351254, 3.1416, 2.3713, 1.593, 0.806331, 0.0274377, -0.819101, -1.58709, -2.36137 };
   */
   // red_lion
+
   const double values[] =
     { 536.569, -0.00412691, -0.0066791, 1.5708, 0, -0.0338938, 0.0770123, 0.00658064, 3.1416, 2.35784, 1.57512, 0.788915, 0.00359924, -0.778726, -1.56254, -2.34497 };
+    
   // { 524.561, 0.00212407, -0.0114861, 1.5708, 0, -0.0338403, 0.00395927, 0.00836349, 3.14159, 2.47073, 1.67251, 0.864916, 0.0648947, -0.731859, -1.53224, -2.32955 };
   for (int i = 0; i < 16; ++i)
     global_params->at(i) = values[i];
@@ -681,3 +684,6 @@ void BlendPanorama(const int num_images, const vector<double>& global_params,
     BlendImageToPanorama(&local_params[0], images[i], phi_per_pixel, panorama, &alpha);
   }
 }
+
+}  // namespace structured_indoor_modeling
+  

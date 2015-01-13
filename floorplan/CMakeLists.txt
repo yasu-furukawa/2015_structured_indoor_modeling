@@ -62,6 +62,6 @@ set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions")
 # target_link_libraries(floorplan_generation_cli   ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
 
 
-add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc floorplan.cc panorama.cc ../viewer/configuration.cc )
+add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc ../base/floorplan.cc ../base/panorama.cc )
 target_link_libraries( generate_thumbnail_cli ${OpenCV_LIBS} )
 target_link_libraries( generate_thumbnail_cli gflags )

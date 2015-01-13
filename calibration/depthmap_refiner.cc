@@ -6,6 +6,8 @@
 
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 void FillHolesAndSmooth(const int width, const int height, const double invalid,
                         std::vector<double>* depths) {
   int valid_count = 0, invalid_count = 0;
@@ -86,3 +88,6 @@ void FillHolesAndSmooth(const int width, const int height, const double invalid,
   for (int i = 0; i < depths->size(); ++i)
     depths->at(i) = x[i];
 }
+
+}  // namespace structured_indoor_modeling
+  

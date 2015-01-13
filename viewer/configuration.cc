@@ -1,14 +1,16 @@
 #include <iostream>
 #include "configuration.h"
-#include "../calibration/file_io.h"
+#include "../base/file_io.h"
 
 using namespace Eigen;
 using namespace std;
 
+namespace structured_indoor_modeling {
+
 void ReadPanoramaConfiguration(const string& data_directory,
                                const int pano_index,
                                PanoramaConfiguration* panorama_configuration) {
-  file_io::FileIO file_io(data_directory);;
+  FileIO file_io(data_directory);;
   panorama_configuration->rgb_image_filename =
     file_io.GetPanoramaImage(pano_index);
 
@@ -52,3 +54,6 @@ void ReadConfiguration(const string filename, Configuration* configuration) {
 
   ifstr.close();
 }
+
+}  // namespace structured_indoor_modeling
+  
