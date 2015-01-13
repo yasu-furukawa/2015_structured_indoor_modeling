@@ -227,6 +227,13 @@ int main(int argc, char* argv[]) {
   }
   point_cloud.SetPoints(new_points);
 
+  
+  
+
+
+
+
+  
   const int kLevel = 0;
   for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
     Point& point = point_cloud.GetPoint(p);

@@ -23,7 +23,7 @@ DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 DEFINE_int32(start_panorama, 0, "Start panorama index.");
 DEFINE_int32(end_panorama, 1, "End panorama index (exclusive).");
 DEFINE_int32(ncc_window_radius, 2, "ncc window radius");
-DEFINE_bool(overwrite, false, "overwrite result");
+DEFINE_bool(load, true, "Load previous result.");
 
 const double kInvalid = -1.0;
 
@@ -1187,7 +1187,7 @@ int main(int argc, char* argv[]) {
 
     ifstream ifstr;
     ifstr.open(file_io.GetPanoramaDepthAlignmentCalibration(p));
-    if (!FLAGS_overwrite && ifstr.is_open()) {
+    if (FLAGS_load && ifstr.is_open()) {
       string stmp;
       ifstr >> stmp;
       const int kNumParams = 7;
@@ -1197,53 +1197,53 @@ int main(int argc, char* argv[]) {
       ifstr.close();
     } else {
       InitializeParameters(file_io, p, &params);
+    }
 
-      for (int level = FLAGS_num_pyramid_levels - 1; level >= 0; --level) {
-        set<pair<int, int> > depth_pixels;
-        FindEffectiveDepthPixels(depth_pyramid[level].edge,
-                                 depth_pyramid[level].width,
-                                 depth_pyramid[level].height,
-                                 FLAGS_ncc_window_radius,
-                                 &depth_pixels);
-        
+    for (int level = FLAGS_num_pyramid_levels - 1; level >= 0; --level) {
+      set<pair<int, int> > depth_pixels;
+      FindEffectiveDepthPixels(depth_pyramid[level].edge,
+                               depth_pyramid[level].width,
+                               depth_pyramid[level].height,
+                               FLAGS_ncc_window_radius,
+                               &depth_pixels);
+      
+      VisualizeAlignment(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
+                         &params[0], depth_pixels, "before", "");
+      
+      ceres::Problem problem;
+      SetupProblem(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
+                   FLAGS_ncc_window_radius, depth_pixels, &problem, &params);
+      
+      
+      if (level == FLAGS_num_pyramid_levels - 1)
+        ExhaustiveSearch(color_pyramid[level], depth_pyramid[level],
+                         kDepthPhiRange, &params, &problem);
+      
+      SetBounds(&problem, &params);
+      
+      ceres::Solver::Options options;
+      options.max_num_iterations = 100;
+      options.num_threads = 2;
+      options.minimizer_progress_to_stdout = true;
+      
+      ceres::Solver::Summary summary;
+      ceres::Solve(options, &problem, &summary);
+      std::cout << summary.FullReport() << "\n";
+      
+      cout << "Param: ";
+      for (int i = 0; i < params.size(); ++i)
+        cout << params[i] << ' ';
+      cout << endl;
+      
+      if (level == 0) {
         VisualizeAlignment(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
-                           &params[0], depth_pixels, "before", "");
-        
-        ceres::Problem problem;
-        SetupProblem(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
-                     FLAGS_ncc_window_radius, depth_pixels, &problem, &params);
-        
-        
-        if (level == FLAGS_num_pyramid_levels - 1)
-          ExhaustiveSearch(color_pyramid[level], depth_pyramid[level],
-                           kDepthPhiRange, &params, &problem);
-        
-        SetBounds(&problem, &params);
-        
-        ceres::Solver::Options options;
-        options.max_num_iterations = 100;
-        options.num_threads = 2;
-        options.minimizer_progress_to_stdout = true;
-        
-        ceres::Solver::Summary summary;
-        ceres::Solve(options, &problem, &summary);
-        std::cout << summary.FullReport() << "\n";
-        
-        cout << "Param: ";
-        for (int i = 0; i < params.size(); ++i)
-          cout << params[i] << ' ';
-        cout << endl;
-        
-        if (level == 0) {
-          VisualizeAlignment(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
-                             &params[0], depth_pixels, "after",
-                             file_io.GetPanoramaDepthAlignmentVisualization(p));
-        } else {
-          VisualizeAlignment(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
-                             &params[0], depth_pixels, "after", "");
-        }
-        // cv::waitKey(0);
+                           &params[0], depth_pixels, "after",
+                           file_io.GetPanoramaDepthAlignmentVisualization(p));
+      } else {
+        VisualizeAlignment(color_pyramid[level], depth_pyramid[level], kDepthPhiRange,
+                           &params[0], depth_pixels, "after", "");
       }
+      // cv::waitKey(0);
     }
 
     //----------------------------------------------------------------------

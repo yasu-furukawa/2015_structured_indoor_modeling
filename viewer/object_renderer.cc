@@ -139,17 +139,17 @@ void ObjectRenderer::RenderAll(const double alpha) {
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
-  // glDisable(GL_DEPTH_TEST);
-  //glEnable(GL_BLEND);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
   glEnable(GL_POINT_SMOOTH);
 	
 
   glColorPointer(3, GL_FLOAT, 0, &colors[0]);
   glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
 
-  // glBlendColor(0, 0, 0, 0.5);
+  glBlendColor(0, 0, 0, 0.5);
   //glBlendColor(0, 0, 0, 1.0);
-  //glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+  glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
   glPointSize(1.0);
 
   glDrawArrays(GL_POINTS, 0, ((int)vertices.size()) / 3);
