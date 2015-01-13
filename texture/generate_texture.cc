@@ -272,7 +272,7 @@ void SetFloorPatch(const Floorplan& floorplan,
 
     {    
       const int kKernelWidth = 5;
-      const int kTime = 3;
+      const int kTime = 2; // 2
       for (int t = 0; t < kTime; ++t)
         image_process::Erode(depth_width, depth_height, kKernelWidth, &floor_mask);
     }
