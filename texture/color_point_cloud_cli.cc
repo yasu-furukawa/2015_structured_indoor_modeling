@@ -17,7 +17,7 @@ using namespace std;
 using namespace structured_indoor_modeling;
 
 DEFINE_int32(start_panorama, 0, "First panorama ID.");
-DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
+DEFINE_int32(num_pyramid_levels, 4, "Num pyramid levels.");
 DEFINE_string(input_ply, "object_cloud_org.ply", "Input ply.");
 DEFINE_string(output_ply, "object_cloud2.ply", "Output ply.");
 
@@ -87,7 +87,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
   return;
 
   
-  const int kLevel = 0;
+  const int kLevel = 2;
   for (int p = 0; p < (int)panoramas.size(); ++p) {
     const Panorama& panorama = panoramas[p][kLevel];
     
@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
 
 
   
-  const int kLevel = 0;
+  const int kLevel = 2;
   for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
     Point& point = point_cloud.GetPoint(p);
     point.color = Vector3f(0, 0, 0);

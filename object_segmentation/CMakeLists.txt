@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 2.8)
+project( object_segmentation_cli )
+find_package( OpenCV REQUIRED )
+# FIND_PACKAGE( Ceres REQUIRED )
+# INCLUDE_DIRECTORIES( ${CERES_INCLUDE_DIRS} )
+
+LINK_DIRECTORIES( /usr/local/lib )
+
+set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
+add_executable( object_segmentation_cli object_segmentation_cli.cc object_segmentation.cc ../base/floorplan.cc ../base/point_cloud.cc )
+target_link_libraries( object_segmentation_cli ${OpenCV_LIBS} )
+
+# target_link_libraries( segmentation_cli ceres )
+# target_link_libraries( segmentation_cli gflags )
+# target_link_libraries( segmentation_cli glog )
