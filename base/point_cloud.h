@@ -20,6 +20,9 @@ class PointCloud {
   bool Init(const FileIO& file_io, const int panorama);
   bool Init(const std::string& filename);
   void ToGlobal(const FileIO& file_io, const int panorama);
+  void Rotate(const Eigen::Matrix3d& rotation);
+  void Transform(const Eigen::Matrix4d& transformation);
+
   void Write(const std::string& filename);
 
   // void Write(const string filename) const;

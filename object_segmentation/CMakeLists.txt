@@ -10,6 +10,6 @@ set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign
 add_executable( object_segmentation_cli object_segmentation_cli.cc object_segmentation.cc ../base/floorplan.cc ../base/point_cloud.cc )
 target_link_libraries( object_segmentation_cli ${OpenCV_LIBS} )
 
-# target_link_libraries( segmentation_cli ceres )
-# target_link_libraries( segmentation_cli gflags )
-# target_link_libraries( segmentation_cli glog )
+# target_link_libraries( object_segmentation_cli ceres )
+target_link_libraries( object_segmentation_cli gflags )
+# target_link_libraries( object_segmentation_cli glog )

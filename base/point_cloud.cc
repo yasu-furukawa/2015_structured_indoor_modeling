@@ -98,6 +98,22 @@ void PointCloud::Write(const std::string& filename) {
 
   ofstr.close();
 }
+
+void PointCloud::Rotate(const Eigen::Matrix3d& rotation) {
+  Matrix4d transformation;
+  for (int y = 0; y < 3; ++y) {
+    for (int x = 0; x < 3; ++x) {
+      transformation(y, x) = rotation(y, x);
+    }
+    transformation(y, 3) = 0.0;
+  }
+  transformation(3, 0) = 0;
+  transformation(3, 1) = 0;
+  transformation(3, 2) = 0;
+  transformation(3, 3) = 1;
+
+  Transform(transformation);
+}
   
 void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Matrix4d local_to_global;
@@ -118,14 +134,17 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
     local_to_global(3, 2) = 0;
     local_to_global(3, 3) = 1;
   }
+  Transform(local_to_global);
+}
 
+void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
   for (auto& point : points) {
     Vector4d position4(point.position[0], point.position[1], point.position[2], 1.0);
-    position4 = local_to_global * position4;
+    position4 = transformation * position4;
     point.position = Vector3d(position4[0], position4[1], position4[2]);
 
     Vector4d normal4(point.normal[0], point.normal[1], point.normal[2], 0.0);
-    normal4 = local_to_global * normal4;
+    normal4 = transformation * normal4;
     point.normal = Vector3d(normal4[0], normal4[1], normal4[2]);
   }
 }

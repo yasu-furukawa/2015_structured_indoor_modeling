@@ -30,11 +30,18 @@ class Floorplan {
   Triangle& GetCeilingTriangle(const int room, const int triangle);
   Triangle& GetWallTriangle(const int room, const int wall, const int triangle);
   Triangle& GetDoorTriangle(const int door, const int triangle);
+  Eigen::Vector3i GetGridSize() const;
+  double GetGridUnit() const;
 
   double GetFloorHeight(const int room) const;
   double GetCeilingHeight(const int room) const;
   
   const std::vector<std::string>& GetRoomName(const int room) const;
+
+  //----------------------------------------------------------------------
+  Eigen::Vector2d LocalToGrid(const Eigen::Vector2d& local) const;
+  Eigen::Vector2i LocalToGridInt(const Eigen::Vector2d& local) const;
+  Eigen::Vector2d GridToLocal(const Eigen::Vector2d& grid) const;
   
   int GetNumRooms() const;
   int GetNumRoomVertices(const int room) const;
@@ -64,6 +71,13 @@ class Floorplan {
   std::vector<LineRoom> line_rooms;
   // Door connections.
   std::vector<LineDoor> line_doors;
+
+  // Grid information. Min/Max xyz coordinates plus some margin.
+  Eigen::Vector2d grid_ranges[3];
+  Eigen::Vector3i grid_size;
+  double grid_unit;
+
+  void SetGrid(const int max_horizontal_size);
 
   friend std::istream& operator>>(std::istream& istr, Floorplan& floorplan);
   friend std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);

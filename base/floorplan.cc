@@ -1,4 +1,5 @@
 #include <iostream>
+#include <numeric>
 #include <string>
 
 #include "floorplan.h"
@@ -9,7 +10,297 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 namespace {
+  istream& operator>>(std::istream& istr, Triangle& triangle);
+  std::istream& operator>>(std::istream& istr, WallTriangulation& wall_triangulation);
+  std::istream& operator>>(std::istream& istr, FloorCeilingTriangulation& triangulation);
+  istream& operator>>(std::istream& istr, LineRoom& line_room);
+  istream& operator>>(istream& istr, LineDoor& line_door);
+  ostream& operator<<(std::ostream& ostr, const Triangle& triangle);
+  std::ostream& operator<<(std::ostream& ostr, const WallTriangulation& wall_triangulation);
+  std::ostream& operator<<(std::ostream& ostr, const FloorCeilingTriangulation& triangulation);
+  ostream& operator<<(std::ostream& ostr, const LineRoom& line_room);
+  ostream& operator<<(ostream& ostr, const LineDoor& line_door);
+}  // namespace;
 
+//----------------------------------------------------------------------
+const Eigen::Matrix3d& Floorplan::GetFloorplanToGlobal() const {
+  return floorplan_to_global;
+}
+
+Eigen::Vector2d Floorplan::GetRoomVertexLocal(const int room, const int vertex) const {
+  return line_rooms[room].vertices[vertex];
+}
+
+Eigen::Vector3d Floorplan::GetFloorVertexGlobal(const int room, const int vertex) const {
+  const Eigen::Vector2d local = GetRoomVertexLocal(room, vertex);
+  return floorplan_to_global * Eigen::Vector3d(local[0], local[1], line_rooms[room].floor_height);
+}
+
+Eigen::Vector3d Floorplan::GetCeilingVertexGlobal(const int room, const int vertex) const {
+  const Eigen::Vector2d local = GetRoomVertexLocal(room, vertex);
+  return floorplan_to_global * Eigen::Vector3d(local[0], local[1], line_rooms[room].ceiling_height);
+}
+
+Eigen::Vector3d Floorplan::GetWallVertexGlobal(const int room, const int wall, const int vertex) const {
+  const int v0 = wall;
+  const int v1 = (wall + 1) % line_rooms[room].vertices.size();
+  const Eigen::Vector3d v00 = GetFloorVertexGlobal(room, v0);
+  const Eigen::Vector3d v01 = GetFloorVertexGlobal(room, v1);
+  const Eigen::Vector3d v11 = GetCeilingVertexGlobal(room, v1);
+  const Eigen::Vector3d v10 = GetCeilingVertexGlobal(room, v0);
+
+  const Eigen::Vector2d& uv = line_rooms[room].wall_triangulations[wall].vertices_in_uv[vertex];
+  // Must handle the 4 corner case exactly to avoid numerical errors.
+  if (uv[0] == 0.0 && uv[1] == 0.0)
+    return v00;
+  else if (uv[0] == 0.0 && uv[1] == 1.0)
+    return v10;
+  else if (uv[0] == 1.0 && uv[1] == 0.0)
+    return v01;
+  else if (uv[0] == 1.0 && uv[1] == 1.0)
+    return v11;
+  else
+    return v00 + (v01 - v00) * uv[0] + (v10 - v00) * uv[1];
+}
+
+Eigen::Vector3d Floorplan::GetDoorVertexGlobal(const int door, const int vertex) const {
+  const int face = vertex / 4;
+  const int face_vertex = vertex % 4;
+
+  const int wall_vertex = line_doors[door].line_door_faces[face].vertex_indices[face_vertex];
+  const int room = line_doors[door].line_door_faces[face].room_id;
+  const int wall = line_doors[door].line_door_faces[face].wall_id;
+  return GetWallVertexGlobal(room, wall, wall_vertex);
+}
+
+const Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) const {
+  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
+}
+
+const Triangle& Floorplan::GetFloorTriangle(const int room, const int triangle) const {
+  return line_rooms[room].floor_triangulation.triangles[triangle];
+}
+
+const Triangle& Floorplan::GetCeilingTriangle(const int room, const int triangle) const {
+  return line_rooms[room].ceiling_triangulation.triangles[triangle];
+}
+
+const Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) const {
+  return line_doors[door].triangles[triangle];
+}
+
+Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) {
+  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
+}
+
+Triangle& Floorplan::GetFloorTriangle(const int room, const int triangle) {
+  return line_rooms[room].floor_triangulation.triangles[triangle];
+}
+
+Triangle& Floorplan::GetCeilingTriangle(const int room, const int triangle) {
+  return line_rooms[room].ceiling_triangulation.triangles[triangle];
+}
+
+Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) {
+  return line_doors[door].triangles[triangle];
+}
+
+Eigen::Vector3i Floorplan::GetGridSize() const {
+  return grid_size;
+}
+
+double Floorplan::GetGridUnit() const {
+  return grid_unit;
+}  
+
+double Floorplan::GetFloorHeight(const int room) const {
+  return line_rooms[room].floor_height;
+}
+
+double Floorplan::GetCeilingHeight(const int room) const {
+  return line_rooms[room].ceiling_height;
+}
+
+const std::vector<std::string>& Floorplan::GetRoomName(const int room) const {
+  return line_rooms[room].name;
+}
+
+int Floorplan::GetNumRooms() const {
+  return static_cast<int>(line_rooms.size());
+}
+int Floorplan::GetNumRoomVertices(const int room) const {
+  return static_cast<int>(line_rooms[room].vertices.size());
+}
+int Floorplan::GetNumWalls(const int room) const {
+  return GetNumRoomVertices(room);
+}
+int Floorplan::GetNumWallVertices(const int room, const int wall) const {
+  return static_cast<int>(line_rooms[room].wall_triangulations[wall].vertices_in_uv.size());
+}
+int Floorplan::GetNumDoors() const {
+  return static_cast<int>(line_doors.size());
+}
+int Floorplan::GetNumDoorVertices(const int /*door*/) const {
+  return 8;
+}
+int Floorplan::GetNumDoorTriangles(const int /*door*/) const {
+  return 8;
+}
+
+int Floorplan::GetNumWallTriangles(const int room, const int wall) const {
+  return static_cast<int>(line_rooms[room].wall_triangulations[wall].triangles.size());
+}
+int Floorplan::GetNumFloorTriangles(const int room) const {
+  return static_cast<int>(line_rooms[room].floor_triangulation.triangles.size());
+}
+int Floorplan::GetNumCeilingTriangles(const int room) const {
+  return static_cast<int>(line_rooms[room].ceiling_triangulation.triangles.size());
+}
+
+const WallTriangulation& Floorplan::GetWallTriangulation(const int room,
+                                                         const int wall) const {
+  return line_rooms[room].wall_triangulations[wall];
+}
+
+const FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) const {
+  return line_rooms[room].floor_triangulation;
+}
+
+const FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) const {
+  return line_rooms[room].ceiling_triangulation;
+}
+
+WallTriangulation& Floorplan::GetWallTriangulation(const int room, const int wall) {
+  return line_rooms[room].wall_triangulations[wall];
+}
+
+FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) {
+  return line_rooms[room].floor_triangulation;
+}
+
+FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) {
+  return line_rooms[room].ceiling_triangulation;
+}
+
+//----------------------------------------------------------------------
+void Floorplan::SetGrid(const int max_horizontal_size) {
+  const int kMin = 0;
+  const int kMax = 1;
+
+  const int kX = 0;
+  const int kY = 1;
+  const int kZ = 2;
+  
+  for (int axis = 0; axis < 3; ++axis) {
+    grid_ranges[axis][kMin] = numeric_limits<double>::max();
+    grid_ranges[axis][kMax] = -numeric_limits<double>::max();
+  }
+  
+  // First compute the min/max xyz.
+  for (int room = 0; room < GetNumRooms(); ++room) {
+    for (int vertex = 0; vertex < GetNumRoomVertices(room); ++vertex) {
+      const Vector2d local = GetRoomVertexLocal(room, vertex);
+      for (int axis = 0; axis < 2; ++axis) {
+        grid_ranges[axis][kMin] = min(grid_ranges[axis][kMin], local[axis]);
+        grid_ranges[axis][kMax] = max(grid_ranges[axis][kMax], local[axis]);
+      }
+      grid_ranges[kZ][kMin] = min(grid_ranges[kZ][kMin], GetFloorHeight(room));
+      grid_ranges[kZ][kMax] = max(grid_ranges[kZ][kMax], GetCeilingHeight(room));
+    }      
+  }
+
+  //----------------------------------------------------------------------
+  // Add 3 percent margin.
+  const double kMarginRatio = 0.03;
+  for (int axis = 0; axis < 3; ++axis) {
+    const double length = grid_ranges[axis][kMax] - grid_ranges[axis][kMin];
+    const double margin = kMarginRatio * length;
+    grid_ranges[axis][kMax] += margin;
+    grid_ranges[axis][kMin] -= margin;
+  }
+
+  const double max_length = max(grid_ranges[kX][kMax] - grid_ranges[kX][kMin],
+                                grid_ranges[kY][kMax] - grid_ranges[kY][kMin]);
+  grid_unit = max_length / max_horizontal_size;
+
+  for (int axis = 0; axis < 3; ++axis) {
+    grid_size[axis] =
+      static_cast<int>(ceil((grid_ranges[axis][kMax] - grid_ranges[axis][kMin]) / grid_unit));
+  }
+}
+
+Vector2d Floorplan::LocalToGrid(const Vector2d& local) const {
+  Vector2d grid;
+  for (int axis = 0; axis < 2; ++axis) {
+    grid[axis] = (local[axis] - grid_ranges[axis][0]) / grid_unit;
+  }
+  return grid;
+}
+
+Vector2i Floorplan::LocalToGridInt(const Vector2d& local) const {
+  Vector2d grid = LocalToGrid(local);
+  Vector2i grid_int(max(0, min(grid_size[0] - 1, static_cast<int>(round(grid[0])))),
+                    max(0, min(grid_size[1] - 1, static_cast<int>(round(grid[1])))));
+  return grid_int;
+}
+
+Vector2d Floorplan::GridToLocal(const Vector2d& grid) const {
+  Vector2d local;
+  for (int axis = 0; axis < 2; ++axis) {
+    local[axis] = grid[axis] * grid_unit + grid_ranges[axis][0];
+  }
+  return local;
+}
+  
+istream& operator>>(istream& istr, Floorplan& floorplan) {
+  for (int y = 0; y < 3; ++y)
+    for (int x = 0; x < 3; ++x)
+      istr >> floorplan.floorplan_to_global(y, x);
+
+  int num_rooms;
+  istr >> num_rooms;
+  floorplan.line_rooms.resize(num_rooms);
+
+  for (int r = 0; r < num_rooms; ++r)
+    istr >> floorplan.line_rooms[r];
+
+  int num_doors;
+  istr >> num_doors;
+  floorplan.line_doors.resize(num_doors);
+  for (int d = 0; d < num_doors; ++d) {
+    istr >> floorplan.line_doors[d];
+  }
+
+  const int kMaxHorizontalSize = 1024;
+  floorplan.SetGrid(kMaxHorizontalSize);
+  
+  return istr;
+}
+
+ostream& operator<<(ostream& ostr, const Floorplan& floorplan) {
+  for (int y = 0; y < 3; ++y) {
+    for (int x = 0; x < 3; ++x) {
+      ostr << floorplan.floorplan_to_global(y, x) << ' ';
+    }
+    ostr << endl;
+  }
+
+  ostr << floorplan.GetNumRooms() << endl;
+  for (int r = 0; r < floorplan.GetNumRooms(); ++r)
+    ostr << floorplan.line_rooms[r];
+
+  ostr << floorplan.GetNumDoors() << endl;
+  for (int d = 0; d < floorplan.GetNumDoors(); ++d) {
+    ostr << floorplan.line_doors[d];
+  }
+  return ostr;
+}
+
+
+//======================================================================
+// Local utility function.s
+//======================================================================
+namespace {
 //----------------------------------------------------------------------
 // Read.
 //----------------------------------------------------------------------  
@@ -186,199 +477,7 @@ ostream& operator<<(ostream& ostr, const LineDoor& line_door) {
 }
   
 }  // namespace
-
-const Eigen::Matrix3d& Floorplan::GetFloorplanToGlobal() const {
-  return floorplan_to_global;
-}
-
-Eigen::Vector2d Floorplan::GetRoomVertexLocal(const int room, const int vertex) const {
-  return line_rooms[room].vertices[vertex];
-}
-
-Eigen::Vector3d Floorplan::GetFloorVertexGlobal(const int room, const int vertex) const {
-  const Eigen::Vector2d local = GetRoomVertexLocal(room, vertex);
-  return floorplan_to_global * Eigen::Vector3d(local[0], local[1], line_rooms[room].floor_height);
-}
-
-Eigen::Vector3d Floorplan::GetCeilingVertexGlobal(const int room, const int vertex) const {
-  const Eigen::Vector2d local = GetRoomVertexLocal(room, vertex);
-  return floorplan_to_global * Eigen::Vector3d(local[0], local[1], line_rooms[room].ceiling_height);
-}
-
-Eigen::Vector3d Floorplan::GetWallVertexGlobal(const int room, const int wall, const int vertex) const {
-  const int v0 = wall;
-  const int v1 = (wall + 1) % line_rooms[room].vertices.size();
-  const Eigen::Vector3d v00 = GetFloorVertexGlobal(room, v0);
-  const Eigen::Vector3d v01 = GetFloorVertexGlobal(room, v1);
-  const Eigen::Vector3d v11 = GetCeilingVertexGlobal(room, v1);
-  const Eigen::Vector3d v10 = GetCeilingVertexGlobal(room, v0);
-
-  const Eigen::Vector2d& uv = line_rooms[room].wall_triangulations[wall].vertices_in_uv[vertex];
-  // Must handle the 4 corner case exactly to avoid numerical errors.
-  if (uv[0] == 0.0 && uv[1] == 0.0)
-    return v00;
-  else if (uv[0] == 0.0 && uv[1] == 1.0)
-    return v10;
-  else if (uv[0] == 1.0 && uv[1] == 0.0)
-    return v01;
-  else if (uv[0] == 1.0 && uv[1] == 1.0)
-    return v11;
-  else
-    return v00 + (v01 - v00) * uv[0] + (v10 - v00) * uv[1];
-}
-
-Eigen::Vector3d Floorplan::GetDoorVertexGlobal(const int door, const int vertex) const {
-  const int face = vertex / 4;
-  const int face_vertex = vertex % 4;
-
-  const int wall_vertex = line_doors[door].line_door_faces[face].vertex_indices[face_vertex];
-  const int room = line_doors[door].line_door_faces[face].room_id;
-  const int wall = line_doors[door].line_door_faces[face].wall_id;
-  return GetWallVertexGlobal(room, wall, wall_vertex);
-}
-
-const Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) const {
-  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
-}
-
-const Triangle& Floorplan::GetFloorTriangle(const int room, const int triangle) const {
-  return line_rooms[room].floor_triangulation.triangles[triangle];
-}
-
-const Triangle& Floorplan::GetCeilingTriangle(const int room, const int triangle) const {
-  return line_rooms[room].ceiling_triangulation.triangles[triangle];
-}
-
-const Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) const {
-  return line_doors[door].triangles[triangle];
-}
-
-Triangle& Floorplan::GetWallTriangle(const int room, const int wall, const int triangle) {
-  return line_rooms[room].wall_triangulations[wall].triangles[triangle];
-}
-
-Triangle& Floorplan::GetFloorTriangle(const int room, const int triangle) {
-  return line_rooms[room].floor_triangulation.triangles[triangle];
-}
-
-Triangle& Floorplan::GetCeilingTriangle(const int room, const int triangle) {
-  return line_rooms[room].ceiling_triangulation.triangles[triangle];
-}
-
-Triangle& Floorplan::GetDoorTriangle(const int door, const int triangle) {
-  return line_doors[door].triangles[triangle];
-}
-
-double Floorplan::GetFloorHeight(const int room) const {
-  return line_rooms[room].floor_height;
-}
-
-double Floorplan::GetCeilingHeight(const int room) const {
-  return line_rooms[room].ceiling_height;
-}
-
-const std::vector<std::string>& Floorplan::GetRoomName(const int room) const {
-  return line_rooms[room].name;
-}
-
-int Floorplan::GetNumRooms() const {
-  return static_cast<int>(line_rooms.size());
-}
-int Floorplan::GetNumRoomVertices(const int room) const {
-  return static_cast<int>(line_rooms[room].vertices.size());
-}
-int Floorplan::GetNumWalls(const int room) const {
-  return GetNumRoomVertices(room);
-}
-int Floorplan::GetNumWallVertices(const int room, const int wall) const {
-  return static_cast<int>(line_rooms[room].wall_triangulations[wall].vertices_in_uv.size());
-}
-int Floorplan::GetNumDoors() const {
-  return static_cast<int>(line_doors.size());
-}
-int Floorplan::GetNumDoorVertices(const int /*door*/) const {
-  return 8;
-}
-int Floorplan::GetNumDoorTriangles(const int /*door*/) const {
-  return 8;
-}
-
-int Floorplan::GetNumWallTriangles(const int room, const int wall) const {
-  return static_cast<int>(line_rooms[room].wall_triangulations[wall].triangles.size());
-}
-int Floorplan::GetNumFloorTriangles(const int room) const {
-  return static_cast<int>(line_rooms[room].floor_triangulation.triangles.size());
-}
-int Floorplan::GetNumCeilingTriangles(const int room) const {
-  return static_cast<int>(line_rooms[room].ceiling_triangulation.triangles.size());
-}
-
-const WallTriangulation& Floorplan::GetWallTriangulation(const int room,
-                                                         const int wall) const {
-  return line_rooms[room].wall_triangulations[wall];
-}
-
-const FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) const {
-  return line_rooms[room].floor_triangulation;
-}
-
-const FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) const {
-  return line_rooms[room].ceiling_triangulation;
-}
-
-WallTriangulation& Floorplan::GetWallTriangulation(const int room, const int wall) {
-  return line_rooms[room].wall_triangulations[wall];
-}
-
-FloorCeilingTriangulation& Floorplan::GetFloorTriangulation(const int room) {
-  return line_rooms[room].floor_triangulation;
-}
-
-FloorCeilingTriangulation& Floorplan::GetCeilingTriangulation(const int room) {
-  return line_rooms[room].ceiling_triangulation;
-}
-
-//----------------------------------------------------------------------
-istream& operator>>(istream& istr, Floorplan& floorplan) {
-  for (int y = 0; y < 3; ++y)
-    for (int x = 0; x < 3; ++x)
-      istr >> floorplan.floorplan_to_global(y, x);
-
-  int num_rooms;
-  istr >> num_rooms;
-  floorplan.line_rooms.resize(num_rooms);
-
-  for (int r = 0; r < num_rooms; ++r)
-    istr >> floorplan.line_rooms[r];
-
-  int num_doors;
-  istr >> num_doors;
-  floorplan.line_doors.resize(num_doors);
-  for (int d = 0; d < num_doors; ++d) {
-    istr >> floorplan.line_doors[d];
-  }
-  return istr;
-}
-
-ostream& operator<<(ostream& ostr, const Floorplan& floorplan) {
-  for (int y = 0; y < 3; ++y) {
-    for (int x = 0; x < 3; ++x) {
-      ostr << floorplan.floorplan_to_global(y, x) << ' ';
-    }
-    ostr << endl;
-  }
-
-  ostr << floorplan.GetNumRooms() << endl;
-  for (int r = 0; r < floorplan.GetNumRooms(); ++r)
-    ostr << floorplan.line_rooms[r];
-
-  ostr << floorplan.GetNumDoors() << endl;
-  for (int d = 0; d < floorplan.GetNumDoors(); ++d) {
-    ostr << floorplan.line_doors[d];
-  }
-  return ostr;
-}
-
+   
 /*
 istream& operator>>(istream& istr, Floorplan& floorplan) {
   string header;
