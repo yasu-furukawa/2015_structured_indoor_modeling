@@ -27,7 +27,7 @@ void SetRoomOccupancy(const Floorplan& floorplan,
     }
   }
 
-  const double kDistanceThreshold = 0;//floorplan.GetGridUnit() * 2.0;
+  const double kDistanceThreshold = floorplan.GetGridUnit() * 2.0;
   int index = 0;
   for (int y = 0; y < grid_size[1]; ++y) {
     for (int x = 0; x < grid_size[0]; ++x, ++index) {
@@ -65,7 +65,7 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
                          std::vector<Point>* points) {
   for (const auto& point_cloud : point_clouds) {
     for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-      const Vector3d& local = point_cloud.GetPoint(p);
+      const Vector3d& local = point_cloud.GetPoint(p).position;
       const Vector2i grid_int = floorplan.LocalToGridInt(Vector2d(local[0], local[1]));
       const int index = grid_int[1] * floorplan.GetGridSize()[0] + grid_int[0];
       if (room_occupancy[index] == room)
