@@ -35,9 +35,87 @@ double PointDistance(const Point& lhs, const Point& rhs) {
   return (fabs(diff.dot(lhs.normal)) + fabs(diff.dot(rhs.normal))) / 2.0;
 }
 
-void AssignSamples(const std::vector<Point>& points,
-                   const std::vector<
-                   std::vector<int>* segments)
+void InitializeFromSeeds(const std::vector<Point>& points,
+                         const std::vector<std::vector<int> >& neighbors,
+                         std::vector<int>* segments) {
+  // Randomly initialize seeds.
+  vector<int> seeds;
+  {
+    const int kNumInitialClusters = 60;
+    for (int p = 0; p < segments->size(); ++p)
+      if (segments->at(p) == kInitial)
+        seeds.push_back(p);
+    random_shuffle(seeds.begin(), seeds.end());
+    seeds.resize(kNumInitialClusters);
+  }
+
+  // Initialize remaining.
+  //vector<pair<double, int> > distance_segment(segments->size(), pair<double, int>(0.0, kInitial));
+  
+  priority_queue<pair<double, pair<int, int> > > distance_point_segment_queue;
+  for (int c = 0; c < (int)seeds.size(); ++c) {
+    const int point_index = seeds[c];
+    // distance_segment[point_index] = pair<double, int>(0.0, c);
+    const pair<int, int> point_segment(point_index, c);
+    distance_point_segment_queue.push(pair<double, pair<int, int> >(0, point_segment));
+  }
+
+  while (!distance_point_segment_queue.empty()) {
+    const auto distance_point_segment = distance_point_segment_queue.top();
+    const double distance = - distance_point_segment.first;
+    const int point_index = distance_point_segment.second.first;
+    const int cluster     = distance_point_segment.second.second;
+    distance_point_segment_queue.pop();
+
+    if (segments->at(point_index) != kInitial)
+      continue;
+
+    segments->at(point_index) = cluster;
+    
+    for (int i = 0; i < neighbors[point_index].size(); ++i) {
+      const int neighbor = neighbors[point_index][i];
+      if (segments->at(neighbor) != kInitial)
+        continue;
+
+      const double new_distance = distance + PointDistance(points[point_index], points[neighbor]);
+      distance_point_segment_queue.push(pair<double, pair<int, int> >(-new_distance,
+                                                                      make_pair(neighbor, cluster)));
+    }
+  }
+}  
+  
+void ComputeDistances(const std::vector<Point>& points,
+                      const std::vector<std::vector<int> >& neighbors,
+                      const int index,
+                      std::vector<double>* distances) {
+  const double kUnreachable = -1.0;
+  distances->clear();
+  distances->resize(points.size(), kUnreachable);
+  
+  priority_queue<pair<double, int> > distance_index_queue;
+  distance_index_queue.push(make_pair(0.0, index));
+
+  while (!distance_index_queue.empty()) {
+    const auto distance_index = distance_index_queue.top();
+    const double distance = -distance_index.first;
+    const int point_index = distance_index.second;
+
+    distance_index_queue.pop();
+    // Already distance assigned.
+    if (distances->at(point_index) != kUnreachable)
+      continue;
+
+    distances->at(point_index) = distance;
+    for (int i = 0; i < neighbors[point_index].size(); ++i) {
+      const int neighbor = neighbors[point_index][i];
+      if (distances->at(neighbor) != kUnreachable)
+        continue;
+
+      const double new_distance = distance + PointDistance(points[point_index], points[neighbor]);
+      distance_index_queue.push(make_pair(- new_distance, neighbor));
+    }
+  }
+}
   
 }  // namespace
 
@@ -202,51 +280,21 @@ void SegmentObjects(const std::vector<Point>& points,
   vector<vector<int> > neighbors;
   const int kNumNeighbors = 30;
   SetNeighbors(points, kNumNeighbors, &neighbors);
-  
-  // Randomly initialize seeds.
-  vector<int> seeds;
-  {
-    const int kNumInitialClusters = 60;
-    for (int p = 0; p < segments->size(); ++p)
-      if (segments->at(p) == kInitial)
-        seeds.push_back(p);
-    random_shuffle(seeds.begin(), seeds.end());
-    seeds.resize(kNumInitialClusters);
-  }
 
-  // Initialize remaining.
-  //vector<pair<double, int> > distance_segment(segments->size(), pair<double, int>(0.0, kInitial));
+  InitializeFromSeeds(points, neighbors, segments);
 
-  priority_queue<pair<double, pair<int, int> > > distance_point_segment_queue;
-  for (int c = 0; c < (int)seeds.size(); ++c) {
-    const int point_index = seeds[c];
-    // distance_segment[point_index] = pair<double, int>(0.0, c);
-    const pair<int, int> point_segment(point_index, c);
-    distance_point_segment_queue.push(pair<double, pair<int, int> >(0, point_segment));
-  }
+  // Repeat K-means.
+  const int kTimes = 10;
+  for (int t = 0; t < kTimes; ++t) {
+    // Sample representative centers in each cluster.
+    ComputeCentroids(segments);
 
-  while (!distance_point_segment_queue.empty()) {
-    const auto distance_point_segment = distance_point_segment_queue.top();
-    const double distance = - distance_point_segment.first;
-    const int point_index = distance_point_segment.second.first;
-    const int cluster     = distance_point_segment.second.second;
-    distance_point_segment_queue.pop();
+    // Assign remaining samples to clusters.
 
-    if (segments->at(point_index) != kInitial)
-      continue;
 
-    segments->at(point_index) = cluster;
-    
-    for (int i = 0; i < neighbors[point_index].size(); ++i) {
-      const int neighbor = neighbors[point_index][i];
-      if (segments->at(neighbor) != kInitial)
-        continue;
+    // Merge check.
 
-      const double new_distance = distance + PointDistance(points[point_index], points[neighbor]);
-      distance_point_segment_queue.push(pair<double, pair<int, int> >(-new_distance,
-                                                                      make_pair(neighbor, cluster)));
-    }
-  }
+  }  
 }
   
 void SetNeighbors(const std::vector<Point>& points,
