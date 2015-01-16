@@ -46,7 +46,7 @@ void SetRoomOccupancy(const Floorplan& floorplan,
     }
   }
 
-  const double kDistanceThreshold = 0;//floorplan.GetGridUnit() * 2.0;
+  const double kDistanceThreshold = floorplan.GetGridUnit() * 2.0;
   int index = 0;
   for (int y = 0; y < grid_size[1]; ++y) {
     for (int x = 0; x < grid_size[0]; ++x, ++index) {

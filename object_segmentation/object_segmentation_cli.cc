@@ -1,6 +1,6 @@
 #include <Eigen/Dense>
 #include <fstream>
-#include <gflags/gflags.h>
+#include "gflags/gflags.h"
 #include <iostream>
 #include <vector>
 
@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
     cerr << "Usage: " << argv[0] << " data_directory" << endl;
     return 1;
   }
+  google::ParseCommandLineFlags(&argc, &argv, true);
 
   FileIO file_io(argv[1]);
   
@@ -54,11 +55,13 @@ int main(int argc, char* argv[]) {
 
   // Per room processing.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    cout << room << endl;
     vector<Point> points;
     CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
     // For each point, initial segmentation.
     vector<RoomSegment> segments;
     IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
+
 
     for (int p = 0; p < points.size(); ++p) {
       switch (segments[p]) {
@@ -84,7 +87,6 @@ int main(int argc, char* argv[]) {
     char buffer[1024];
     sprintf(buffer, "room_%03d.ply", room);
     pc.Write(buffer);
-    
   }
 
   
