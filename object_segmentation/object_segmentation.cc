@@ -116,6 +116,11 @@ void ComputeDistances(const std::vector<Point>& points,
     }
   }
 }
+
+void ComputeCentroids(const double ratio, vector<int* segments) {
+  
+
+}
   
 }  // namespace
 
@@ -287,7 +292,8 @@ void SegmentObjects(const std::vector<Point>& points,
   const int kTimes = 10;
   for (int t = 0; t < kTimes; ++t) {
     // Sample representative centers in each cluster.
-    ComputeCentroids(segments);
+    const double kCentroidRatio = 0.01;
+    ComputeCentroids(kCentroidRatio, segments);
 
     // Assign remaining samples to clusters.
 
