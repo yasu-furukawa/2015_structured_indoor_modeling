@@ -58,14 +58,35 @@ int main(int argc, char* argv[]) {
     cout << room << endl;
     vector<Point> points;
     CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
+    // For each point, initial segmentation.
+    vector<RoomSegment> segments;
+    IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
 
-    char buffer[1024];
-    sprintf(buffer, "room_%03d.ply", room);
+
+    for (int p = 0; p < points.size(); ++p) {
+      switch (segments[p]) {
+      case kFloor: {
+        points[p].color = Vector3f(0, 0, 255);
+        break;
+      }
+      case kWall: {
+        points[p].color = Vector3f(0, 255, 0);
+        break;
+      }
+      case kCeiling: {
+        points[p].color = Vector3f(255, 0, 0);
+        break;
+      }
+      default: {
+      }
+      }
+    }
 
     PointCloud pc;
     pc.SetPoints(points);
+    char buffer[1024];
+    sprintf(buffer, "room_%03d.ply", room);
     pc.Write(buffer);
-    
   }
 
   
