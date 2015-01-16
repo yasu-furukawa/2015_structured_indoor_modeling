@@ -11,6 +11,25 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+namespace {
+
+bool IsOnFloor(const double floor_height, const double margin, const Point& point) {
+  return fabs(point.position[2] - floor_height) <= margin;
+}
+  
+bool IsOnWall(const std::vector<cv::Point>& contour,
+              const double wall_margin,
+              const Point& point) {
+  const cv::Point local(point.position[0], point.position[1]);
+  return fabs(cv::pointPolygonTest(contour, local, true)) <= wall_margin;
+}
+
+bool IsOnCeiling(const double ceiling_height, const double margin, const Point& point) {
+  return fabs(point.position[2] - ceiling_height) <= margin;
+}  
+
+}  // namespace
+
 void SetRoomOccupancy(const Floorplan& floorplan,
                       std::vector<int>* room_occupancy) {
   const Vector3i grid_size = floorplan.GetGridSize();
@@ -65,7 +84,7 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
                          std::vector<Point>* points) {
   for (const auto& point_cloud : point_clouds) {
     for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-      const Vector3d& local = point_cloud.GetPoint(p);
+      const Vector3d& local = point_cloud.GetPoint(p).position;
       const Vector2i grid_int = floorplan.LocalToGridInt(Vector2d(local[0], local[1]));
       const int index = grid_int[1] * floorplan.GetGridSize()[0] + grid_int[0];
       if (room_occupancy[index] == room)
@@ -73,5 +92,39 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
     }
   }
 }
+
+void IdentifyFloorWallCeiling(const std::vector<Point>& points,
+                              const Floorplan& floorplan,
+                              const std::vector<int>& room_occupancy,
+                              const int room,
+                              std::vector<RoomSegment>* segments) {
+  const double kFloorMarginRatio   = 0.03;
+  const double kCeilingMarginRatio = 0.1;
+  const double kWallMarginRatio    = 0.03;
+  const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
+  const double floor_margin   = room_height * kFloorMarginRatio;
+  const double wall_margin    = room_height * kWallMarginRatio;
+  const double ceiling_margin = room_height * kCeilingMarginRatio;
+
+  vector<cv::Point> contour;
+  for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
+    const Vector2d local = floorplan.GetRoomVertexLocal(room, vertex);
+    contour.push_back(cv::Point(local[0], local[1]));
+  }
+  
+  segments->clear();
+  segments->resize((int)points.size(), kInitial);
+  // Floor check.
+  for (int p = 0; p < (int)points.size(); ++p) {
+    if (IsOnFloor(floorplan.GetFloorHeight(room), floor_margin, points[p]))
+      segments->at(p) = kFloor;
+    else if (IsOnCeiling(floorplan.GetCeilingHeight(room), ceiling_margin, points[p]))
+      segments->at(p) = kCeiling;
+    else if (IsOnWall(contour, wall_margin, points[p]))
+      segments->at(p) = kWall;
+  }
+
+
+}  
   
 }  // namespace structured_indoor_modeling
