@@ -6,12 +6,10 @@
 namespace structured_indoor_modeling {
 
 // room segment id definitions.
-enum RoomSegment {
-  kInitial = -1,
-  kFloor = -2,
-  kWall = -3,
-  kCeiling = -4
-};
+const int kInitial = -1;
+const int kFloor = -2;
+const int kWall = -3;
+const int kCeiling = -4;
   
 class Floorplan;
 class PointCloud;
@@ -30,7 +28,18 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
                               const std::vector<int>& room_occupancy,
                               const int room,
-                              std::vector<RoomSegment>* segments);                          
+                              std::vector<int>* segments);                          
+
+void Subsample(const double ratio, std::vector<Point>* points);
+ 
+void FilterNoisyPoints(std::vector<Point>* points);
+ 
+void SegmentObjects(const std::vector<Point>& points,
+                    std::vector<int>* segments);
+
+void SetNeighbors(const std::vector<Point>& points,
+                  const int num_neighbors,
+                  std::vector<std::vector<int> >* neighbors); 
  
 }  // namespace structured_indoor_modeling
 

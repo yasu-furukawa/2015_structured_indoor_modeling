@@ -1,9 +1,11 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <queue>
 
 #include "../base/floorplan.h"
 #include "../base/point_cloud.h"
+#include "../base/kdtree/KDtree.h"
 #include "object_segmentation.h"
 
 using namespace Eigen;
@@ -14,7 +16,7 @@ namespace structured_indoor_modeling {
 namespace {
 
 bool IsOnFloor(const double floor_height, const double margin, const Point& point) {
-  return fabs(point.position[2] - floor_height) <= margin;
+  return point.position[2] - floor_height <= margin;
 }
   
 bool IsOnWall(const std::vector<cv::Point>& contour,
@@ -25,9 +27,18 @@ bool IsOnWall(const std::vector<cv::Point>& contour,
 }
 
 bool IsOnCeiling(const double ceiling_height, const double margin, const Point& point) {
-  return fabs(point.position[2] - ceiling_height) <= margin;
+  return ceiling_height - point.position[2] <= margin;
 }  
 
+double PointDistance(const Point& lhs, const Point& rhs) {
+  const Vector3d diff = lhs.position - rhs.position;
+  return (fabs(diff.dot(lhs.normal)) + fabs(diff.dot(rhs.normal))) / 2.0;
+}
+
+void AssignSamples(const std::vector<Point>& points,
+                   const std::vector<
+                   std::vector<int>* segments)
+  
 }  // namespace
 
 void SetRoomOccupancy(const Floorplan& floorplan,
@@ -97,7 +108,7 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
                               const std::vector<int>& room_occupancy,
                               const int room,
-                              std::vector<RoomSegment>* segments) {
+                              std::vector<int>* segments) {
   const double kFloorMarginRatio   = 0.1;
   const double kCeilingMarginRatio = 0.1;
   const double kWallMarginRatio    = 0.03;
@@ -123,8 +134,152 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
     else if (IsOnWall(contour, wall_margin, points[p]))
       segments->at(p) = kWall;
   }
+}
 
+void FilterNoisyPoints(std::vector<Point>* points) {
+  const int kNumNeighbors = 10;
 
-}  
+  vector<float> point_data;
+  {
+    point_data.reserve(3 * points->size());
+    for (int p = 0; p < points->size(); ++p) {
+      for (int i = 0; i < 3; ++i)
+        point_data.push_back(points->at(p).position[i]);
+    }
+  }
+  KDtree kdtree(point_data);
+  vector<const float*> knn;
+  vector<float> neighbor_distances(points->size());
+  for (int p = 0; p < points->size(); ++p) {
+    knn.clear();
+    const Vector3f ref_point(points->at(p).position[0],
+                             points->at(p).position[1],
+                             points->at(p).position[2]);
+                      
+    kdtree.find_k_closest_to_pt(knn, kNumNeighbors, &ref_point[0]);
+                               
+    double neighbor_distance = 0.0;
+    for (int i = 0; i < knn.size(); ++i) {
+      const float* fp = knn[i];
+      const Vector3f point(fp[0], fp[1], fp[2]);
+      neighbor_distance += (point - ref_point).norm();
+    }
+    neighbor_distances[p] = neighbor_distance / max(1, (int)knn.size());
+  }
+
+  //----------------------------------------------------------------------
+  double average = 0.0;
+  for (int p = 0; p < neighbor_distances.size(); ++p)
+    average += neighbor_distances[p];
+  average /= neighbor_distances.size();
+  double deviation = 0.0;
+  for (int p = 0; p < neighbor_distances.size(); ++p) {
+    const double diff = neighbor_distances[p] - average;
+    deviation += diff * diff;
+  }
+  deviation /= neighbor_distances.size();
+  deviation = sqrt(deviation);
+
+  const double threshold = average + 0.5 * deviation;
+  vector<Point> new_points;
+  for (int p = 0; p < neighbor_distances.size(); ++p) {
+    if (neighbor_distances[p] <= threshold) {
+      new_points.push_back(points->at(p));
+    }
+  }
+  points->swap(new_points);
+}
+
+void Subsample(const double ratio, std::vector<Point>* points) {
+  const int new_size = static_cast<int>(round(ratio * points->size()));
+  random_shuffle(points->begin(), points->end());
+  points->resize(new_size);
+}
+  
+void SegmentObjects(const std::vector<Point>& points,
+                    std::vector<int>* segments) {
+  // Compute neighbors.
+  vector<vector<int> > neighbors;
+  const int kNumNeighbors = 30;
+  SetNeighbors(points, kNumNeighbors, &neighbors);
+  
+  // Randomly initialize seeds.
+  vector<int> seeds;
+  {
+    const int kNumInitialClusters = 60;
+    for (int p = 0; p < segments->size(); ++p)
+      if (segments->at(p) == kInitial)
+        seeds.push_back(p);
+    random_shuffle(seeds.begin(), seeds.end());
+    seeds.resize(kNumInitialClusters);
+  }
+
+  // Initialize remaining.
+  //vector<pair<double, int> > distance_segment(segments->size(), pair<double, int>(0.0, kInitial));
+
+  priority_queue<pair<double, pair<int, int> > > distance_point_segment_queue;
+  for (int c = 0; c < (int)seeds.size(); ++c) {
+    const int point_index = seeds[c];
+    // distance_segment[point_index] = pair<double, int>(0.0, c);
+    const pair<int, int> point_segment(point_index, c);
+    distance_point_segment_queue.push(pair<double, pair<int, int> >(0, point_segment));
+  }
+
+  while (!distance_point_segment_queue.empty()) {
+    const auto distance_point_segment = distance_point_segment_queue.top();
+    const double distance = - distance_point_segment.first;
+    const int point_index = distance_point_segment.second.first;
+    const int cluster     = distance_point_segment.second.second;
+    distance_point_segment_queue.pop();
+
+    if (segments->at(point_index) != kInitial)
+      continue;
+
+    segments->at(point_index) = cluster;
+    
+    for (int i = 0; i < neighbors[point_index].size(); ++i) {
+      const int neighbor = neighbors[point_index][i];
+      if (segments->at(neighbor) != kInitial)
+        continue;
+
+      const double new_distance = distance + PointDistance(points[point_index], points[neighbor]);
+      distance_point_segment_queue.push(pair<double, pair<int, int> >(-new_distance,
+                                                                      make_pair(neighbor, cluster)));
+    }
+  }
+}
+  
+void SetNeighbors(const std::vector<Point>& points,
+                  const int num_neighbors,
+                  std::vector<std::vector<int> >* neighbors) {
+  vector<float> point_data;
+  {
+    point_data.reserve(3 * points.size());
+    for (int p = 0; p < points.size(); ++p) {
+      for (int i = 0; i < 3; ++i)
+        point_data.push_back(points[p].position[i]);
+    }
+  }
+  KDtree kdtree(point_data);
+  vector<const float*> knn;
+  vector<float> neighbor_distances(points.size());
+
+  neighbors->clear();
+  neighbors->resize(points.size());
+
+  for (int p = 0; p < points.size(); ++p) {
+    knn.clear();
+    const Vector3f ref_point(points[p].position[0],
+                             points[p].position[1],
+                             points[p].position[2]);
+                      
+    kdtree.find_k_closest_to_pt(knn, num_neighbors, &ref_point[0]);
+
+    for (int i = 0; i < (int)knn.size(); ++i) {
+      const int index = (knn[i] - &point_data[0]) / 3;
+      neighbors->at(p).push_back(index);
+    }
+  }
+}
   
 }  // namespace structured_indoor_modeling

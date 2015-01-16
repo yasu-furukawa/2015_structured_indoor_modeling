@@ -58,11 +58,17 @@ int main(int argc, char* argv[]) {
     cout << room << endl;
     vector<Point> points;
     CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
+
+    FilterNoisyPoints(&points);
+    const double kSubsamplingRatio = 0.25;
+    Subsample(kSubsamplingRatio, &points);
     // For each point, initial segmentation.
-    vector<RoomSegment> segments;
+    vector<int> segments;
     IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
+    
+    SegmentObjects(points, &segments);
 
-
+    vector<Point> object_points;
     for (int p = 0; p < points.size(); ++p) {
       switch (segments[p]) {
       case kFloor: {
@@ -78,6 +84,12 @@ int main(int argc, char* argv[]) {
         break;
       }
       default: {
+        points[p].color[0] = segments[p] * 30 % 255;
+        points[p].color[1] = segments[p] * 50 % 255;
+        points[p].color[2] = segments[p] * 70 % 255;
+        
+        
+        object_points.push_back(points[p]);
       }
       }
     }
@@ -86,6 +98,11 @@ int main(int argc, char* argv[]) {
     pc.SetPoints(points);
     char buffer[1024];
     sprintf(buffer, "room_%03d.ply", room);
+    pc.Write(buffer);
+
+
+    pc.SetPoints(object_points);
+    sprintf(buffer, "object_%03d.ply", room);
     pc.Write(buffer);
   }
 
