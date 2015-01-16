@@ -98,7 +98,7 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const std::vector<int>& room_occupancy,
                               const int room,
                               std::vector<RoomSegment>* segments) {
-  const double kFloorMarginRatio   = 0.03;
+  const double kFloorMarginRatio   = 0.1;
   const double kCeilingMarginRatio = 0.1;
   const double kWallMarginRatio    = 0.03;
   const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
