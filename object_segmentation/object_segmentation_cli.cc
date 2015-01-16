@@ -11,6 +11,8 @@
 
 DEFINE_int32(start_panorama, 0, "start panorama index");
 DEFINE_int32(end_panorama, 1, "end panorama index");
+DEFINE_double(point_subsampling_ratio, 0.05, "Make the point set smaller.");
+DEFINE_double(centroid_subsampling_ratio, 0.005, "Ratio of centroids in each segment.");
 
 using namespace Eigen;
 using namespace structured_indoor_modeling;
@@ -54,20 +56,26 @@ int main(int argc, char* argv[]) {
   SetRoomOccupancy(floorplan, &room_occupancy);
 
   // Per room processing.
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    cout << room << endl;
+  //???
+  // for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+  for (int room = 0; room < 1; ++room) {
+    cout << "Room: " << room << endl;
     vector<Point> points;
     CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
-
+    cerr << "Filtering... " << points.size() << " -> " << flush;
     FilterNoisyPoints(&points);
-    const double kSubsamplingRatio = 0.25;
-    Subsample(kSubsamplingRatio, &points);
+    cerr << points.size() << " done." << endl
+         << "Subsampling... " << points.size() << " -> " << flush;
+    Subsample(FLAGS_point_subsampling_ratio, &points);
+    cerr << points.size() << " done." << endl;
     // For each point, initial segmentation.
     vector<int> segments;
     IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
     
-    SegmentObjects(points, &segments);
+    SegmentObjects(points, FLAGS_centroid_subsampling_ratio, &segments);
 
+
+    /*
     vector<Point> object_points;
     for (int p = 0; p < points.size(); ++p) {
       switch (segments[p]) {
@@ -104,6 +112,7 @@ int main(int argc, char* argv[]) {
     pc.SetPoints(object_points);
     sprintf(buffer, "object_%03d.ply", room);
     pc.Write(buffer);
+    */
   }
 
   

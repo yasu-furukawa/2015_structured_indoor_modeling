@@ -35,6 +35,7 @@ void Subsample(const double ratio, std::vector<Point>* points);
 void FilterNoisyPoints(std::vector<Point>* points);
  
 void SegmentObjects(const std::vector<Point>& points,
+                    const double centroid_subsampling_ratio,
                     std::vector<int>* segments);
 
 void SetNeighbors(const std::vector<Point>& points,
