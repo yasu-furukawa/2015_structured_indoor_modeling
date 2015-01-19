@@ -15,6 +15,14 @@ class Floorplan;
 class PointCloud;
 struct Point;
 
+void SaveData(const int id,
+              const std::vector<Point>& points,
+              const std::vector<int>& segments);
+
+void LoadData(const int id,
+              std::vector<Point>* points,
+              std::vector<int>* segments);
+ 
 void SetRoomOccupancy(const Floorplan& floorplan,
                       std::vector<int>* room_occupancy);
 
@@ -42,6 +50,16 @@ void SegmentObjects(const std::vector<Point>& points,
 void SetNeighbors(const std::vector<Point>& points,
                   const int num_neighbors,
                   std::vector<std::vector<int> >* neighbors); 
+
+void WriteObjectPointsWithColor(const std::vector<Point>& points,
+                                const std::vector<int>& segments,
+                                const std::string& filename,
+                                std::map<int, Eigen::Vector3i>* color_table);
+
+void WriteOtherPointsWithColor(const std::vector<Point>& points,
+                               const std::vector<int>& segments,
+                               const std::string& filename);
+    
  
 }  // namespace structured_indoor_modeling
 

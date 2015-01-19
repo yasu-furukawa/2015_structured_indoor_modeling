@@ -2,6 +2,7 @@
 #include <fstream>
 #include "gflags/gflags.h"
 #include <iostream>
+#include <map>
 #include <vector>
 
 #include "../base/file_io.h"
@@ -11,9 +12,9 @@
 
 DEFINE_int32(start_panorama, 0, "start panorama index");
 DEFINE_int32(end_panorama, 1, "end panorama index");
-DEFINE_double(point_subsampling_ratio, 0.2, "Make the point set smaller.");
+DEFINE_double(point_subsampling_ratio, 0.5, "Make the point set smaller.");
 DEFINE_double(centroid_subsampling_ratio, 0.005, "Ratio of centroids in each segment.");
-DEFINE_double(num_initial_clusters, 200, "Initial cluster.");
+DEFINE_double(num_initial_clusters, 100, "Initial cluster.");
 
 using namespace Eigen;
 using namespace structured_indoor_modeling;
@@ -57,9 +58,7 @@ int main(int argc, char* argv[]) {
   SetRoomOccupancy(floorplan, &room_occupancy);
 
   // Per room processing.
-  //???
-  // for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-  for (int room = 0; room < 1; ++room) {
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     cout << "Room: " << room << endl;
     vector<Point> points;
     CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
@@ -69,52 +68,25 @@ int main(int argc, char* argv[]) {
          << "Subsampling... " << points.size() << " -> " << flush;
     Subsample(FLAGS_point_subsampling_ratio, &points);
     cerr << points.size() << " done." << endl;
+    if (points.empty())
+      continue;
+    
     // For each point, initial segmentation.
     vector<int> segments;
     IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
-    
+
     SegmentObjects(points, FLAGS_centroid_subsampling_ratio, FLAGS_num_initial_clusters, &segments);
 
 
-    /*
-    vector<Point> object_points;
-    for (int p = 0; p < points.size(); ++p) {
-      switch (segments[p]) {
-      case kFloor: {
-        points[p].color = Vector3f(0, 0, 255);
-        break;
-      }
-      case kWall: {
-        points[p].color = Vector3f(0, 255, 0);
-        break;
-      }
-      case kCeiling: {
-        points[p].color = Vector3f(255, 0, 0);
-        break;
-      }
-      default: {
-        points[p].color[0] = segments[p] * 30 % 255;
-        points[p].color[1] = segments[p] * 50 % 255;
-        points[p].color[2] = segments[p] * 70 % 255;
-        
-        
-        object_points.push_back(points[p]);
-      }
-      }
-    }
-
-    PointCloud pc;
-    pc.SetPoints(points);
     char buffer[1024];
-    sprintf(buffer, "room_%03d.ply", room);
-    pc.Write(buffer);
-
-
-    pc.SetPoints(object_points);
-    sprintf(buffer, "object_%03d.ply", room);
-    pc.Write(buffer);
-    */
+    sprintf(buffer, "%s/object_%03d.ply", argv[1], room);
+    {
+      map<int, Vector3i> color_table;
+      WriteObjectPointsWithColor(points, segments, buffer, &color_table);
+    }
+    sprintf(buffer, "%s/other_%03d.ply", argv[1], room);
+    {
+      WriteOtherPointsWithColor(points, segments, buffer);
+    }
   }
-
-  
 }
