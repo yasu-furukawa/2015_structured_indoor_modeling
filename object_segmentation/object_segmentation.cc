@@ -1,4 +1,5 @@
 #include <Eigen/Dense>
+#include <numeric>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <queue>
@@ -38,7 +39,7 @@ double PointDistance(const Point& lhs, const Point& rhs) {
   const Vector3d rhs_tangent_diff = diff - rhs_normal_diff;
 
   // Suppress distance along tangential.
-  const double kSuppressRatio = 0.2;
+  const double kSuppressRatio = 0.25;
 
   return kSuppressRatio * (lhs_tangent_diff.norm() + rhs_tangent_diff.norm()) +
     (lhs_normal_diff.norm() + rhs_normal_diff.norm());
@@ -74,17 +75,53 @@ void WritePointsWithColor(const std::vector<Point>& points,
   pc.SetPoints(object_points);
   pc.Write(filename);
 }
+
+void WriteObjectPointsWithColor(const std::vector<Point>& points,
+                                const std::vector<int>& segments,
+                                const std::string& filename) {
+  map<int, Vector3i> color_table;
+
   
-void InitializeCentroids(std::vector<int>* segments) {
+  vector<Point> object_points;
+  for (int p = 0; p < points.size(); ++p) {
+    Point point = points[p];
+    switch (segments[p]) {
+    case kFloor:
+    case kWall:
+    case kCeiling: {
+      break;
+    }
+    default: {
+      if (color_table.find(segments[p]) == color_table.end()) {
+        color_table[segments[p]][0] = rand() % 255;
+        color_table[segments[p]][1] = rand() % 255;
+        color_table[segments[p]][2] = rand() % 255;
+      }
+      
+      point.color[0] = color_table[segments[p]][0];
+      point.color[1] = color_table[segments[p]][1];
+      point.color[2] = color_table[segments[p]][2];
+      object_points.push_back(point);
+      break;
+    }
+    }
+  }
+    
+  PointCloud pc;
+  pc.SetPoints(object_points);
+  pc.Write(filename);
+}
+
+void InitializeCentroids(const int num_initial_clusters,
+                         std::vector<int>* segments) {
   // Randomly initialize seeds.
   vector<int> seeds;
   {
-    const int kNumInitialClusters = 60;
     for (int p = 0; p < segments->size(); ++p)
       if (segments->at(p) == kInitial)
         seeds.push_back(p);
     random_shuffle(seeds.begin(), seeds.end());
-    seeds.resize(kNumInitialClusters);
+    seeds.resize(num_initial_clusters);
   }
 
   for (int c = 0; c < (int)seeds.size(); ++c) {
@@ -144,7 +181,7 @@ void AssignFromCentroids(const std::vector<Point>& points,
   vector<double> distances;
   cerr << "Compute distances..." << flush;
   for (int p = 0; p < segments->size(); ++p) {
-    if (p % 100 == 0)
+    if (p % 3000 == 0)
       cerr << '.' << flush;
     const int cluster = segments->at(p);
     if (cluster < 0)
@@ -306,9 +343,107 @@ void UnionFind(const std::set<std::pair<int, int> >& merged,
   }
 }
 
-void Merge(const std::vector<std::vector<int> >& neighbors,
+void Merge(const std::vector<Point>& points,
+           const std::vector<std::vector<int> >& neighbors,
            map<pair<int, int>, vector<double> >& cluster_pair_distances,
            std::vector<int>* segments) {
+  map<pair<int, int>, vector<double> > cluster_pair_to_distances;
+  for (int p0 = 0; p0 < (int)neighbors.size(); ++p0) {
+    const int segment0 = segments->at(p0);
+    for (int i = 0; i < (int)neighbors[p0].size(); ++i) {
+      const int p1 = neighbors[p0][i];
+      const int segment1 = segments->at(p1);
+
+      cluster_pair_to_distances[make_pair(min(segment0, segment1), max(segment0, segment1))].
+        push_back(PointDistance(points[p0], points[p1]));
+    }
+  }
+
+  map<pair<int, int>, double> cluster_pair_to_average_distance;
+  for (auto& item : cluster_pair_to_distances) {
+    double average = 0.0;
+    vector<double> distances = item.second;
+
+    /*
+    for (int i = 0; i < distances.size(); ++i)
+      average += distances[i];
+    average /= distances.size();
+    */
+    nth_element(distances.begin(),
+                distances.begin() + distances.size() / 4,
+                distances.end());
+    cluster_pair_to_average_distance[item.first] = *(distances.begin() + distances.size() / 4);
+  }
+
+  double average_inter_distance = 0.0;
+  {
+    int denom = 0;
+    for (auto& item : cluster_pair_to_distances) {
+      if (item.first.first != item.first.second)
+        continue;
+      const vector<double>& distances = item.second;
+      average_inter_distance += std::accumulate(distances.begin(), distances.end(), 0.0);
+      denom += distances.size();
+    }
+    average_inter_distance /= max(1, denom);
+  }
+  cerr << "Average inter distance: " << average_inter_distance << endl;
+
+  // Merge test.
+  const double kMergeRatio = 2.0;
+  set<pair<int, int> > merged;
+
+  //pair<int, int> best_pair;
+  //double best_ratio = 1000000;
+  for (const auto& item : cluster_pair_to_distances) {
+    const int p0 = item.first.first;
+    const int p1 = item.first.second;
+    if (p0 == p1)
+      continue;
+    const int size01 = item.second.size();
+    const int size0 = cluster_pair_to_distances[make_pair(p0, p0)].size();
+    const int size1 = cluster_pair_to_distances[make_pair(p1, p1)].size();
+
+    const double distance01 = cluster_pair_to_average_distance[item.first];
+    const double distance0  = cluster_pair_to_average_distance[make_pair(p0, p0)];
+    const double distance1  = cluster_pair_to_average_distance[make_pair(p1, p1)];
+
+    //?????
+    //if (distance01 < distance0 * kMergeRatio && distance01 < distance1 * kMergeRatio)
+    if (distance01 < average_inter_distance * kMergeRatio) {
+      merged.insert(item.first);
+      //?????? only one each.
+      break;
+    }
+    /*
+    const double ratio = distance01 / distance0 + distance01 / distance1;
+    if (ratio < best_ratio) {
+      best_ratio = ratio;
+      best_pair = item.first;
+    }
+    */
+  }
+  // mamerged.insert(best_pair);
+
+  cerr << "merged: " << merged.size() << " pairs." << endl;
+  
+  int max_cluster_id = 0;
+  for (const auto& item : *segments) {
+    max_cluster_id = max(max_cluster_id, item);
+  }
+  map<int, int> old_to_new;
+  UnionFind(merged, max_cluster_id, &old_to_new);
+  
+  for (int i = 0; i < segments->size(); ++i) {
+    if (segments->at(i) >= 0) {
+      segments->at(i) = old_to_new[segments->at(i)];
+    }
+  }
+  
+  
+  
+
+  /*
   // Compute a list of possible clusters to be merged.
   map<pair<int, int>, double> averages;
   for (const auto& item : cluster_pair_distances) {
@@ -352,6 +487,7 @@ void Merge(const std::vector<std::vector<int> >& neighbors,
       segments->at(i) = old_to_new[segments->at(i)];
     }
   }
+  */
 }
   
 }  // namespace
@@ -452,7 +588,7 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
 }
 
 void FilterNoisyPoints(std::vector<Point>* points) {
-  const int kNumNeighbors = 10;
+  const int kNumNeighbors = 20;
 
   vector<float> point_data;
   {
@@ -513,25 +649,26 @@ void Subsample(const double ratio, std::vector<Point>* points) {
   
 void SegmentObjects(const std::vector<Point>& points,
                     const double centroid_subsampling_ratio,
+                    const int num_initial_clusters,
                     std::vector<int>* segments) {
   // Compute neighbors.
   vector<vector<int> > neighbors;
-  const int kNumNeighbors = 20;
+  const int kNumNeighbors = 8;
   cerr << "SetNeighbors..." << flush;
   SetNeighbors(points, kNumNeighbors, &neighbors);
   cerr << "done." << endl;
 
   WritePointsWithColor(points, *segments, "0_first.ply");
-  InitializeCentroids(segments);
+  InitializeCentroids(num_initial_clusters, segments);
   WritePointsWithColor(points, *segments, "1_init.ply");
 
   map<pair<int, int>, vector<double> > cluster_pair_distances;  
   AssignFromCentroids(points, neighbors, segments, &cluster_pair_distances);
-  WritePointsWithColor(points, *segments, "2_seed.ply");
+  WriteObjectPointsWithColor(points, *segments, "2_seed.ply");
 
 
   // Repeat K-means.
-  const int kTimes = 10;
+  const int kTimes = 40;
   for (int t = 0; t < kTimes; ++t) {
     // Sample representative centers in each cluster.
     ComputeCentroids(centroid_subsampling_ratio, segments);
@@ -540,11 +677,11 @@ void SegmentObjects(const std::vector<Point>& points,
     AssignFromCentroids(points, neighbors, segments, &cluster_pair_distances);
     
     // Merge check.
-    Merge(neighbors, cluster_pair_distances, segments);
-
+    Merge(points, neighbors, cluster_pair_distances, segments);
+    
     char buffer[1024];
     sprintf(buffer, "%d_ite.ply", 3 + t);
-    WritePointsWithColor(points, *segments, buffer);
+    WriteObjectPointsWithColor(points, *segments, buffer);
   }  
 }
   
