@@ -62,10 +62,16 @@ int main(int argc, char* argv[]) {
     cout << "Room: " << room << endl;
     vector<Point> points;
     CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
+
+    if (points.empty())
+      continue;
     cerr << "Filtering... " << points.size() << " -> " << flush;
     FilterNoisyPoints(&points);
     cerr << points.size() << " done." << endl
          << "Subsampling... " << points.size() << " -> " << flush;
+    if (points.empty())
+      continue;
+    
     Subsample(FLAGS_point_subsampling_ratio, &points);
     cerr << points.size() << " done." << endl;
     if (points.empty())

@@ -238,7 +238,6 @@ void FilterNoisyPoints(std::vector<Point>* points) {
     }
     neighbor_distances[p] = neighbor_distance / max(1, (int)knn.size());
   }
-
   //----------------------------------------------------------------------
   double average = 0.0;
   for (int p = 0; p < neighbor_distances.size(); ++p)
