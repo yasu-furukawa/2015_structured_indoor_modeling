@@ -76,10 +76,10 @@ void WritePointsWithColor(const std::vector<Point>& points,
   pc.Write(filename);
 }
 
+map<int, Vector3i> color_table;
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,
                                 const std::string& filename) {
-  map<int, Vector3i> color_table;
 
   
   vector<Point> object_points;
@@ -393,8 +393,9 @@ void Merge(const std::vector<Point>& points,
   const double kMergeRatio = 2.0;
   set<pair<int, int> > merged;
 
-  //pair<int, int> best_pair;
-  //double best_ratio = 1000000;
+  pair<int, int> best_pair;
+  double best_size = -1;
+  Vector2d best_size_pair;
   for (const auto& item : cluster_pair_to_distances) {
     const int p0 = item.first.first;
     const int p1 = item.first.second;
@@ -411,9 +412,14 @@ void Merge(const std::vector<Point>& points,
     //?????
     //if (distance01 < distance0 * kMergeRatio && distance01 < distance1 * kMergeRatio)
     if (distance01 < average_inter_distance * kMergeRatio) {
-      merged.insert(item.first);
+      //merged.insert(item.first);
       //?????? only one each.
-      break;
+      //break;
+      if (min(size0, size1) > best_size) {
+	best_size = min(size0, size1);
+	best_size_pair = Vector2d(size0, size1);
+	best_pair = item.first;
+      }
     }
     /*
     const double ratio = distance01 / distance0 + distance01 / distance1;
@@ -423,9 +429,14 @@ void Merge(const std::vector<Point>& points,
     }
     */
   }
-  // mamerged.insert(best_pair);
-
-  cerr << "merged: " << merged.size() << " pairs." << endl;
+  if (best_size == -1) {
+    cerr << "No pair" << endl;
+    return;
+  }
+  merged.clear();
+  merged.insert(best_pair);
+  cerr << "size " << best_size_pair[0] << ' ' << best_size_pair[1] << endl;
+  // cerr << "merged: " << merged.size() << " pairs." << endl;
   
   int max_cluster_id = 0;
   for (const auto& item : *segments) {
@@ -668,7 +679,7 @@ void SegmentObjects(const std::vector<Point>& points,
 
 
   // Repeat K-means.
-  const int kTimes = 40;
+  const int kTimes = 150;
   for (int t = 0; t < kTimes; ++t) {
     // Sample representative centers in each cluster.
     ComputeCentroids(centroid_subsampling_ratio, segments);
@@ -681,6 +692,7 @@ void SegmentObjects(const std::vector<Point>& points,
     
     char buffer[1024];
     sprintf(buffer, "%d_ite.ply", 3 + t);
+    cerr << "write " << buffer << endl;
     WriteObjectPointsWithColor(points, *segments, buffer);
   }  
 }

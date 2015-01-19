@@ -13,7 +13,7 @@ DEFINE_int32(start_panorama, 0, "start panorama index");
 DEFINE_int32(end_panorama, 1, "end panorama index");
 DEFINE_double(point_subsampling_ratio, 0.2, "Make the point set smaller.");
 DEFINE_double(centroid_subsampling_ratio, 0.005, "Ratio of centroids in each segment.");
-DEFINE_double(num_initial_clusters, 40, "Initial cluster.");
+DEFINE_double(num_initial_clusters, 200, "Initial cluster.");
 
 using namespace Eigen;
 using namespace structured_indoor_modeling;
