@@ -36,6 +36,9 @@ class PointCloud {
   void SetPoints(const std::vector<Point>& new_points) {
     points = new_points;
   }
+  void AddPoints(const PointCloud& point_cloud) {
+    points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
+  }
 
  private:
   std::vector<Point> points;

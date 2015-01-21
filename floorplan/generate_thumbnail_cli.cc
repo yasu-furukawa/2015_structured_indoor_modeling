@@ -175,7 +175,7 @@ bool IsInside(const Floorplan& floorplan, const int room, const Vector2d& point)
 
 //----------------------------------------------------------------------
 // Using the panorama closest to the center. The thumbnail points to the center of the room.
-void FindFarPanoramaInRoom(const Input& input) {
+void GeneratePinholeImages(const Input& input) {
   const int panorama_num = input.panoramas.size();
   for (int p = 0; p < panorama_num; ++p) {
     Vector3d optical_center = input.panoramas[p].GetCenter();
@@ -314,10 +314,18 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
       Render(input.panoramas[p], look_at, input.thumbnail_horizontal_angle,
              input.thumbnail_width, input.thumbnail_height, &thumbnail, NULL);
 
-      char buffer[1024];
-      sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d_%08d.png",
-              input.data_directory.c_str(), room, p, best_area);
-      cv::imwrite(buffer, thumbnail);
+
+      const FileIO file_io(input.data_directory);
+      const string filename = file_io.GetRoomThumbnailPerPanorama(room, p);
+      cv::imwrite(filename, thumbnail);
+      {
+        char buffer[1024];
+        sprintf(buffer, "%s_%d", filename.c_str(), best_area);
+        ofstream ofstr;
+        ofstr.open(buffer);
+        ofstr << best_area << endl;
+        ofstr.close();
+      }
     }
   }
 }
@@ -349,8 +357,8 @@ int main(int argc, char* argv[]) {
     FindPanoramaClosestToTheRoomCenter(input);
   };
     
-  if (1) {
-    FindFarPanoramaInRoom(input);
+  if (0) {
+    GeneratePinholeImages(input);
   }
 
   if (1) {

@@ -85,16 +85,14 @@ int main(int argc, char* argv[]) {
 
 
     char buffer[1024];
-    sprintf(buffer, "%s/object_%03d.ply", argv[1], room);
     {
       map<int, Vector3i> color_table;
-      WriteObjectPointsWithColor(points, segments, buffer,
+      WriteObjectPointsWithColor(points, segments, file_io.GetObjectPointClouds(room),
                                  floorplan.GetFloorplanToGlobal(),
                                  &color_table);
     }
-    sprintf(buffer, "%s/other_%03d.ply", argv[1], room);
     {
-      WriteOtherPointsWithColor(points, segments, buffer,
+      WriteOtherPointsWithColor(points, segments, file_io.GetFloorWallPointClouds(room),
                                 floorplan.GetFloorplanToGlobal());
     }
   }

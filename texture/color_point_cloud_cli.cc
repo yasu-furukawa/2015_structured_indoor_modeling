@@ -18,14 +18,16 @@ using namespace structured_indoor_modeling;
 
 DEFINE_int32(start_panorama, 0, "First panorama ID.");
 DEFINE_int32(num_pyramid_levels, 4, "Num pyramid levels.");
-DEFINE_string(input_ply, "object_cloud_org.ply", "Input ply.");
-DEFINE_string(output_ply, "object_cloud2.ply", "Output ply.");
+DEFINE_int32(max_num_rooms, 200, "Maximum number of rooms.");
+// DEFINE_string(input_ply, "object_cloud_org.ply", "Input ply.");
+// DEFINE_string(output_ply, "object_cloud2.ply", "Output ply.");
 
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
 typedef std::vector<ColoredPoint> ColoredPointCloud;
 
 namespace {
 
+  /*
 void ReadPly(const string filename, ColoredPointCloud* colored_point_cloud) {
   ifstream ifstr;
   ifstr.open(filename.c_str());
@@ -79,12 +81,13 @@ void WritePly(const string filename, const ColoredPointCloud& colored_point_clou
 
   ofstr.close();
 }
+  */
 
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
                           const Point& point,
                           std::set<int>* visible_panoramas) {
-  visible_panoramas->insert(4);
-  return;
+  //  visible_panoramas->insert(4);
+  // return;
 
   
   const int kLevel = 2;
@@ -134,7 +137,17 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     visible_panoramas->insert(closest_panorama);
   }
 }
-  
+
+void ReadPointClouds(const FileIO& file_io,
+                     PointCloud* point_cloud) {
+  for (int room = 0; room < FLAGS_max_num_rooms; ++room) {
+    PointCloud pc;
+    if (pc.Init(file_io.GetObjectPointClouds(room))) {
+      point_cloud->AddPoints(pc);
+    }
+  }
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -165,7 +178,7 @@ int main(int argc, char* argv[]) {
   }
 
   PointCloud point_cloud;
-  point_cloud.Init(file_io.GetDataDirectory() + FLAGS_input_ply);
+  ReadPointClouds(file_io, &point_cloud);
 
   const int kSkip = 4;
   vector<float> points;
@@ -227,11 +240,6 @@ int main(int argc, char* argv[]) {
   }
   point_cloud.SetPoints(new_points);
 
-  
-  
-
-
-
 
   
   const int kLevel = 2;
@@ -258,7 +266,7 @@ int main(int argc, char* argv[]) {
       point.color /= denom;
     }
   }
-  point_cloud.Write(file_io.GetDataDirectory() + FLAGS_output_ply);
+  point_cloud.Write(file_io.GetObjectPointCloudsWithColor());
   
   
   /*  

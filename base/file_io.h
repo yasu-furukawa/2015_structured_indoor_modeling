@@ -67,7 +67,7 @@ class FileIO {
   }
 
   std::string GetTextureImage(const int index) const {
-    sprintf(buffer, "%s/panorama/texture_image_%03d.png", data_directory.c_str(), index);
+    sprintf(buffer, "%s/texture_atlas/texture_image_%03d.png", data_directory.c_str(), index);
     return buffer;
   }
   /*
@@ -83,9 +83,28 @@ class FileIO {
   }
   */
   std::string GetRoomThumbnail(const int room) const {
-    sprintf(buffer, "%s/panorama/room_thumbnail%03d.png", data_directory.c_str(), room);
+    sprintf(buffer, "%s/thumbnail/room_thumbnail%03d.png", data_directory.c_str(), room);
     return buffer;
   }
+  std::string GetRoomThumbnailPerPanorama(const int room, const int panorama) const {
+    sprintf(buffer, "%s/thumbnail/room_thumbnail_per_panorama_%03d_%03d.png",
+            data_directory.c_str(), room, panorama);
+    return buffer;
+  }
+  
+
+  std::string GetObjectPointCloudsWithColor() const {
+    sprintf(buffer, "%s/object/object_color.ply", data_directory.c_str());
+    return buffer;
+  }    
+  std::string GetObjectPointClouds(const int room) const {
+    sprintf(buffer, "%s/object/object_%03d.ply", data_directory.c_str(), room);
+    return buffer;
+  }    
+  std::string GetFloorWallPointClouds(const int room) const {
+    sprintf(buffer, "%s/object/floor_wall_%03d.ply", data_directory.c_str(), room);
+    return buffer;
+  }    
   
  private:
   const std::string data_directory;

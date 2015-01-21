@@ -58,11 +58,11 @@ void ObjectRenderer::Init(const string data_directory) {
   ifstr.close();
   */
 
-  char buffer[1024];
-  sprintf(buffer, "%s/object_cloud2.ply", data_directory.c_str());
+  // char buffer[1024];
+  // sprintf(buffer, "%s/object_cloud2.ply", data_directory.c_str());
 
   PointCloud point_cloud;
-  point_cloud.Init(buffer);
+  point_cloud.Init(file_io.GetObjectPointCloudsWithColor());
 
 
   /*  
