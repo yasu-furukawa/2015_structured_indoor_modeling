@@ -54,11 +54,13 @@ void SetNeighbors(const std::vector<Point>& points,
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,
                                 const std::string& filename,
+                                const Eigen::Matrix3d& rotation,
                                 std::map<int, Eigen::Vector3i>* color_table);
 
 void WriteOtherPointsWithColor(const std::vector<Point>& points,
                                const std::vector<int>& segments,
-                               const std::string& filename);
+                               const std::string& filename,
+                               const Eigen::Matrix3d& rotation);
     
  
 }  // namespace structured_indoor_modeling

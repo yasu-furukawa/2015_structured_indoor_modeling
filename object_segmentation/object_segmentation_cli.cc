@@ -12,7 +12,7 @@
 
 DEFINE_int32(start_panorama, 0, "start panorama index");
 DEFINE_int32(end_panorama, 1, "end panorama index");
-DEFINE_double(point_subsampling_ratio, 0.5, "Make the point set smaller.");
+DEFINE_double(point_subsampling_ratio, 1.0, "Make the point set smaller.");
 DEFINE_double(centroid_subsampling_ratio, 0.005, "Ratio of centroids in each segment.");
 DEFINE_double(num_initial_clusters, 100, "Initial cluster.");
 
@@ -88,11 +88,14 @@ int main(int argc, char* argv[]) {
     sprintf(buffer, "%s/object_%03d.ply", argv[1], room);
     {
       map<int, Vector3i> color_table;
-      WriteObjectPointsWithColor(points, segments, buffer, &color_table);
+      WriteObjectPointsWithColor(points, segments, buffer,
+                                 floorplan.GetFloorplanToGlobal(),
+                                 &color_table);
     }
     sprintf(buffer, "%s/other_%03d.ply", argv[1], room);
     {
-      WriteOtherPointsWithColor(points, segments, buffer);
+      WriteOtherPointsWithColor(points, segments, buffer,
+                                floorplan.GetFloorplanToGlobal());
     }
   }
 }

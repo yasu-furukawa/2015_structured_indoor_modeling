@@ -252,7 +252,7 @@ void FilterNoisyPoints(std::vector<Point>* points) {
   deviation = sqrt(deviation);
 
   // const double threshold = average + 0.5 * deviation;
-  const double threshold = average + deviation;
+  const double threshold = average + 2.0 * deviation;
   vector<Point> new_points;
   for (int p = 0; p < neighbor_distances.size(); ++p) {
     if (neighbor_distances[p] <= threshold) {
@@ -838,6 +838,7 @@ bool Merge(const std::vector<Point>& points,
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,
                                 const std::string& filename,
+                                const Eigen::Matrix3d& rotation,
                                 map<int, Vector3i>* color_table) {  
   vector<Point> object_points;
   for (int p = 0; p < points.size(); ++p) {
@@ -867,12 +868,14 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
     
   PointCloud pc;
   pc.SetPoints(object_points);
+  pc.Rotate(rotation);
   pc.Write(filename);
 }
 
 void WriteOtherPointsWithColor(const std::vector<Point>& points,
                                const std::vector<int>& segments,
-                               const std::string& filename) {
+                               const std::string& filename,
+                               const Eigen::Matrix3d& rotation) {
   vector<Point> other_points;
   for (int p = 0; p < points.size(); ++p) {
     Point point = points[p];
@@ -885,10 +888,12 @@ void WriteOtherPointsWithColor(const std::vector<Point>& points,
       point.color = Vector3f(0, 255, 0);
       break;
     }
+      /*
     case kCeiling: {
       point.color = Vector3f(255, 0, 0);
       break;
     }
+      */
     case kInitial: {
       point.color = Vector3f(255, 255, 255);
       break;
@@ -902,6 +907,7 @@ void WriteOtherPointsWithColor(const std::vector<Point>& points,
 
   PointCloud pc;
   pc.SetPoints(other_points);
+  pc.Rotate(rotation);
   pc.Write(filename);
 }
   

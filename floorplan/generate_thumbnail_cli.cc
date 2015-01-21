@@ -331,7 +331,10 @@ int main(int argc, char* argv[]) {
   Input input;
   input.thumbnail_width            = 400;
   input.thumbnail_height           = 300;
-  input.thumbnail_horizontal_angle = 100.0 * M_PI / 180.0;
+  // For recognition.
+  input.thumbnail_horizontal_angle = 60.0 * M_PI / 180.0;
+  // input.thumbnail_horizontal_angle = 100.0 * M_PI / 180.0;
+
   // Shrink panorama to this size before sampling.
   input.panorama_width = 1024;
   input.panorama_height = input.panorama_width / 2;
@@ -346,7 +349,7 @@ int main(int argc, char* argv[]) {
     FindPanoramaClosestToTheRoomCenter(input);
   };
     
-  if (0) {
+  if (1) {
     FindFarPanoramaInRoom(input);
   }
 
