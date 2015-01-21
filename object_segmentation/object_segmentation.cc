@@ -435,7 +435,7 @@ void Merge(const std::vector<Point>& points,
   }
   merged.clear();
   merged.insert(best_pair);
-  cerr << "size " << best_size_pair[0] << ' ' << best_size_pair[1] << endl;
+  cerr << "size " << best_size_pair[0] << ' ' << best_size_pair[1] << ' ' << best_pair[0] << ' ' << best_pair[1] << endl;
   // cerr << "merged: " << merged.size() << " pairs." << endl;
   
   int max_cluster_id = 0;
