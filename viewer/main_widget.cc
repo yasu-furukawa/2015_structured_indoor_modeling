@@ -486,6 +486,8 @@ void MainWidget::RenderAirToPanoramaTransition() {
 void MainWidget::RenderObjects(const double alpha) {
   object_renderer.RenderAll(alpha);
 
+  // debug
+  /*
   if (object_renderer.render) {
     const int width2 = width();
     const int height2 = height();
@@ -571,7 +573,7 @@ void MainWidget::RenderObjects(const double alpha) {
     
     //cv::imshow("a", image);
   }
-
+  */
 }
 
 void MainWidget::RenderPolygon(const int room_not_rendered,
