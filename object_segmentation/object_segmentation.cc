@@ -37,8 +37,7 @@ namespace {
   
   void AssignFromCentroids(const std::vector<Point>& points,
                            const std::vector<std::vector<int> >& neighbors,
-                           std::vector<int>* segments,
-                           map<pair<int, int>, vector<double> >* cluster_pair_distances);
+                           std::vector<int>* segments);
   
   void ComputeCentroids(const std::vector<Point>& points, const double ratio, vector<int>* segments);
   
@@ -48,7 +47,6 @@ namespace {
   
   bool Merge(const std::vector<Point>& points,
              const std::vector<std::vector<int> >& neighbors,
-             map<pair<int, int>, vector<double> >& cluster_pair_distances,
              std::vector<int>* segments,
              std::map<int, Eigen::Vector3i>* color_table);
 
@@ -278,8 +276,7 @@ void SegmentObjects(const std::vector<Point>& points,
   InitializeCentroids(num_initial_clusters, segments);
   // WritePointsWithColor(points, *segments, "1_init.ply");
 
-  map<pair<int, int>, vector<double> > cluster_pair_distances;  
-  AssignFromCentroids(points, neighbors, segments, &cluster_pair_distances);
+  AssignFromCentroids(points, neighbors, segments);
   map<int, Vector3i> color_table;
   // WriteObjectPointsWithColor(points, *segments, "2_seed.ply", &color_table);
 
@@ -289,9 +286,9 @@ void SegmentObjects(const std::vector<Point>& points,
     // Sample representative centers in each cluster.
     ComputeCentroids(points, centroid_subsampling_ratio, segments);
     // Assign remaining samples to clusters.
-    AssignFromCentroids(points, neighbors, segments, &cluster_pair_distances);
+    AssignFromCentroids(points, neighbors, segments);
     // Merge check.
-    const bool merged = Merge(points, neighbors, cluster_pair_distances, segments, &color_table);
+    const bool merged = Merge(points, neighbors, segments, &color_table);
     // SaveData(3 + t, points, *segments);
 
     /*
@@ -316,13 +313,14 @@ void SmoothObjects(const std::vector<std::vector<int> >& neighbors,
     }
   }
   unit /= denom;
+  const double sigma = 2.0 * unit;
 
   // Smooth normals.
   vector<Point> new_points = *points;
   for (int p = 0; p < points->size(); ++p) {
     for (int i = 0; i < neighbors[p].size(); ++i) {
       const int q = neighbors[p][i];
-      const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * unit * unit));
+      const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * sigma * sigma));
       new_points[p].normal += weight * points->at(q).normal;
     }
     if (new_points[p].normal != Vector3d(0, 0, 0))
@@ -337,21 +335,68 @@ void SmoothObjects(const std::vector<std::vector<int> >& neighbors,
       const int q = neighbors[p][i];
       // Estimate the position along the normal.
       const Vector3d intersection = Intersect(points->at(p), points->at(q));
-      const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * unit * unit));
+      const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * sigma * sigma));
       new_points[p].position += weight * intersection;
       total_weight += weight;
     }
     new_points[p].position /= total_weight;
   }
-  points->swap(new_points);
+  *points = new_points;
 }
   
+// This function calls makes neighbors invalid.
 void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
                     std::vector<Point>* points,
                     std::vector<int>* segments) {
-  
+  double unit = 0.0;
+  int denom = 0;
+  for (int p = 0; p < points->size(); ++p) {
+    for (int i = 0; i < neighbors[p].size(); ++i) {
+      unit += (points->at(p).position - points->at(neighbors[p][i]).position).norm();
+      ++denom;
+    }
+  }
+  unit /= denom;
 
+  // Generate points in nearby space.
+  const int num_points = points->size();
+  for (int p = 0; p < num_points; ++p) {
+    // Only densify object points.
+    if (segments->at(p) < 0)
+      continue;
 
+    Vector3d x_axis;
+    const Vector3d normal = points->at(p).normal;
+    if (fabs(normal[0]) < fabs(normal[1]) && fabs(normal[0]) < fabs(normal[2]))
+      x_axis = Vector3d(0, normal[2], -normal[1]);
+    else if (fabs(normal[1]) < fabs(normal[2]) && fabs(normal[1]) < fabs(normal[0]))
+      x_axis = Vector3d(-normal[2], 0, normal[0]);
+    else
+      x_axis = Vector3d(normal[1], -normal[0], 0);
+    x_axis.normalize();
+    Vector3d y_axis = x_axis.cross(normal);
+
+    vector<double> distances;
+    for (int i = 0; i < neighbors[p].size(); ++i) {
+      distances.push_back((points->at(p).position - points->at(neighbors[p][i]).position).norm());
+    }
+    sort(distances.begin(), distances.end());
+    const double unit_per_point = distances[distances.size() / 2];
+    const double radius = min(unit_per_point, unit) / 2.0;
+
+    for (int j = -1; j <= 1; ++j) {
+      for (int i = -1; i <= 1; ++i) {
+        if (i == 0 && j == 0)
+          continue;
+        Point new_point = points->at(p);
+        Vector3d move = x_axis * i + y_axis * j;
+        move.normalize();
+        new_point.position += move * radius;
+        points->push_back(new_point);
+        segments->push_back(segments->at(p));
+      }
+    }
+  }
 }  
   
 void SetNeighbors(const std::vector<Point>& points,
@@ -477,9 +522,8 @@ void ComputeDistances(const std::vector<Point>& points,
 
 void AssignFromCentroids(const std::vector<Point>& points,
                          const std::vector<std::vector<int> >& neighbors,
-                         std::vector<int>* segments,
-                         map<pair<int, int>, vector<double> >* cluster_pair_distances) {
-  cluster_pair_distances->clear();
+                         std::vector<int>* segments) {
+  // cluster_pair_distances->clear();
   // For each unassigned point, compute distance from centroids. Use
   // the top 25 percents average to assign to the closest centroid.
   const double kSumRatio = 0.25;
@@ -488,8 +532,9 @@ void AssignFromCentroids(const std::vector<Point>& points,
   vector<double> distances;
   cerr << "Compute distances..." << flush;
   for (int p = 0; p < segments->size(); ++p) {
-    if (p % 3000 == 0)
+    if (p % (segments->size() / 10) == 0)
       cerr << '.' << flush;
+    // Only compute distances to neighbors at the seed points.
     const int cluster = segments->at(p);
     if (cluster < 0)
       continue;
@@ -498,13 +543,6 @@ void AssignFromCentroids(const std::vector<Point>& points,
     for (int p = 0; p < distances.size(); ++p) {
       if (distances[p] != kUnreachable) {
         point_cluster_distances[p][cluster].push_back(distances[p]);
-
-        if (segments->at(p) >= 0) {
-          const int target_cluster = segments->at(p);
-          const pair<int, int> pair = make_pair(min(cluster, target_cluster),
-                                                max(cluster, target_cluster));
-          (*cluster_pair_distances)[pair].push_back(distances[p]);
-        }        
       }
     }
   }
@@ -681,7 +719,6 @@ void UnionFind(const std::set<std::pair<int, int> >& merged,
 
 bool Merge(const std::vector<Point>& points,
            const std::vector<std::vector<int> >& neighbors,
-           map<pair<int, int>, vector<double> >& cluster_pair_distances,
            std::vector<int>* segments,
            map<int, Vector3i>* color_table) {
   map<pair<int, int>, vector<double> > cluster_pair_to_distances;
@@ -881,6 +918,10 @@ Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs) {
   // Ray is point = lhs.position + lhs.normal * d.
   // rhs.normal * (point - rhs.position)
 
+  const Vector3d diff = lhs.position - rhs.position;
+  const Vector3d diff_along_rhs_normal = rhs.normal.dot(diff) * rhs.normal;
+  const Vector3d final_diff = lhs.normal.dot(diff_along_rhs_normal) * lhs.normal;
+  return lhs.position - final_diff;
 }
   
 }  // namespace

@@ -19,6 +19,7 @@ using namespace structured_indoor_modeling;
 DEFINE_int32(start_panorama, 0, "First panorama ID.");
 DEFINE_int32(num_pyramid_levels, 4, "Num pyramid levels.");
 DEFINE_int32(max_num_rooms, 200, "Maximum number of rooms.");
+DEFINE_int32(pyramid_level, 1, "Which level of pyramid to collect colors.");
 // DEFINE_string(input_ply, "object_cloud_org.ply", "Input ply.");
 // DEFINE_string(output_ply, "object_cloud2.ply", "Output ply.");
 
@@ -85,14 +86,14 @@ void WritePly(const string filename, const ColoredPointCloud& colored_point_clou
 
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
                           const Point& point,
+                          const int pyramid_level,
                           std::set<int>* visible_panoramas) {
   //  visible_panoramas->insert(4);
   // return;
 
   
-  const int kLevel = 2;
   for (int p = 0; p < (int)panoramas.size(); ++p) {
-    const Panorama& panorama = panoramas[p][kLevel];
+    const Panorama& panorama = panoramas[p][pyramid_level];
     
     const Vector2d pixel = panorama.Project(point.position);
     const Vector3f rgb = panorama.GetRGB(pixel);
@@ -114,7 +115,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
 
   //????
   // use only a single pano.
-    // visible_panoramas->clear();
+  visible_panoramas->clear();
 
   
   if (visible_panoramas->empty()) {
@@ -122,13 +123,13 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     double closest_distance = 0.0;
     int closest_panorama = kInvalid;
     for (int p = 0; p < (int)panoramas.size(); ++p) {
-      const Panorama& panorama = panoramas[p][kLevel];
+      const Panorama& panorama = panoramas[p][pyramid_level];
       const Vector2d pixel = panorama.Project(point.position);
       const Vector3f rgb = panorama.GetRGB(pixel);
       if (rgb == Vector3f(0, 0, 0))
         continue;
       
-      const double distance = (point.position - panoramas[p][kLevel].GetCenter()).norm();
+      const double distance = (point.position - panoramas[p][pyramid_level].GetCenter()).norm();
       if (distance < closest_distance || closest_panorama == kInvalid) {
         closest_distance = distance;
         closest_panorama = p;
@@ -242,20 +243,19 @@ int main(int argc, char* argv[]) {
   point_cloud.SetPoints(new_points);
   */  
 
-  const int kLevel = 2;
   for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
     Point& point = point_cloud.GetPoint(p);
     point.color = Vector3f(0, 0, 0);
     int denom = 0;
       
     set<int> visible_panoramas;
-    FindVisiblePanoramas(panoramas, point, &visible_panoramas);
+    FindVisiblePanoramas(panoramas, point, FLAGS_pyramid_level, &visible_panoramas);
     if (visible_panoramas.empty()) {
       continue;
     }
     for (const auto panorama_id : visible_panoramas) {
       const Vector3f color =
-        panoramas[panorama_id][kLevel].GetRGB(panoramas[panorama_id][kLevel].Project(point.position));
+        panoramas[panorama_id][FLAGS_pyramid_level].GetRGB(panoramas[panorama_id][FLAGS_pyramid_level].Project(point.position));
       if (color != Vector3f(0, 0, 0)) {
         for (int i = 0; i < 3; ++i)
           point.color[i] += color[2 - i];

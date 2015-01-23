@@ -67,13 +67,15 @@ int main(int argc, char* argv[]) {
       continue;
     cerr << "Filtering... " << points.size() << " -> " << flush;
     FilterNoisyPoints(&points);
-    cerr << points.size() << " done." << endl
-         << "Subsampling... " << points.size() << " -> " << flush;
+    cerr << points.size() << " done." << endl;
     if (points.empty())
       continue;
-    
-    Subsample(FLAGS_point_subsampling_ratio, &points);
-    cerr << points.size() << " done." << endl;
+
+    if (FLAGS_point_subsampling_ratio != 1.0) {
+      cerr << "Subsampling... " << points.size() << " -> " << flush;
+      Subsample(FLAGS_point_subsampling_ratio, &points);
+      cerr << points.size() << " done." << endl;
+    }
     if (points.empty())
       continue;
     
@@ -88,8 +90,16 @@ int main(int argc, char* argv[]) {
     SetNeighbors(points, kNumNeighbors, &neighbors);
     cerr << "done." << endl;
     
-    SegmentObjects(points, FLAGS_centroid_subsampling_ratio, FLAGS_num_initial_clusters, &segments);
+    SegmentObjects(points, FLAGS_centroid_subsampling_ratio, FLAGS_num_initial_clusters, neighbors,
+                   &segments);
 
+    const int kSmoothTime = 5;
+    for (int t = 0; t < kSmoothTime; ++t)
+      SmoothObjects(neighbors, &points);
+
+    // neighbors are dirty after this.
+    DensifyObjects(neighbors, &points, &segments);
+    
     char buffer[1024];
     {
       map<int, Vector3i> color_table;

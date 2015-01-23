@@ -8,6 +8,7 @@ TEMPLATE = app
 
 SOURCES += viewer.cc
 
+#QMAKE_CXXFLAGS += '-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare -I/usr/local/opt/qt'
 QMAKE_CXXFLAGS += '-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare'
 
 qtHaveModule(opengl) {
@@ -42,11 +43,12 @@ qtHaveModule(opengl) {
         shaders.qrc
 
     INCLUDEPATH += '/Users/furukawa/Google_Drive/research/code/'
-    INCLUDEPATH += '/usr/local/include'
+    INCLUDEPATH += '/usr/local/include/'
 #    INCLUDEPATH += '/opt/X11/include'
      
 
      LIBS += '-F/Users/furukawa/Qt/5.3/clang_64/lib/QtOpenGL.framework/Versions/5/'
+#     LIBS += '-F/usr/local/opt/qt/Frameworks/QtOpenGL.framework/Versions/4/'
      LIBS += '-L/usr/local/lib'
      LIBS += '-lopencv_core.2.4.9'
      LIBS += '-lopencv_imgproc.2.4.9'
