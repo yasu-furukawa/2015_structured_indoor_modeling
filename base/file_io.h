@@ -17,11 +17,11 @@ class FileIO {
     return buffer;
   }
   std::string GetLocalPly(const int panorama) const {
-    sprintf(buffer, "%s/ply/%03d.ply", data_directory.c_str(), panorama + 1);
+    sprintf(buffer, "%s/ply/%03d.ply", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetLocalToGlobalTransformation(const int panorama) const {
-    sprintf(buffer, "%s/transformations/%03d.txt", data_directory.c_str(), panorama + 1);
+    sprintf(buffer, "%s/transformations/%03d.txt", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetMeta(const int panorama) const {
