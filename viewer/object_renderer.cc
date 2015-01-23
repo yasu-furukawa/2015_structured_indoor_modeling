@@ -168,6 +168,8 @@ void ObjectRenderer::RenderAll(const double alpha) {
   glDisableClientState(GL_VERTEX_ARRAY);
   
 
+
+
   /*
   glEnableVertexAttribArray(0);
 

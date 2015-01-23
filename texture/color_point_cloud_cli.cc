@@ -180,15 +180,16 @@ int main(int argc, char* argv[]) {
   PointCloud point_cloud;
   ReadPointClouds(file_io, &point_cloud);
 
-  const int kSkip = 4;
+  /*
   vector<float> points;
-  points.reserve(3 * point_cloud.GetNumPoints() / kSkip);
-
-  for (int p = 0; p < point_cloud.GetNumPoints(); p += kSkip) {
-    for (int i = 0; i < 3; ++i)
-      points.push_back(point_cloud.GetPoint(p).position[i]);
+  {
+    const int kSkip = 4;
+    points.reserve(3 * point_cloud.GetNumPoints() / kSkip);
+    for (int p = 0; p < point_cloud.GetNumPoints(); p += kSkip) {
+      for (int i = 0; i < 3; ++i)
+        points.push_back(point_cloud.GetPoint(p).position[i]);
+    }
   }
-
   cerr << "Build kdtree..." << flush;
   KDtree kdtree(points);
   cerr << "done." << endl;
@@ -239,9 +240,8 @@ int main(int argc, char* argv[]) {
     }
   }
   point_cloud.SetPoints(new_points);
+  */  
 
-
-  
   const int kLevel = 2;
   for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
     Point& point = point_cloud.GetPoint(p);

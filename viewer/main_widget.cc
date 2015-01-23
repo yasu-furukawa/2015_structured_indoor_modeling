@@ -485,6 +485,93 @@ void MainWidget::RenderAirToPanoramaTransition() {
 
 void MainWidget::RenderObjects(const double alpha) {
   object_renderer.RenderAll(alpha);
+
+  if (object_renderer.render) {
+    const int width2 = width();
+    const int height2 = height();
+    vector<Vector3d> screen(width2 * height2, Vector3d(0, 0, 0));
+    vector<double> weights(width2 * height2, 0.0);
+
+    const int kRadius = 3;
+    
+    for (int i = 0; i < (int)object_renderer.vertices.size(); i+=3) {
+      GLdouble u, v, w;
+      gluProject(object_renderer.vertices[i],
+		 object_renderer.vertices[i + 1],
+		 object_renderer.vertices[i + 2],
+		 modelview, projection, viewport, &u, &v, &w);
+      const int x = static_cast<int>(round(u));
+      const int y = static_cast<int>(round(v));
+
+      for (int jj = -kRadius; jj <= kRadius; ++jj) {
+	const int ytmp = y + jj;
+	if (ytmp < 0 || height2 <= ytmp)
+	  continue;
+	for (int ii = -kRadius; ii <= kRadius; ++ii) {
+	  const int xtmp = x + ii;
+	  if (xtmp < 0 || width2 <= xtmp)
+	    continue;
+	  
+	  const int index2 = (height2 - 1 - ytmp) * width2 + xtmp;
+	  const double weight = exp(- (ii * ii + jj * jj) / (2 * 0.25 * 0.25));
+	  for (int c = 0; c < 3; ++c)
+	    screen[index2][c] += object_renderer.colors[i + c] * weight;
+	  weights[index2] += weight;
+	}
+      }
+    }
+    // Shrink by kRadius - 1.
+    for (int t = 0; t < kRadius - 1; ++t) {
+      vector<double> weights_tmp = weights;
+      for (int y = 1; y < height2 - 1; ++y)
+	for (int x = 1; x < width2 - 1; ++x) {
+	  if (weights_tmp[y * width2 + x] == 0.0)
+	    continue;
+	  if (weights_tmp[(y - 1) * width2 + x] == 0 ||
+	      weights_tmp[(y + 1) * width2 + x] == 0 ||
+	      weights_tmp[y * width2 + (x - 1)] == 0 ||
+	      weights_tmp[y * width2 + (x + 1)] == 0)
+	    weights[y * width2 + x] = 0.0;
+	}
+    }
+
+    glReadBuffer(GL_BACK);
+    vector<unsigned char> current(width2 * height2 * 3);
+    glReadPixels(0, 0, width2, height2, GL_RGB, GL_UNSIGNED_BYTE, &current[0]);
+    for (int y = 0; y < height2; ++y) {
+      for (int x = 0; x < width2; ++x) {
+	const int index = y * width2 + x;
+	if (weights[index] == 0.0) {
+	  weights[index] = 1.0;
+	  for (int i = 0; i < 3; ++i)
+	    screen[index][i] = current[3 * ((height2 - 1 - y) * width2 + x) + i] / 255.0;
+	}
+      } 
+    }
+
+    ofstream ofstr;
+    ofstr.open("test.ppm");
+    ofstr << "P3" << endl
+	  << width2 << ' ' << height2 << endl
+	  << 255 << endl;
+    cv::Mat image(height2, width2, CV_8UC3);
+    int index = 0;
+    for (int y = 0; y < height2; ++y)
+      for (int x = 0; x < width2; ++x, ++index) {
+	Vector3d color(0, 0, 0);
+	if (weights[index] != 0) {
+	  for (int j = 0; j < 3; ++j)
+	    color[j] = 255 * screen[index][j] / weights[index];
+	  image.at<cv::Vec3b>(y, x) = cv::Vec3b((int)(round(color[0])),
+					    (int)(round(color[1])),
+					    (int)(round(color[2])));
+	}
+	ofstr << (int)color[0] << ' ' << (int)color[1] << ' ' << (int)color[2] << ' ';
+      }
+    
+    //cv::imshow("a", image);
+  }
+
 }
 
 void MainWidget::RenderPolygon(const int room_not_rendered,

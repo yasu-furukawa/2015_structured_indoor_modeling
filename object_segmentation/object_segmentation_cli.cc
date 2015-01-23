@@ -81,8 +81,14 @@ int main(int argc, char* argv[]) {
     vector<int> segments;
     IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
 
+    // Compute neighbors.
+    vector<vector<int> > neighbors;
+    const int kNumNeighbors = 8;
+    cerr << "SetNeighbors..." << flush;
+    SetNeighbors(points, kNumNeighbors, &neighbors);
+    cerr << "done." << endl;
+    
     SegmentObjects(points, FLAGS_centroid_subsampling_ratio, FLAGS_num_initial_clusters, &segments);
-
 
     char buffer[1024];
     {

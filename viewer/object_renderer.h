@@ -26,7 +26,7 @@ class ObjectRenderer : protected QGLFunctions {
 
   bool Toggle();
 
- private:
+  // private:
   bool render;
   // For each room, for each object, a colored point cloud.
   std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;

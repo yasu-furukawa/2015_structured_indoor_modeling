@@ -52,6 +52,7 @@ namespace {
              std::vector<int>* segments,
              std::map<int, Eigen::Vector3i>* color_table);
 
+  Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs);
 }  // namespace  
 
 void SaveData(const int id,
@@ -271,14 +272,8 @@ void Subsample(const double ratio, std::vector<Point>* points) {
 void SegmentObjects(const std::vector<Point>& points,
                     const double centroid_subsampling_ratio,
                     const int num_initial_clusters,
+                    const std::vector<std::vector<int> >& neighbors,
                     std::vector<int>* segments) {
-  // Compute neighbors.
-  vector<vector<int> > neighbors;
-  const int kNumNeighbors = 8;
-  cerr << "SetNeighbors..." << flush;
-  SetNeighbors(points, kNumNeighbors, &neighbors);
-  cerr << "done." << endl;
-
   // WritePointsWithColor(points, *segments, "0_first.ply");
   InitializeCentroids(num_initial_clusters, segments);
   // WritePointsWithColor(points, *segments, "1_init.ply");
@@ -309,6 +304,55 @@ void SegmentObjects(const std::vector<Point>& points,
       break;
   }  
 }
+
+void SmoothObjects(const std::vector<std::vector<int> >& neighbors,
+                   std::vector<Point>* points) {
+  double unit = 0.0;
+  int denom = 0;
+  for (int p = 0; p < points->size(); ++p) {
+    for (int i = 0; i < neighbors[p].size(); ++i) {
+      unit += (points->at(p).position - points->at(neighbors[p][i]).position).norm();
+      ++denom;
+    }
+  }
+  unit /= denom;
+
+  // Smooth normals.
+  vector<Point> new_points = *points;
+  for (int p = 0; p < points->size(); ++p) {
+    for (int i = 0; i < neighbors[p].size(); ++i) {
+      const int q = neighbors[p][i];
+      const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * unit * unit));
+      new_points[p].normal += weight * points->at(q).normal;
+    }
+    if (new_points[p].normal != Vector3d(0, 0, 0))
+      new_points[p].normal.normalize();
+  }
+  *points = new_points;
+
+  // Smooth positions.
+  for (int p = 0; p < points->size(); ++p) {
+    double total_weight = 1.0;
+    for (int i = 0; i < neighbors[p].size(); ++i) {
+      const int q = neighbors[p][i];
+      // Estimate the position along the normal.
+      const Vector3d intersection = Intersect(points->at(p), points->at(q));
+      const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * unit * unit));
+      new_points[p].position += weight * intersection;
+      total_weight += weight;
+    }
+    new_points[p].position /= total_weight;
+  }
+  points->swap(new_points);
+}
+  
+void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
+                    std::vector<Point>* points,
+                    std::vector<int>* segments) {
+  
+
+
+}  
   
 void SetNeighbors(const std::vector<Point>& points,
                   const int num_neighbors,
@@ -831,6 +875,12 @@ bool Merge(const std::vector<Point>& points,
     }
   }
   */
+}
+
+Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs) {
+  // Ray is point = lhs.position + lhs.normal * d.
+  // rhs.normal * (point - rhs.position)
+
 }
   
 }  // namespace

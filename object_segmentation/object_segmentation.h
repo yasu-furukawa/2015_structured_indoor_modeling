@@ -45,8 +45,16 @@ void FilterNoisyPoints(std::vector<Point>* points);
 void SegmentObjects(const std::vector<Point>& points,
                     const double centroid_subsampling_ratio,
                     const int num_initial_clusters,
+                    const std::vector<std::vector<int> >& neighbors,
                     std::vector<int>* segments);
 
+void SmoothObjects(const std::vector<std::vector<int> >& neighbors,
+                   std::vector<Point>* points);
+
+void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
+                    std::vector<Point>* points,
+                    std::vector<int>* segments);
+ 
 void SetNeighbors(const std::vector<Point>& points,
                   const int num_neighbors,
                   std::vector<std::vector<int> >* neighbors); 
