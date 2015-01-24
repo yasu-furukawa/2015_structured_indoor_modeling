@@ -35,6 +35,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
   //  visible_panoramas->insert(4);
   // return;
 
+  // Use visible panoramas to average colors. (blurred and not good).
   /*  
   for (int p = 0; p < (int)panoramas.size(); ++p) {
     const Panorama& panorama = panoramas[p][pyramid_level];
@@ -58,10 +59,10 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
   }
   */
 
-  //????
-  // use only a single pano.
+  
+  // Use only a single pano. Sharp but needs to be careful about
+  // stitching artifacts. Also, point density needs to be controlled.
   visible_panoramas->clear();
-
   
   if (visible_panoramas->empty()) {
     const int kInvalid = -1;
@@ -126,68 +127,6 @@ int main(int argc, char* argv[]) {
   PointCloud point_cloud;
   ReadPointClouds(file_io, &point_cloud);
 
-  /*
-  vector<float> points;
-  {
-    const int kSkip = 4;
-    points.reserve(3 * point_cloud.GetNumPoints() / kSkip);
-    for (int p = 0; p < point_cloud.GetNumPoints(); p += kSkip) {
-      for (int i = 0; i < 3; ++i)
-        points.push_back(point_cloud.GetPoint(p).position[i]);
-    }
-  }
-  cerr << "Build kdtree..." << flush;
-  KDtree kdtree(points);
-  cerr << "done." << endl;
-
-  // Compute statistics.
-  const int kNumNeighbors = 10;
-  vector<const float*> knn;
-
-  vector<float> neighbor_distances;
-  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-    knn.clear();
-    const Vector3f ref_point(point_cloud.GetPoint(p).position[0],
-                             point_cloud.GetPoint(p).position[1],
-                             point_cloud.GetPoint(p).position[2]);
-                      
-    kdtree.find_k_closest_to_pt(knn, kNumNeighbors, &ref_point[0]);
-                               
-    double neighbor_distance = 0.0;
-    for (int i = 0; i < kNumNeighbors; ++i) {
-      const float* fp = knn[i];
-      const Vector3f point(fp[0], fp[1], fp[2]);
-      neighbor_distance += (point - ref_point).norm();
-    }
-    neighbor_distances.push_back(neighbor_distance / kNumNeighbors);
-  }
-  if (neighbor_distances.empty()) {
-    cerr << "Impossible." << endl;
-    exit (1);
-  }
-
-  double average = 0.0;
-  for (int p = 0; p < neighbor_distances.size(); ++p)
-    average += neighbor_distances[p];
-  average /= neighbor_distances.size();
-  double deviation = 0.0;
-  for (int p = 0; p < neighbor_distances.size(); ++p) {
-    const double diff = neighbor_distances[p] - average;
-    deviation += diff * diff;
-  }
-  deviation /= neighbor_distances.size();
-  deviation = sqrt(deviation);
-
-  const double threshold = average + deviation;
-  vector<Point> new_points;
-  for (int p = 0; p < neighbor_distances.size(); ++p) {
-    if (neighbor_distances[p] <= threshold) {
-      new_points.push_back(point_cloud.GetPoint(p));
-    }
-  }
-  point_cloud.SetPoints(new_points);
-  */  
-
   for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
     if (p % (point_cloud.GetNumPoints() / 100) == 0)
       cerr << '.' << flush;
@@ -215,76 +154,4 @@ int main(int argc, char* argv[]) {
   }
   cerr << "done." << endl;
   point_cloud.Write(file_io.GetObjectPointCloudsWithColor());
-  
-  
-  /*  
-  ColoredPointCloud colored_point_cloud;
-  {
-    ReadPly(file_io.GetDataDirectory() + FLAGS_input_ply, &colored_point_cloud);
-  }
-
-  // Only use the color from 0 and 1 (if not black).
-  const bool kUseSpecifiedPanoramas = false;
-  if (kUseSpecifiedPanoramas) {
-    // Only use the color from 0 and 1 (if not black).
-    vector<int> panorama_ids;
-    // panorama_ids.push_back(0);
-    // panorama_ids.push_back(1);
-    panorama_ids.push_back(2);
-    const int kLevel = 0;
-    
-    for (auto& point : colored_point_cloud) {
-      point.second = Vector3d(0, 0, 0);
-      int denom = 0;
-      for (const auto panorama_id : panorama_ids) {
-        const Vector3f color =
-          panoramas[panorama_id][kLevel].GetRGB(panoramas[panorama_id][kLevel].Project(point.first));
-        if (color != Vector3f(0, 0, 0)) {
-          for (int i = 0; i < 3; ++i)
-            point.second[i] += color[i] / 255.0;
-          ++denom;
-        }
-      }
-      if (denom != 0)
-        point.second /= denom;
-    }
-    
-    WritePly(file_io.GetDataDirectory() + FLAGS_output_ply,
-             colored_point_cloud);
-  } else {
-    const int kLevel = 0;
-    
-    ColoredPointCloud new_colored_point_cloud;
-    for (auto& point : colored_point_cloud) {
-      point.second = Vector3d(0, 0, 0);
-      int denom = 0;
-      
-      set<int> visible_panoramas;
-      FindVisiblePanoramas(panoramas, point.first, &visible_panoramas);
-      if (visible_panoramas.empty()) {
-        continue;
-      }
-      
-      for (const auto panorama_id : visible_panoramas) {
-        const Vector3f color =
-          panoramas[panorama_id][kLevel].GetRGB(panoramas[panorama_id][kLevel].Project(point.first));
-        if (color != Vector3f(0, 0, 0)) {
-          for (int i = 0; i < 3; ++i)
-            point.second[i] += color[i] / 255.0;
-          ++denom;
-        }
-      }
-      if (denom != 0) {
-        point.second /= denom;
-        
-        new_colored_point_cloud.push_back(point);
-      }
-    }
-    
-    WritePly(file_io.GetDataDirectory() + FLAGS_output_ply,
-             new_colored_point_cloud);
-  }
-  
-  return 0;
-  */
 }
