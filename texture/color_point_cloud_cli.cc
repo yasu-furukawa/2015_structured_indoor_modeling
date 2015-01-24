@@ -28,62 +28,6 @@ typedef std::vector<ColoredPoint> ColoredPointCloud;
 
 namespace {
 
-  /*
-void ReadPly(const string filename, ColoredPointCloud* colored_point_cloud) {
-  ifstream ifstr;
-  ifstr.open(filename.c_str());
-  string header;
-  for (int i = 0; i < 6; ++i)
-    ifstr >> header;
-  int num_points;
-  ifstr >> num_points;
-  for (int i = 0; i < 22; ++i)
-    ifstr >> header;
-
-  colored_point_cloud->resize(num_points);
-  for (int p = 0; p < num_points; ++p) {
-    for (int i = 0; i < 3; ++i)
-      ifstr >> colored_point_cloud->at(p).first[i];
-    for (int i = 0; i < 3; ++i) {
-      ifstr >> colored_point_cloud->at(p).second[i];
-      colored_point_cloud->at(p).second[i] /= 255.0;
-    }
-    double dtmp;
-    ifstr >> dtmp;
-  }
-  ifstr.close();
-}
-
-void WritePly(const string filename, const ColoredPointCloud& colored_point_cloud) {
-  ofstream ofstr;
-  ofstr.open(filename.c_str());
-
-  ofstr << "ply" << endl
-        << "format ascii 1.0" << endl
-        << "element vertex " << colored_point_cloud.size() << endl
-        << "property float x" << endl
-        << "property float y" << endl
-        << "property float z" << endl
-        << "property uchar red" << endl
-        << "property uchar green" << endl
-        << "property uchar blue" << endl
-        << "property uchar alpha" << endl
-        << "end_header" << endl;
-
-  for (const auto& colored_point : colored_point_cloud) {
-    ofstr << colored_point.first[0] << ' '
-          << colored_point.first[1] << ' '
-          << colored_point.first[2] << ' '
-          << static_cast<int>(round(255.0 * colored_point.second[2])) << ' '
-          << static_cast<int>(round(255.0 * colored_point.second[1])) << ' '
-          << static_cast<int>(round(255.0 * colored_point.second[0])) << ' '
-          << 255 << endl;
-  }
-
-  ofstr.close();
-}
-  */
-
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
                           const Point& point,
                           const int pyramid_level,
@@ -91,7 +35,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
   //  visible_panoramas->insert(4);
   // return;
 
-  
+  /*  
   for (int p = 0; p < (int)panoramas.size(); ++p) {
     const Panorama& panorama = panoramas[p][pyramid_level];
     
@@ -112,6 +56,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
       visible_panoramas->insert(p);
     }
   }
+  */
 
   //????
   // use only a single pano.
@@ -244,6 +189,8 @@ int main(int argc, char* argv[]) {
   */  
 
   for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
+    if (p % (point_cloud.GetNumPoints() / 100) == 0)
+      cerr << '.' << flush;
     Point& point = point_cloud.GetPoint(p);
     point.color = Vector3f(0, 0, 0);
     int denom = 0;
@@ -266,6 +213,7 @@ int main(int argc, char* argv[]) {
       point.color /= denom;
     }
   }
+  cerr << "done." << endl;
   point_cloud.Write(file_io.GetObjectPointCloudsWithColor());
   
   

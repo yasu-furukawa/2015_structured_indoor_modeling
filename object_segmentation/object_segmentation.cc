@@ -357,6 +357,7 @@ void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
     }
   }
   unit /= denom;
+  const double max_radius = unit * 2;
 
   // Generate points in nearby space.
   const int num_points = points->size();
@@ -382,7 +383,7 @@ void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
     }
     sort(distances.begin(), distances.end());
     const double unit_per_point = distances[distances.size() / 2];
-    const double radius = min(unit_per_point, unit) / 2.0;
+    const double radius = min(unit_per_point / 2.0, max_radius);
 
     for (int j = -1; j <= 1; ++j) {
       for (int i = -1; i <= 1; ++i) {
