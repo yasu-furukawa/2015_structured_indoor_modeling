@@ -1,6 +1,20 @@
 #ifndef PANORAMA_H_
 #define PANORAMA_H_
 
+/*
+  Panorama has both RGB and D information. Both information are stored
+  as a 2D array with a simple cylindrical mapping. The RGB and D
+  cameras do not share the same optical center, but the D information
+  was mapped to the RGB camera, and one needs not worry about this
+  issue in using this class.
+
+  One needs to consider 
+
+global/local/image/depth
+
+
+ */
+
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <vector>

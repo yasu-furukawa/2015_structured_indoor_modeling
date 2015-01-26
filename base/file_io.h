@@ -1,3 +1,19 @@
+/*
+  Files for each dataset are stored in the same format. This file
+  specifies the naming schemes and provides APIs to get filenames.
+
+  Whenenever one adds a new directory or defines new data files, one
+  must adds an entry to this file.  Never directly construct a
+  filename and read/write, unless that is for temporary debugging purposs. 
+
+  Numbers start from 0 (C++ convention). So, the first panorama image
+  name can be accessed by FileIO::GetPanoramaImage(0).
+  
+  < Example >
+  FileIO file_io("/Users/furukawa/data/office0");
+  cout << "First panorama: " << file_io.GetPanoramaImage(0) << endl;
+*/
+
 #ifndef FILE_IO_H__
 #define FILE_IO_H__
 
