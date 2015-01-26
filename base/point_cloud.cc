@@ -65,6 +65,9 @@ void PointCloud::Write(const std::string& filename) {
     exit (1);
   }
 
+  const int kXOffset = 1;
+  const int kYOffset = 1;
+  
   ofstr << "ply" << endl
         << "format ascii 1.0" << endl
         << "element vertex " << (int)points.size() << endl
@@ -82,8 +85,8 @@ void PointCloud::Write(const std::string& filename) {
         << "property uchar intensity" << endl
         << "end_header" << endl;
   for (const auto& point : points) {
-    ofstr << point.depth_position[0] << ' '
-          << point.depth_position[1] << ' '
+    ofstr << point.depth_position[0] + kXOffset << ' '
+          << point.depth_position[1] + kYOffset << ' '
           << point.position[0] << ' '
           << point.position[1] << ' '
           << point.position[2] << ' '

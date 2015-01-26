@@ -3,16 +3,43 @@
 
 /*
   Panorama has both RGB and D information. Both information are stored
-  as a 2D array with a simple cylindrical mapping. The RGB and D
-  cameras do not share the same optical center, but the D information
-  was mapped to the RGB camera, and one needs not worry about this
-  issue in using this class.
+  as a 2D array with a simple cylindrical mapping. The resolutions of
+  the RGB and D data are different. The RGB and D cameras do not share
+  the same optical center, but the D information was mapped to the RGB
+  camera space, and one needs not worry about this issue in using this
+  class.
 
-  One needs to consider 
+  There are several different coordinate systems to be understood in
+  using this class: global/local/image/depth. Global is the global 3D
+  coordinate frame, which is the same as the global coordinate system
+  in floorplan.h. The local coordinate frame is centered at the
+  panorama(RGBD) center, and aligned with the XYZ axes of the device.
+  Image coordinate system defines the 2D space for RGBD data. The
+  rescaled version of this is the depth coordinate system. The
+  conversion between the image and the depth systems can be given by
+  "RGBToDepth and DepthToRGB". The conversion between the image and
+  the global coordinate systems can be given by Project and Unproject
+  functions. The conversions between the global and the local
+  coordinate systems may not be often necessary, but are possible via
+  GlobalToLocal and LocalToGlobal.
 
-global/local/image/depth
 
+  < Background pixels >
 
+  Each RGB panorama has many unobserved black pixels (holes) at the
+  top and the bottom of the image. The following function (void
+  Panorama::MakeOnlyBackgroundBlack()) guarantees that only the holes
+  have the black pixel colors (0, 0, 0). All the other black pixels
+  are changed to (1, 1, 1). After this function, one can perform the
+  hole testing by looking at the RGB color, being black or not.
+  
+  < Example >
+
+  FileIO file_io("../some_data_directory");
+
+  const int kPanoramaID = 3;
+  Panorama panorama;
+  panorama.Init(file_io, kPanoramaID);
  */
 
 #include <Eigen/Dense>
@@ -46,6 +73,7 @@ public:
 
   void MakeOnlyBackgroundBlack();
 
+  // Performs bilinear interpolation.
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
   

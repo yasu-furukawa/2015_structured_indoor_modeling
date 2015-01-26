@@ -83,6 +83,7 @@ class Floorplan {
   //----------------------------------------------------------------------
   // Accessors.
   //----------------------------------------------------------------------
+  // GetNumX.
   int GetNumRooms() const;
   int GetNumRoomVertices(const int room) const;
   int GetNumWalls(const int room) const;
@@ -95,8 +96,8 @@ class Floorplan {
   int GetNumFloorTriangles(const int room) const;
   int GetNumCeilingTriangles(const int room) const;
 
-
-  
+  //----------------------------------------------------------------------
+  // 2D or 3D coordinate accessors.
   Eigen::Vector2d GetRoomVertexLocal(const int room, const int vertex) const;
   Eigen::Vector3d GetFloorVertexGlobal(const int room, const int vertex) const;
   Eigen::Vector3d GetCeilingVertexGlobal(const int room, const int vertex) const;
