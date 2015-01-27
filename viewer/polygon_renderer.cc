@@ -250,7 +250,6 @@ void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
   widget = widget_tmp;
   
   FileIO file_io(data_directory);
-  
   ifstream ifstr;
   ifstr.open(file_io.GetFloorplanFinal().c_str());
   ifstr >> floorplan;
@@ -258,6 +257,7 @@ void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
 
   //----------------------------------------------------------------------
   const int num_room = floorplan.GetNumRooms();
+  cout<<num_room<<endl;
   room_centers_local.resize(num_room);
   for (int room = 0; room < num_room; ++room) {
     const int num_wall = floorplan.GetNumWalls(room);

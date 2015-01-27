@@ -4,8 +4,13 @@
 #include <locale.h>
 #include <math.h>
 #include <Eigen/Dense>
-#include <OpenGL/glu.h>
 #include <QMouseEvent>
+
+#ifdef __linux__
+#include <GL/glu.h>
+#else
+#include <OpenGL/glu.h>
+#endif
 
 #include <opencv2/opencv.hpp>
 // #include <opencv2/imgproc/imgproc.hpp>
@@ -45,7 +50,6 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   configuration(configuration),
   panel_renderer(polygon_renderer, viewport),  
   navigation(panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
-
   object_renderer.Init(configuration.data_directory);
   panorama_renderers.resize(configuration.panorama_configurations.size());
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
@@ -190,8 +194,8 @@ void MainWidget::SetMatrices() {
     exit (1);
   }
 
-  if (isnan(center[0]) || isnan(center[1]) || isnan(center[2]) ||
-      isnan(direction[0]) || isnan(direction[1]) || isnan(direction[2]))
+  if (std::isnan(center[0]) || std::isnan(center[1]) || std::isnan(center[2]) ||
+      std::isnan(direction[0]) || std::isnan(direction[1]) || std::isnan(direction[2]))
     cerr << "black?" << endl
          << center << endl
          << direction << endl;

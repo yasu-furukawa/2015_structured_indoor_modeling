@@ -156,9 +156,9 @@ Vector3d Navigation::GetDirection() const {
            << weight_start << ' ' << weight_end << endl;
       exit (1);
     }
-    if (isnan(normalized_direction[0]) ||
-        isnan(normalized_direction[1]) ||
-        isnan(normalized_direction[2])) {
+    if (std::isnan(normalized_direction[0]) ||
+        std::isnan(normalized_direction[1]) ||
+        std::isnan(normalized_direction[2])) {
       cout << "Internal nan " << camera_panorama.start_direction << endl
            << camera_panorama.end_direction << endl
            << weight_start << ' ' << weight_end << endl;

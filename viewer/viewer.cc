@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
   }
   Configuration configuration;
   ReadConfiguration(argv[1], &configuration);
-  
   QApplication app(argc, argv);
   app.setApplicationName("viewer");
 #ifndef QT_NO_OPENGL
