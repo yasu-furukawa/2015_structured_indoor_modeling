@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-
 #include "evidence.h"
 #include "segmentation.h"
 

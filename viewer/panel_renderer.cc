@@ -1,5 +1,5 @@
 #include <iostream>
-#include <OpenGL/glu.h>
+#include <GL/glu.h>
 
 #include "../base/file_io.h"
 #include "main_widget.h"

@@ -41,6 +41,11 @@ void ReadPanoramaConfiguration(const string& data_directory,
 void ReadConfiguration(const string filename, Configuration* configuration) {
   ifstream ifstr;
   ifstr.open(filename.c_str());
+  if(!ifstr.is_open())
+  {
+      printf("Can not read configuration file\n");
+      exit(-1);
+  }
   ifstr >> configuration->data_directory;
 
   int pano_start_id, pano_end_id;
