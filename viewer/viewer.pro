@@ -36,7 +36,6 @@ qtHaveModule(opengl) {
         polygon_renderer.h \
         ../base/file_io.h \
         ../base/floorplan.h \
-        ../base/floorplan_internal.h \
         ../base/point_cloud.h
 
     RESOURCES += \
@@ -52,7 +51,7 @@ qtHaveModule(opengl) {
     macx{
         INCLUDEPATH += '/Users/furukawa/Google_Drive/research/code/'
         INCLUDEPATH += '/usr/local/include/'
-#       INCLUDEPATH += '/opt/X11/include'
+#        INCLUDEPATH += '/opt/X11/include'
 
 
          LIBS += '-F/Users/furukawa/Qt/5.3/clang_64/lib/QtOpenGL.framework/Versions/5/'
