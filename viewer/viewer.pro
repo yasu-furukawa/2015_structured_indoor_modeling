@@ -41,7 +41,7 @@ qtHaveModule(opengl) {
     RESOURCES += \
         shaders.qrc
 
-    unix{
+    unix:!macx{
         INCLUDEPATH += -I/usr/include
         INCLUDEPATH += -I/usr/local/include
         LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc

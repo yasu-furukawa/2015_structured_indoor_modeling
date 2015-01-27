@@ -1,5 +1,10 @@
 #include <iostream>
+
+#ifdef __linux__
 #include <GL/glu.h>
+#else
+#include <OpenGL/glu.h>
+#endif
 
 #include "../base/file_io.h"
 #include "main_widget.h"

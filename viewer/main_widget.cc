@@ -7,9 +7,9 @@
 #include <QMouseEvent>
 
 #ifdef __linux__
-#include "GL/glu.h"
+#include <GL/glu.h>
 #else
-#include <QtOpenGL/glu.h>
+#include <OpenGL/glu.h>
 #endif
 
 #include <opencv2/opencv.hpp>
