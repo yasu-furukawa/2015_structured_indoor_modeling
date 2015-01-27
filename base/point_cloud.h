@@ -2,9 +2,10 @@
 #define BASE_POINT_CLOUD_H_
 
 #include <vector>
-#include "file_io.h"
 
 namespace structured_indoor_modeling {
+
+class FileIO;
 
 struct Point {
   Eigen::Vector2i depth_position;

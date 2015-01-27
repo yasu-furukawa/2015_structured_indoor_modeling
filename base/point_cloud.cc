@@ -1,6 +1,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
+#include "file_io.h"
 #include "point_cloud.h"
 
 using namespace Eigen;
