@@ -46,7 +46,11 @@ void ReadConfiguration(const string filename, Configuration* configuration) {
       printf("Can not read configuration file\n");
       exit(-1);
   }
-  ifstr >> configuration->data_directory;
+
+  const int kMaxNumLetters = 1024;
+  char buffer[kMaxNumLetters];
+  ifstr.getline(buffer, kMaxNumLetters);
+  configuration->data_directory = buffer;
 
   int pano_start_id, pano_end_id;
   ifstr >> pano_start_id >> pano_end_id;

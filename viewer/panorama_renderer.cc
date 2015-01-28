@@ -87,8 +87,8 @@ void PanoramaRenderer::Init(const PanoramaConfiguration& configuration,
     widget = widget_tmp;
     rgb_image.load(configuration.rgb_image_filename.c_str());
     if (rgb_image.isNull()) {
-        cout<<"Can not open image file"<<endl;
-        exit (1);
+      cout << configuration.rgb_image_filename << endl;
+      exit (1);
     }
     phi_per_pixel = configuration.phi_range / rgb_image.height();
 
