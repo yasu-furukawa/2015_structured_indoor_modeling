@@ -16,7 +16,7 @@
 
 #ifndef FILE_IO_H__
 #define FILE_IO_H__
-
+#include <stdio.h>
 namespace structured_indoor_modeling {
 
 class FileIO {
