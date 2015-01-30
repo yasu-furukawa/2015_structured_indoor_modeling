@@ -6,6 +6,10 @@ find_package( OpenCV REQUIRED )
 LINK_DIRECTORIES(/usr/local/lib)
 
 set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
+if (WIN32)
+	set(OpenCV_DIR="C:\\opencv\\build\\x64\\vc12\\lib")
+endif (WIN32)
+
 add_executable( generate_texture_cli generate_texture_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
 target_link_libraries( generate_texture_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( generate_texture_cli ceres )
