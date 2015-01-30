@@ -57,7 +57,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   }
   polygon_renderer.Init(configuration.data_directory, this);
   floorplan_renderer.Init(configuration.data_directory,
-                          polygon_renderer.GetFloorplan().GetFloorplanToGlobal());
+                          polygon_renderer.GetFloorplanFinal().GetFloorplanToGlobal());
   panel_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
@@ -673,7 +673,7 @@ void MainWidget::RenderAllThumbnails(const double alpha, const int room_highligh
   // Make thumbnails smaller when rendering everything.
   const double kScale = 0.5;
 
-  const Floorplan& floorplan = polygon_renderer.GetFloorplan();
+  const Floorplan& floorplan = polygon_renderer.GetFloorplanFinal();
   const int num_room = floorplan.GetNumRooms();
   vector<Vector2i> room_centers(num_room);
   for (int room = 0; room < num_room; ++room) {
@@ -1120,7 +1120,7 @@ double MainWidget::HeightAdjustmentFunction(const double elapsed,
 }
 
 void MainWidget::SetPanoramaToRoom() {
-  const Floorplan& floorplan = polygon_renderer.GetFloorplan();
+  const Floorplan& floorplan = polygon_renderer.GetFloorplanFinal();
   const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
@@ -1140,7 +1140,7 @@ void MainWidget::SetPanoramaToRoom() {
 }
 
 void MainWidget::SetRoomToPanorama() {
-  const Floorplan& floorplan = polygon_renderer.GetFloorplan();
+  const Floorplan& floorplan = polygon_renderer.GetFloorplanFinal();
   const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {

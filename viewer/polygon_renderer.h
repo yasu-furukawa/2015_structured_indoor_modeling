@@ -34,7 +34,7 @@ class PolygonRenderer : protected QGLFunctions {
   void Init(const std::string data_directory, QGLWidget* widget);
   void InitGL();
 
-  const Floorplan& GetFloorplan() const { return floorplan; }
+  const Floorplan& GetFloorplanFinal() const { return floorplan; }
   Eigen::Vector2d GetRoomCenter(const int room) const { return room_centers_local[room]; }
   Eigen::Vector3d GetRoomCenterGlobal(const int room) const {
     const Eigen::Vector2d center = GetRoomCenter(room);

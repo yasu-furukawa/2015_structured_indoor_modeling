@@ -21,7 +21,7 @@ void FloorplanRenderer::Init(const std::string /*data_directory*/,
   FileIO file_io(data_directory);
   {
     ifstream ifstr;
-    ifstr.open(file_io.GetFloorplan().c_str());
+    ifstr.open(file_io.GetFloorplanFinal().c_str());
     ifstr >> floorplan;
     ifstr.close();
   }
