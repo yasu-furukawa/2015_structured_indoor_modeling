@@ -14,10 +14,10 @@ add_executable( generate_texture_cli generate_texture_cli.cc generate_texture.cc
 target_link_libraries( generate_texture_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( generate_texture_cli ceres )
 TARGET_LINK_LIBRARIES( generate_texture_cli gflags )
-TARGET_LINK_LIBRARIES( generate_texture_cli glog )
+# TARGET_LINK_LIBRARIES( generate_texture_cli glog )
 
 add_executable( color_point_cloud_cli color_point_cloud_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc ../base/kdtree/KDtree.cc )
 target_link_libraries( color_point_cloud_cli ${OpenCV_LIBS} )
 # TARGET_LINK_LIBRARIES( color_point_cloud_cli ceres )
 TARGET_LINK_LIBRARIES( color_point_cloud_cli gflags )
-TARGET_LINK_LIBRARIES( color_point_cloud_cli glog )
+# TARGET_LINK_LIBRARIES( color_point_cloud_cli glog )
