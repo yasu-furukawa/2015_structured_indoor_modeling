@@ -31,7 +31,11 @@ int main(int argc, char* argv[]) {
     cerr << "Usage: " << argv[0] << " data_directory" << endl;
     return 1;
   }
+#ifdef __APPLE__
   google::ParseCommandLineFlags(&argc, &argv, true);
+#else
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+#endif
   // google::InitGoogleLogging(argv[0]);
 
   // Read data from the directory.
