@@ -5,7 +5,7 @@ find_package( OpenCV REQUIRED )
 # INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 LINK_DIRECTORIES(/usr/local/lib)
 
-set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions")
+set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
 add_executable( generate_texture_cli generate_texture_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
 target_link_libraries( generate_texture_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( generate_texture_cli ceres )
