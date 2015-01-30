@@ -2,6 +2,10 @@
 
 #ifdef __linux__
 #include <GL/glu.h>
+#elif _WIN32
+#include <windows.h>
+#include <GL/GLU.h>
+using namespace std;
 #else
 #include <OpenGL/glu.h>
 #endif

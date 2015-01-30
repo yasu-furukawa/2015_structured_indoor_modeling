@@ -8,6 +8,8 @@
 
 #ifdef __linux__
 #include <GL/glu.h>
+#elif _WIN32
+#include <GL/GLU.h>
 #else
 #include <OpenGL/glu.h>
 #endif
