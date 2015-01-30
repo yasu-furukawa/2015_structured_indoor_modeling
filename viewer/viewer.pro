@@ -61,6 +61,13 @@ qtHaveModule(opengl) {
         LIBS += '-lopencv_imgproc.2.4.9'
 #       LIBS += '-L/opt/X11/lib -lGLU -framework OpenGL'
     }
+
+    win32{
+        LIBS += -LC:/opencv/build/x64/vc12/lib -lopencv_core2410 -lopencv_imgproc2410 -lopencv_highgui2410 -lopencv_core2410d -lopencv_imgproc2410d -lopencv_highgui2410d
+        INCLUDEPATH +=  C:/opencv/build/include
+        #INCLUDEPATH += $$PWD/../../../lib/eigen3
+        INCLUDEPATH += C:/Eigen3.2.2/
+    }
 }
 
 # install
