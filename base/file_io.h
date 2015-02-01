@@ -81,23 +81,16 @@ class FileIO {
     sprintf(buffer, "%s/floorplan_final.txt", data_directory.c_str());
     return buffer;
   }
+  std::string GetFloorplanSVG() const {
+    sprintf(buffer, "%s/floorplan.svg", data_directory.c_str());
+    return buffer;
+  }
 
   std::string GetTextureImage(const int index) const {
     sprintf(buffer, "%s/texture_atlas/texture_image_%03d.png", data_directory.c_str(), index);
     return buffer;
   }
-  /*
-  std::string GetFloorplan() const {
-    sprintf(buffer, "%s/floorplan.dat", data_directory.c_str());
-    return buffer;
-  }
-  */
-  /*
-  std::string GetRotationMat() const {
-    sprintf(buffer, "%s/rotationmat.txt", data_directory.c_str());
-    return buffer;
-  }
-  */
+
   std::string GetRoomThumbnail(const int room) const {
     sprintf(buffer, "%s/thumbnail/room_thumbnail%03d.png", data_directory.c_str(), room);
     return buffer;

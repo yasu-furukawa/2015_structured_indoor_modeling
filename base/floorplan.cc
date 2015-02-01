@@ -44,6 +44,7 @@ Eigen::Vector3d Floorplan::GetCeilingVertexGlobal(const int room, const int vert
 Eigen::Vector3d Floorplan::GetWallVertexGlobal(const int room, const int wall, const int vertex) const {
   const int v0 = wall;
   const int v1 = (wall + 1) % line_rooms[room].vertices.size();
+
   const Eigen::Vector3d v00 = GetFloorVertexGlobal(room, v0);
   const Eigen::Vector3d v01 = GetFloorVertexGlobal(room, v1);
   const Eigen::Vector3d v11 = GetCeilingVertexGlobal(room, v1);
@@ -70,6 +71,7 @@ Eigen::Vector3d Floorplan::GetDoorVertexGlobal(const int door, const int vertex)
   const int wall_vertex = line_doors[door].line_door_faces[face].vertex_indices[face_vertex];
   const int room = line_doors[door].line_door_faces[face].room_id;
   const int wall = line_doors[door].line_door_faces[face].wall_id;
+
   return GetWallVertexGlobal(room, wall, wall_vertex);
 }
 
@@ -266,6 +268,7 @@ istream& operator>>(istream& istr, Floorplan& floorplan) {
 
   int num_doors;
   istr >> num_doors;
+
   floorplan.line_doors.resize(num_doors);
   for (int d = 0; d < num_doors; ++d) {
     istr >> floorplan.line_doors[d];
@@ -375,6 +378,7 @@ istream& operator>>(istream& istr, LineDoor& line_door) {
     istr >> line_door.line_door_faces[i].room_id
          >> line_door.line_door_faces[i].wall_id;
   }
+  
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < 4; ++j) {
       istr >> line_door.line_door_faces[i].vertex_indices[j];
