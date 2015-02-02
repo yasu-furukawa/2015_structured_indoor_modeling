@@ -1,0 +1,14 @@
+all = Object_hole_filling
+object = object_hole_filling_cali.o SLIC.o object_hole_filling.o
+LIBS += -L/usr/local/lib -lgflags -lopencv_core -lopencv_highgui -lopencv_imgproc
+LIBS += -L/usr/lib/x86_64-linux-gnu -lpthread
+INCLUDE += -I/usr/local/include -I/usr/include
+
+$(all): $(object)
+	g++ $(object) $(LIBS) -o $(all)
+SLIC.o: SLIC.cpp SLIC.h
+	g++ -c SLIC.cpp -o SLIC.o
+object_hole_filling.o: object_hole_filling.cpp
+	g++ -c $(INCLUDE) object_hole_filling.cpp -o object_hole_filling.o
+object_hole_filling_cali.o: object_hole_filling_cali.cpp  ../base/file_io.h
+	g++ -c $(INCLUDE) object_hole_filling_cali.cpp -o object_hole_filling_cali.o

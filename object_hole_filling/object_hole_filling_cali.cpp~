@@ -1,0 +1,76 @@
+#include "SLIC.h"
+#include <iostream>
+#include <fstream>
+#include <opencv2/opencv.hpp>
+#include <string>
+#include <gflags/gflags.h>
+#include "../base/file_io.h"
+#include <vector>
+#include <typeinfo>
+using namespace std;
+using namespace cv;
+
+DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
+DEFINE_int32(label_num,3000,"Number of superpixel");
+
+int main(int argc, char **argv){
+  gflags::ParseCommandLineFlags(&argc,&argv,true);
+  if(!FLAGS_config_path.length() > 0){
+    cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
+  }
+  //get path to data
+  char pathtodata[100];
+  int startid, endid;
+  ifstream confin(FLAGS_config_path.c_str());
+  confin.getline(pathtodata,100);
+  confin>>startid>>endid;
+  confin.close();
+  string pathtodata_s(pathtodata);
+  structured_indoor_modeling::FileIO file_io(pathtodata_s);
+
+  for (int id=startid; id<endid; id++) {
+    //Generate superpixel image
+    cout<<"Panorama "<<id<<endl;
+    Mat pan = imread(file_io.GetPanoramaImage(id));
+    SLIC slic;
+    int imgwidth = pan.cols;
+    int imgheight = pan.rows;
+    int numlabels(0);
+    vector<int> labels(imgwidth*imgheight);
+    vector<unsigned int>imagebuffer(imgwidth*imgheight);
+
+    cout << file_io.GetObjectPointClouds(id)<<endl;
+  
+    for(int y=0;y<imgheight;y++){
+      for(int x=0;x<imgwidth;x++){
+	Vec3b curpix = pan.at<Vec3b>(y,x);
+	int ind = y*imgwidth + x;
+	imagebuffer[ind] = (unsigned int)255*256*256*256 + (unsigned int)curpix[0]*256*256 + (unsigned int)curpix[1]*256 + (unsigned int)curpix[2];
+      }
+    }
+
+    cout<<"Performing SLICO Superpixel..."<<endl;
+    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[0],numlabels,FLAGS_label_num,0.0);
+    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[0],imgwidth,imgheight);
+
+    cout<<"numlabels: "<<numlabels<<endl;
+  
+    Mat out = Mat(imgheight,imgwidth,CV_8UC3);
+    for(int y=0;y<imgheight;y++){
+      for(int x=0;x<imgwidth;x++){
+	Vec3b curpix;
+	curpix[0] = imagebuffer[y*imgwidth+x] >> 16 & 0xff;
+	curpix[1] = imagebuffer[y*imgwidth+x] >> 8 & 0xff;
+	curpix[2] = imagebuffer[y*imgwidth+x] & 0xff;
+	out.at<Vec3b>(y,x) = curpix;
+      }
+    }
+    char buffer[100];
+    sprintf(buffer,"%s/SLIC%03d.png",file_io.GetDataDirectory().c_str(),id);
+    imwrite(buffer,out);
+    waitKey(10);
+   }
+
+  return 0;
+}
+

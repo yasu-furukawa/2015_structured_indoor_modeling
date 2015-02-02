@@ -1,0 +1,18 @@
+#include <iostream>
+#include <opencv2/opencv.hpp>
+
+using namespace std;
+using namespace cv;
+
+
+//convert a Mat image to SLIC image
+void MatToImageBuffer(const Mat image, vector<unsigned int>&imagebuffer){
+  for(int y=0;y<imgheight;y++){
+    for(int x=0;x<imgwidth;x++){
+      Vec3b curpix = pan.at<Vec3b>(y,x);
+      int ind = y*imgwidth + x;
+      imagebuffer[ind] = (unsigned int)255*256*256*256 + (unsigned int)curpix[0]*256*256 + (unsigned int)curpix[1]*256 + (unsigned int)curpix[2];
+    }
+  }
+
+}

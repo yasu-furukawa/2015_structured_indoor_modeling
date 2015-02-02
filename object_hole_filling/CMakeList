@@ -1,0 +1,10 @@
+project(Object_hole_filling)
+
+find_package (gflags REQUIRED)
+find_package (opencv REQUIRED)
+include_directories("/usr/include" "/usr/local/include")
+
+add_excutable(Object_hole_filling object_hole_filling_cali.cpp)
+
+target_link_libraries(Object_hole_filling gflags)
+target_link_libraries(Object_hole_filling opencv)
