@@ -287,7 +287,7 @@ void Navigation::Tick() {
     break;
   }
   case kPanoramaToAirTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.01;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
       camera_status = kAir;
@@ -635,8 +635,14 @@ double Navigation::ProgressInverse() const {
   case kAirTransition:
     return cos(camera_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
   case kPanoramaToAirTransition:
-  case kAirToPanoramaTransition:
-    return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  case kAirToPanoramaTransition: {
+    // return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+    // sigmoid.
+    const double minimum_value = 1 / (1 + exp(6.0));
+    const double maximum_value = 1 / (1 + exp(-6.0));
+    const double sigmoid = 1 / (1 + exp(- (6.0 - 12.0 * camera_between_panorama_and_air.progress)));
+    return (sigmoid - minimum_value) / (maximum_value - minimum_value);
+  }
   case kPanoramaTour:
     return cos(camera_panorama_tour.progress * M_PI) / 2.0 + 1.0 / 2.0;
   default:
