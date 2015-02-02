@@ -679,6 +679,8 @@ double Navigation::GetFieldOfViewInDegrees() const {
     const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height;
     const double end_size = 1.0 / tan(end_field_of_view / 2.0) / end_height;
 
+    //const double start_weight = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.6);
+    //const double end_weight = 1.0 - start_weight;
     const double start_weight = ProgressInverse();
     const double end_weight = 1.0 - start_weight;
 
