@@ -18,6 +18,9 @@ enum CameraStatus {
   // CameraAir handles the state.
   kAir,
   kAirTransition,
+  // CameraFloorplan handles the state.
+  
+  
   // CameraBetweenGroundAndAir handles the state.
   kPanoramaToAirTransition,
   kAirToPanoramaTransition,
@@ -116,7 +119,7 @@ class Navigation {
   
  private:
   bool Collide(const int from_index, const int to_index) const;
-  void SetBestAirViewpoint(const Floorplan& floorplan);
+  void SetAirViewpoints(const Floorplan& floorplan);
   
   // Camera is at (center) and looks along (direction).
   CameraStatus camera_status;
@@ -130,12 +133,16 @@ class Navigation {
   double air_height;
   // Angle of viewing in the air.
   double air_angle;
+  // Field of view.
+  double air_field_of_view_degrees;
+  
   // Best ground_center for air.
   Eigen::Vector3d best_ground_center;
   Eigen::Vector3d best_start_directions_for_air[2];
 
   // Average distance.
   double average_distance;
+  double average_floor_height;
 
   // Scaling in air field of view.
   double air_field_of_view_scale;

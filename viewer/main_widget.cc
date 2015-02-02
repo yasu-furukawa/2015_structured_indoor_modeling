@@ -1035,9 +1035,11 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       break;
     }
     case kAir: {
-      diff /= 800.0;
+      diff /= 100.0;
       Vector3d direction = navigation.GetDirection();
       direction[2] = 0.0;
+      direction.normalize();
+      direction *= navigation.GetAverageDistance();
       Vector3d orthogonal(-direction[1], direction[0], 0.0);
       navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);
       break;
@@ -1076,9 +1078,13 @@ void MainWidget::timerEvent(QTimerEvent *) {
 
 bool MainWidget::RightAfterSimpleClick(const double margin) const {
   const double kDoubleClickMargin = 0.5;
-  if ((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 > kFadeInSeconds - margin &&
-      (simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 < kFadeOutSeconds + margin &&
-      (double_click_time.elapsed() - (simple_click_time.elapsed() - simple_click_time_offset_by_move)) / 1000.0 > kDoubleClickMargin - margin) {
+  if ((simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 >
+      kFadeInSeconds - margin &&
+      (simple_click_time.elapsed() - simple_click_time_offset_by_move) / 1000.0 <
+      kFadeOutSeconds + margin &&
+      (double_click_time.elapsed() -
+       (simple_click_time.elapsed() - simple_click_time_offset_by_move)) / 1000.0 >
+      kDoubleClickMargin - margin) {
     return true;
   }
   else {
