@@ -38,6 +38,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *e);
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);
+    void wheelEvent(QWheelEvent* e);
     
     void timerEvent(QTimerEvent *e);
 

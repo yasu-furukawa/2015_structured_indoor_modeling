@@ -1003,6 +1003,21 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
 void MainWidget::keyReleaseEvent(QKeyEvent *) {  
 }
 
+void MainWidget::wheelEvent(QWheelEvent* e) {
+  switch (navigation.GetCameraStatus()) {
+  case kAir: {
+    if (e->orientation() == Qt::Vertical) {
+      navigation.ScaleAirFieldOfView(e->delta());
+      updateGL();
+    }
+    break;
+  }
+  default: {
+    break;
+  }
+  }
+}
+
 void MainWidget::mouseMoveEvent(QMouseEvent *e) {
   QVector2D diff = QVector2D(e->localPos()) - mouseMovePosition;
   mouseMovePosition = QVector2D(e->localPos());

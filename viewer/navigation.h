@@ -7,6 +7,7 @@
 
 namespace structured_indoor_modeling {
 
+class Floorplan;
 class PanoramaRenderer;
 class PolygonRenderer;
 
@@ -47,6 +48,9 @@ struct CameraAir {
     return ground_center - start_direction;
   }
 };
+
+// struct CameraFloorplan {
+// };
 
 struct CameraBetweenPanoramaAndAir {
   // "progress" is not used in camera_panorama and camera_air.
@@ -105,12 +109,14 @@ class Navigation {
   void RotatePanorama(const double radian);
   void MoveAir(const Eigen::Vector3d& translation);
   void RotateSky(const double radian);
+  void ScaleAirFieldOfView(const int wheel);
 
   void PanoramaToAir();
   void AirToPanorama(const int panorama_index);
   
  private:
   bool Collide(const int from_index, const int to_index) const;
+  void SetBestAirViewpoint(const Floorplan& floorplan);
   
   // Camera is at (center) and looks along (direction).
   CameraStatus camera_status;
@@ -124,9 +130,15 @@ class Navigation {
   double air_height;
   // Angle of viewing in the air.
   double air_angle;
+  // Best ground_center for air.
+  Eigen::Vector3d best_ground_center;
+  Eigen::Vector3d best_start_directions_for_air[2];
 
   // Average distance.
   double average_distance;
+
+  // Scaling in air field of view.
+  double air_field_of_view_scale;
 
   const std::vector<PanoramaRenderer>& panorama_renderers;
   const PolygonRenderer& polygon_renderer;
