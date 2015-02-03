@@ -8,6 +8,7 @@
 #include <vector>
 #include <typeinfo>
 #include "object_hole_filling.h"
+
 using namespace std;
 using namespace cv;
 
@@ -15,6 +16,7 @@ DEFINE_string(config_path,"lumber.configuration","Path to the configuration file
 DEFINE_int32(label_num,3000,"Number of superpixel");
 
 int main(int argc, char **argv){
+
   gflags::ParseCommandLineFlags(&argc,&argv,true);
   if(!FLAGS_config_path.length() > 0){
     cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
@@ -56,5 +58,6 @@ int main(int argc, char **argv){
   }
 
   return 0;
+>>>>>>> 5548ed44e4f2181c7e03e64c49a9e196315c527f
 }
 

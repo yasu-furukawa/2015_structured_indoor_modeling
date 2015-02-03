@@ -6,7 +6,6 @@
 using namespace std;
 using namespace cv;
 
-
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const Mat image, vector <unsigned int> &imagebuffer);
 

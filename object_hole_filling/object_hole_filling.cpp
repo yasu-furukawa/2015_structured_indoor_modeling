@@ -3,7 +3,8 @@
 using namespace std;
 using namespace cv;
 
-void MatToImageBuffer(const Mat image, vector<unsigned int>&imagebuffer){
+
+void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
   if(!image.data){
     cout << "invlid image"<<endl;
     exit(-1);
@@ -39,3 +40,4 @@ void ImagebufferToMat(const vector <unsigned int>imagebuffer,const int imgwidth,
     }
   }
 }
+
