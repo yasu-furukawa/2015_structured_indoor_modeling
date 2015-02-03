@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
   app.setApplicationName("viewer");
 #ifndef QT_NO_OPENGL
+
   QWidget window;
   window.resize(1024, 720);
   // window.resize(1280, 720);
