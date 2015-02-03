@@ -740,7 +740,7 @@ void MainWidget::RenderAllThumbnails(const double alpha, const int room_highligh
   */
 }
 
-void MainWidget::paintGL() {  
+void MainWidget::paintGL() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   SetMatrices();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1105,6 +1105,7 @@ void MainWidget::timerEvent(QTimerEvent *) {
   switch (navigation.GetCameraStatus()) {
   case kPanoramaTransition:
   case kAirTransition:
+  case kFloorplanTransition:
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition:
   case kPanoramaToFloorplanTransition:

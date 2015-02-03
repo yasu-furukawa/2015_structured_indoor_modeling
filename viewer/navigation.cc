@@ -388,6 +388,17 @@ void Navigation::Tick() {
     }
     break;
   }
+  case kFloorplanTransition: {
+    const double kStepSize = 0.02;
+    camera_floorplan.progress += kStepSize;
+    if (camera_floorplan.progress >= 1.0) {
+      camera_status = kFloorplan;
+
+      camera_floorplan.start_direction = camera_floorplan.end_direction;
+      camera_floorplan.progress = 0.0;
+    }
+    break;
+  }
   case kPanoramaToAirTransition: {
     const double kStepSize = 0.02;
     camera_in_transition.progress += kStepSize;
@@ -403,12 +414,6 @@ void Navigation::Tick() {
     const double kStepSize = 0.02;
     camera_in_transition.progress += kStepSize;
     if (camera_in_transition.progress >= 1.0) {
-      /*
-      camera_status = kPanorama;
-
-      camera_panorama = camera_in_transition.camera_panorama;
-      camera_panorama.progress = 0.0;
-      */
       camera_status = kPanoramaTransition;
       camera_panorama = camera_in_transition.camera_panorama;
       camera_panorama.end_index = camera_panorama.start_index;
@@ -426,6 +431,61 @@ void Navigation::Tick() {
     }
     break;
   }
+  case kPanoramaToFloorplanTransition: {
+    const double kStepSize = 0.02;
+    camera_in_transition.progress += kStepSize;
+    if (camera_in_transition.progress >= 1.0) {
+      camera_status = kFloorplan;
+
+      camera_floorplan = camera_in_transition.camera_floorplan;
+      camera_floorplan.progress = 0.0;
+    }
+    break;
+  }
+  case kFloorplanToPanoramaTransition: {
+    const double kStepSize = 0.02;
+    camera_in_transition.progress += kStepSize;
+    if (camera_in_transition.progress >= 1.0) {
+      camera_status = kPanoramaTransition;
+      camera_panorama = camera_in_transition.camera_panorama;
+      camera_panorama.end_index = camera_panorama.start_index;
+      camera_panorama.end_center = camera_panorama.start_center;
+
+      const int room = panorama_to_room.find(camera_panorama.start_index)->second;
+      camera_panorama.end_direction =
+        polygon_renderer.GetRoomCenterGlobal(room) - camera_panorama.start_center;
+      camera_panorama.end_direction[2] = 0.0;
+      camera_panorama.end_direction.normalize();
+      camera_panorama.end_direction *= panorama_renderers[camera_panorama.start_index].GetAverageDistance();
+      RobustifyDirection(camera_panorama.start_direction, &camera_panorama.end_direction);
+
+      camera_panorama.progress = 0.0;
+    }
+    break;
+  }
+  case kAirToFloorplanTransition: {
+    const double kStepSize = 0.02;
+    camera_in_transition.progress += kStepSize;
+    if (camera_in_transition.progress >= 1.0) {
+      camera_status = kFloorplan;
+
+      camera_floorplan = camera_in_transition.camera_floorplan;
+      camera_floorplan.progress = 0.0;
+    }
+    break;
+  }
+  case kFloorplanToAirTransition: {
+    const double kStepSize = 0.02;
+    camera_in_transition.progress += kStepSize;
+    if (camera_in_transition.progress >= 1.0) {
+      camera_status = kAir;
+
+      camera_air = camera_in_transition.camera_air;
+      camera_air.progress = 0.0;
+    }
+    break;
+  }
+    
   case kPanoramaTour: {
     double step_size;
     if (camera_panorama_tour.indexes.size() > 4)
@@ -789,8 +849,8 @@ void Navigation::AirToFloorplan() {
   {
     CameraFloorplan& camera_floorplan      = camera_in_transition.camera_floorplan;
     camera_floorplan.ground_center = best_ground_center;
-    if (camera_panorama.start_direction.dot(best_start_directions_for_floorplan[0]) >
-        camera_panorama.start_direction.dot(best_start_directions_for_floorplan[1]))
+    if (camera_air.start_direction.dot(best_start_directions_for_floorplan[0]) >
+        camera_air.start_direction.dot(best_start_directions_for_floorplan[1]))
       camera_floorplan.start_direction = best_start_directions_for_floorplan[0];
     else
       camera_floorplan.start_direction = best_start_directions_for_floorplan[1];
@@ -806,8 +866,8 @@ void Navigation::FloorplanToAir() {
   {
     CameraAir& camera_air      = camera_in_transition.camera_air;
     camera_air.ground_center = best_ground_center;
-    if (camera_panorama.start_direction.dot(best_start_directions_for_air[0]) >
-        camera_panorama.start_direction.dot(best_start_directions_for_air[1]))
+    if (camera_floorplan.start_direction.dot(best_start_directions_for_air[0]) >
+        camera_floorplan.start_direction.dot(best_start_directions_for_air[1]))
       camera_air.start_direction = best_start_directions_for_air[0];
     else
       camera_air.start_direction = best_start_directions_for_air[1];
