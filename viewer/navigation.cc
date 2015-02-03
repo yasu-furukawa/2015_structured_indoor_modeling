@@ -1,5 +1,6 @@
 #include <Eigen/Geometry>
 #include <iostream>
+#include "configuration.h"
 #include "navigation.h"
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
@@ -11,6 +12,7 @@ namespace structured_indoor_modeling {
 
 namespace {
 
+  /*
 Eigen::Vector3d ComputeAirDirectionFromPanorama(const Eigen::Vector3d& panorama_direction,
                                                 const double air_height,
                                                 const double air_angle) {
@@ -21,6 +23,7 @@ Eigen::Vector3d ComputeAirDirectionFromPanorama(const Eigen::Vector3d& panorama_
 
   return direction;
 }
+  */
 
 Eigen::Vector3d ComputePanoramaDirectionFromAir(const Eigen::Vector3d& air_direction,
                                                 const double distance) {
@@ -32,6 +35,16 @@ Eigen::Vector3d ComputePanoramaDirectionFromAir(const Eigen::Vector3d& air_direc
   return direction;
 }
 
+Eigen::Vector3d ComputePanoramaDirectionFromFloorplan(const Eigen::Vector3d& floorplan_direction,
+                                                      const double distance) {
+  Vector3d direction = floorplan_direction;
+  const int kZIndex = 2;
+  direction[kZIndex] = 0.0;
+  direction.normalize();
+  direction *= distance;
+  return direction;
+}
+  
 void RobustifyDirection(const Eigen::Vector3d& lhs, Eigen::Vector3d* rhs) {
   const double length = (lhs.norm() + rhs->norm()) / 2.0;
   const double move_length = length * 0.01;
@@ -88,12 +101,17 @@ Eigen::Vector3d CameraPanoramaTour::GetDirection(const double progress) const {
   return direction;
 }
 
-Navigation::Navigation(const vector<PanoramaRenderer>& panorama_renderers,
+Navigation::Navigation(const Configuration& configuration,
+                       const vector<PanoramaRenderer>& panorama_renderers,
                        const PolygonRenderer& polygon_renderer,
                        const std::map<int, int>& panorama_to_room,
                        const std::map<int, int>& room_to_panorama)
   : panorama_renderers(panorama_renderers), polygon_renderer(polygon_renderer),
     panorama_to_room(panorama_to_room), room_to_panorama(room_to_panorama) {
+  air_angle = configuration.air_angle;
+  air_field_of_view_degrees = configuration.air_field_of_view_degrees;
+  floorplan_angle = configuration.floorplan_angle;
+  floorplan_field_of_view_degrees = configuration.floorplan_field_of_view_degrees;
 }
 
 Vector3d Navigation::GetCenter() const {
@@ -114,26 +132,57 @@ Vector3d Navigation::GetCenter() const {
     const Vector3d direction = GetDirection();
     return camera_air.ground_center - direction;
   }
+  case kFloorplan: {
+    return camera_floorplan.GetCenter();
+  }  
+  case kFloorplanTransition: {
+    const Vector3d direction = GetDirection();
+    return camera_floorplan.ground_center - direction;
+  }  
   case kPanoramaToAirTransition: {
     const double weight_start = ProgressInverse();
     const double weight_end = 1.0 - weight_start;
     return
-      weight_start * camera_between_panorama_and_air.camera_panorama.start_center +
-      weight_end * (camera_between_panorama_and_air.camera_air.GetCenter());
+      weight_start * camera_in_transition.camera_panorama.start_center +
+      weight_end * (camera_in_transition.camera_air.GetCenter());
   }
   case kAirToPanoramaTransition: {
     const double weight_start = ProgressInverse();
     const double weight_end = 1.0 - weight_start;
     return
-      weight_start * (camera_between_panorama_and_air.camera_air.GetCenter()) +
-      weight_end * camera_between_panorama_and_air.camera_panorama.start_center;
+      weight_start * (camera_in_transition.camera_air.GetCenter()) +
+      weight_end * camera_in_transition.camera_panorama.start_center;
   }
+  case kPanoramaToFloorplanTransition: {
+    const double weight_start = ProgressInverse();
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * camera_in_transition.camera_panorama.start_center +
+      weight_end * (camera_in_transition.camera_floorplan.GetCenter());
+  }
+  case kFloorplanToPanoramaTransition: {
+    const double weight_start = ProgressInverse();
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * (camera_in_transition.camera_floorplan.GetCenter()) +
+      weight_end * camera_in_transition.camera_panorama.start_center;
+  }
+  case kAirToFloorplanTransition: {
+    const double weight_start = ProgressInverse();
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * (camera_in_transition.camera_air.GetCenter()) +
+      weight_end * (camera_in_transition.camera_floorplan.GetCenter());
+  }
+  case kFloorplanToAirTransition: {
+    const double weight_start = ProgressInverse();
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * (camera_in_transition.camera_floorplan.GetCenter()) +
+      weight_end * (camera_in_transition.camera_air.GetCenter());
+  }    
   case kPanoramaTour: {
     return camera_panorama_tour.GetCenter(1.0 - ProgressInverse());
-  }
-  default: {
-    cerr << "Invalid camera_status." << endl;
-    exit (1);
   }
   }
 }
@@ -186,28 +235,77 @@ Vector3d Navigation::GetDirection() const {
     direction[2] = vertical_distance;
     return direction;
   }
+  case kFloorplan: {
+    return camera_floorplan.start_direction;
+  }
+  case kFloorplanTransition: {
+    Vector3d horizontal_direction = camera_floorplan.start_direction;
+    const double vertical_distance = horizontal_direction[2];
+    horizontal_direction[2] = 0.0;
+    const double horizontal_distance = horizontal_direction.norm();
+    
+    const double weight_start = (cos(camera_floorplan.progress * M_PI) + 1.0) / 2.0;
+    const double weight_end = 1.0 - weight_start;
+    Vector3d direction = weight_start * camera_floorplan.start_direction +
+      weight_end * camera_floorplan.end_direction;
+    direction[2] = 0.0;
+    direction.normalize();
+    direction *= horizontal_distance;
+    direction[2] = vertical_distance;
+    return direction;
+  }
+    
   case kPanoramaToAirTransition: {
     const double weight_start =
-      (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
+      (cos(camera_in_transition.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
     return
-      weight_start * camera_between_panorama_and_air.camera_panorama.start_direction +
-      weight_end * camera_between_panorama_and_air.camera_air.start_direction;
+      weight_start * camera_in_transition.camera_panorama.start_direction +
+      weight_end * camera_in_transition.camera_air.start_direction;
   }
   case kAirToPanoramaTransition: {
     const double weight_start =
-      (cos(camera_between_panorama_and_air.progress * M_PI) + 1.0) / 2.0;
+      (cos(camera_in_transition.progress * M_PI) + 1.0) / 2.0;
     const double weight_end = 1.0 - weight_start;
     return
-      weight_start * camera_between_panorama_and_air.camera_air.start_direction +
-      weight_end * camera_between_panorama_and_air.camera_panorama.start_direction;
+      weight_start * camera_in_transition.camera_air.start_direction +
+      weight_end * camera_in_transition.camera_panorama.start_direction;
   }
+  case kPanoramaToFloorplanTransition: {
+    const double weight_start =
+      (cos(camera_in_transition.progress * M_PI) + 1.0) / 2.0;
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * camera_in_transition.camera_panorama.start_direction +
+      weight_end * camera_in_transition.camera_floorplan.start_direction;
+  }
+  case kFloorplanToPanoramaTransition: {
+    const double weight_start =
+      (cos(camera_in_transition.progress * M_PI) + 1.0) / 2.0;
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * camera_in_transition.camera_floorplan.start_direction +
+      weight_end * camera_in_transition.camera_panorama.start_direction;
+  }
+  case kAirToFloorplanTransition: {
+    const double weight_start =
+      (cos(camera_in_transition.progress * M_PI) + 1.0) / 2.0;
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * camera_in_transition.camera_air.start_direction +
+      weight_end * camera_in_transition.camera_floorplan.start_direction;
+  }
+  case kFloorplanToAirTransition: {
+    const double weight_start =
+      (cos(camera_in_transition.progress * M_PI) + 1.0) / 2.0;
+    const double weight_end = 1.0 - weight_start;
+    return
+      weight_start * camera_in_transition.camera_floorplan.start_direction +
+      weight_end * camera_in_transition.camera_air.start_direction;
+  }
+    
   case kPanoramaTour: {
     return camera_panorama_tour.GetDirection(1.0 - ProgressInverse());
-  }
-  default: {
-    cerr << "Invalid camera_status." << endl;
-    exit (1);
   }
   }
 }
@@ -224,8 +322,12 @@ const CameraAir& Navigation::GetCameraAir() const {
   return camera_air;
 }
 
-const CameraBetweenPanoramaAndAir& Navigation::GetCameraBetweenPanoramaAndAir() const {
-  return camera_between_panorama_and_air;
+const CameraFloorplan& Navigation::GetCameraFloorplan() const {
+  return camera_floorplan;
+}
+  
+const CameraInTransition& Navigation::GetCameraInTransition() const {
+  return camera_in_transition;
 }
 
 const CameraPanoramaTour& Navigation::GetCameraPanoramaTour() const {
@@ -257,7 +359,7 @@ void Navigation::Init() {
     average_distance /= static_cast<int>(panorama_renderers.size());
   }
 
- SetAirViewpoints(polygon_renderer.GetFloorplanFinal());
+  SetAirFloorplanViewpoints(polygon_renderer.GetFloorplanFinal());
 }
 
 void Navigation::Tick() {
@@ -288,27 +390,27 @@ void Navigation::Tick() {
   }
   case kPanoramaToAirTransition: {
     const double kStepSize = 0.02;
-    camera_between_panorama_and_air.progress += kStepSize;
-    if (camera_between_panorama_and_air.progress >= 1.0) {
+    camera_in_transition.progress += kStepSize;
+    if (camera_in_transition.progress >= 1.0) {
       camera_status = kAir;
 
-      camera_air = camera_between_panorama_and_air.camera_air;
+      camera_air = camera_in_transition.camera_air;
       camera_air.progress = 0.0;
     }
     break;
   }
   case kAirToPanoramaTransition: {
     const double kStepSize = 0.02;
-    camera_between_panorama_and_air.progress += kStepSize;
-    if (camera_between_panorama_and_air.progress >= 1.0) {
+    camera_in_transition.progress += kStepSize;
+    if (camera_in_transition.progress >= 1.0) {
       /*
       camera_status = kPanorama;
 
-      camera_panorama = camera_between_panorama_and_air.camera_panorama;
+      camera_panorama = camera_in_transition.camera_panorama;
       camera_panorama.progress = 0.0;
       */
       camera_status = kPanoramaTransition;
-      camera_panorama = camera_between_panorama_and_air.camera_panorama;
+      camera_panorama = camera_in_transition.camera_panorama;
       camera_panorama.end_index = camera_panorama.start_index;
       camera_panorama.end_center = camera_panorama.start_center;
 
@@ -383,11 +485,15 @@ void Navigation::MoveAir(const Eigen::Vector3d& translation)  {
   camera_air.ground_center += translation;
 }
 
+void Navigation::MoveFloorplan(const Eigen::Vector3d& translation)  {
+  camera_floorplan.ground_center += translation;
+}
+
 bool Navigation::Collide(const int /*from_index*/, const int /*to_index*/) const {
   return false;
 }
 
-void Navigation::SetAirViewpoints(const Floorplan& floorplan) { 
+void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) { 
   // Compute best ground_center and start_direction for air.  
   Eigen::Vector2d x_range, y_range;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -407,14 +513,16 @@ void Navigation::SetAirViewpoints(const Floorplan& floorplan) {
 
   //----------------------------------------------------------------------
   {
-    air_angle = 60.0 * M_PI / 180.0;
-    air_field_of_view_degrees = 10.0;
     air_field_of_view_scale = 1.0;
+    floorplan_field_of_view_scale = 1.0;
 
     // diameter must be visible in the given field-of-view along air_angle.
     const double diameter = max(x_range[1] - x_range[0], y_range[1] - y_range[0]);
     air_height = diameter / 2.0 / tan(air_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(air_angle);
     air_height *= 0.8;
+
+    floorplan_height = diameter / 2.0 / tan(floorplan_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(floorplan_angle);
+    floorplan_height *= 0.8;
   }
 
   const Vector2d center_local((x_range[0] + x_range[1]) / 2.0,
@@ -447,9 +555,13 @@ void Navigation::SetAirViewpoints(const Floorplan& floorplan) {
         best_start_directions_for_air[i] = 
           floorplan.GetFloorplanToGlobal() * Vector3d(-1, 0, 0);
     }
+    best_start_directions_for_floorplan[i] = best_start_directions_for_air[i];
         
     best_start_directions_for_air[i] += -tan(air_angle) * Vector3d(0, 0, 1);
     best_start_directions_for_air[i] *= air_height / tan(air_angle);
+
+    best_start_directions_for_floorplan[i] += -tan(floorplan_angle) * Vector3d(0, 0, 1);
+    best_start_directions_for_floorplan[i] *= floorplan_height / tan(floorplan_angle);
   }
 }  
 
@@ -568,7 +680,7 @@ void Navigation::RotatePanorama(const double radian) {
   RobustifyDirection(camera_panorama.start_direction, &camera_panorama.end_direction);
 }
 
-void Navigation::RotateSky(const double radian) {
+void Navigation::RotateAir(const double radian) {
   Matrix3d rotation;
   rotation << cos(radian), -sin(radian), 0.0,
     sin(radian), cos(radian), 0.0,
@@ -579,72 +691,155 @@ void Navigation::RotateSky(const double radian) {
   camera_status = kAirTransition;  
 }
 
+void Navigation::RotateFloorplan(const double radian) {
+  Matrix3d rotation;
+  rotation << cos(radian), -sin(radian), 0.0,
+    sin(radian), cos(radian), 0.0,
+    0.0, 0.0, 1.0;
+
+  camera_floorplan.end_direction = rotation * camera_floorplan.start_direction;
+  camera_floorplan.progress = 0.0;
+  camera_status = kFloorplanTransition;  
+}
+  
 void Navigation::ScaleAirFieldOfView(const int wheel) {
   air_field_of_view_scale += wheel / 800.0;
   
   air_field_of_view_scale = max(air_field_of_view_scale, 0.25);
   air_field_of_view_scale = min(air_field_of_view_scale, 4.0);
 }
+
+void Navigation::ScaleFloorplanFieldOfView(const int wheel) {
+  floorplan_field_of_view_scale += wheel / 800.0;
+  
+  floorplan_field_of_view_scale = max(floorplan_field_of_view_scale, 0.25);
+  floorplan_field_of_view_scale = min(floorplan_field_of_view_scale, 4.0);
+}
   
 void Navigation::PanoramaToAir() {
   camera_status = kPanoramaToAirTransition;
 
-  camera_between_panorama_and_air.camera_panorama = camera_panorama;
+  camera_in_transition.camera_panorama = camera_panorama;
   {
-    CameraAir& camera_air      = camera_between_panorama_and_air.camera_air;
+    CameraAir& camera_air      = camera_in_transition.camera_air;
     camera_air.ground_center = best_ground_center;
     if (camera_panorama.start_direction.dot(best_start_directions_for_air[0]) >
         camera_panorama.start_direction.dot(best_start_directions_for_air[1]))
       camera_air.start_direction = best_start_directions_for_air[0];
     else
       camera_air.start_direction = best_start_directions_for_air[1];
-
-    /*
-    camera_air.ground_center   =
-      camera_panorama.start_center + camera_panorama.start_direction;
-    camera_air.start_direction =
-      ComputeAirDirectionFromPanorama(camera_panorama.start_direction,
-                                      air_height,
-                                      air_angle);
-    */
   }
   
-  camera_between_panorama_and_air.progress = 0.0;  
+  camera_in_transition.progress = 0.0;  
 }
 
 void Navigation::AirToPanorama(const int panorama_index) {
   camera_status = kAirToPanoramaTransition;
   
-  camera_between_panorama_and_air.camera_air = camera_air;
+  camera_in_transition.camera_air = camera_air;
   {
     CameraPanorama& camera_panorama =
-      camera_between_panorama_and_air.camera_panorama;
+      camera_in_transition.camera_panorama;
     camera_panorama.start_index     = panorama_index;
     camera_panorama.start_center    = panorama_renderers[panorama_index].GetCenter();
     camera_panorama.start_direction =
       ComputePanoramaDirectionFromAir(camera_air.start_direction,
                                       panorama_renderers[panorama_index].GetAverageDistance());
   }
-  camera_between_panorama_and_air.progress = 0.0;  
+  camera_in_transition.progress = 0.0;  
 }
- 
+
+void Navigation::PanoramaToFloorplan() {
+  camera_status = kPanoramaToFloorplanTransition;
+
+  camera_in_transition.camera_panorama = camera_panorama;
+  {
+    CameraFloorplan& camera_floorplan      = camera_in_transition.camera_floorplan;
+    camera_floorplan.ground_center = best_ground_center;
+    if (camera_panorama.start_direction.dot(best_start_directions_for_floorplan[0]) >
+        camera_panorama.start_direction.dot(best_start_directions_for_floorplan[1]))
+      camera_floorplan.start_direction = best_start_directions_for_floorplan[0];
+    else
+      camera_floorplan.start_direction = best_start_directions_for_floorplan[1];
+  }
+  
+  camera_in_transition.progress = 0.0;  
+}
+
+void Navigation::FloorplanToPanorama(const int panorama_index) {
+  camera_status = kFloorplanToPanoramaTransition;
+  
+  camera_in_transition.camera_floorplan = camera_floorplan;
+  {
+    CameraPanorama& camera_panorama =
+      camera_in_transition.camera_panorama;
+    camera_panorama.start_index     = panorama_index;
+    camera_panorama.start_center    = panorama_renderers[panorama_index].GetCenter();
+    camera_panorama.start_direction =
+      ComputePanoramaDirectionFromFloorplan(camera_floorplan.start_direction,
+                                            panorama_renderers[panorama_index].GetAverageDistance());
+  }
+  camera_in_transition.progress = 0.0;  
+}
+
+void Navigation::AirToFloorplan() {
+  camera_status = kAirToFloorplanTransition;
+
+  camera_in_transition.camera_air = camera_air;
+  {
+    CameraFloorplan& camera_floorplan      = camera_in_transition.camera_floorplan;
+    camera_floorplan.ground_center = best_ground_center;
+    if (camera_panorama.start_direction.dot(best_start_directions_for_floorplan[0]) >
+        camera_panorama.start_direction.dot(best_start_directions_for_floorplan[1]))
+      camera_floorplan.start_direction = best_start_directions_for_floorplan[0];
+    else
+      camera_floorplan.start_direction = best_start_directions_for_floorplan[1];
+  }
+  
+  camera_in_transition.progress = 0.0;  
+}
+
+void Navigation::FloorplanToAir() {
+  camera_status = kFloorplanToAirTransition;
+
+  camera_in_transition.camera_floorplan = camera_floorplan;
+  {
+    CameraAir& camera_air      = camera_in_transition.camera_air;
+    camera_air.ground_center = best_ground_center;
+    if (camera_panorama.start_direction.dot(best_start_directions_for_air[0]) >
+        camera_panorama.start_direction.dot(best_start_directions_for_air[1]))
+      camera_air.start_direction = best_start_directions_for_air[0];
+    else
+      camera_air.start_direction = best_start_directions_for_air[1];
+  }
+  
+  camera_in_transition.progress = 0.0;  
+}
+  
 double Navigation::ProgressInverse() const {
   switch (camera_status) {
   case kPanoramaTransition:
     return cos(camera_panorama.progress * M_PI) / 2.0 + 1.0 / 2.0;
   case kAirTransition:
     return cos(camera_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  case kFloorplanTransition:
+    return cos(camera_floorplan.progress * M_PI) / 2.0 + 1.0 / 2.0;
   case kPanoramaToAirTransition:
-  case kAirToPanoramaTransition: {
-    return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+  case kAirToPanoramaTransition:
+  case kPanoramaToFloorplanTransition:
+  case kFloorplanToPanoramaTransition:
+  case kAirToFloorplanTransition:
+  case kFloorplanToAirTransition:
+    {
+    return cos(camera_in_transition.progress * M_PI) / 2.0 + 1.0 / 2.0;
     // sigmoid.
     /*
     const double minimum_value = 1 / (1 + exp(6.0));
     const double maximum_value = 1 / (1 + exp(-6.0));
-    const double sigmoid = 1 / (1 + exp(- (6.0 - 12.0 * camera_between_panorama_and_air.progress)));
+    const double sigmoid = 1 / (1 + exp(- (6.0 - 12.0 * camera_in_transition.progress)));
     return (sigmoid - minimum_value) / (maximum_value - minimum_value);
     */
-    //return 1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2);
+    //return 1.0 - sin(camera_in_transition.progress * M_PI / 2);
   }
   case kPanoramaTour:
     return cos(camera_panorama_tour.progress * M_PI) / 2.0 + 1.0 / 2.0;
@@ -657,6 +852,7 @@ double Navigation::ProgressInverse() const {
 double Navigation::GetFieldOfViewInDegrees() const {
   const double kPanoramaFieldOfViewDegrees = 100.0;
   const double scaled_air_field_of_view_degrees = air_field_of_view_degrees * air_field_of_view_scale;
+  const double scaled_floorplan_field_of_view_degrees = floorplan_field_of_view_degrees * floorplan_field_of_view_scale;
 
   switch (camera_status) {
   case kPanorama:
@@ -669,60 +865,68 @@ double Navigation::GetFieldOfViewInDegrees() const {
   case kAirTransition: {
     return scaled_air_field_of_view_degrees;
   }
-  // CameraBetweenGroundAndAir handles the state.
+  case kFloorplan:
+  case kFloorplanTransition: {
+    return scaled_floorplan_field_of_view_degrees;
+  }
+  // CameraInTransition handles the state.
   case kPanoramaToAirTransition: {    
-    /*
-    const double target_field_of_view =
-      weight_start * 0.9 * M_PI +
-      weight_end * (air_field_of_view_degrees * air_field_of_view_scale) * M_PI / 180.0;
-    */
-    const Vector3d center = GetCenter();
-
-    const double start_height = camera_between_panorama_and_air.camera_panorama.start_center[2] - average_floor_height;
-    const double end_height = camera_between_panorama_and_air.camera_air.GetCenter()[2] - average_floor_height;
-
-    const double start_field_of_view = kPanoramaFieldOfViewDegrees * M_PI / 180.0;
-    const double end_field_of_view = scaled_air_field_of_view_degrees * M_PI / 180.0;
-
-    const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height;
-    const double end_size = 1.0 / tan(end_field_of_view / 2.0) / end_height;
-
-    const double start_weight = ProgressInverse();
-    const double end_weight = 1.0 - start_weight;
-
-    const double current_height = center[2] - average_floor_height;
-    const double current_size = start_weight * start_size + end_weight * end_size;
-    const double current_field_of_view = atan(1.0 / current_height / current_size) * 2.0;
-
-    return current_field_of_view * 180.0 / M_PI; 
+    return GetFieldOfViewInTransitionInDegrees(camera_in_transition.camera_panorama.start_center[2],
+                                               camera_in_transition.camera_air.GetCenter()[2],
+                                               kPanoramaFieldOfViewDegrees * M_PI / 180.0,
+                                               scaled_air_field_of_view_degrees * M_PI / 180.0);
   }
   case kAirToPanoramaTransition: {
-    /*
-    const double weight_start = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.6);
-    const double weight_end = 1.0 - weight_start;
-    return weight_start * scaled_air_field_of_view_degrees + weight_end * kPanoramaFieldOfViewDegrees;
-    */
-    const Vector3d center = GetCenter();
-
-    const double start_height = camera_between_panorama_and_air.camera_air.GetCenter()[2] - average_floor_height;
-    const double end_height = camera_between_panorama_and_air.camera_panorama.start_center[2] - average_floor_height;
-
-    const double start_field_of_view = scaled_air_field_of_view_degrees * M_PI / 180.0;
-    const double end_field_of_view = kPanoramaFieldOfViewDegrees * M_PI / 180.0;
-
-    const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height;
-    const double end_size = 1.0 / tan(end_field_of_view / 2.0) / end_height;
-
-    const double start_weight = ProgressInverse();
-    const double end_weight = 1.0 - start_weight;
-
-    const double current_height = center[2] - average_floor_height;
-    const double current_size = start_weight * start_size + end_weight * end_size;
-    const double current_field_of_view = atan(1.0 / current_height / current_size) * 2.0;
-
-    return current_field_of_view * 180.0 / M_PI; 
+    return GetFieldOfViewInTransitionInDegrees(camera_in_transition.camera_air.GetCenter()[2],
+                                               camera_in_transition.camera_panorama.start_center[2],
+                                               scaled_air_field_of_view_degrees * M_PI / 180.0,
+                                               kPanoramaFieldOfViewDegrees * M_PI / 180.0);
   }
+  case kPanoramaToFloorplanTransition: {
+    return GetFieldOfViewInTransitionInDegrees(camera_in_transition.camera_panorama.start_center[2],
+                                               camera_in_transition.camera_floorplan.GetCenter()[2],
+                                               kPanoramaFieldOfViewDegrees * M_PI / 180.0,
+                                               scaled_floorplan_field_of_view_degrees * M_PI / 180.0);
   }
+  case kFloorplanToPanoramaTransition: {
+    return GetFieldOfViewInTransitionInDegrees(camera_in_transition.camera_floorplan.GetCenter()[2],
+                                               camera_in_transition.camera_panorama.start_center[2],
+                                               scaled_floorplan_field_of_view_degrees * M_PI / 180.0,
+                                               kPanoramaFieldOfViewDegrees * M_PI / 180.0);
+  }
+  case kAirToFloorplanTransition: {
+    return GetFieldOfViewInTransitionInDegrees(camera_in_transition.camera_air.GetCenter()[2],
+                                               camera_in_transition.camera_floorplan.GetCenter()[2],
+                                               scaled_air_field_of_view_degrees * M_PI / 180.0,
+                                               scaled_floorplan_field_of_view_degrees * M_PI / 180.0);
+  }
+  case kFloorplanToAirTransition: {
+    return GetFieldOfViewInTransitionInDegrees(camera_in_transition.camera_floorplan.GetCenter()[2],
+                                               camera_in_transition.camera_air.GetCenter()[2],
+                                               scaled_floorplan_field_of_view_degrees * M_PI / 180.0,
+                                               scaled_air_field_of_view_degrees * M_PI / 180.0);
+  }    
+  }
+}
+
+double Navigation::GetFieldOfViewInTransitionInDegrees(const double start_height,
+                                                       const double end_height,
+                                                       const double start_field_of_view,
+                                                       const double end_field_of_view) const {
+  const double start_height_diff = start_height - average_floor_height;
+  const double end_height_diff   = end_height - average_floor_height;
+
+  const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height_diff;
+  const double end_size   = 1.0 / tan(end_field_of_view / 2.0) / end_height_diff;
+
+  const double start_weight = ProgressInverse();
+  const double end_weight = 1.0 - start_weight;
+
+  const double current_height_diff = GetCenter()[2] - average_floor_height;
+  const double current_size = start_weight * start_size + end_weight * end_size;
+  const double current_field_of_view = atan(1.0 / current_height_diff / current_size) * 2.0;
+
+  return current_field_of_view * 180.0 / M_PI; 
 }
 
 }  // namespace structured_indoor_modeling

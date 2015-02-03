@@ -30,6 +30,15 @@ int main(int argc, char *argv[]) {
   // window.resize(1280, 720);
   // window.resize(1000, 600);
 
+  const double kAirAngle = 60.0 * M_PI / 180.0;
+  const double kAirFieldOfViewDegrees = 10.0;
+  const double kFloorplanAngle = 89.0 * M_PI / 180.0;
+  const double kFloorplanFieldOfViewDegrees = 10.0;
+  configuration.air_angle = kAirAngle;
+  configuration.air_field_of_view_degrees = kAirFieldOfViewDegrees;
+  configuration.floorplan_angle = kFloorplanAngle;
+  configuration.floorplan_field_of_view_degrees = kFloorplanFieldOfViewDegrees;
+  
   MainWidget* main_widget = new MainWidget(configuration);
 
   QHBoxLayout* layout = new QHBoxLayout();

@@ -84,13 +84,15 @@ private:
     void AllocateResources();
     void SetMatrices();
 
-    int FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const;
+    int FindPanoramaFromAirFloorplanClick(const Eigen::Vector2d& pixel) const;
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);
     
     void RenderFloorplan(const double alpha);
     void RenderPanorama(const double alpha);
-    void RenderPanoramaToAirTransition();
-    void RenderAirToPanoramaTransition();
+    void RenderPanoramaToAirTransition(const bool flip = false);
+    void RenderPanoramaToFloorplanTransition(const bool flip = false);
+    void RenderAirToFloorplanTransition(const bool flip = false);
+    
     void RenderPanoramaTransition();
     void RenderPanoramaTransition(const int start_index,
                                   const int end_index,

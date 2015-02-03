@@ -24,6 +24,12 @@ struct PanoramaConfiguration {
 struct Configuration {
   std::string data_directory;
   std::vector<PanoramaConfiguration> panorama_configurations;
+
+  // Parameters.
+  double air_angle;
+  double air_field_of_view_degrees;
+  double floorplan_angle;
+  double floorplan_field_of_view_degrees;
 };
 
 void ReadPanoramaConfiguration(const std::string& data_directory,

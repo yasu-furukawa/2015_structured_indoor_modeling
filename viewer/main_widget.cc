@@ -51,7 +51,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   configuration(configuration),
   panel_renderer(polygon_renderer, viewport),  
-  navigation(panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
+  navigation(configuration, panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
   object_renderer.Init(configuration.data_directory);
   panorama_renderers.resize(configuration.panorama_configurations.size());
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
@@ -250,6 +250,11 @@ void MainWidget::SetMatrices() {
 }
 
 void MainWidget::RenderFloorplan(const double alpha) {
+
+  RenderTexturedPolygon(alpha);
+  RenderObjects(alpha);
+
+  /*
   FloorplanStyle style;
   style.outer_style.stroke_color = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
   style.outer_style.fill_color   = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
@@ -269,6 +274,7 @@ void MainWidget::RenderFloorplan(const double alpha) {
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
+  */
 }
 
 void MainWidget::RenderPanorama(const double alpha) {
@@ -281,8 +287,10 @@ void MainWidget::RenderPanorama(const double alpha) {
     break;
   }
   case kPanoramaToAirTransition:
-  case kAirToPanoramaTransition: {
-    panorama_renderers[navigation.GetCameraBetweenPanoramaAndAir().camera_panorama.start_index].Render(alpha);
+  case kAirToPanoramaTransition:
+  case kPanoramaToFloorplanTransition:
+  case kFloorplanToPanoramaTransition: {
+    panorama_renderers[navigation.GetCameraInTransition().camera_panorama.start_index].Render(alpha);
     break;
   }
   default: {
@@ -424,9 +432,7 @@ void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode
   glPopMatrix();
 }  
 
-void MainWidget::RenderPanoramaToAirTransition() {
-  const bool kUniformHeightAdjustment = false;
-
+void MainWidget::RenderPanoramaToAirTransition(const bool flip) {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
@@ -443,20 +449,14 @@ void MainWidget::RenderPanoramaToAirTransition() {
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
   double weight = navigation.ProgressInverse();
+  if (flip)
+    weight = 1.0 - weight;
   weight = 1.0 - cos(weight * M_PI / 2);
   const int kKeepPolygon = 2;
   BlendFrames(weight, kKeepPolygon);
-
-  /*
-  RenderFloorplan(1.0 - alpha);
-  const double kNoHeightAdjustment = 0.0;
-  RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
-  */
 }
 
-void MainWidget::RenderAirToPanoramaTransition() {
-  const bool kUniformHeightAdjustment = false;
-
+void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
@@ -467,28 +467,41 @@ void MainWidget::RenderAirToPanoramaTransition() {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  RenderTexturedPolygon(kFullOpacity);
-  RenderObjects(kFullOpacity);
+  RenderFloorplan(kFullOpacity);
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
-  double weight = 1.0 - navigation.ProgressInverse();
+  double weight = navigation.ProgressInverse();
+  if (flip)
+    weight = 1.0 - weight;
   weight = 1.0 - cos(weight * M_PI / 2);
-  
   const int kKeepPolygon = 2;
   BlendFrames(weight, kKeepPolygon);
-
-
-  /*
-  const bool kUniformHeightAdjustment = false;
-  const double alpha = 1.0 - navigation.ProgressInverse();
-  RenderPanorama(alpha);
-  RenderFloorplan(1.0 - alpha);
-  const double kNoHeightAdjustment = 0.0;
-  RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
-  */
 }
 
+void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  const double kFullOpacity = 1.0;
+  RenderTexturedPolygon(kFullOpacity);
+  RenderObjects(kFullOpacity);
+  
+  // Render the target pano.
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  RenderFloorplan(kFullOpacity);
+
+  // Blend the two.
+  double weight = navigation.ProgressInverse();
+  if (flip)
+    weight = 1.0 - flip;
+  weight = 1.0 - cos(weight * M_PI / 2);
+  const int kKeepPolygon = 2;
+  BlendFrames(weight, kKeepPolygon);
+}
+  
 void MainWidget::RenderObjects(const double alpha) {
   object_renderer.RenderAll(alpha);
 
@@ -732,6 +745,7 @@ void MainWidget::paintGL() {
   SetMatrices();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+  const bool kFlip = true;
   const bool kDepthOrderHeightAdjustment = true;
   const bool kUniformHeightAdjustment = false;
   switch (navigation.GetCameraStatus()) {
@@ -748,12 +762,9 @@ void MainWidget::paintGL() {
     
     if (!RightAfterSimpleClick(0.0)) {
       RenderPanorama(1.0);
-      // RenderFloorplan();
     } else {
       const double alpha = Fade();
       RenderPanorama(1.0 - alpha * 0.7);
-      // RenderFloorplan(alpha / 2.0);
-
       // Checks if any room should be highlighted.
       int room_highlighted = -1;
       if (!mouse_down)
@@ -778,11 +789,6 @@ void MainWidget::paintGL() {
     }
         
     if (!RightAfterSimpleClick(0.0)) {
-      /*
-      RenderFloorplan(1.0);
-      const double kNoHeightAdjustment = 0.0;
-      RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, -1);
-      */
       //????
       RenderTexturedPolygon(1.0);
       RenderObjects(1.0);
@@ -790,7 +796,6 @@ void MainWidget::paintGL() {
       const double alpha = Fade();
       RenderTexturedPolygon(1.0 - alpha * 0.7);
       RenderObjects(1.0 - alpha * 0.7);
-      // RenderFloorplan(alpha / 2.0);
 
       int room_highlighted = -1;
       if (!mouse_down)
@@ -814,14 +819,36 @@ void MainWidget::paintGL() {
     RenderObjects(1.0);
     break;
   }
+  case kFloorplan:
+  case kFloorplanTransition: {
+    RenderFloorplan(1.0);
+    break;
+  }
   case kPanoramaToAirTransition: {
     RenderPanoramaToAirTransition();
     break;
   }
   case kAirToPanoramaTransition: {
-    RenderAirToPanoramaTransition();
+    RenderPanoramaToAirTransition(kFlip);
     break;
   }
+  case kPanoramaToFloorplanTransition: {
+    RenderPanoramaToFloorplanTransition();
+    break;
+  }
+  case kFloorplanToPanoramaTransition: {
+    RenderPanoramaToFloorplanTransition(kFlip);
+    break;
+  }
+  case kAirToFloorplanTransition: {
+    RenderAirToFloorplanTransition();
+    break;
+  }
+  case kFloorplanToAirTransition: {
+    RenderAirToFloorplanTransition(kFlip);
+    break;
+  }
+    
   case kPanoramaTour: {
     RenderPanoramaTour();
     break;
@@ -835,7 +862,7 @@ void MainWidget::paintGL() {
   //simple_click_time_offset_by_move = 0;
 }
 
-int MainWidget::FindPanoramaFromAirClick(const Eigen::Vector2d& pixel) const {
+int MainWidget::FindPanoramaFromAirFloorplanClick(const Eigen::Vector2d& pixel) const {
   int best_index = -1;
   double best_distance = 0.0;
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
@@ -881,6 +908,10 @@ void MainWidget::mousePressEvent(QMouseEvent *e) {
     }
     case kAir: {      
       navigation.AirToPanorama(navigation.GetCameraPanorama().start_index);
+      break;
+    }
+    case kFloorplan: {      
+      navigation.FloorplanToPanorama(navigation.GetCameraPanorama().start_index);
       break;
     }
     default: {
@@ -945,10 +976,17 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
     break;
   }
   case kAir: {
-    const int index = FindPanoramaFromAirClick(Vector2d(e->localPos().x(),
-                                                        viewport[3] - e->localPos().y()));
+    const int index = FindPanoramaFromAirFloorplanClick(Vector2d(e->localPos().x(),
+                                                                 viewport[3] - e->localPos().y()));
     if (0 <= index)
       navigation.AirToPanorama(index);
+    break;
+  }
+  case kFloorplan: {
+    const int index = FindPanoramaFromAirFloorplanClick(Vector2d(e->localPos().x(),
+                                                                 viewport[3] - e->localPos().y()));
+    if (0 <= index)
+      navigation.FloorplanToPanorama(index);
     break;
   }
   default: {
@@ -970,29 +1008,34 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(kRotationDegrees);
     } else if (navigation.GetCameraStatus() == kAir) {
-      navigation.RotateSky(-kRotationDegrees);
+      navigation.RotateAir(-kRotationDegrees);
+    } else if (navigation.GetCameraStatus() == kFloorplan) {
+      navigation.RotateFloorplan(-kRotationDegrees);
     }
   }
   else if (e->key() == Qt::Key_Right) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(-kRotationDegrees);
     } else if (navigation.GetCameraStatus() == kAir) {
-      navigation.RotateSky(kRotationDegrees);
+      navigation.RotateAir(kRotationDegrees);
+    } else if (navigation.GetCameraStatus() == kFloorplan) {
+      navigation.RotateFloorplan(kRotationDegrees);
     }
   } else if (e->key() == Qt::Key_A) {
-    switch (navigation.GetCameraStatus()) {
-    case kPanorama: {
-      navigation.PanoramaToAir();
-      break;
-    }
-    case kAir: {      
+    if (navigation.GetCameraStatus() == kAir)
       navigation.AirToPanorama(navigation.GetCameraPanorama().start_index);
-      break;
-    }
-    default: {
-      break;
-    }
-    }
+    else if (navigation.GetCameraStatus() == kFloorplan)
+      navigation.FloorplanToPanorama(navigation.GetCameraPanorama().start_index);
+  } else if (e->key() == Qt::Key_S) {
+    if (navigation.GetCameraStatus() == kPanorama)
+      navigation.PanoramaToAir();
+    else if (navigation.GetCameraStatus() == kFloorplan)
+      navigation.FloorplanToAir();
+  } else if (e->key() == Qt::Key_D) {
+    if (navigation.GetCameraStatus() == kPanorama)
+      navigation.PanoramaToFloorplan();
+    else if (navigation.GetCameraStatus() == kAir)
+      navigation.AirToFloorplan();
   }
   else if (e->key() == Qt::Key_O) {
     object_renderer.Toggle();
@@ -1008,6 +1051,13 @@ void MainWidget::wheelEvent(QWheelEvent* e) {
   case kAir: {
     if (e->orientation() == Qt::Vertical) {
       navigation.ScaleAirFieldOfView(e->delta());
+      updateGL();
+    }
+    break;
+  }
+  case kFloorplan: {
+    if (e->orientation() == Qt::Vertical) {
+      navigation.ScaleFloorplanFieldOfView(e->delta());
       updateGL();
     }
     break;
@@ -1041,7 +1091,7 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       direction.normalize();
       direction *= navigation.GetAverageDistance();
       Vector3d orthogonal(-direction[1], direction[0], 0.0);
-      navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);
+      navigation.MoveFloorplan(diff[0] * orthogonal + diff[1] * direction);
       break;
     }
     default: {
@@ -1057,6 +1107,10 @@ void MainWidget::timerEvent(QTimerEvent *) {
   case kAirTransition:
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition:
+  case kPanoramaToFloorplanTransition:
+  case kFloorplanToPanoramaTransition:
+  case kAirToFloorplanTransition:
+  case kFloorplanToAirTransition:
   case kPanoramaTour: {
     navigation.Tick();
     updateGL();
@@ -1073,8 +1127,13 @@ void MainWidget::timerEvent(QTimerEvent *) {
       updateGL();
       break;
     }
+  case kFloorplan:
+    if (RightAfterSimpleClick(kRenderMargin)) {
+      updateGL();
+      break;
+    }
   }
-}
+}  
 
 bool MainWidget::RightAfterSimpleClick(const double margin) const {
   const double kDoubleClickMargin = 0.5;
