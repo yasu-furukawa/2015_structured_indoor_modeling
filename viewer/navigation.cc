@@ -287,7 +287,7 @@ void Navigation::Tick() {
     break;
   }
   case kPanoramaToAirTransition: {
-    const double kStepSize = 0.01;
+    const double kStepSize = 0.02;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
       camera_status = kAir;
@@ -298,7 +298,7 @@ void Navigation::Tick() {
     break;
   }
   case kAirToPanoramaTransition: {
-    const double kStepSize = 0.01;
+    const double kStepSize = 0.02;
     camera_between_panorama_and_air.progress += kStepSize;
     if (camera_between_panorama_and_air.progress >= 1.0) {
       /*
@@ -636,12 +636,15 @@ double Navigation::ProgressInverse() const {
     return cos(camera_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition: {
-    // return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
+    return cos(camera_between_panorama_and_air.progress * M_PI) / 2.0 + 1.0 / 2.0;
     // sigmoid.
+    /*
     const double minimum_value = 1 / (1 + exp(6.0));
     const double maximum_value = 1 / (1 + exp(-6.0));
     const double sigmoid = 1 / (1 + exp(- (6.0 - 12.0 * camera_between_panorama_and_air.progress)));
     return (sigmoid - minimum_value) / (maximum_value - minimum_value);
+    */
+    //return 1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2);
   }
   case kPanoramaTour:
     return cos(camera_panorama_tour.progress * M_PI) / 2.0 + 1.0 / 2.0;
@@ -674,10 +677,9 @@ double Navigation::GetFieldOfViewInDegrees() const {
       weight_end * (air_field_of_view_degrees * air_field_of_view_scale) * M_PI / 180.0;
     */
     const Vector3d center = GetCenter();
-    //const Vector3d direction = GetDirection();
 
-    const double start_height = camera_panorama.start_center[2] - average_floor_height;
-    const double end_height = air_height - average_floor_height;
+    const double start_height = camera_between_panorama_and_air.camera_panorama.start_center[2] - average_floor_height;
+    const double end_height = camera_between_panorama_and_air.camera_air.GetCenter()[2] - average_floor_height;
 
     const double start_field_of_view = kPanoramaFieldOfViewDegrees * M_PI / 180.0;
     const double end_field_of_view = scaled_air_field_of_view_degrees * M_PI / 180.0;
@@ -685,30 +687,40 @@ double Navigation::GetFieldOfViewInDegrees() const {
     const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height;
     const double end_size = 1.0 / tan(end_field_of_view / 2.0) / end_height;
 
-    //const double start_weight = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.6);
-    //const double end_weight = 1.0 - start_weight;
     const double start_weight = ProgressInverse();
     const double end_weight = 1.0 - start_weight;
 
     const double current_height = center[2] - average_floor_height;
     const double current_size = start_weight * start_size + end_weight * end_size;
-
     const double current_field_of_view = atan(1.0 / current_height / current_size) * 2.0;
+
     return current_field_of_view * 180.0 / M_PI; 
-
-    // What should be the fov so that a thing
-    
-
-    /*
-    const double weight_start = pow(1.0 - sin(camera_between_panorama_and_air.progress * M_PI / 2.0), 1.6);
-    const double weight_end = 1.0 - weight_start;
-    return weight_start * kPanoramaFieldOfViewDegrees + weight_end * scaled_air_field_of_view_degrees;
-    */
   }
   case kAirToPanoramaTransition: {
+    /*
     const double weight_start = 1.0 - pow(1.0 - sin((1.0 - camera_between_panorama_and_air.progress) * M_PI / 2.0), 1.6);
     const double weight_end = 1.0 - weight_start;
     return weight_start * scaled_air_field_of_view_degrees + weight_end * kPanoramaFieldOfViewDegrees;
+    */
+    const Vector3d center = GetCenter();
+
+    const double start_height = camera_between_panorama_and_air.camera_air.GetCenter()[2] - average_floor_height;
+    const double end_height = camera_between_panorama_and_air.camera_panorama.start_center[2] - average_floor_height;
+
+    const double start_field_of_view = scaled_air_field_of_view_degrees * M_PI / 180.0;
+    const double end_field_of_view = kPanoramaFieldOfViewDegrees * M_PI / 180.0;
+
+    const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height;
+    const double end_size = 1.0 / tan(end_field_of_view / 2.0) / end_height;
+
+    const double start_weight = ProgressInverse();
+    const double end_weight = 1.0 - start_weight;
+
+    const double current_height = center[2] - average_floor_height;
+    const double current_size = start_weight * start_size + end_weight * end_size;
+    const double current_field_of_view = atan(1.0 / current_height / current_size) * 2.0;
+
+    return current_field_of_view * 180.0 / M_PI; 
   }
   }
 }
