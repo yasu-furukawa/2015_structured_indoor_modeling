@@ -15,7 +15,6 @@ qtHaveModule(opengl) {
     QT += opengl
 
     SOURCES += main_widget.cc \
-       configuration.cc \
        navigation.cc \
        floorplan_renderer.cc \
        object_renderer.cc \
