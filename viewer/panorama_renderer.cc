@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include "../base/panorama.h"
 #include "panorama_renderer.h"
 
 using namespace Eigen;
@@ -82,21 +83,26 @@ void PanoramaRenderer::Render(const double alpha) {
     glEnd();
 }
 
-void PanoramaRenderer::Init(const PanoramaConfiguration& configuration,
+void PanoramaRenderer::Init(const FileIO& file_io,
+                            const int panorama_id,
                             QGLWidget* widget_tmp) {
-    widget = widget_tmp;
-    rgb_image.load(configuration.rgb_image_filename.c_str());
-    if (rgb_image.isNull()) {
-      cout << configuration.rgb_image_filename << endl;
-      exit (1);
-    }
-    phi_per_pixel = configuration.phi_range / rgb_image.height();
+  widget = widget_tmp;
+  rgb_image.load(file_io.GetPanoramaImage(panorama_id).c_str());
+  if (rgb_image.isNull()) {
+    cout << file_io.GetPanoramaImage(panorama_id) << endl;
+    exit (1);
+  }
 
-    center = configuration.center;
-    local_to_global = configuration.local_to_global;
-    global_to_local = local_to_global.transpose();
+  Panorama panorama;
+  panorama.InitWithoutLoadingImages(file_io, panorama_id);
+  phi_per_pixel = panorama.GetPhiRange() / rgb_image.height();
 
-    InitDepthMesh(configuration.depth_image_filename, configuration.phi_range);
+  center = panorama.GetCenter();
+  local_to_global = panorama.GetLocalToGlobal();
+  global_to_local = panorama.GetGlobalToLocal();
+
+  InitDepthMesh(file_io.GetDepthPanorama(panorama_id),
+                panorama.GetPhiRange());
 }
 
 void PanoramaRenderer::InitGL() {
@@ -120,7 +126,7 @@ void PanoramaRenderer::InitGL() {
 // u coordinate is guaranteed to be in [0, width).
 // v coordinate could be outside the range [0, height].
 Vector2d PanoramaRenderer::Project(const Vector3d& xyz) const {
-    Vector3d projected_coordinate = global_to_local * (xyz - center);
+  Vector3d projected_coordinate = GlobalToLocal(xyz);
     // x coordinate.
     double theta = -atan2(projected_coordinate.y(), projected_coordinate.x());
     if (theta < 0.0)
@@ -155,11 +161,19 @@ Vector3d PanoramaRenderer::Unproject(const Vector2d& uv, const double distance) 
 }
 
 Eigen::Vector3d PanoramaRenderer::GlobalToLocal(const Eigen::Vector3d& global_xyz) const {
-    return global_to_local * (global_xyz - center);
+  const Vector4d local = global_to_local * Vector4d(global_xyz[0],
+                                                    global_xyz[1],
+                                                    global_xyz[2],
+                                                    1.0);
+  return Vector3d(local[0], local[1], local[2]);
 }
 
 Eigen::Vector3d PanoramaRenderer::LocalToGlobal(const Eigen::Vector3d& local_xyz) const {
-    return local_to_global * local_xyz + center;
+  Vector4d global = local_to_global * Vector4d(local_xyz[0],
+                                               local_xyz[1],
+                                               local_xyz[2],
+                                               1.0);
+  return Vector3d(global[0], global[1], global[2]);
 }
 
 void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_range) {

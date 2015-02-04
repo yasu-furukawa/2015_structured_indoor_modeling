@@ -6,7 +6,7 @@ using namespace Eigen;
 using namespace std;
 
 namespace structured_indoor_modeling {
-
+  /*
 void ReadPanoramaConfiguration(const string& data_directory,
                                const int pano_index,
                                PanoramaConfiguration* panorama_configuration) {
@@ -63,6 +63,6 @@ void ReadConfiguration(const string filename, Configuration* configuration) {
 
   ifstr.close();
 }
-
+  */
 }  // namespace structured_indoor_modeling
   

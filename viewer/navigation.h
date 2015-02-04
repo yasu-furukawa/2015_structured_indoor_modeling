@@ -97,7 +97,7 @@ struct CameraPanoramaTour {
 
 class Navigation {
  public:
-  Navigation(const Configuration& configurationconst,
+  Navigation(const Configuration& configuration,
              const std::vector<PanoramaRenderer>& panorama_renderers,
              const PolygonRenderer& polygon_renderer,
              const std::map<int, int>& panorama_to_room,

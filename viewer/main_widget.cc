@@ -1,5 +1,6 @@
 #include "main_widget.h"
 
+#include <fstream>
 #include <iostream>
 #include <locale.h>
 #include <math.h>
@@ -49,14 +50,17 @@ bool IsInside(const Floorplan floorplan, const int room, const Vector2d& point) 
 
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
-  configuration(configuration),
+  file_io(configuration.data_directory),
   panel_renderer(polygon_renderer, viewport),  
-  navigation(configuration, panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
+  navigation(configuration,
+             panorama_renderers,
+             polygon_renderer,
+             panorama_to_room,
+             room_to_panorama) {
+
   object_renderer.Init(configuration.data_directory);
-  panorama_renderers.resize(configuration.panorama_configurations.size());
-  for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
-    panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
-  }
+  InitPanoramaRenderers();
+
   polygon_renderer.Init(configuration.data_directory, this);
   floorplan_renderer.Init(configuration.data_directory,
                           polygon_renderer.GetFloorplanFinal().GetFloorplanToGlobal());
@@ -127,6 +131,27 @@ void MainWidget::FreeResources() {
   }
 }
 
+void MainWidget::InitPanoramaRenderers() {
+  const int kMaxPanoramaId = 100;
+  vector<int> panorama_ids;
+  for (int p = 0; p < kMaxPanoramaId; ++p) {
+    ifstream ifstr;
+    ifstr.open(file_io.GetPanoramaImage(p).c_str());
+    if (!ifstr.is_open())
+      continue;
+    panorama_ids.push_back(p);
+  }
+  if (panorama_ids.empty()) {
+    cerr << "No panorama." << endl;
+    exit (1);
+  }
+
+  panorama_renderers.resize(panorama_ids.size());
+  for (int i = 0; i < (int)panorama_ids.size(); ++i) {
+    panorama_renderers[i].Init(file_io, panorama_ids[i], this);
+  }
+}
+  
 void MainWidget::InitializeShaders() {
   // Override system locale until shaders are compiled
   setlocale(LC_NUMERIC, "C");

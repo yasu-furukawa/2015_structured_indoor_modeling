@@ -7,8 +7,11 @@
 
 #include <Eigen/Dense>
 
+#include "../base/file_io.h"
+
 namespace structured_indoor_modeling {
 
+  /*
 struct PanoramaConfiguration {
   std::string rgb_image_filename;
   std::string depth_image_filename;
@@ -20,10 +23,11 @@ struct PanoramaConfiguration {
   // phi (in radian) per image y.
   double phi_range;
 };
-
+  */
+  
 struct Configuration {
   std::string data_directory;
-  std::vector<PanoramaConfiguration> panorama_configurations;
+  // std::vector<PanoramaConfiguration> panorama_configurations;
 
   // Parameters.
   double air_angle;
@@ -32,10 +36,12 @@ struct Configuration {
   double floorplan_field_of_view_degrees;
 };
 
+/*
 void ReadPanoramaConfiguration(const std::string& data_directory,
                                const int pano_index,
                                PanoramaConfiguration* panorama_configuration);
 void ReadConfiguration(const std::string filename, Configuration* configuration);
+*/
 
 }  // namespace structured_indoor_modeling
 

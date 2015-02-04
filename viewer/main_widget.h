@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "../base/file_io.h"
 #include "configuration.h"
 #include "navigation.h"
 #include "floorplan_renderer.h"
@@ -48,7 +49,7 @@ protected:
 
 private:
     // Indoor data.
-    const Configuration configuration;
+    FileIO file_io;
     std::vector<PanoramaRenderer> panorama_renderers;
     ObjectRenderer object_renderer;
     PolygonRenderer polygon_renderer;
@@ -113,6 +114,7 @@ private:
     void RenderAllThumbnails(const double alpha, const int room_highlighted); //, MainWidget* main_widget);
     void RenderPanoramaTour();
 
+    void InitPanoramaRenderers();
     // void RenderQuad(const double alpha);
     void InitializeShaders();
    

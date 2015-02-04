@@ -159,6 +159,18 @@ double Panorama::GetDepth(const Eigen::Vector2d& depth_pixel) const {
     weight11 * depth_image[v1 * depth_width + u1_corrected];
 }
 
+double Panorama::GetPhiRange() const {
+  return phi_range;
+}
+
+Eigen::Matrix4d Panorama::GetGlobalToLocal() const {
+  return global_to_local;
+}
+  
+Eigen::Matrix4d Panorama::GetLocalToGlobal() const {
+  return local_to_global;
+}
+  
 bool Panorama::IsInsideRGB(const Eigen::Vector2d& pixel) const {
   if (pixel[0] < 0.0 || width <= pixel[0] ||
       pixel[1] < 0.0 || height - 1 < pixel[1]) {

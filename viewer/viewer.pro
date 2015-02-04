@@ -23,6 +23,7 @@ qtHaveModule(opengl) {
        panorama_renderer.cc \
        polygon_renderer.cc \
        ../base/floorplan.cc \
+       ../base/panorama.cc \
        ../base/point_cloud.cc
 
     HEADERS += \
@@ -36,6 +37,7 @@ qtHaveModule(opengl) {
         polygon_renderer.h \
         ../base/file_io.h \
         ../base/floorplan.h \
+        ../base/panorama.h \
         ../base/point_cloud.h
 
     RESOURCES += \
@@ -59,6 +61,7 @@ qtHaveModule(opengl) {
         LIBS += '-L/usr/local/lib'
         LIBS += '-lopencv_core.2.4.9'
         LIBS += '-lopencv_imgproc.2.4.9'
+        LIBS += '-lopencv_highgui.2.4.9'
 #       LIBS += '-L/opt/X11/lib -lGLU -framework OpenGL'
     }
 
