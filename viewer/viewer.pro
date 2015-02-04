@@ -16,6 +16,7 @@ qtHaveModule(opengl) {
 
     SOURCES += \
        main_widget.cc \
+       main_widget_render.cc \
        main_widget_util.cc \
        navigation.cc \
        floorplan_renderer.cc \
@@ -29,6 +30,7 @@ qtHaveModule(opengl) {
 
     HEADERS += \
         main_widget.h \
+        main_widget_render.h \
         main_widget_util.h \
         configuration.h \
         navigation.h \

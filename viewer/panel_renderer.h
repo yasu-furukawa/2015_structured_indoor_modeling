@@ -2,18 +2,19 @@
 #define PANEL_RENDERER_H_
 
 #include <QGLFunctions>
+#include <QGLWidget>
 #include <QImage>
 #include <Eigen/Dense>
 #include <vector>
 
 namespace structured_indoor_modeling {
 
+class Floorplan;
 class MainWidget;
-class PolygonRenderer;
 
 class PanelRenderer : protected QGLFunctions {
  public:
-  PanelRenderer(const PolygonRenderer& polygon_renderer,
+  PanelRenderer(const Floorplan& floorplan,
                 const GLint* viewport);
   virtual ~PanelRenderer();
   void Init(const std::string& data_directory);
@@ -23,7 +24,7 @@ class PanelRenderer : protected QGLFunctions {
                        const Eigen::Vector2i& render_pos,
                        const Eigen::Vector3d& color,
                        const double scale,
-                       MainWidget* main_widget);
+                       QGLWidget* qgl_widget);
 const QImage& GetRoomThumbnail(const int room) { return room_thumbnails[room]; }
 
  static const double kWidthRatio;
@@ -32,7 +33,7 @@ const QImage& GetRoomThumbnail(const int room) { return room_thumbnails[room]; }
 
  private:
   std::vector<QImage> room_thumbnails;
-  const PolygonRenderer& polygon_renderer;  
+  const Floorplan& floorplan;
   const GLint* viewport;
   GLuint thumbnail_texid;
 };

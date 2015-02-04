@@ -24,7 +24,7 @@
 #include "polygon_renderer.h"
 
 namespace structured_indoor_modeling {
-
+  
 class MainWidget : public QGLWidget, protected QGLFunctions {
 Q_OBJECT
 public:
@@ -96,34 +96,6 @@ private:
     void SetMatrices();
 
 
-    
-        
-    void RenderFloorplan(const double alpha);
-    void RenderPanorama(const double alpha);
-    void RenderPanoramaToAirTransition(const bool flip = false);
-    void RenderPanoramaToFloorplanTransition(const bool flip = false);
-    void RenderAirToFloorplanTransition(const bool flip = false);
-    
-    void RenderPanoramaTransition();
-    void RenderPanoramaTransition(const int start_index,
-                                  const int end_index,
-                                  const double start_weight);
-    void BlendFrames(const double weight, const int divide_by_alpha_mode);
-    void RenderObjects(const double alpha);
-    void RenderPolygon(const int room_not_rendered,
-                       const double alpha,
-                       const double height_adjustment,
-                       const bool depth_order_height_adjustment,
-                       const int room_highlighted);
-    void RenderTexturedPolygon(const double alpha);
-
-    void RenderPolygonLabels(const int room_not_rendered,
-                             const double height_adjustment,
-                             const bool depth_order_height_adjustment);
-    void RenderThumbnail(const double alpha, const int room_highlighted); //, MainWidget* main_widget);
-    void RenderAllThumbnails(const double alpha, const int room_highlighted); //, MainWidget* main_widget);
-    void RenderPanoramaTour();
-
     void InitPanoramaRenderers();
     // void RenderQuad(const double alpha);
     void InitializeShaders();
@@ -145,6 +117,13 @@ private:
     static const double kRenderMargin;
     static const double kFadeInSeconds;
     static const double kFadeOutSeconds;
+
+
+
+void RenderPanoramaToAirTransition(const bool flip = false);
+void RenderPanoramaToFloorplanTransition(const bool flip = false);
+void RenderAirToFloorplanTransition(const bool flip = false);
+    
 };
 
 }  // namespace structured_indoor_modeling

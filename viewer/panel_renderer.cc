@@ -11,7 +11,7 @@ using namespace std;
 #endif
 
 #include "../base/file_io.h"
-#include "main_widget.h"
+#include "../base/floorplan.h"
 #include "panel_renderer.h"
 
 using namespace Eigen;
@@ -23,9 +23,9 @@ const double PanelRenderer::kWidthRatio = 0.2;
 const int PanelRenderer::kTextHeight = 6;
 const int PanelRenderer::kFrameMargin = 5;
 
-PanelRenderer::PanelRenderer(const PolygonRenderer& polygon_renderer,
+PanelRenderer::PanelRenderer(const Floorplan& floorplan,
                              const GLint* viewport) :
-  polygon_renderer(polygon_renderer), viewport(viewport) {
+  floorplan(floorplan), viewport(viewport) {
   thumbnail_texid = 0;
 }
 
@@ -36,7 +36,7 @@ PanelRenderer::~PanelRenderer() {
 void PanelRenderer::Init(const std::string& data_directory) {
   FileIO file_io(data_directory);
 
-  const int room_num = polygon_renderer.GetFloorplanFinal().GetNumRooms();
+  const int room_num = floorplan.GetNumRooms();
   room_thumbnails.resize(room_num);
   for (int room = 0; room < room_num; ++room) {
     room_thumbnails[room].load(file_io.GetRoomThumbnail(room).c_str());
@@ -53,11 +53,11 @@ void PanelRenderer::RenderThumbnail(const double alpha,
                                     const Vector2i& render_pos,
                                     const Vector3d& color,
                                     const double scale,
-                                    MainWidget* main_widget) {
+                                    QGLWidget* qgl_widget) {
   if (room_highlighted == -1) {
     return;
   }
-  const vector<string>& name = polygon_renderer.GetFloorplanFinal().GetRoomName(room_highlighted);
+  const vector<string>& name = floorplan.GetRoomName(room_highlighted);
   string full_name("");
   for (const auto& word : name) {
     full_name = full_name + string(" ") + word;
@@ -137,7 +137,7 @@ void PanelRenderer::RenderThumbnail(const double alpha,
   {
     glDisable(GL_TEXTURE_2D);
     glColor4f(1, 1, 1, alpha);
-    main_widget->renderText(render_pos[0], render_pos[1], full_name.c_str());
+    qgl_widget->renderText(render_pos[0], render_pos[1], full_name.c_str());
     glEnable(GL_TEXTURE_2D);
   }
 
