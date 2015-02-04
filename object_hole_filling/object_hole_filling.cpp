@@ -23,7 +23,7 @@ void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
 }
 
 
-void ImagebufferToMat(const vector <unsigned int>imagebuffer,const int imgwidth,const int imgheight,  Mat& image){
+void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth,const int imgheight,  Mat& image){
   if(imagebuffer.size() != imgwidth * imgheight){
     cout << "Sizes don't agree!"<<endl;
     exit(-1);

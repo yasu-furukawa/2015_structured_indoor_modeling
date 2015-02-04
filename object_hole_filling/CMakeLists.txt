@@ -13,7 +13,7 @@ endif(${CMAKE_SYSTEM} MATCHES "Darwin")
 find_package(gflags REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_executable(Object_hole_filling object_hole_filling.cpp SLIC.cpp object_hole_filling_cali.cpp ../base/point_cloud.cc ../base/panorama.cc)
+add_executable(Object_hole_filling object_hole_filling.cpp SLIC.cpp object_hole_filling_cali.cpp depth_filling.cpp ../base/point_cloud.cc ../base/panorama.cc)
 
 target_link_libraries(Object_hole_filling gflags)
 target_link_libraries(Object_hole_filling opencv_core opencv_highgui opencv_imgproc)

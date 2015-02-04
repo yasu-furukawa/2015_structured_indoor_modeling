@@ -11,9 +11,11 @@
 #include <vector>
 #include <typeinfo>
 #include "object_hole_filling.h"
+#include "depth_filling.h"
 
 using namespace std;
 using namespace cv;
+using namespace Eigen;
 using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
@@ -34,10 +36,9 @@ int main(int argc, char **argv){
   confin.close();
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
-
-  for (int id=startid; id<endid; id++) {
+  startid = 0;
+  for (int id=startid; id<startid+1; id++) {
     cout<<"======================="<<endl;
-    cout<<"Panorama "<<id<<endl;
     //reading point cloud and convert to depth
     PointCloud curpc;
     cout<<"reading point cloud..."<<endl;
@@ -47,6 +48,14 @@ int main(int argc, char **argv){
     cout<<"Panorama "<<id<<endl;
     Panorama panorama;
     panorama.Init(file_io, id);
+
+
+    //Get depthmap
+    cout<<"Processing depth map..."<<endl;
+    DepthFilling depth;
+    depth.Init(curpc, panorama);
+    depth.SaveDepthmap("./depth.png");
+    
     Mat pan = panorama.GetRGBImage().clone();
     SLIC slic;
     int imgwidth = pan.cols;
