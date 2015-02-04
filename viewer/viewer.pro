@@ -14,7 +14,9 @@ SOURCES += viewer.cc
 qtHaveModule(opengl) {
     QT += opengl
 
-    SOURCES += main_widget.cc \
+    SOURCES += \
+       main_widget.cc \
+       main_widget_util.cc \
        navigation.cc \
        floorplan_renderer.cc \
        object_renderer.cc \
@@ -27,6 +29,7 @@ qtHaveModule(opengl) {
 
     HEADERS += \
         main_widget.h \
+        main_widget_util.h \
         configuration.h \
         navigation.h \
         floorplan_renderer.h \

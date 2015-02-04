@@ -48,16 +48,24 @@ protected:
     void paintGL();
 
 private:
-    // Indoor data.
     FileIO file_io;
+    //----------------------------------------------------------------------
+    // Core data.
+    //std::vector<Panorama> panoramas;  // No image data loaded.
+    //Floorplan floorplan;
+    
+    //----------------------------------------------------------------------
+    // Renderers.
     std::vector<PanoramaRenderer> panorama_renderers;
     ObjectRenderer object_renderer;
     PolygonRenderer polygon_renderer;
     FloorplanRenderer floorplan_renderer;
     PanelRenderer panel_renderer;
+    // Navigation knows the entire state of the viewer.
     Navigation navigation;
 
-    // Resources.
+    //----------------------------------------------------------------------
+    // GL resources.
     GLuint frameids[2];
     GLuint texids[2];
     GLuint renderids[2];
@@ -67,9 +75,11 @@ private:
     GLint viewport[4];
     GLdouble modelview[16];
     GLdouble projection[16];
+    // GUI states.
     double prev_height_adjustment;
     bool fresh_screen_for_panorama;
     bool fresh_screen_for_air;
+    double simple_click_time_offset_by_move;
     
     QBasicTimer timer;
     QVector2D mousePressPosition;
@@ -85,9 +95,9 @@ private:
     void AllocateResources();
     void SetMatrices();
 
-    int FindPanoramaFromAirFloorplanClick(const Eigen::Vector2d& pixel) const;
-    int FindRoomHighlighted(const Eigen::Vector2i& pixel);
+
     
+        
     void RenderFloorplan(const double alpha);
     void RenderPanorama(const double alpha);
     void RenderPanoramaToAirTransition(const bool flip = false);
@@ -126,23 +136,10 @@ private:
     double Progress();
     double Fade();
     double HeightAdjustment();
-    static double ProgressFunction(const double elapsed, const double offset);
-    static double FadeFunction(const double elapsed, const double offset);
-    static double HeightAdjustmentFunction(const double elapsed, const double offset);
 
-    void SetPanoramaToRoom();
-    void SetRoomToPanorama();
-
-    double ComputePanoramaDistance(const int lhs, const int rhs) const;
-    void SetPanoramaDistanceTable();
-    void FindPanoramaPath(const int start_panorama, const int goal_panorama,
-                          std::vector<int>* indexes) const;
-
-    double simple_click_time_offset_by_move;
 
     std::map<int, int> panorama_to_room;
     std::map<int, int> room_to_panorama;
-
     std::vector<std::vector<double> > panorama_distance_table;
     
     static const double kRenderMargin;
