@@ -2,15 +2,18 @@
 #include <iostream>
 #include <fstream>
 #include <opencv2/opencv.hpp>
+#include <Eigen/Eigen>
 #include <string>
 #include <gflags/gflags.h>
 #include "../base/file_io.h"
+#include "../base/point_cloud.h"
 #include <vector>
 #include <typeinfo>
 #include "object_hole_filling.h"
 
 using namespace std;
 using namespace cv;
+using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,3000,"Number of superpixel");
@@ -18,7 +21,7 @@ DEFINE_int32(label_num,3000,"Number of superpixel");
 int main(int argc, char **argv){
 
   gflags::ParseCommandLineFlags(&argc,&argv,true);
-  if(!FLAGS_config_path.length() > 0){
+  if(! (FLAGS_config_path.length() > 0)){
     cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
   }
   //get path to data
@@ -29,10 +32,19 @@ int main(int argc, char **argv){
   confin>>startid>>endid;
   confin.close();
   string pathtodata_s(pathtodata);
-  structured_indoor_modeling::FileIO file_io(pathtodata_s);
+  FileIO file_io(pathtodata_s);
 
   for (int id=startid; id<endid; id++) {
-    //Generate superpixel image
+    cout<<"======================="<<endl;
+    cout<<"Panorama "<<id<<endl;
+    //reading point cloud and convert to depth
+    PointCloud curpc;
+    cout<<"reading point cloud..."<<endl;
+    curpc.Init(file_io, id);
+    
+
+
+    
     cout<<"Panorama "<<id<<endl;
     Mat pan = imread(file_io.GetPanoramaImage(id));
     SLIC slic;
@@ -58,6 +70,5 @@ int main(int argc, char **argv){
   }
 
   return 0;
->>>>>>> 5548ed44e4f2181c7e03e64c49a9e196315c527f
 }
 
