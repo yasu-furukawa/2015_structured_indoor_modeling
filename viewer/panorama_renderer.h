@@ -16,7 +16,8 @@ class PanoramaRenderer : protected QGLFunctions {
   PanoramaRenderer();
   virtual ~PanoramaRenderer();
   void Render(const double alpha);
-  void Init(const PanoramaConfiguration& panorama_configuration, QGLWidget* widget);
+  // void Init(const PanoramaConfiguration& panorama_configuration, QGLWidget* widget);
+  void Init(const FileIO& file_io, const int panorama_id, QGLWidget* widget);
   void InitGL();
   Eigen::Vector2d Project(const Eigen::Vector3d& xyz) const;
   Eigen::Vector3d Unproject(const Eigen::Vector2d& uv, const double distance) const;
@@ -52,8 +53,8 @@ class PanoramaRenderer : protected QGLFunctions {
   // Camera position.
   Eigen::Vector3d center;
   // Camera rotation.
-  Eigen::Matrix3d local_to_global;
-  Eigen::Matrix3d global_to_local;
+  Eigen::Matrix4d local_to_global;
+  Eigen::Matrix4d global_to_local;
   // Camera intrinsics: phi (in radian) per image y.
   float phi_per_pixel;
   float depth_phi_per_pixel;

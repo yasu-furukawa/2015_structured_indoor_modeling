@@ -14,8 +14,9 @@ SOURCES += viewer.cc
 qtHaveModule(opengl) {
     QT += opengl
 
-    SOURCES += main_widget.cc \
-       configuration.cc \
+    SOURCES += \
+       main_widget.cc \
+       main_widget_util.cc \
        navigation.cc \
        floorplan_renderer.cc \
        object_renderer.cc \
@@ -23,10 +24,12 @@ qtHaveModule(opengl) {
        panorama_renderer.cc \
        polygon_renderer.cc \
        ../base/floorplan.cc \
+       ../base/panorama.cc \
        ../base/point_cloud.cc
 
     HEADERS += \
         main_widget.h \
+        main_widget_util.h \
         configuration.h \
         navigation.h \
         floorplan_renderer.h \
@@ -36,6 +39,7 @@ qtHaveModule(opengl) {
         polygon_renderer.h \
         ../base/file_io.h \
         ../base/floorplan.h \
+        ../base/panorama.h \
         ../base/point_cloud.h
 
     RESOURCES += \
@@ -59,6 +63,7 @@ qtHaveModule(opengl) {
         LIBS += '-L/usr/local/lib'
         LIBS += '-lopencv_core.2.4.9'
         LIBS += '-lopencv_imgproc.2.4.9'
+        LIBS += '-lopencv_highgui.2.4.9'
 #       LIBS += '-L/opt/X11/lib -lGLU -framework OpenGL'
     }
 

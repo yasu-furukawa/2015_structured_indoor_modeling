@@ -1,5 +1,6 @@
 #include "main_widget.h"
 
+#include <fstream>
 #include <iostream>
 #include <locale.h>
 #include <math.h>
@@ -17,6 +18,8 @@
 #include <opencv2/opencv.hpp>
 // #include <opencv2/imgproc/imgproc.hpp>
 
+#include "main_widget_util.h"
+
 using namespace Eigen;
 using namespace std;
 
@@ -28,35 +31,19 @@ const double MainWidget::kRenderMargin = 0.2;
 const double MainWidget::kFadeInSeconds = 0.2;
 const double MainWidget::kFadeOutSeconds = 1.5;
 
-namespace {
-
-bool IsInside(const Floorplan floorplan, const int room, const Vector2d& point) {
-  const cv::Point2f point_tmp(point[0], point[1]);
-
-  vector<cv::Point> contour;
-  for (int w = 0; w < floorplan.GetNumWalls(room); ++w) {
-    const Eigen::Vector2d local = floorplan.GetRoomVertexLocal(room, w);
-    contour.push_back(cv::Point(local[0], local[1]));
-  }
-
-  if (cv::pointPolygonTest(contour, point_tmp, true) >= 0.0)
-    return true;
-  else
-    return false;
-}
-  
-}  // namespace
-
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
-  configuration(configuration),
+  file_io(configuration.data_directory),
   panel_renderer(polygon_renderer, viewport),  
-  navigation(configuration, panorama_renderers, polygon_renderer, panorama_to_room, room_to_panorama) {
+  navigation(configuration,
+             panorama_renderers,
+             polygon_renderer,
+             panorama_to_room,
+             room_to_panorama) {
+
   object_renderer.Init(configuration.data_directory);
-  panorama_renderers.resize(configuration.panorama_configurations.size());
-  for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p) {
-    panorama_renderers[p].Init(configuration.panorama_configurations[p], this);
-  }
+  InitPanoramaRenderers();
+
   polygon_renderer.Init(configuration.data_directory, this);
   floorplan_renderer.Init(configuration.data_directory,
                           polygon_renderer.GetFloorplanFinal().GetFloorplanToGlobal());
@@ -67,10 +54,10 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   
   navigation.Init();
 
-  SetPanoramaToRoom();
-  SetRoomToPanorama();
-  SetPanoramaDistanceTable();
-
+  SetPanoramaToRoom(polygon_renderer.GetFloorplanFinal(), panorama_renderers, &panorama_to_room);
+  SetRoomToPanorama(polygon_renderer.GetFloorplanFinal(), panorama_renderers, polygon_renderer,
+                    &room_to_panorama);
+  SetPanoramaDistanceTable(panorama_renderers, &panorama_distance_table);
   
   current_width = current_height = -1;
 
@@ -127,6 +114,27 @@ void MainWidget::FreeResources() {
   }
 }
 
+void MainWidget::InitPanoramaRenderers() {
+  const int kMaxPanoramaId = 100;
+  vector<int> panorama_ids;
+  for (int p = 0; p < kMaxPanoramaId; ++p) {
+    ifstream ifstr;
+    ifstr.open(file_io.GetPanoramaImage(p).c_str());
+    if (!ifstr.is_open())
+      continue;
+    panorama_ids.push_back(p);
+  }
+  if (panorama_ids.empty()) {
+    cerr << "No panorama." << endl;
+    exit (1);
+  }
+
+  panorama_renderers.resize(panorama_ids.size());
+  for (int i = 0; i < (int)panorama_ids.size(); ++i) {
+    panorama_renderers[i].Init(file_io, panorama_ids[i], this);
+  }
+}
+  
 void MainWidget::InitializeShaders() {
   // Override system locale until shaders are compiled
   setlocale(LC_NUMERIC, "C");
@@ -769,7 +777,9 @@ void MainWidget::paintGL() {
       int room_highlighted = -1;
       if (!mouse_down)
         room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]));
+                                                        mouseMovePosition[1]),
+                                               frameids,
+                                               viewport);
       RenderPolygon(panorama_to_room[navigation.GetCameraPanorama().start_index],
                     alpha / 2.0, HeightAdjustment(), kDepthOrderHeightAdjustment, room_highlighted);
       RenderThumbnail(1.0, room_highlighted);
@@ -800,7 +810,9 @@ void MainWidget::paintGL() {
       int room_highlighted = -1;
       if (!mouse_down)
         room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]));
+                                                        mouseMovePosition[1]),
+                                               frameids,
+                                               viewport);
       // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, room_highlighted);
       RenderPolygon(-1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
       // RenderAllThumbnails(alpha, room_highlighted);
@@ -862,36 +874,6 @@ void MainWidget::paintGL() {
   //simple_click_time_offset_by_move = 0;
 }
 
-int MainWidget::FindPanoramaFromAirFloorplanClick(const Eigen::Vector2d& pixel) const {
-  int best_index = -1;
-  double best_distance = 0.0;
-  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-    GLdouble winX, winY, winZ;
-    
-    gluProject(panorama_renderers[p].GetCenter()[0],
-               panorama_renderers[p].GetCenter()[1],
-               panorama_renderers[p].GetCenter()[2],
-               modelview, projection, viewport,
-               &winX, &winY, &winZ);
-
-    const double distance = (pixel - Vector2d(winX, winY)).norm();
-    if (best_index == -1 || distance < best_distance) {
-      best_distance = distance;
-      best_index = p;
-    }
-  }
-
-  return best_index;
-}
-
-int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
-  unsigned char data;
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
-  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_BLUE, GL_UNSIGNED_BYTE, &data);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  
-  return static_cast<int>(data) - 1;
-}
   
 //----------------------------------------------------------------------
 // GUI
@@ -928,12 +910,16 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
     if (navigation.GetCameraStatus() == kPanorama &&
         RightAfterSimpleClick(0.0)) {
       const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
-                                                                mousePressPosition[1]));
+                                                                mousePressPosition[1]),
+                                                       frameids,
+                                                       viewport);
       //simple_click_time.start();
       if (room_highlighted != -1) {
         vector<int> indexes;
 
-        FindPanoramaPath(navigation.GetCameraPanorama().start_index,
+        FindPanoramaPath(panorama_renderers,
+                         panorama_distance_table,
+                         navigation.GetCameraPanorama().start_index,
                          room_to_panorama[room_highlighted],
                          &indexes);
         navigation.TourToPanorama(indexes);
@@ -943,7 +929,9 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
     } else if (navigation.GetCameraStatus() == kAir &&
                RightAfterSimpleClick(0.0)) {
       const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
-                                                                mousePressPosition[1]));
+                                                                mousePressPosition[1]),
+                                                       frameids,
+                                                       viewport);
       if (room_highlighted != -1) {
         navigation.AirToPanorama(room_to_panorama[room_highlighted]);
         // Not perfect, the following line is good enough.
@@ -976,15 +964,23 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
     break;
   }
   case kAir: {
-    const int index = FindPanoramaFromAirFloorplanClick(Vector2d(e->localPos().x(),
-                                                                 viewport[3] - e->localPos().y()));
+    const int index = FindPanoramaFromAirFloorplanClick(panorama_renderers,
+                                                        Vector2d(e->localPos().x(),
+                                                                 viewport[3] - e->localPos().y()),
+                                                        viewport,
+                                                        modelview,
+                                                        projection);
     if (0 <= index)
       navigation.AirToPanorama(index);
     break;
   }
   case kFloorplan: {
-    const int index = FindPanoramaFromAirFloorplanClick(Vector2d(e->localPos().x(),
-                                                                 viewport[3] - e->localPos().y()));
+    const int index = FindPanoramaFromAirFloorplanClick(panorama_renderers,
+                                                        Vector2d(e->localPos().x(),
+                                                                 viewport[3] - e->localPos().y()),
+                                                        viewport,
+                                                        modelview,
+                                                        projection);
     if (0 <= index)
       navigation.FloorplanToPanorama(index);
     break;
@@ -1154,207 +1150,23 @@ bool MainWidget::RightAfterSimpleClick(const double margin) const {
 
 double MainWidget::Progress() {
   return ProgressFunction(simple_click_time.elapsed() / 1000.0,
-                          simple_click_time_offset_by_move / 1000.0);
+                          simple_click_time_offset_by_move / 1000.0,
+                          kFadeInSeconds,
+                          kFadeOutSeconds);
 }
 
 double MainWidget::Fade() {
   return FadeFunction(simple_click_time.elapsed() / 1000.0,
-                      simple_click_time_offset_by_move / 1000.0);
+                      simple_click_time_offset_by_move / 1000.0,
+                      kFadeInSeconds,
+                      kFadeOutSeconds);
 }
 
 double MainWidget::HeightAdjustment() {
   return HeightAdjustmentFunction(simple_click_time.elapsed() / 1000.0,
-                                  simple_click_time_offset_by_move / 1000.0);
-}
-
-double MainWidget::ProgressFunction(const double elapsed, const double offset) {
-  //if (offset < kFadeInSeconds)
-  //return ((elapsed) - kFadeInSeconds) / (kFadeOutSeconds - kFadeInSeconds);
-  //else
-  return max(0.0,
-             ((elapsed - offset) - kFadeInSeconds) /
-             (kFadeOutSeconds - kFadeInSeconds));
-}
-
-double MainWidget::FadeFunction(const double elapsed, const double offset) {
-  // When a mouse keeps moving (offset is large, we draw with a full opacity).
-  const double progress = ProgressFunction(elapsed, offset);
-  const double kSpeed = 20.0;
-  if (progress < 1.0 / kSpeed) {
-    if (offset > kFadeInSeconds)
-      return 1.0;
-    else
-      return kSpeed * progress;
-  } else if (progress > 0.75) {
-    return 1.0 - (progress - 0.75) * 4.0;
-  } else {
-    return 1.0;
-  }
-}
-
-double MainWidget::HeightAdjustmentFunction(const double elapsed,
-                                            const double offset) {
-  // When a mouse keeps moving (offset is large, we draw with a full opacity).
-  if (offset > kFadeInSeconds)
-    return 1.0;
-
-  const double progress = ProgressFunction(elapsed, offset);
-  return min(1.0, 0.2 + 10.0 * max(0.0, progress - 0.2));
-}
-
-void MainWidget::SetPanoramaToRoom() {
-  const Floorplan& floorplan = polygon_renderer.GetFloorplanFinal();
-  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-  
-  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-    const Vector3d global_center = panorama_renderers[p].GetCenter();
-    const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
-    const Vector2d floorplan_center2(floorplan_center[0], floorplan_center[1]);
-           
-    int room_id = -1;
-    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-      if (IsInside(floorplan, room, floorplan_center2)) {
-        room_id = room;
-        break;
-      }
-    }
-    panorama_to_room[p] = room_id;
-  }
-}
-
-void MainWidget::SetRoomToPanorama() {
-  const Floorplan& floorplan = polygon_renderer.GetFloorplanFinal();
-  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    const Vector2d room_center = polygon_renderer.GetRoomCenter(room);
-    
-    // Find the closest panorama.
-    int best_panorama = -1;
-    double best_distance = 0.0;
-    for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-      const Vector3d global_center = panorama_renderers[p].GetCenter();
-      const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
-      const Vector2d panorama_center(floorplan_center[0], floorplan_center[1]);
-      const double distance = (room_center - panorama_center).norm();
-      if (best_panorama == -1 || distance < best_distance) {
-        best_panorama = p;
-        best_distance = distance;
-      }
-    }
-    room_to_panorama[room] = best_panorama;
-  }
-}
-
-void MainWidget::SetPanoramaDistanceTable() {
-  panorama_distance_table.clear();
-  panorama_distance_table.resize(panorama_renderers.size());
-  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-    panorama_distance_table[p].resize(panorama_renderers.size(), -1);
-  }
-  for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-    for (int q = p + 1; q < (int)panorama_renderers.size(); ++q) {
-      panorama_distance_table[p][q] = panorama_distance_table[q][p] =
-        (ComputePanoramaDistance(p, q) + ComputePanoramaDistance(q, p)) / 2.0;
-    }
-  }
-}
-
-double MainWidget::ComputePanoramaDistance(const int lhs, const int rhs) const {
-  const Vector2d lhs_on_rhs_depth_image =
-    panorama_renderers[rhs].RGBToDepth(panorama_renderers[rhs].Project(panorama_renderers[lhs].GetCenter()));
-  // Search in some radius.
-  const int wradius = panorama_renderers[rhs].DepthWidth() / 20;
-  const int hradius = panorama_renderers[rhs].DepthHeight() / 20;
-  const double distance = (panorama_renderers[lhs].GetCenter() -
-                           panorama_renderers[rhs].GetCenter()).norm();
-
-  int connected = 0;
-  int occluded = 0;
-  
-  const int depth_width              = panorama_renderers[rhs].DepthWidth();
-  const int depth_height             = panorama_renderers[rhs].DepthHeight();
-
-  const vector<Vector3d>& depth_mesh = panorama_renderers[rhs].DepthMesh();
-  // Only look at the top half.
-  for (int j = -hradius; j <= 0; ++j) {
-    const int ytmp = static_cast<int>(round(lhs_on_rhs_depth_image[1])) + j;
-    if (ytmp < 0 || depth_height <= ytmp)
-      continue;
-    for (int i = -wradius; i <= wradius; ++i) {
-      const int xtmp = (static_cast<int>(round(lhs_on_rhs_depth_image[0])) + i + depth_width) % depth_width;
-      const Vector3d depth_point = depth_mesh[ytmp * depth_width + xtmp];
-      const double depthmap_distance = (depth_point - panorama_renderers[rhs].GetCenter()).norm();
-
-      if (distance < depthmap_distance)
-        ++connected;
-      else
-        ++occluded;
-    }
-  }
-  if (connected + occluded == 0) {
-    cerr << "Impossible in ComputePanoramaDistance" << endl;
-    exit (1);
-  }
-  //cout << '(' << lhs << ',' << rhs << ',' << occluded *1.0/ (connected + occluded) << ") ";
-  const double ratio = occluded / static_cast<double>(connected + occluded);
-  const double kOffset = 0.0;
-  const double kMinScale = 1.0;
-  const double kMaxScale = 10.0;
-
-  return distance *
-    (kMinScale + (kMaxScale - kMinScale) * max(0.0, ratio - kOffset) /
-     (1.0 - kOffset));
-}
-
-void MainWidget::FindPanoramaPath(const int start_panorama, const int goal_panorama,
-                                  std::vector<int>* indexes) const {
-  // Standard shortest path algorithm.
-  const double kInvalid = -1.0;
-  // Find connectivity information. Distance is put. -1 means not connected.
-  vector<pair<double, int> > table(panorama_renderers.size(), pair<double, int>(kInvalid, -1));
-
-  table[start_panorama] = pair<double, int>(0.0, start_panorama);
-  // It is enough to repeat iterations at the number of panoramas - 1.
-  for (int i = 0; i < (int)panorama_renderers.size() - 1; ++i) {
-    // Update the result on panorama p by using q.
-    for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-      if (p == start_panorama)
-        continue;
-      for (int q = 0; q < (int)panorama_renderers.size(); ++q) {
-        if (p == q)
-          continue;
-        // q is not reachable yet.
-        if (table[q].first == kInvalid)
-          continue;
-        
-        const double new_distance = table[q].first + panorama_distance_table[q][p];
-        if (table[p].first == kInvalid || new_distance < table[p].first) {
-          table[p].first = new_distance;
-          table[p].second = q;
-        }
-      }
-    }
-  }
-
-  if (table[goal_panorama].first == kInvalid) {
-    cerr << "Impossible. every node is reachable." << endl;
-    exit (1);
-  }
-
-  indexes->clear();
-  int pindex = goal_panorama;
-  indexes->push_back(pindex);
-  while (pindex != start_panorama) {
-    pindex = table[pindex].second;
-    indexes->push_back(pindex);
-  }
-  reverse(indexes->begin(), indexes->end());
-
-  cout << "Path ";
-  for (int i = 0; i < (int)indexes->size(); ++i)
-    cout << indexes->at(i) << ' ';
-  cout << endl;
+                                  simple_click_time_offset_by_move / 1000.0,
+                                  kFadeInSeconds,
+                                  kFadeOutSeconds);
 }
 
 }  // namespace structured_indoor_modeling

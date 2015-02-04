@@ -64,7 +64,7 @@ public:
 
   Eigen::Vector3d GlobalToLocal(const Eigen::Vector3d& global) const;
   Eigen::Vector3d LocalToGlobal(const Eigen::Vector3d& local) const;
-
+  
   const Eigen::Vector3d& GetCenter() const { return center; }
 
   double GetAverageDistance() const { return average_distance; }
@@ -77,6 +77,9 @@ public:
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
   const cv::Mat GetRGBImage(){return rgb_image;}
+  double GetPhiRange() const;
+  Eigen::Matrix4d GetGlobalToLocal() const;
+  Eigen::Matrix4d GetLocalToGlobal() const;
   
   int Width() const { return width; }
   int Height() const { return height; }
