@@ -7,6 +7,7 @@
 #include <gflags/gflags.h>
 #include "../base/file_io.h"
 #include "../base/point_cloud.h"
+#include "../base/panorama.h"
 #include <vector>
 #include <typeinfo>
 #include "object_hole_filling.h"
@@ -41,12 +42,12 @@ int main(int argc, char **argv){
     PointCloud curpc;
     cout<<"reading point cloud..."<<endl;
     curpc.Init(file_io, id);
-    
-
-
+    curpc.ToGlobal(file_io, id);
     
     cout<<"Panorama "<<id<<endl;
-    Mat pan = imread(file_io.GetPanoramaImage(id));
+    Panorama panorama;
+    panorama.Init(file_io, id);
+    Mat pan = panorama.GetRGBImage().clone();
     SLIC slic;
     int imgwidth = pan.cols;
     int imgheight = pan.rows;

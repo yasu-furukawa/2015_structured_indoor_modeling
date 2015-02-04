@@ -76,6 +76,7 @@ public:
   // Performs bilinear interpolation.
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
+  const cv::Mat GetRGBImage(){return rgb_image;}
   double GetPhiRange() const;
   Eigen::Matrix4d GetGlobalToLocal() const;
   Eigen::Matrix4d GetLocalToGlobal() const;
@@ -89,7 +90,7 @@ public:
   bool IsInsideDepth(const Eigen::Vector2d& depth_pixel) const;
 
   void ResizeRGB(const Eigen::Vector2i& size);
-  
+
 private:
   void InitDepthImage(const FileIO& file_io, const int panorama);
   void InitCameraParameters(const FileIO& file_io, const int panorama);
