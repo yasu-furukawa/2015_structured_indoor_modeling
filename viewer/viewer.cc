@@ -42,7 +42,6 @@ int main(int argc, char *argv[]) {
     if (i != argc - 1)
       data_directory = data_directory + string(" ");
   }
-  cout << argc << "-" << data_directory << "-" << endl;
   
   Configuration configuration;
   {
