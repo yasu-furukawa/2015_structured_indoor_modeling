@@ -32,12 +32,6 @@ int main(int argc, char *argv[]) {
   string data_directory;
   for (int i = 1; i < argc; ++i) {
     string word = argv[i];
-    /*
-    if (word[word.length() - 1] == '\\')
-      data_directory = data_directory + word.substr(0, word.length() - 1);
-    else
-      data_directory = data_directory + word;
-    */
     data_directory = data_directory + word;    
     if (i != argc - 1)
       data_directory = data_directory + string(" ");
