@@ -21,7 +21,7 @@ DEFINE_int32(label_num,3000,"Number of superpixel");
 int main(int argc, char **argv){
 
   gflags::ParseCommandLineFlags(&argc,&argv,true);
-  if(!FLAGS_config_path.length() > 0){
+  if(! (FLAGS_config_path.length() > 0)){
     cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
   }
   //get path to data
