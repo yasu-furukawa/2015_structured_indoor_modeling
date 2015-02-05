@@ -1,13 +1,24 @@
 cmake_minimum_required(VERSION 2.8)
 project(generate_texture_cli)
-find_package( OpenCV REQUIRED )
+
+#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
+FIND_PACKAGE(OpenCV REQUIRED)
+#INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
+#TARGET_LINK_LIBRARIES(generate_texture_cli ${OpenCV_LIBS})
+
+
+#find_package( OpenCV REQUIRED )
 # FIND_PACKAGE(Ceres REQUIRED)
 # INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 LINK_DIRECTORIES(/usr/local/lib)
 
+if(UNIX)
 set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
+endif(UNIX)
 if (WIN32)
-	set(OpenCV_DIR="C:\\opencv\\build\\x64\\vc12\\lib")
+	include_directories("C:\\Eigen3.2.2")
+	include_directories("C:\\gflags-2.1.1\\include")
+	link_directories("C:\\gflags-2.1.1\\lib")	
 endif (WIN32)
 
 add_executable( generate_texture_cli generate_texture_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )

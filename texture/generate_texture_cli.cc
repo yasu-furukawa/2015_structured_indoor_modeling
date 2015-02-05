@@ -5,6 +5,10 @@
 #include <vector>
 #include <gflags/gflags.h>
 
+#ifdef _WIN32
+#pragma comment (lib, "gflags.lib") 
+#pragma comment (lib, "Shlwapi.lib") 
+#endif
 
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
