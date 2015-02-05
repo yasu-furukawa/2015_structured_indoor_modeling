@@ -290,18 +290,18 @@ Vector2d Floorplan::GridToLocal(const Vector2d& grid) const {
   return local;
 }
 
-Eigen::Vector2d Floorplan::GetRoomCenter(const int room) const {
+Eigen::Vector2d Floorplan::GetRoomCenterLocal(const int room) const {
   return room_centers_local[room];
 }
 
 Eigen::Vector3d Floorplan::GetRoomCenterGlobal(const int room) const {
-  const Eigen::Vector2d center = GetRoomCenter(room);
+  const Eigen::Vector2d center = GetRoomCenterLocal(room);
   return floorplan_to_global *
     Eigen::Vector3d(center[0], center[1], (GetFloorHeight(room) + GetCeilingHeight(room)) / 2.0);
 }
 
 Eigen::Vector3d Floorplan::GetRoomCenterFloorGlobal(const int room) const {
-  const Eigen::Vector2d center = GetRoomCenter(room);
+  const Eigen::Vector2d center = GetRoomCenterLocal(room);
   return floorplan_to_global *
     Eigen::Vector3d(center[0], center[1], GetFloorHeight(room));
 }

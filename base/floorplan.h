@@ -157,7 +157,7 @@ class Floorplan {
   const Eigen::Matrix3d& GetFloorplanToGlobal() const;
 
   // Room centers.
-  Eigen::Vector2d GetRoomCenter(const int room) const;
+  Eigen::Vector2d GetRoomCenterLocal(const int room) const;
   Eigen::Vector3d GetRoomCenterGlobal(const int room) const;
   Eigen::Vector3d GetRoomCenterFloorGlobal(const int room) const;
   

@@ -105,7 +105,6 @@ double HeightAdjustmentFunction(const double elapsed,
   return min(1.0, 0.2 + 10.0 * max(0.0, progress - 0.2));
 }
 
-
 void SetPanoramaToRoom(const Floorplan& floorplan,
                        const std::vector<PanoramaRenderer>& panorama_renderers,
                        std::map<int, int>* panorama_to_room) {
@@ -133,7 +132,7 @@ void SetRoomToPanorama(const Floorplan& floorplan,
   const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    const Vector2d room_center = floorplan.GetRoomCenter(room);
+    const Vector2d room_center = floorplan.GetRoomCenterLocal(room);
     
     // Find the closest panorama.
     int best_panorama = -1;

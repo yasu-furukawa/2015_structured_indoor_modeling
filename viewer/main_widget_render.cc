@@ -29,18 +29,19 @@ void RenderFloorplan(const FloorplanRenderer& floorplan_renderer,
   style.inner_style.stroke_color = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
   style.inner_style.fill_color   = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
   style.inner_style.stroke_width = 1.0;
+  */
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
-  floorplan_renderer.Render(style, alpha);
+  floorplan_renderer.Render(alpha);
 
-  glDisable(GL_BLEND);
+  // glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
-  */
+
 }
 
 void RenderPanorama(const Navigation& navigation,
