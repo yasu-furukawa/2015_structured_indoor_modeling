@@ -91,6 +91,8 @@ public:
 
   void ResizeRGB(const Eigen::Vector2i& size);
 
+  void ReleaseMemory();
+
 private:
   void InitDepthImage(const FileIO& file_io, const int panorama);
   void InitCameraParameters(const FileIO& file_io, const int panorama);

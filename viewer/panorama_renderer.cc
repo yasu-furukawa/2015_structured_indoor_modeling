@@ -47,39 +47,39 @@ void PanoramaRenderer::Render(const double alpha) const {
     //for (int y = 0; y < depth_height - 1; ++y) {
     //for (int x = 0; x < depth_width; ++x) {
     for (int y = 0; y < depth_height - kSkip - 1; y += kSkip) {
-        for (int x = 0; x < depth_width; x += kSkip) {
-            const int right_x = (x + kSkip) % depth_width;
-            const int index00 = y * depth_width + x;
-            const int index01 = y * depth_width + right_x;
-            const int index10 = (y + kSkip) * depth_width + x;
-            const int index11 = (y + kSkip) * depth_width + right_x;
-            // 00
-            glTexCoord2d(x / static_cast<double>(depth_width),
-                         1.0 - y / static_cast<double>(depth_height));
-            glVertex3d(depth_mesh[index00][0], depth_mesh[index00][1], depth_mesh[index00][2]);
-            // 10
-            glTexCoord2d(x / static_cast<double>(depth_width),
+      for (int x = 0; x < depth_width; x += kSkip) {
+        const int right_x = (x + kSkip) % depth_width;
+        const int index00 = y * depth_width + x;
+        const int index01 = y * depth_width + right_x;
+        const int index10 = (y + kSkip) * depth_width + x;
+        const int index11 = (y + kSkip) * depth_width + right_x;
+        // 00
+        glTexCoord2d(x / static_cast<double>(depth_width),
+                     1.0 - y / static_cast<double>(depth_height));
+        glVertex3d(depth_mesh[index00][0], depth_mesh[index00][1], depth_mesh[index00][2]);
+        // 10
+        glTexCoord2d(x / static_cast<double>(depth_width),
+                     1.0 - (y + kSkip) / static_cast<double>(depth_height));
+        glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
+        // 01
+        glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
+                     1.0 - y / static_cast<double>(depth_height));
+        glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
+        // 10
+        glTexCoord2d(x / static_cast<double>(depth_width),
                          1.0 - (y + kSkip) / static_cast<double>(depth_height));
-            glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
-            // 01
-            glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
-                         1.0 - y / static_cast<double>(depth_height));
-            glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
-            // 10
-            glTexCoord2d(x / static_cast<double>(depth_width),
-                         1.0 - (y + kSkip) / static_cast<double>(depth_height));
-            glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
-            // 11
-            glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
-                         1.0 - (y + kSkip) / static_cast<double>(depth_height));
-            glVertex3d(depth_mesh[index11][0], depth_mesh[index11][1], depth_mesh[index11][2]);
-            // 01
-            glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
-                         1.0 - y / static_cast<double>(depth_height));
-            glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
-        }
+        glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
+        // 11
+        glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
+                     1.0 - (y + kSkip) / static_cast<double>(depth_height));
+        glVertex3d(depth_mesh[index11][0], depth_mesh[index11][1], depth_mesh[index11][2]);
+        // 01
+        glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
+                     1.0 - y / static_cast<double>(depth_height));
+        glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
+      }
     }
-
+    
     glEnd();
 }
 
