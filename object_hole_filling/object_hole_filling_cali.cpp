@@ -33,6 +33,7 @@ int main(int argc, char **argv){
   ifstream confin(FLAGS_config_path.c_str());
   confin.getline(pathtodata,100);
   confin>>startid>>endid;
+  cout<<startid<<' '<<endid<<endl;
   confin.close();
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
@@ -40,21 +41,23 @@ int main(int argc, char **argv){
   for (int id=startid; id<startid+1; id++) {
     cout<<"======================="<<endl;
     //reading point cloud and convert to depth
+
+    cout<<"Panorama "<<id<<endl;
+    Panorama panorama;
+    panorama.Init(file_io, id);
+
     PointCloud curpc;
     cout<<"reading point cloud..."<<endl;
     curpc.Init(file_io, id);
     curpc.ToGlobal(file_io, id);
     
-    cout<<"Panorama "<<id<<endl;
-    Panorama panorama;
-    panorama.Init(file_io, id);
-
-
     //Get depthmap
     cout<<"Processing depth map..."<<endl;
     DepthFilling depth;
     depth.Init(curpc, panorama);
     depth.SaveDepthmap("./depth.png");
+    depth.fill_hole(panorama);
+    depth.SaveDepthmap("./depth_denoise.png");
     
     Mat pan = panorama.GetRGBImage().clone();
     SLIC slic;
