@@ -136,8 +136,7 @@ void MainWidget::InitPanoramasPanoramaRenderers() {
   panorama_renderers.resize(panorama_ids.size());
   for (int i = 0; i < (int)panorama_ids.size(); ++i) {
     panoramas[i].Init(file_io, panorama_ids[i]);
-    panoramas[i].ReleaseMemory();
-    panorama_renderers[i].Init(file_io, panorama_ids[i], this);
+    panorama_renderers[i].Init(file_io, panorama_ids[i], &panoramas[i], this);
   }
 }
   
