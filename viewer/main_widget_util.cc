@@ -1,7 +1,6 @@
 #include "../base/floorplan.h"
 #include "main_widget_util.h"
 #include "panorama_renderer.h"
-#include "polygon_renderer.h"
 
 using namespace Eigen;
 using namespace std;
@@ -128,12 +127,11 @@ void SetPanoramaToRoom(const Floorplan& floorplan,
 
 void SetRoomToPanorama(const Floorplan& floorplan,
                        const std::vector<PanoramaRenderer>& panorama_renderers,
-                       const PolygonRenderer& polygon_renderer,
                        std::map<int, int>* room_to_panorama) {
   const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    const Vector2d room_center = polygon_renderer.GetRoomCenter(room);
+    const Vector2d room_center = floorplan.GetRoomCenter(room);
     
     // Find the closest panorama.
     int best_panorama = -1;

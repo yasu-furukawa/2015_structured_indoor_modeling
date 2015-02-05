@@ -51,8 +51,8 @@ private:
     FileIO file_io;
     //----------------------------------------------------------------------
     // Core data.
-    //std::vector<Panorama> panoramas;  // No image data loaded.
-    //Floorplan floorplan;
+    Floorplan floorplan;
+    std::vector<Panorama> panoramas;  // No image data loaded.
     
     //----------------------------------------------------------------------
     // Renderers.
@@ -96,7 +96,7 @@ private:
     void SetMatrices();
 
 
-    void InitPanoramaRenderers();
+    void InitPanoramasPanoramaRenderers();
     // void RenderQuad(const double alpha);
     void InitializeShaders();
    
@@ -116,14 +116,7 @@ private:
     
     static const double kRenderMargin;
     static const double kFadeInSeconds;
-    static const double kFadeOutSeconds;
-
-
-
-void RenderPanoramaToAirTransition(const bool flip = false);
-void RenderPanoramaToFloorplanTransition(const bool flip = false);
-void RenderAirToFloorplanTransition(const bool flip = false);
-    
+    static const double kFadeOutSeconds;    
 };
 
 }  // namespace structured_indoor_modeling

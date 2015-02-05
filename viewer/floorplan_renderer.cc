@@ -63,7 +63,7 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
 }
   */
 
-void FloorplanRenderer::Render(const FloorplanStyle& /*style*/, const double /*alpha*/) {
+void FloorplanRenderer::Render(const FloorplanStyle& /*style*/, const double /*alpha*/) const {
   /*
   for (const auto& component : floorplan.components) {
     RenderShape(component.outer_shape,

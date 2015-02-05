@@ -29,7 +29,7 @@ PanoramaRenderer::~PanoramaRenderer() {
   */
 //}
 
-void PanoramaRenderer::Render(const double alpha) {
+void PanoramaRenderer::Render(const double alpha) const {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     //glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture_id);

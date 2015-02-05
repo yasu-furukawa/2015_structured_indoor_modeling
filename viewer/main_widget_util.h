@@ -20,7 +20,6 @@ namespace structured_indoor_modeling {
 
 class Floorplan;
 class PanoramaRenderer;
-class PolygonRenderer;
 
 int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panorama_renderers,
                                       const Eigen::Vector2d& pixel,
@@ -53,7 +52,6 @@ void SetPanoramaToRoom(const Floorplan& floorplan,
 
  void SetRoomToPanorama(const Floorplan& floorplan,
                         const std::vector<PanoramaRenderer>& panorama_renderers,
-                        const PolygonRenderer& polygon_renderer,
                         std::map<int, int>* room_to_panorama);
 
 void SetPanoramaDistanceTable(const std::vector<PanoramaRenderer>& panorama_renderers,

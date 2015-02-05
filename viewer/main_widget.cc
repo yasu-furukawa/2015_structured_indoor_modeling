@@ -1,4 +1,5 @@
 #include "main_widget.h"
+#include "../base/panorama.h"
 
 #include <fstream>
 #include <iostream>
@@ -35,19 +36,21 @@ const double MainWidget::kFadeOutSeconds = 1.5;
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   file_io(configuration.data_directory),
-  panel_renderer(polygon_renderer.GetFloorplanFinal(), viewport),  
+  floorplan(file_io.GetFloorplanFinal()),
+  polygon_renderer(floorplan),
+  panel_renderer(floorplan, viewport),  
   navigation(configuration,
-             panorama_renderers,
-             polygon_renderer,
+             floorplan,
+             panoramas,
              panorama_to_room,
              room_to_panorama) {
 
   object_renderer.Init(configuration.data_directory);
-  InitPanoramaRenderers();
+  InitPanoramasPanoramaRenderers();
 
   polygon_renderer.Init(configuration.data_directory, this);
   floorplan_renderer.Init(configuration.data_directory,
-                          polygon_renderer.GetFloorplanFinal().GetFloorplanToGlobal());
+                          floorplan.GetFloorplanToGlobal());
   panel_renderer.Init(configuration.data_directory);
 
   setFocusPolicy(Qt::ClickFocus);
@@ -55,9 +58,8 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   
   navigation.Init();
 
-  SetPanoramaToRoom(polygon_renderer.GetFloorplanFinal(), panorama_renderers, &panorama_to_room);
-  SetRoomToPanorama(polygon_renderer.GetFloorplanFinal(), panorama_renderers, polygon_renderer,
-                    &room_to_panorama);
+  SetPanoramaToRoom(floorplan, panorama_renderers, &panorama_to_room);
+  SetRoomToPanorama(floorplan, panorama_renderers, &room_to_panorama);
   SetPanoramaDistanceTable(panorama_renderers, &panorama_distance_table);
   
   current_width = current_height = -1;
@@ -115,7 +117,7 @@ void MainWidget::FreeResources() {
   }
 }
 
-void MainWidget::InitPanoramaRenderers() {
+void MainWidget::InitPanoramasPanoramaRenderers() {
   const int kMaxPanoramaId = 100;
   vector<int> panorama_ids;
   for (int p = 0; p < kMaxPanoramaId; ++p) {
@@ -130,8 +132,10 @@ void MainWidget::InitPanoramaRenderers() {
     exit (1);
   }
 
+  panoramas.resize(panorama_ids.size());
   panorama_renderers.resize(panorama_ids.size());
   for (int i = 0; i < (int)panorama_ids.size(); ++i) {
+    panoramas[i].Init(file_io, panorama_ids[i]);
     panorama_renderers[i].Init(file_io, panorama_ids[i], this);
   }
 }
@@ -350,27 +354,33 @@ void MainWidget::paintGL() {
     break;
   }
   case kPanoramaToAirTransition: {
-    RenderPanoramaToAirTransition();
+    RenderPanoramaToAirTransition(program, navigation, panorama_renderers, polygon_renderer,
+                                  object_renderer, frameids, texids, width(), height());
     break;
   }
   case kAirToPanoramaTransition: {
-    RenderPanoramaToAirTransition(kFlip);
+    RenderPanoramaToAirTransition(program, navigation, panorama_renderers, polygon_renderer,
+                                  object_renderer, frameids, texids, width(), height(), kFlip);
     break;
   }
   case kPanoramaToFloorplanTransition: {
-    RenderPanoramaToFloorplanTransition();
+    RenderPanoramaToFloorplanTransition(program, navigation, panorama_renderers, floorplan_renderer,
+                                        frameids, texids, width(), height());
     break;
   }
   case kFloorplanToPanoramaTransition: {
-    RenderPanoramaToFloorplanTransition(kFlip);
+    RenderPanoramaToFloorplanTransition(program, navigation, panorama_renderers, floorplan_renderer,
+                                        frameids, texids, width(), height(), kFlip);
     break;
   }
   case kAirToFloorplanTransition: {
-    RenderAirToFloorplanTransition();
+    RenderAirToFloorplanTransition(program, navigation, polygon_renderer, object_renderer,
+                                   floorplan_renderer, frameids, texids, width(), height());
     break;
   }
   case kFloorplanToAirTransition: {
-    RenderAirToFloorplanTransition(kFlip);
+    RenderAirToFloorplanTransition(program, navigation, polygon_renderer, object_renderer,
+                                   floorplan_renderer, frameids, texids, width(), height(), kFlip);
     break;
   }
     
@@ -681,77 +691,5 @@ double MainWidget::HeightAdjustment() {
                                   kFadeInSeconds,
                                   kFadeOutSeconds);
 }
-
-
-void MainWidget::RenderPanoramaToAirTransition(const bool flip) {
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  const double kFullOpacity = 1.0;
-  RenderPanorama(navigation, panorama_renderers, kFullOpacity);
-  
-  // Render the target pano.
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  RenderTexturedPolygon(polygon_renderer, kFullOpacity);
-  RenderObjects(object_renderer, kFullOpacity);
-
-  // Blend the two.
-  // const double weight_end = 1.0 - weight_start;
-  double weight = navigation.ProgressInverse();
-  if (flip)
-    weight = 1.0 - weight;
-  weight = 1.0 - cos(weight * M_PI / 2);
-  const int kKeepPolygon = 2;
-  BlendFrames(program, texids, width(), height(), weight, kKeepPolygon);
-}
-
-void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  const double kFullOpacity = 1.0;
-  RenderPanorama(navigation, panorama_renderers, kFullOpacity);
-  
-  // Render the target pano.
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  RenderFloorplan(floorplan_renderer, kFullOpacity);
-
-  // Blend the two.
-  // const double weight_end = 1.0 - weight_start;
-  double weight = navigation.ProgressInverse();
-  if (flip)
-    weight = 1.0 - weight;
-  weight = 1.0 - cos(weight * M_PI / 2);
-  const int kKeepPolygon = 2;
-  BlendFrames(program, texids, width(), height(), weight, kKeepPolygon);
-}
-
-void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  const double kFullOpacity = 1.0;
-  RenderTexturedPolygon(polygon_renderer, kFullOpacity);
-  RenderObjects(object_renderer, kFullOpacity);
-  
-  // Render the target pano.
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  RenderFloorplan(floorplan_renderer, kFullOpacity);
-
-  // Blend the two.
-  double weight = navigation.ProgressInverse();
-  if (flip)
-    weight = 1.0 - flip;
-  weight = 1.0 - cos(weight * M_PI / 2);
-  const int kKeepPolygon = 2;
-  BlendFrames(program, texids, width(), height(), weight, kKeepPolygon);
-}
-  
   
 }  // namespace structured_indoor_modeling

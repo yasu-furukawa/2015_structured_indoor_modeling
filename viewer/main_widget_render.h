@@ -25,11 +25,11 @@ class PanoramaRenderer;
 class PolygonRenderer;
 class ObjectRenderer;
 
-void RenderFloorplan(FloorplanRenderer& floorplan_renderer,
+void RenderFloorplan(const FloorplanRenderer& floorplan_renderer,
                      const double alpha);
 
 void RenderPanorama(const Navigation& navigation,
-                    std::vector<PanoramaRenderer>& panorama_renderers,
+                    const std::vector<PanoramaRenderer>& panorama_renderers,
                     const double alpha);
 
 void RenderObjects(ObjectRenderer& object_renderer, const double alpha);
@@ -41,7 +41,7 @@ void RenderPolygon(const Navigation& navigation,
                    const bool depth_order_height_adjustment,
                    const int room_highlighted);
 
-void RenderTexturedPolygon(PolygonRenderer& polygon_renderer,
+void RenderTexturedPolygon(const PolygonRenderer& polygon_renderer,
                            const double alpha);
 
 void RenderPolygonLabels(const Navigation& navigation,
@@ -60,7 +60,6 @@ void RenderThumbnail(PanelRenderer& panel_renderer,
 
 void RenderAllThumbnails(PanelRenderer& panel_renderer,
                          const Floorplan& floorplan,
-                         const PolygonRenderer& polygon_renderer,
                          const GLint viewport[],
                          const GLdouble modelview[],
                          const GLdouble projection[],
@@ -91,4 +90,36 @@ void RenderPanoramaTour(QOpenGLShaderProgram& program,
                         const int width,
                         const int height);
 
+void RenderPanoramaToAirTransition(QOpenGLShaderProgram& program,
+                                   const Navigation& navigation,
+                                   const std::vector<PanoramaRenderer>& panorama_renderers,
+                                   const PolygonRenderer& polygon_renderer,
+                                   ObjectRenderer& object_renderer,
+                                   const GLuint frameids[],
+                                   const GLuint texids[],
+                                   const int width,
+                                   const int height,
+                                   const bool flip = false);
+
+void RenderPanoramaToFloorplanTransition(QOpenGLShaderProgram& program,
+                                         const Navigation& navigation,
+                                         const std::vector<PanoramaRenderer>& panorama_renderers,
+                                         const FloorplanRenderer& floorplan_renderer,
+                                         const GLuint frameids[],
+                                         const GLuint texids[],
+                                         const int width,
+                                         const int height,                                         
+                                         const bool flip = false);
+
+void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
+                                    const Navigation& navigation,
+                                    const PolygonRenderer& polygon_renderer,
+                                    ObjectRenderer& object_renderer,
+                                    const FloorplanRenderer& floorplan_renderer,
+                                    const GLuint frameids[],
+                                    const GLuint texids[],
+                                    const int width,
+                                    const int height,                                    
+                                    const bool flip = false);
+ 
 }  // namespace structured_indoor_modeling

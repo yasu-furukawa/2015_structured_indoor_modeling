@@ -9,8 +9,7 @@ namespace structured_indoor_modeling {
 
 struct Configuration;
 class Floorplan;
-class PanoramaRenderer;
-class PolygonRenderer;
+class Panorama;
 
 enum CameraStatus {
   // CameraPanorama handles the states.
@@ -98,8 +97,8 @@ struct CameraPanoramaTour {
 class Navigation {
  public:
   Navigation(const Configuration& configuration,
-             const std::vector<PanoramaRenderer>& panorama_renderers,
-             const PolygonRenderer& polygon_renderer,
+             const Floorplan& floorplan,
+             const std::vector<Panorama>& panoramas,
              const std::map<int, int>& panorama_to_room,
              const std::map<int, int>& room_to_panorama);
 
@@ -184,8 +183,8 @@ class Navigation {
   double air_field_of_view_scale;
   double floorplan_field_of_view_scale;
 
-  const std::vector<PanoramaRenderer>& panorama_renderers;
-  const PolygonRenderer& polygon_renderer;
+  const Floorplan& floorplan;
+  const std::vector<Panorama>& panoramas;
   const std::map<int, int>& panorama_to_room;
   const std::map<int, int>& room_to_panorama;
 };

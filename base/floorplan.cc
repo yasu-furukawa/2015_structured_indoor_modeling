@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <numeric>
 #include <string>
@@ -22,6 +23,41 @@ namespace {
   ostream& operator<<(ostream& ostr, const LineDoor& line_door);
 }  // namespace;
 
+Floorplan::Floorplan() {
+}
+
+Floorplan::Floorplan(const std::string& filename) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+  ifstr >> *this;
+  ifstr.close();
+
+
+  const int num_room = GetNumRooms();
+  room_centers_local.resize(num_room);
+  for (int room = 0; room < num_room; ++room) {
+    const int num_wall = GetNumWalls(room);
+    room_centers_local[room] = Vector2d(0, 0);
+    double denom = 0;
+    for (int wall = 0; wall < num_wall; ++wall) {
+      const int prev_wall = ((wall - 1) + num_wall) % num_wall;
+      const int next_wall = (wall + 1) % num_wall;
+      const double length =
+        (GetRoomVertexLocal(room, wall) -
+         GetRoomVertexLocal(room, prev_wall)).norm() +
+        (GetRoomVertexLocal(room, wall) -
+         GetRoomVertexLocal(room, next_wall)).norm();
+      room_centers_local[room] += GetRoomVertexLocal(room, wall) * length;
+      denom += length;
+    }
+    if (denom == 0.0) {
+      cerr << "Impossible polygonRender." << endl;
+      exit (1);
+    }
+    room_centers_local[room] /= denom;
+  }
+}
+  
 //----------------------------------------------------------------------
 const Eigen::Matrix3d& Floorplan::GetFloorplanToGlobal() const {
   return floorplan_to_global;
@@ -252,6 +288,22 @@ Vector2d Floorplan::GridToLocal(const Vector2d& grid) const {
     local[axis] = grid[axis] * grid_unit + grid_ranges[axis][0];
   }
   return local;
+}
+
+Eigen::Vector2d Floorplan::GetRoomCenter(const int room) const {
+  return room_centers_local[room];
+}
+
+Eigen::Vector3d Floorplan::GetRoomCenterGlobal(const int room) const {
+  const Eigen::Vector2d center = GetRoomCenter(room);
+  return floorplan_to_global *
+    Eigen::Vector3d(center[0], center[1], (GetFloorHeight(room) + GetCeilingHeight(room)) / 2.0);
+}
+
+Eigen::Vector3d Floorplan::GetRoomCenterFloorGlobal(const int room) const {
+  const Eigen::Vector2d center = GetRoomCenter(room);
+  return floorplan_to_global *
+    Eigen::Vector3d(center[0], center[1], GetFloorHeight(room));
 }
   
 istream& operator>>(istream& istr, Floorplan& floorplan) {

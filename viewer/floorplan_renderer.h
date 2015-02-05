@@ -28,7 +28,7 @@ class FloorplanRenderer : protected QGLFunctions {
   void Init(const std::string data_directory,
             const Eigen::Matrix3d& floorplan_to_global_tmp);
   // void InitGL();
-  void Render(const FloorplanStyle& style, const double alpha);
+  void Render(const FloorplanStyle& style, const double alpha) const;
 
  private:
   /*

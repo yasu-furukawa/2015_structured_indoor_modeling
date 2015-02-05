@@ -21,8 +21,8 @@ class ObjectRenderer : protected QGLFunctions {
   void InitGL();
 
   void RenderAll(const double alpha);
-  void RenderRoom(const int room);
-  void RenderObject(const int room, const int object);
+  void RenderRoom(const int room) const;
+  void RenderObject(const int room, const int object) const;
 
   bool Toggle();
 

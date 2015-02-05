@@ -14,7 +14,7 @@ using namespace std;
 
 namespace structured_indoor_modeling {
   
-void RenderFloorplan(FloorplanRenderer& floorplan_renderer,
+void RenderFloorplan(const FloorplanRenderer& floorplan_renderer,
                      const double alpha) {
 
   //RenderTexturedPolygon(alpha);
@@ -44,7 +44,7 @@ void RenderFloorplan(FloorplanRenderer& floorplan_renderer,
 }
 
 void RenderPanorama(const Navigation& navigation,
-                    std::vector<PanoramaRenderer>& panorama_renderers,
+                    const std::vector<PanoramaRenderer>& panorama_renderers,
                     const double alpha) {
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_CULL_FACE);
@@ -311,7 +311,7 @@ void RenderPolygon(const Navigation& navigation,
   glEnable(GL_TEXTURE_2D);
 }
 
-void RenderTexturedPolygon(PolygonRenderer& polygon_renderer,
+void RenderTexturedPolygon(const PolygonRenderer& polygon_renderer,
                            const double alpha) {
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_CULL_FACE);
@@ -383,7 +383,6 @@ void RenderThumbnail(PanelRenderer& panel_renderer,
 
 void RenderAllThumbnails(PanelRenderer& panel_renderer,
                          const Floorplan& floorplan,
-                         const PolygonRenderer& polygon_renderer,
                          const GLint viewport[],
                          const GLdouble modelview[],
                          const GLdouble projection[],
@@ -396,7 +395,7 @@ void RenderAllThumbnails(PanelRenderer& panel_renderer,
   const int num_room = floorplan.GetNumRooms();
   vector<Vector2i> room_centers(num_room);
   for (int room = 0; room < num_room; ++room) {
-    const Vector3d& center = polygon_renderer.GetRoomCenterFloorGlobal(room);
+    const Vector3d& center = floorplan.GetRoomCenterFloorGlobal(room);
     GLdouble u, v, w;
     gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
     room_centers[room][0] = static_cast<int>(round(u));
@@ -444,5 +443,101 @@ void RenderAllThumbnails(PanelRenderer& panel_renderer,
   */
 }
 
+void RenderPanoramaToAirTransition(QOpenGLShaderProgram& program,
+                                   const Navigation& navigation,
+                                   const std::vector<PanoramaRenderer>& panorama_renderers,
+                                   const PolygonRenderer& polygon_renderer,
+                                   ObjectRenderer& object_renderer,
+                                   const GLuint frameids[],
+                                   const GLuint texids[],
+                                   const int width,
+                                   const int height,
+                                   const bool flip) {
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  const double kFullOpacity = 1.0;
+  RenderPanorama(navigation, panorama_renderers, kFullOpacity);
+  
+  // Render the target pano.
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  RenderTexturedPolygon(polygon_renderer, kFullOpacity);
+  RenderObjects(object_renderer, kFullOpacity);
 
+  // Blend the two.
+  // const double weight_end = 1.0 - weight_start;
+  double weight = navigation.ProgressInverse();
+  if (flip)
+    weight = 1.0 - weight;
+  weight = 1.0 - cos(weight * M_PI / 2);
+  const int kKeepPolygon = 2;
+  BlendFrames(program, texids, width, height, weight, kKeepPolygon);
+}
+
+void RenderPanoramaToFloorplanTransition(QOpenGLShaderProgram& program,
+                                         const Navigation& navigation,
+                                         const std::vector<PanoramaRenderer>& panorama_renderers,
+                                         const FloorplanRenderer& floorplan_renderer,
+                                         const GLuint frameids[],
+                                         const GLuint texids[],
+                                         const int width,
+                                         const int height,
+                                         const bool flip) {
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  const double kFullOpacity = 1.0;
+  RenderPanorama(navigation, panorama_renderers, kFullOpacity);
+  
+  // Render the target pano.
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  RenderFloorplan(floorplan_renderer, kFullOpacity);
+
+  // Blend the two.
+  // const double weight_end = 1.0 - weight_start;
+  double weight = navigation.ProgressInverse();
+  if (flip)
+    weight = 1.0 - weight;
+  weight = 1.0 - cos(weight * M_PI / 2);
+  const int kKeepPolygon = 2;
+  BlendFrames(program, texids, width, height, weight, kKeepPolygon);
+}
+
+void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
+                                    const Navigation& navigation,
+                                    const PolygonRenderer& polygon_renderer,
+                                    ObjectRenderer& object_renderer,
+                                    const FloorplanRenderer& floorplan_renderer,
+                                    const GLuint frameids[],
+                                    const GLuint texids[],
+                                    const int width,
+                                    const int height,
+                                    const bool flip) {
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  const double kFullOpacity = 1.0;
+  RenderTexturedPolygon(polygon_renderer, kFullOpacity);
+  RenderObjects(object_renderer, kFullOpacity);
+  
+  // Render the target pano.
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  RenderFloorplan(floorplan_renderer, kFullOpacity);
+
+  // Blend the two.
+  double weight = navigation.ProgressInverse();
+  if (flip)
+    weight = 1.0 - flip;
+  weight = 1.0 - cos(weight * M_PI / 2);
+  const int kKeepPolygon = 2;
+  BlendFrames(program, texids, width, height, weight, kKeepPolygon);
+}
+  
+  
 }  // namespace structured_indoor_modeling

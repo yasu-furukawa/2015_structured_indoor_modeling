@@ -80,6 +80,8 @@ struct LineRoom;
   
 class Floorplan {
  public:
+  Floorplan();
+  Floorplan(const std::string& filename);
   //----------------------------------------------------------------------
   // Accessors.
   //----------------------------------------------------------------------
@@ -153,6 +155,11 @@ class Floorplan {
   // If necessary, one can access the transformation from the local to
   // the global coordinate systems.
   const Eigen::Matrix3d& GetFloorplanToGlobal() const;
+
+  // Room centers.
+  Eigen::Vector2d GetRoomCenter(const int room) const;
+  Eigen::Vector3d GetRoomCenterGlobal(const int room) const;
+  Eigen::Vector3d GetRoomCenterFloorGlobal(const int room) const;
   
  private:
   //----------------------------------------------------------------------
@@ -168,6 +175,8 @@ class Floorplan {
   Eigen::Vector3i grid_size;
   double grid_unit;
 
+  std::vector<Eigen::Vector2d> room_centers_local;
+  
   void SetGrid(const int max_horizontal_size);
 
   friend std::istream& operator>>(std::istream& istr, Floorplan& floorplan);

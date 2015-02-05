@@ -15,7 +15,7 @@ class PanoramaRenderer : protected QGLFunctions {
  public:
   PanoramaRenderer();
   virtual ~PanoramaRenderer();
-  void Render(const double alpha);
+  void Render(const double alpha) const;
   // void Init(const PanoramaConfiguration& panorama_configuration, QGLWidget* widget);
   void Init(const FileIO& file_io, const int panorama_id, QGLWidget* widget);
   void InitGL();

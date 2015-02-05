@@ -132,7 +132,7 @@ void ObjectRenderer::InitGL() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   */
 }
-
+  
 void ObjectRenderer::RenderAll(const double alpha) {
   if (!render)
     return;
@@ -228,11 +228,11 @@ void ObjectRenderer::RenderAll(const double alpha) {
           */  
 }
 
-void ObjectRenderer::RenderRoom(const int room) {
+void ObjectRenderer::RenderRoom(const int room) const {
 
 }
 
-void ObjectRenderer::RenderObject(const int room, const int object) {
+void ObjectRenderer::RenderObject(const int room, const int object) const {
 
 }
 

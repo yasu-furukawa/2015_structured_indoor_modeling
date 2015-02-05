@@ -179,7 +179,7 @@ Vector3d GenerateRoomColor(const int room) {
 } // namespace
 
 
-PolygonRenderer::PolygonRenderer() {
+PolygonRenderer::PolygonRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
 }
 
 PolygonRenderer::~PolygonRenderer() {
@@ -250,46 +250,6 @@ void PolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
   widget = widget_tmp;
   
   FileIO file_io(data_directory);
-  ifstream ifstr;
-  ifstr.open(file_io.GetFloorplanFinal().c_str());
-  ifstr >> floorplan;
-  ifstr.close();
-
-  //----------------------------------------------------------------------
-  const int num_room = floorplan.GetNumRooms();
-  cout<<num_room<<endl;
-  room_centers_local.resize(num_room);
-  for (int room = 0; room < num_room; ++room) {
-    const int num_wall = floorplan.GetNumWalls(room);
-    room_centers_local[room] = Vector2d(0, 0);
-    double denom = 0;
-    for (int wall = 0; wall < num_wall; ++wall) {
-      const int prev_wall = ((wall - 1) + num_wall) % num_wall;
-      const int next_wall = (wall + 1) % num_wall;
-      const double length =
-        (floorplan.GetRoomVertexLocal(room, wall) -
-         floorplan.GetRoomVertexLocal(room, prev_wall)).norm() +
-        (floorplan.GetRoomVertexLocal(room, wall) -
-         floorplan.GetRoomVertexLocal(room, next_wall)).norm();
-      room_centers_local[room] += floorplan.GetRoomVertexLocal(room, wall) * length;
-      denom += length;
-    }
-    if (denom == 0.0) {
-      cerr << "Impossible polygonRender." << endl;
-      exit (1);
-    }
-    room_centers_local[room] /= denom;
-    /*
-    for (const auto& wall : line_room.walls) {
-      room_centers_local[room] += wall;
-    }
-    if (line_room.walls.empty()) {
-      cerr << "Impossible." << endl;
-      exit (1);
-    }
-    room_centers_local[room] /= line_room.walls.size();
-    */
-  }
 
   int num_texture_images;
   for (num_texture_images = 0; ; ++num_texture_images) {
@@ -315,7 +275,7 @@ void PolygonRenderer::InitGL() {
   }
 }
 
-void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) {
+void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const {
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
     glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
@@ -418,12 +378,12 @@ void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
   
   const Vector3d local_center = floorplan.GetFloorplanToGlobal().transpose() * center;
 
-  vector<double> distances(room_centers_local.size(), 0.0);
+  vector<double> distances(floorplan.GetNumRooms(), 0.0);
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     distances[room] = (Vector2d(local_center[0], local_center[1]) -
-                       room_centers_local[room]).norm();
+                       floorplan.GetRoomCenter(room)).norm();
   }
-  vector<int> room_orders(room_centers_local.size(), -1);
+  vector<int> room_orders(floorplan.GetNumRooms(), -1);
   {
     vector<pair<double, int> > distances_room;
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -448,7 +408,7 @@ void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
     double target_length;
     if (depth_order_height_adjustment) {
       target_length =
-        average_length * (room_orders[room] + 1) / ((int)room_centers_local.size() - 1);
+        average_length * (room_orders[room] + 1) / (floorplan.GetNumRooms() - 1);
     }
     else {
       target_length = average_length * 0.2;
