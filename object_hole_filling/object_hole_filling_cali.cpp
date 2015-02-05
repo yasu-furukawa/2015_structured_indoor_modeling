@@ -33,7 +33,6 @@ int main(int argc, char **argv){
   ifstream confin(FLAGS_config_path.c_str());
   confin.getline(pathtodata,100);
   confin>>startid>>endid;
-  cout<<startid<<' '<<endid<<endl;
   confin.close();
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
@@ -73,7 +72,13 @@ int main(int argc, char **argv){
     slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[0],imgwidth,imgheight);
 
     cout<<"numlabels: "<<numlabels<<endl;
-  
+
+    //project point_cloud onto panorama
+    PointCloud curob;
+    string objectcloudpath = file_io.GetObjectPointClouds(id);
+    curob.Init(objectcloudpath);
+    curob.ToGlobal(file_io, id);
+    
     Mat out;
     ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
     char buffer[100];

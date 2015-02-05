@@ -1,5 +1,8 @@
 #pragma once
 
+#include <Eigen/Eigen>
+#include "../base/point_cloud.h"
+#include "../base/panorama.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -11,5 +14,26 @@ void ImagebufferToMat(const std::vector<unsigned int>&imagebuffer,const int imgw
 
 //convert pixel label to label group
 
-void labelTolabelgroup(const std::vector<int>& labels, std::vector< std::vector<int> >labelgroup, int numgroup);
+void labelTolabelgroup(const std::vector<int>& labels, std::vector< std::vector<int> >&labelgroup, int numgroup);
+
+bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
