@@ -381,7 +381,7 @@ void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
   vector<double> distances(floorplan.GetNumRooms(), 0.0);
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     distances[room] = (Vector2d(local_center[0], local_center[1]) -
-                       floorplan.GetRoomCenter(room)).norm();
+                       floorplan.GetRoomCenterLocal(room)).norm();
   }
   vector<int> room_orders(floorplan.GetNumRooms(), -1);
   {

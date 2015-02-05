@@ -200,10 +200,12 @@ void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
   phi_per_pixel = phi_range / height;
 }
 
+  /*
 void Panorama::ReleaseMemory() {
   rgb_image.release();
   vector<double>().swap(depth_image);
 }
+  */
 
 void Panorama::InitDepthImage(const FileIO& file_io,
                               const int panorama) {

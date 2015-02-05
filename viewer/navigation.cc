@@ -573,8 +573,7 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
 
   //----------------------------------------------------------------------
   {
-    air_field_of_view_scale = 1.0;
-    floorplan_field_of_view_scale = 1.0;
+    air_floorplan_field_of_view_scale = 1.0;
 
     // diameter must be visible in the given field-of-view along air_angle.
     const double diameter = max(x_range[1] - x_range[0], y_range[1] - y_range[0]);
@@ -762,21 +761,16 @@ void Navigation::RotateFloorplan(const double radian) {
   camera_status = kFloorplanTransition;  
 }
   
-void Navigation::ScaleAirFieldOfView(const int wheel) {
-  air_field_of_view_scale += wheel / 800.0;
+void Navigation::ScaleAirFloorplanFieldOfView(const int wheel) {
+  air_floorplan_field_of_view_scale += wheel / 800.0;
   
-  air_field_of_view_scale = max(air_field_of_view_scale, 0.25);
-  air_field_of_view_scale = min(air_field_of_view_scale, 4.0);
+  air_floorplan_field_of_view_scale = max(air_floorplan_field_of_view_scale, 0.25);
+  air_floorplan_field_of_view_scale = min(air_floorplan_field_of_view_scale, 4.0);
 }
 
-void Navigation::ScaleFloorplanFieldOfView(const int wheel) {
-  floorplan_field_of_view_scale += wheel / 800.0;
-  
-  floorplan_field_of_view_scale = max(floorplan_field_of_view_scale, 0.25);
-  floorplan_field_of_view_scale = min(floorplan_field_of_view_scale, 4.0);
-}
-  
 void Navigation::PanoramaToAir() {
+  air_floorplan_field_of_view_scale = 1.0;
+  
   camera_status = kPanoramaToAirTransition;
 
   camera_in_transition.camera_panorama = camera_panorama;
@@ -810,6 +804,8 @@ void Navigation::AirToPanorama(const int panorama_index) {
 }
 
 void Navigation::PanoramaToFloorplan() {
+  air_floorplan_field_of_view_scale = 1.0;
+
   camera_status = kPanoramaToFloorplanTransition;
 
   camera_in_transition.camera_panorama = camera_panorama;
@@ -848,7 +844,7 @@ void Navigation::AirToFloorplan() {
   camera_in_transition.camera_air = camera_air;
   {
     CameraFloorplan& camera_floorplan      = camera_in_transition.camera_floorplan;
-    camera_floorplan.ground_center = best_ground_center;
+    camera_floorplan.ground_center = camera_air.ground_center;
     if (camera_air.start_direction.dot(best_start_directions_for_floorplan[0]) >
         camera_air.start_direction.dot(best_start_directions_for_floorplan[1]))
       camera_floorplan.start_direction = best_start_directions_for_floorplan[0];
@@ -865,7 +861,7 @@ void Navigation::FloorplanToAir() {
   camera_in_transition.camera_floorplan = camera_floorplan;
   {
     CameraAir& camera_air      = camera_in_transition.camera_air;
-    camera_air.ground_center = best_ground_center;
+    camera_air.ground_center = camera_floorplan.ground_center;
     if (camera_floorplan.start_direction.dot(best_start_directions_for_air[0]) >
         camera_floorplan.start_direction.dot(best_start_directions_for_air[1]))
       camera_air.start_direction = best_start_directions_for_air[0];
@@ -911,8 +907,10 @@ double Navigation::ProgressInverse() const {
 
 double Navigation::GetFieldOfViewInDegrees() const {
   const double kPanoramaFieldOfViewDegrees = 100.0;
-  const double scaled_air_field_of_view_degrees = air_field_of_view_degrees * air_field_of_view_scale;
-  const double scaled_floorplan_field_of_view_degrees = floorplan_field_of_view_degrees * floorplan_field_of_view_scale;
+  const double scaled_air_field_of_view_degrees =
+    air_field_of_view_degrees * air_floorplan_field_of_view_scale;
+  const double scaled_floorplan_field_of_view_degrees =
+    floorplan_field_of_view_degrees * air_floorplan_field_of_view_scale;
 
   switch (camera_status) {
   case kPanorama:

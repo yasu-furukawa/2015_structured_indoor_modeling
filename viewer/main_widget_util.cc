@@ -1,4 +1,5 @@
 #include "../base/floorplan.h"
+#include "../base/panorama.h"
 #include "main_widget_util.h"
 #include "panorama_renderer.h"
 
@@ -35,10 +36,11 @@ int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panor
   double best_distance = 0.0;
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
     GLdouble winX, winY, winZ;
-    
-    gluProject(panorama_renderers[p].GetCenter()[0],
-               panorama_renderers[p].GetCenter()[1],
-               panorama_renderers[p].GetCenter()[2],
+
+    const Panorama& panorama = panorama_renderers[p].GetPanorama();
+    gluProject(panorama.GetCenter()[0],
+               panorama.GetCenter()[1],
+               panorama.GetCenter()[2],
                modelview, projection, viewport,
                &winX, &winY, &winZ);
 
@@ -103,14 +105,13 @@ double HeightAdjustmentFunction(const double elapsed,
   return min(1.0, 0.2 + 10.0 * max(0.0, progress - 0.2));
 }
 
-
 void SetPanoramaToRoom(const Floorplan& floorplan,
                        const std::vector<PanoramaRenderer>& panorama_renderers,
                        std::map<int, int>* panorama_to_room) {
   const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-    const Vector3d global_center = panorama_renderers[p].GetCenter();
+    const Vector3d global_center = panorama_renderers[p].GetPanorama().GetCenter();
     const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
     const Vector2d floorplan_center2(floorplan_center[0], floorplan_center[1]);
            
@@ -131,13 +132,13 @@ void SetRoomToPanorama(const Floorplan& floorplan,
   const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    const Vector2d room_center = floorplan.GetRoomCenter(room);
+    const Vector2d room_center = floorplan.GetRoomCenterLocal(room);
     
     // Find the closest panorama.
     int best_panorama = -1;
     double best_distance = 0.0;
     for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
-      const Vector3d global_center = panorama_renderers[p].GetCenter();
+      const Vector3d global_center = panorama_renderers[p].GetPanorama().GetCenter();
       const Vector3d floorplan_center = floorplan_to_global.transpose() * global_center;
       const Vector2d panorama_center(floorplan_center[0], floorplan_center[1]);
       const double distance = (room_center - panorama_center).norm();
@@ -170,12 +171,15 @@ void SetPanoramaDistanceTable(const std::vector<PanoramaRenderer>& panorama_rend
 
 double ComputePanoramaDistance(const PanoramaRenderer& lhs,
                                const PanoramaRenderer& rhs) {
+  const Panorama& lhs_panorama = lhs.GetPanorama();
+  const Panorama& rhs_panorama = rhs.GetPanorama();
+  
   const Vector2d lhs_on_rhs_depth_image =
-    rhs.RGBToDepth(rhs.Project(lhs.GetCenter()));
+    rhs_panorama.RGBToDepth(rhs_panorama.Project(lhs_panorama.GetCenter()));
   // Search in some radius.
   const int wradius = rhs.DepthWidth() / 20;
   const int hradius = rhs.DepthHeight() / 20;
-  const double distance = (lhs.GetCenter() - rhs.GetCenter()).norm();
+  const double distance = (lhs_panorama.GetCenter() - rhs_panorama.GetCenter()).norm();
 
   int connected = 0;
   int occluded  = 0;
@@ -190,9 +194,10 @@ double ComputePanoramaDistance(const PanoramaRenderer& lhs,
     if (ytmp < 0 || depth_height <= ytmp)
       continue;
     for (int i = -wradius; i <= wradius; ++i) {
-      const int xtmp = (static_cast<int>(round(lhs_on_rhs_depth_image[0])) + i + depth_width) % depth_width;
+      const int xtmp = (static_cast<int>(round(lhs_on_rhs_depth_image[0])) + i + depth_width)
+        % depth_width;
       const Vector3d depth_point = depth_mesh[ytmp * depth_width + xtmp];
-      const double depthmap_distance = (depth_point - rhs.GetCenter()).norm();
+      const double depthmap_distance = (depth_point - rhs_panorama.GetCenter()).norm();
 
       if (distance < depthmap_distance)
         ++connected;

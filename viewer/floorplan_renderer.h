@@ -4,9 +4,9 @@
 #include <Eigen/Dense>
 #include <QGLFunctions>
 
-#include "../base/floorplan.h"
-
 namespace structured_indoor_modeling {
+
+class Floorplan;
 
 struct PolygonStyle {
 public:
@@ -23,12 +23,10 @@ public:
 
 class FloorplanRenderer : protected QGLFunctions {
  public:
-  FloorplanRenderer();
+  FloorplanRenderer(const Floorplan& floorplan);
   virtual ~FloorplanRenderer();
-  void Init(const std::string data_directory,
-            const Eigen::Matrix3d& floorplan_to_global_tmp);
-  // void InitGL();
-  void Render(const FloorplanStyle& style, const double alpha) const;
+  void Init();
+  void Render(const double alpha) const;
 
  private:
   /*
@@ -39,7 +37,7 @@ class FloorplanRenderer : protected QGLFunctions {
   */
   
   //Floorplan floorplan;
-  Eigen::Matrix3d floorplan_to_global;
+  const Floorplan& floorplan;
 };
 
 }  // namespace structured_indoor_modeling

@@ -133,8 +133,7 @@ class Navigation {
   void MoveFloorplan(const Eigen::Vector3d& translation);
   void RotateAir(const double radian);
   void RotateFloorplan(const double radian);
-  void ScaleAirFieldOfView(const int wheel);
-  void ScaleFloorplanFieldOfView(const int wheel);
+  void ScaleAirFloorplanFieldOfView(const int wheel);
 
   void PanoramaToAir();
   void AirToPanorama(const int panorama_index);
@@ -180,8 +179,7 @@ class Navigation {
   double average_floor_height;
 
   // Scaling in air field of view.
-  double air_field_of_view_scale;
-  double floorplan_field_of_view_scale;
+  double air_floorplan_field_of_view_scale;
 
   const Floorplan& floorplan;
   const std::vector<Panorama>& panoramas;

@@ -38,20 +38,21 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   file_io(configuration.data_directory),
   floorplan(file_io.GetFloorplanFinal()),
   polygon_renderer(floorplan),
+  floorplan_renderer(floorplan),
   panel_renderer(floorplan, viewport),  
   navigation(configuration,
              floorplan,
              panoramas,
              panorama_to_room,
              room_to_panorama) {
-
-  object_renderer.Init(configuration.data_directory);
-  InitPanoramasPanoramaRenderers();
-
-  polygon_renderer.Init(configuration.data_directory, this);
-  floorplan_renderer.Init(configuration.data_directory,
-                          floorplan.GetFloorplanToGlobal());
-  panel_renderer.Init(configuration.data_directory);
+  // Renderer initialization.
+  {
+    InitPanoramasPanoramaRenderers();
+    object_renderer.Init(configuration.data_directory);
+    polygon_renderer.Init(configuration.data_directory, this);
+    floorplan_renderer.Init();
+    panel_renderer.Init(configuration.data_directory);
+  }
 
   setFocusPolicy(Qt::ClickFocus);
   setMouseTracking(true);
@@ -136,8 +137,7 @@ void MainWidget::InitPanoramasPanoramaRenderers() {
   panorama_renderers.resize(panorama_ids.size());
   for (int i = 0; i < (int)panorama_ids.size(); ++i) {
     panoramas[i].Init(file_io, panorama_ids[i]);
-    panoramas[i].ReleaseMemory();
-    panorama_renderers[i].Init(file_io, panorama_ids[i], this);
+    panorama_renderers[i].Init(file_io, panorama_ids[i], &panoramas[i], this);
   }
 }
   
@@ -568,16 +568,11 @@ void MainWidget::keyReleaseEvent(QKeyEvent *) {
 
 void MainWidget::wheelEvent(QWheelEvent* e) {
   switch (navigation.GetCameraStatus()) {
-  case kAir: {
+  case kAir:
+  case kFloorplan:
+    {
     if (e->orientation() == Qt::Vertical) {
-      navigation.ScaleAirFieldOfView(e->delta());
-      updateGL();
-    }
-    break;
-  }
-  case kFloorplan: {
-    if (e->orientation() == Qt::Vertical) {
-      navigation.ScaleFloorplanFieldOfView(e->delta());
+      navigation.ScaleAirFloorplanFieldOfView(e->delta());
       updateGL();
     }
     break;
@@ -604,13 +599,15 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       navigation.RotatePanorama(diff.x(), diff.y());
       break;
     }
-    case kAir: {
+    case kAir:
+    case kFloorplan: {
       diff /= 100.0;
       Vector3d direction = navigation.GetDirection();
       direction[2] = 0.0;
       direction.normalize();
       direction *= navigation.GetAverageDistance();
       Vector3d orthogonal(-direction[1], direction[0], 0.0);
+      navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);
       navigation.MoveFloorplan(diff[0] * orthogonal + diff[1] * direction);
       break;
     }

@@ -4,31 +4,22 @@
 #include <fstream>
 
 #include "../base/file_io.h"
+#include "../base/floorplan.h"
 
+using namespace Eigen;
 using namespace std;
 
 namespace structured_indoor_modeling {
 
-FloorplanRenderer::FloorplanRenderer() {
+FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
 }
 
 FloorplanRenderer::~FloorplanRenderer() {
 }
 
-void FloorplanRenderer::Init(const std::string /*data_directory*/,
-                             const Eigen::Matrix3d& /*floorplan_to_global_tmp*/) {
-  /*
-  FileIO file_io(data_directory);
-  {
-    ifstream ifstr;
-    ifstr.open(file_io.GetFloorplanFinal().c_str());
-    ifstr >> floorplan;
-    ifstr.close();
-  }
-  floorplan_to_global = floorplan_to_global_tmp;
-  */
+void FloorplanRenderer::Init() {
 }
-
+  
   /*
 void FloorplanRenderer::RenderShape(const Shape& shape,
                                     const double floor_height,
@@ -63,7 +54,40 @@ void FloorplanRenderer::RenderShape(const Shape& shape,
 }
   */
 
-void FloorplanRenderer::Render(const FloorplanStyle& /*style*/, const double /*alpha*/) const {
+void FloorplanRenderer::Render(const double alpha) const {
+  glBegin(GL_TRIANGLES);
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    glColor4f(0.3, 0.3, 0.3, alpha);
+    const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
+    for (const auto& triangle : floor_triangulation.triangles) {
+      for (int i = 0; i < 3; ++i) {
+
+        const int index = triangle.indices[i];
+        const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
+        glVertex3d(position[0], position[1], position[2]);
+      }
+    }
+  }
+  glEnd();
+
+  glEnable(GL_LINE_SMOOTH);
+  glLineWidth(5.0);
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    glBegin(GL_LINE_STRIP);
+    glColor4f(0.3, 1.0, 1.0, alpha);
+    for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
+      const Vector3d position = floorplan.GetFloorVertexGlobal(room, vertex);
+      glVertex3d(position[0], position[1], position[2]);
+    }
+    const int kFirst = 0;
+    const Vector3d position = floorplan.GetFloorVertexGlobal(room, kFirst);
+    glVertex3d(position[0], position[1], position[2]);
+    glEnd();
+  }
+  
+
+  
+
   /*
   for (const auto& component : floorplan.components) {
     RenderShape(component.outer_shape,
