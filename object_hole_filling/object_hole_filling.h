@@ -9,3 +9,4 @@ void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuff
 //convert a SLIC image to a Mat
 void ImagebufferToMat(const std::vector<unsigned int>&imagebuffer,const int imgwidth, const int imgheight, cv::Mat &image);
 
+//convert pixel label to label group
