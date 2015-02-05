@@ -42,4 +42,6 @@ void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth
 }
 
 
-
+void labelTolabelgroup(const std::vector<int>& labels, std::vector< std::vector<int> >labelgroup, int numgroup){
+    
+}
