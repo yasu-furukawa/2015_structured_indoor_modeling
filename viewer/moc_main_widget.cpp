@@ -75,8 +75,8 @@ void *structured_indoor_modeling::MainWidget::qt_metacast(const char *_clname)
     if (!_clname) return 0;
     if (!strcmp(_clname, qt_meta_stringdata_structured_indoor_modeling__MainWidget.stringdata))
         return static_cast<void*>(const_cast< MainWidget*>(this));
-    if (!strcmp(_clname, "QGLFunctions"))
-        return static_cast< QGLFunctions*>(const_cast< MainWidget*>(this));
+    if (!strcmp(_clname, "QOpenGLFunctions"))
+        return static_cast< QOpenGLFunctions*>(const_cast< MainWidget*>(this));
     return QGLWidget::qt_metacast(_clname);
 }
 

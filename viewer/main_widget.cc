@@ -11,7 +11,12 @@
 #ifdef __linux__
 #include <GL/glu.h>
 #elif _WIN32
-#include <GL/GLU.h>
+#include <windows.h>
+#include <GL/glu.h>
+//#ifndef __glew_h__
+//#include <GL/glew.h>
+//#include <GL/glext.h>
+//#endif
 #else
 #include <OpenGL/glu.h>
 #endif
@@ -166,7 +171,7 @@ void MainWidget::InitializeShaders() {
 }
 
 void MainWidget::initializeGL() {
-  initializeGLFunctions();
+  initializeOpenGLFunctions();
   InitializeShaders();
   //qglClearColor(Qt::black);
   glClearColor(0, 0, 0, 0);
@@ -351,6 +356,8 @@ void MainWidget::paintGL() {
   case kFloorplan:
   case kFloorplanTransition: {
     RenderFloorplan(floorplan_renderer, 1.0);
+    RenderAllThumbnails(panel_renderer, floorplan, viewport, modelview, projection, 1.0, -1, this);
+    
     break;
   }
   case kPanoramaToAirTransition: {

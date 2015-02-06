@@ -1,5 +1,4 @@
 #include <QOpenGLShaderProgram>
-
 #include "../base/floorplan.h"
 #include "object_renderer.h"
 #include "floorplan_renderer.h"
@@ -8,6 +7,7 @@
 #include "polygon_renderer.h"
 #include "main_widget_render.h"
 #include "navigation.h"
+#include <QGLFunctions>
 
 using namespace Eigen;
 using namespace std;
@@ -16,7 +16,8 @@ namespace structured_indoor_modeling {
   
 void RenderFloorplan(const FloorplanRenderer& floorplan_renderer,
                      const double alpha) {
-
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+ 
   //RenderTexturedPolygon(alpha);
   //RenderObjects(alpha);
 
@@ -41,11 +42,15 @@ void RenderFloorplan(const FloorplanRenderer& floorplan_renderer,
   // glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
+
+  glPopAttrib();
 }
 
 void RenderPanorama(const Navigation& navigation,
                     const std::vector<PanoramaRenderer>& panorama_renderers,
                     const double alpha) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+   
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_CULL_FACE);
 
@@ -66,6 +71,7 @@ void RenderPanorama(const Navigation& navigation,
   }
 
   glDisable(GL_TEXTURE_2D);
+  glPopAttrib();
 }  
 
 void RenderPanoramaTour(QOpenGLShaderProgram& program,
@@ -75,6 +81,8 @@ void RenderPanoramaTour(QOpenGLShaderProgram& program,
                         const GLuint texids[],
                         const int width,
                         const int height) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  
   int index_pair[2];
   int panorama_index_pair[2];
   double weight_pair[2];
@@ -84,6 +92,8 @@ void RenderPanoramaTour(QOpenGLShaderProgram& program,
                                                          weight_pair);
   RenderPanoramaTransition(program, navigation, panorama_renderers, frameids, texids, width, height,
                            panorama_index_pair[0], panorama_index_pair[1], weight_pair[0]);
+
+  glPopAttrib();
 }
 
 void RenderPanoramaTransition(QOpenGLShaderProgram& program,
@@ -96,6 +106,8 @@ void RenderPanoramaTransition(QOpenGLShaderProgram& program,
                               const int start_index,
                               const int end_index,
                               const double start_weight) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   // Render the source pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -112,6 +124,8 @@ void RenderPanoramaTransition(QOpenGLShaderProgram& program,
   // const double weight_end = 1.0 - weight_start;
   const int kDivideByAlpha = 1;
   BlendFrames(program, texids, width, height, start_weight, kDivideByAlpha);
+
+  glPopAttrib();
 }
 
 // divide_by_alpha_mode
@@ -122,6 +136,8 @@ void RenderPanoramaTransition(QOpenGLShaderProgram& program,
 void BlendFrames(QOpenGLShaderProgram& program,
                  const GLuint texids[], const int width, const int height,
                  const double weight, const int divide_by_alpha_mode) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_TEXTURE_2D);
     
@@ -186,10 +202,16 @@ void BlendFrames(QOpenGLShaderProgram& program,
   glPopMatrix();
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
+
+  glPopAttrib();  
 }
 
 void RenderObjects(ObjectRenderer& object_renderer, const double alpha) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  
   object_renderer.RenderAll(alpha);
+
+  glPopAttrib();
 
   // debug
   /*
@@ -288,6 +310,8 @@ void RenderPolygon(const Navigation& navigation,
                    const double height_adjustment,
                    const bool depth_order_height_adjustment,
                    const int room_highlighted) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -309,10 +333,14 @@ void RenderPolygon(const Navigation& navigation,
   glEnable(GL_CULL_FACE);
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
+
+  glPopAttrib();
 }
 
 void RenderTexturedPolygon(const PolygonRenderer& polygon_renderer,
                            const double alpha) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_CULL_FACE);
 
@@ -330,6 +358,8 @@ void RenderTexturedPolygon(const PolygonRenderer& polygon_renderer,
   
   glDisable(GL_CULL_FACE);
   glDisable(GL_TEXTURE_2D);
+
+  glPopAttrib();  
 }
 
 void RenderPolygonLabels(const Navigation& navigation,
@@ -338,6 +368,8 @@ void RenderPolygonLabels(const Navigation& navigation,
                          const int room_not_rendered,
                          const double height_adjustment,
                          const bool depth_order_height_adjustment) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
@@ -357,6 +389,8 @@ void RenderPolygonLabels(const Navigation& navigation,
   glEnable(GL_TEXTURE_2D);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  glPopAttrib();
 }
 
 void RenderThumbnail(PanelRenderer& panel_renderer,
@@ -365,6 +399,8 @@ void RenderThumbnail(PanelRenderer& panel_renderer,
                      const double alpha,
                      const int room_highlighted,
                      QGLWidget* qgl_widget) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  
   Vector2i render_pos(mouseMovePosition[0], mouseMovePosition[1]);
   // Decide to draw where. Either right or left. At default right. When too close left.
   const double kMarginRatio = 0.05;
@@ -379,6 +415,8 @@ void RenderThumbnail(PanelRenderer& panel_renderer,
                                  Vector3d(0.4, 0.3, 0.3),
                                  kScale,
                                  qgl_widget);
+
+  glPopAttrib();
 }
 
 void RenderAllThumbnails(PanelRenderer& panel_renderer,
@@ -389,6 +427,8 @@ void RenderAllThumbnails(PanelRenderer& panel_renderer,
                          const double alpha,
                          const int room_highlighted,
                          QGLWidget* qgl_widget) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   // Make thumbnails smaller when rendering everything.
   const double kScale = 0.5;
 
@@ -441,6 +481,8 @@ void RenderAllThumbnails(PanelRenderer& panel_renderer,
 
   panel_renderer.RenderThumbnail(alpha, room_highlighted, render_pos, qgl_widget);
   */
+
+  glPopAttrib();
 }
 
 void RenderPanoramaToAirTransition(QOpenGLShaderProgram& program,
@@ -453,6 +495,8 @@ void RenderPanoramaToAirTransition(QOpenGLShaderProgram& program,
                                    const int width,
                                    const int height,
                                    const bool flip) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
@@ -474,6 +518,8 @@ void RenderPanoramaToAirTransition(QOpenGLShaderProgram& program,
   weight = 1.0 - cos(weight * M_PI / 2);
   const int kKeepPolygon = 2;
   BlendFrames(program, texids, width, height, weight, kKeepPolygon);
+
+  glPopAttrib();
 }
 
 void RenderPanoramaToFloorplanTransition(QOpenGLShaderProgram& program,
@@ -485,6 +531,8 @@ void RenderPanoramaToFloorplanTransition(QOpenGLShaderProgram& program,
                                          const int width,
                                          const int height,
                                          const bool flip) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
@@ -505,6 +553,8 @@ void RenderPanoramaToFloorplanTransition(QOpenGLShaderProgram& program,
   weight = 1.0 - cos(weight * M_PI / 2);
   const int kKeepPolygon = 2;
   BlendFrames(program, texids, width, height, weight, kKeepPolygon);
+
+  glPopAttrib();
 }
 
 void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
@@ -517,9 +567,10 @@ void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
                                     const int width,
                                     const int height,
                                     const bool flip) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
   const double kFullOpacity = 1.0;
   RenderTexturedPolygon(polygon_renderer, kFullOpacity);
   RenderObjects(object_renderer, kFullOpacity);
@@ -527,17 +578,17 @@ void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // glEnable(GL_TEXTURE_2D);
-  glDisable(GL_TEXTURE_2D);
   RenderFloorplan(floorplan_renderer, kFullOpacity);
 
   // Blend the two.
   double weight = navigation.ProgressInverse();
   if (flip)
-    weight = 1.0 - flip;
+    weight = 1.0 - weight;
   weight = 1.0 - cos(weight * M_PI / 2);
   const int kKeepPolygon = 2;
   BlendFrames(program, texids, width, height, weight, kKeepPolygon);
+
+  glPopAttrib();
 }
   
   

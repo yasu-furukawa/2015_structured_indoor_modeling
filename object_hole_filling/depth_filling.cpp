@@ -32,7 +32,7 @@ namespace structured_indoor_modeling{
 	ssd += tempsum * tempsum;
       }
       ssd = sqrt(ssd);
-#if 1
+#if 0
       cout<<"Iteration "<<iter<<", ssd: "<<ssd<<endl;
 #endif
       if(ssd < 0.001)
