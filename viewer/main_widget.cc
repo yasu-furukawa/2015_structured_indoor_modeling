@@ -11,7 +11,12 @@
 #ifdef __linux__
 #include <GL/glu.h>
 #elif _WIN32
-#include <GL/GLU.h>
+#include <windows.h>
+#include <GL/glu.h>
+//#ifndef __glew_h__
+//#include <GL/glew.h>
+//#include <GL/glext.h>
+//#endif
 #else
 #include <OpenGL/glu.h>
 #endif

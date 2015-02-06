@@ -8,6 +8,7 @@
 #include "polygon_renderer.h"
 #include "main_widget_render.h"
 #include "navigation.h"
+#include <QGLFunctions>
 
 using namespace Eigen;
 using namespace std;

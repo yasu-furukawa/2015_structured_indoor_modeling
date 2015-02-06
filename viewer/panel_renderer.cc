@@ -4,8 +4,11 @@
 #include <GL/glu.h>
 #elif _WIN32
 #include <windows.h>
-#include <GL/GLU.h>
-using namespace std;
+#include <GL/glu.h>
+//#ifndef __glew_h__
+//#include <GL/glew.h>
+//#include <GL/glext.h>
+//#endif
 #else
 #include <OpenGL/glu.h>
 #endif
