@@ -15,6 +15,11 @@ LINK_DIRECTORIES(/usr/local/lib)
 if(UNIX)
 set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
 endif(UNIX)
+
+if(${CMAKE_SYSTEM} MATCHES "Darwin")
+   set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init-Wno-sign-compare" )
+endif(${CMAKE_SYSTEM} MATCHES "Darwin")
+
 if (WIN32)
 	include_directories("C:\\Eigen3.2.2")
 	include_directories("C:\\gflags-2.1.1\\include")

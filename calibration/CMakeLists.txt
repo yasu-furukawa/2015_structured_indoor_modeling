@@ -5,6 +5,14 @@ FIND_PACKAGE(Ceres REQUIRED)
 INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS})
 LINK_DIRECTORIES(/usr/local/lib)
 
+if(UNIX)
+set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
+endif(UNIX)
+
+if(${CMAKE_SYSTEM} MATCHES "Darwin")
+   set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init-Wno-sign-compare" )
+endif(${CMAKE_SYSTEM} MATCHES "Darwin")
+
 set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions")
 add_executable( align_images_cli align_images_cli.cc align_images.cc transformation.cc )
 target_link_libraries( align_images_cli ${OpenCV_LIBS} )
