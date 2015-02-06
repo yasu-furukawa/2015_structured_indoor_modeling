@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
   Floorplan floorplan;
   {
     ifstream ifstr;
-    ifstr.open(file_io.GetFloorplan());
+    ifstr.open(file_io.GetFloorplan().c_str());
     ifstr >> floorplan;
     ifstr.close();
   }
