@@ -66,6 +66,7 @@ public:
 		const int*					labels,
 		const int&					width,
 		const int&					height,
+		const int&                                      numlables,
 		const string&				filename,
 		const string&				path);
 	//============================================================================

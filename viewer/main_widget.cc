@@ -171,7 +171,7 @@ void MainWidget::InitializeShaders() {
 }
 
 void MainWidget::initializeGL() {
-  initializeGLFunctions();
+  initializeOpenGLFunctions();
   InitializeShaders();
   //qglClearColor(Qt::black);
   glClearColor(0, 0, 0, 0);
