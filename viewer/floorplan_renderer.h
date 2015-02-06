@@ -3,22 +3,26 @@
 
 #include <Eigen/Dense>
 #include <QGLFunctions>
+#include <string>
+#include <vector>
 
 namespace structured_indoor_modeling {
 
 class Floorplan;
 
-struct PolygonStyle {
+struct PaintStyle {
 public:
-  Eigen::Vector3f stroke_color;
   Eigen::Vector3f fill_color;
+  Eigen::Vector3f stroke_color;
   int stroke_width;
-};
 
-struct FloorplanStyle {
-public:
-  PolygonStyle outer_style;
-  PolygonStyle inner_style;
+  PaintStyle(const Eigen::Vector3f& fill_color,
+             const Eigen::Vector3f& stroke_color,
+             const int stroke_width) :
+    fill_color(fill_color),
+      stroke_color(stroke_color),
+    stroke_width(stroke_width) {
+  }
 };
 
 class FloorplanRenderer : protected QGLFunctions {
@@ -29,6 +33,8 @@ class FloorplanRenderer : protected QGLFunctions {
   void Render(const double alpha) const;
 
  private:
+  PaintStyle GetPaintStyle(const std::vector<std::string>& room_name) const;
+  
   /*
   void RenderShape(const Shape& shape,
                    const double floor_height,
@@ -39,7 +45,7 @@ class FloorplanRenderer : protected QGLFunctions {
   //Floorplan floorplan;
   const Floorplan& floorplan;
 };
-
+ 
 }  // namespace structured_indoor_modeling
  
 #endif  // FLOORPLAN_RENDERER_H__

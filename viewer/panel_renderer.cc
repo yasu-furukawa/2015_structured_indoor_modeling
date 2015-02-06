@@ -102,9 +102,6 @@ void PanelRenderer::RenderThumbnail(const double alpha,
   }
   
   {
-    //????
-    //thumbnail_texid = main_widget->bindTexture(room_thumbnails[room_highlighted]);
-    
     glBindTexture(GL_TEXTURE_2D, thumbnail_texid);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

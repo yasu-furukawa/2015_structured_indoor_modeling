@@ -357,6 +357,8 @@ void MainWidget::paintGL() {
   case kFloorplan:
   case kFloorplanTransition: {
     RenderFloorplan(floorplan_renderer, 1.0);
+    RenderAllThumbnails(panel_renderer, floorplan, viewport, modelview, projection, 1.0, -1, this);
+    
     break;
   }
   case kPanoramaToAirTransition: {
