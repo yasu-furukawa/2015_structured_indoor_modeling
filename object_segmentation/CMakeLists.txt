@@ -14,6 +14,10 @@ LINK_DIRECTORIES( /usr/local/lib )
 
 #add_definitions(${PCL_DEFINITIONS})
 
+if(UNIX)
+set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
+endif(UNIX)
+
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
    set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init-Wno-sign-compare" )
 endif(${CMAKE_SYSTEM} MATCHES "Darwin")
