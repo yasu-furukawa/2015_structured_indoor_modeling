@@ -86,23 +86,25 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
   return objectnum;
 }
 
-void getSuperpixelLabel(const PointCloud &point_cloud, const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <int> &superpixelConfidence, int superpixelnum){
+void getSuperpixelLabel(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <int> &superpixelConfidence, int superpixelnum){
     superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
     for(int i=0;i<superpixelConfidence.size();++i)
 	superpixelConfidence[i] = 0;
     int imgwidth = panorama.Width();
     int imgheight = panorama.Height();
-    for(int ptid = 0; ptid<point_cloud.GetNumPoints(); ++ptid){
-	Vector3d curpt = point_cloud.GetPoint(ptid).position;
-	Vector3d localpt = panorama.GlobalToLocal(curpt);
+
+    for(int ptid = 0; ptid<objectgroup.size(); ++ptid){
+      	Vector3d curpt = point_cloud.GetPoint(objectgroup[ptid]).position;
+	Vector3d panCenter = panorama.GetCenter();
+	Vector3d offset = curpt - panCenter;
 	Vector2d RGBpixel = panorama.Project(curpt);
 	Vector2d depth_pixel = panorama.RGBToDepth(RGBpixel);
 	double depthv = depthmap[(int)depth_pixel[1] * panorama.DepthWidth() + (int)depth_pixel[0]];
-	double curdepth = sqrt(localpt[0]*localpt[0] + localpt[1]*localpt[1] + localpt[2]*localpt[2]);
+	double curdepth = offset.norm();
 	//visibility test
-	if(curdepth > depthv)
-	  continue;
+	//	if(curdepth > depthv)
+	//continue;
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
 	superpixelConfidence[superpixellabel] += 1;
     }
