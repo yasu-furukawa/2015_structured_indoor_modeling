@@ -14,6 +14,8 @@ struct SynthesisData {
 
   std::vector<cv::Mat> projected_textures;
   std::vector<bool> mask;
+
+  int num_cg_iterations;
 };
 
 void CollectCandidatePatches(const SynthesisData& synthesis_data,
