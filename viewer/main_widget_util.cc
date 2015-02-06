@@ -3,6 +3,19 @@
 #include "main_widget_util.h"
 #include "panorama_renderer.h"
 
+#ifdef __linux__
+#include <GL/glu.h>
+#elif _WIN32
+#include <windows.h>
+#include <GL/glu.h>
+//#ifndef __glew_h__
+//#include <GL/glew.h>
+//#include <GL/glext.h>
+//#endif
+#else
+#include <OpenGL/glu.h>
+#endif
+
 using namespace Eigen;
 using namespace std;
 
@@ -28,10 +41,10 @@ bool IsInside(const Floorplan floorplan, const int room, const Vector2d& point) 
 }  // namespace
 
 int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panorama_renderers,
-                                      const Eigen::Vector2d& pixel,
-                                      const GLint viewport[],
-                                      const GLdouble modelview[],
-                                      const GLdouble projection[]) {
+				      const Eigen::Vector2d& pixel,
+				      const GLint viewport[],
+				      const GLdouble modelview[],
+				      const GLdouble projection[]) {
   int best_index = -1;
   double best_distance = 0.0;
   for (int p = 0; p < (int)panorama_renderers.size(); ++p) {
@@ -52,17 +65,6 @@ int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panor
   }
 
   return best_index;
-}
-
-int FindRoomHighlighted(const Eigen::Vector2i& pixel,
-                        const GLuint frameids[],
-                        const GLint viewport[]) {
-  unsigned char data;
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
-  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_BLUE, GL_UNSIGNED_BYTE, &data);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  
-  return static_cast<int>(data) - 1;
 }
 
 double ProgressFunction(const double elapsed,

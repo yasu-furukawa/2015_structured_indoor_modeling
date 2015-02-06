@@ -217,6 +217,12 @@ void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
                                     const int width,
                                     const int height,                                    
                                     const bool flip = false);
+
+
+int FindRoomHighlighted(const Eigen::Vector2i& pixel,
+                        const GLuint frameids[],
+                        const GLint viewport[]);
+ 
 };
 
 }  // namespace structured_indoor_modeling

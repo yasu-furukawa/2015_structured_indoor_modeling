@@ -606,5 +606,15 @@ void MainWidget::RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
   glPopAttrib();
 }
   
+int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel,
+				    const GLuint frameids[],
+				    const GLint viewport[]) {
+  unsigned char data;
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
+  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_BLUE, GL_UNSIGNED_BYTE, &data);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  
+  return static_cast<int>(data) - 1;
+}
   
 }  // namespace structured_indoor_modeling

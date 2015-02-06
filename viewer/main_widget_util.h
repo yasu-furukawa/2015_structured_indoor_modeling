@@ -32,10 +32,6 @@ int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panor
                                       const GLdouble modelview[],
                                       const GLdouble projection[]);
 
-int FindRoomHighlighted(const Eigen::Vector2i& pixel,
-                        const GLuint frameids[],
-                        const GLint viewport[]);
-
 double ProgressFunction(const double elapsed,
                         const double offset,
                         const double fade_in_seconds,
