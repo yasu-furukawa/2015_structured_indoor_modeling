@@ -95,8 +95,12 @@ int main(int argc, char* argv[]) {
     cerr << "Usage: " << argv[0] << " data_directory" << endl;
     return 1;
   }
+#ifdef __APPLE__
   google::ParseCommandLineFlags(&argc, &argv, true);
-  
+#else
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+#endif
+
   FileIO file_io(argv[1]);
   
   Floorplan floorplan;
