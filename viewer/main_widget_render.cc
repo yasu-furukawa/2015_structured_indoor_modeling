@@ -41,7 +41,6 @@ void RenderFloorplan(const FloorplanRenderer& floorplan_renderer,
   // glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
-
 }
 
 void RenderPanorama(const Navigation& navigation,
@@ -528,7 +527,8 @@ void RenderAirToFloorplanTransition(QOpenGLShaderProgram& program,
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
+  // glEnable(GL_TEXTURE_2D);
+  glDisable(GL_TEXTURE_2D);
   RenderFloorplan(floorplan_renderer, kFullOpacity);
 
   // Blend the two.
