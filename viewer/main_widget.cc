@@ -329,7 +329,6 @@ void MainWidget::paintGL() {
     }
         
     if (!RightAfterSimpleClick(0.0)) {
-      //????
       RenderTexturedPolygon(polygon_renderer, 1.0);
       RenderObjects(object_renderer, 1.0);
     } else {

@@ -11,6 +11,43 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+namespace {
+
+void DrawRectangleAndCircle(const Vector3d& position,
+                            const Vector3d& next_position,
+                            const Vector3d& z_axis,
+                            const double radius,
+                            const Vector4f& color) {
+  const Vector3d x_axis = (next_position - position).normalized();
+  const Vector3d y_axis = z_axis.cross(x_axis).normalized();
+
+  const Vector3d v0 = position      - radius * y_axis;
+  const Vector3d v1 = position      + radius * y_axis;
+  const Vector3d v2 = next_position + radius * y_axis;
+  const Vector3d v3 = next_position - radius * y_axis;
+
+  glBegin(GL_QUADS);
+  glColor4f(color[0], color[1], color[2], color[3]);
+  glVertex3d(v3[0], v3[1], v3[2]);
+  glVertex3d(v2[0], v2[1], v2[2]);
+  glVertex3d(v1[0], v1[1], v1[2]);
+  glVertex3d(v0[0], v0[1], v0[2]);
+  glEnd();
+
+  const int kNumSamples = 20;
+  glBegin(GL_TRIANGLE_FAN);
+  glColor4f(color[0], color[1], color[2], color[3]);
+  for (int i = 0; i < kNumSamples; ++i) {
+    const double angle = 2.0 * M_PI * i / kNumSamples;
+    Vector3d point = position + cos(angle) * radius * x_axis + sin(angle) * radius * y_axis;
+    glVertex3d(point[0], point[1], point[2]);
+  }
+  glEnd();
+}
+
+}  // namespace
+
+// =======
 const PaintStyle kDefaultStyle(Vector3f(0.3, 0.3, 0.3),
                                Vector3f(0.3, 1.0, 0.3),
                                3.0);
@@ -49,6 +86,11 @@ PaintStyle FloorplanRenderer::GetPaintStyle(const vector<string>& room_names) co
 }
 
 void FloorplanRenderer::Render(const double alpha) const {
+// <<<<<<< HEAD
+//   glEnable(GL_SMOOTH);
+
+//   glBegin(GL_TRIANGLES);
+// =======
   // Interior.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const PaintStyle paint_style =
@@ -70,6 +112,15 @@ void FloorplanRenderer::Render(const double alpha) const {
     }
     glEnd();
 
+// <<<<<<< HEAD
+    Vector3d z_axis(0, 0, 1);
+    z_axis = floorplan.GetFloorplanToGlobal() * z_axis;
+  
+    const double kLineRadius = 2.0;
+    const double radius = kLineRadius * floorplan.GetGridUnit();  
+
+//   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+// =======
     // Boundary.
     glEnable(GL_LINE_SMOOTH);
     glLineWidth(paint_style.stroke_width);
@@ -78,15 +129,17 @@ void FloorplanRenderer::Render(const double alpha) const {
               paint_style.stroke_color[1],
               paint_style.stroke_color[2],
               alpha);
+
     for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
-      const Vector3d position = floorplan.GetFloorVertexGlobal(room, vertex);
-      glVertex3d(position[0], position[1], position[2]);
+      const int next_vertex = (vertex + 1) % floorplan.GetNumRoomVertices(room);
+      
+      const Vector3d position      = floorplan.GetFloorVertexGlobal(room, vertex);
+      const Vector3d next_position = floorplan.GetFloorVertexGlobal(room, next_vertex);
+
+      DrawRectangleAndCircle(position, next_position, z_axis, radius, Vector4f(0.3, 1, 1, alpha));
     }
-    const int kFirst = 0;
-    const Vector3d position = floorplan.GetFloorVertexGlobal(room, kFirst);
-    glVertex3d(position[0], position[1], position[2]);
-    glEnd();
   }
+  
 }
 
 }  // namespace structured_indoor_modeling
