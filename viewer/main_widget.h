@@ -2,7 +2,8 @@
 #define MAIN_WIDGET_H__
 
 #include <QGLWidget>
-#include <QGLFunctions>
+//#include <QGLFunctions>
+#include <QOpenGLFunctions>
 #include <QMatrix4x4>
 #include <QQuaternion>
 #include <QVector2D>
@@ -25,7 +26,7 @@
 
 namespace structured_indoor_modeling {
   
-class MainWidget : public QGLWidget, protected QGLFunctions {
+class MainWidget : public QGLWidget, protected QOpenGLFunctions {
 Q_OBJECT
 public:
     explicit MainWidget(const Configuration& configuration,

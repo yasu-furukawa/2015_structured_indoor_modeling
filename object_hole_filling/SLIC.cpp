@@ -694,6 +694,7 @@ void SLIC::SaveSuperpixelLabels(
 	const int*					labels,
 	const int&					width,
 	const int&					height,
+	const int&                                      numlabels,
 	const string&				filename,
 	const string&				path) 
 {
@@ -702,6 +703,7 @@ void SLIC::SaveSuperpixelLabels(
 	ofstream outfile;
 	string finalpath = path;
 	outfile.open(finalpath.c_str(), ios::binary);
+	outfile.write((const char*)&numlabels, sizeof(int));
 	for( int i = 0; i < sz; i++ )
 	{
 		outfile.write((const char*)&labels[i], sizeof(int));

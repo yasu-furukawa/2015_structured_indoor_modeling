@@ -61,6 +61,34 @@ bool visibilityTest(const structured_indoor_modeling::Point &pt, const structure
   return true;
 }
 
+int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup){
+  int objectnum = 0;
+  vector <Vector3f> colors;
+  int totalnum = point_cloud.GetNumPoints();
+  int unit = point_cloud.GetNumPoints() / 100;
+  for(int i=0;i<point_cloud.GetNumPoints();++i){
+    structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
+    Vector3f curcolor = curpt.color;
+    bool flag = true;
+    for(int j=0;j<colors.size();++j){
+      if(curcolor == colors[j]){
+	objectgroup[j].push_back(i);
+	flag = false;
+      }
+    }
+    if(flag){
+      objectgroup.resize(objectgroup.size() + 1);
+      objectgroup.back().push_back(i);
+      colors.push_back(curcolor);
+      objectnum++;
+    }
+  }
+  return objectnum;
+}
+
+
+
+
 
 
 
