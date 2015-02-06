@@ -18,6 +18,8 @@ void labelTolabelgroup(const std::vector<int>& labels, std::vector< std::vector<
 
 bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);
 
+int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup);
+
 
 
 

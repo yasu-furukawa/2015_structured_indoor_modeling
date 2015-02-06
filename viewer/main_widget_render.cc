@@ -1,5 +1,4 @@
 #include <QOpenGLShaderProgram>
-
 #include "../base/floorplan.h"
 #include "object_renderer.h"
 #include "floorplan_renderer.h"
