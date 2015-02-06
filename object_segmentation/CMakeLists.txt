@@ -15,8 +15,7 @@ LINK_DIRECTORIES( /usr/local/lib )
 #add_definitions(${PCL_DEFINITIONS})
 
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
-set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init
--Wno-sign-compare" )
+   set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init-Wno-sign-compare" )
 endif(${CMAKE_SYSTEM} MATCHES "Darwin")
 
 add_executable( object_segmentation_cli object_segmentation_cli.cc object_segmentation.cc ../base/floorplan.cc ../base/point_cloud.cc ../base/kdtree/KDtree.cc )
