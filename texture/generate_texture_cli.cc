@@ -17,14 +17,18 @@
 
 DEFINE_int32(start_panorama, 0, "First panorama id.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
+DEFINE_int32(pyramid_level_for_floor, 1, "Level of pyramid for floor texture.");
 // DEFINE_double(texel_size_rescale, 1.0, "Less than 1 to increase resolution.");
-DEFINE_int32(max_texture_size_per_floor_patch, 2048, "Maximum texture size for each floor patch.");
 DEFINE_int32(max_texture_size_per_wall_patch, 1024, "Maximum texture size for each wall patch.");
 DEFINE_int32(texture_height_per_wall, 512, "Texture height for each wall patch.");
 DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 
 DEFINE_double(position_error_for_floor, 0.08, "How much error is allowed for a point to be on a floor.");
-DEFINE_int32(patch_size_for_synthesis, 80, "Patch size for synthesis.");
+
+// The following flags should be rescaled together. They are sensitive.
+DEFINE_int32(max_texture_size_per_floor_patch, 1024, "Maximum texture size for each floor patch.");
+DEFINE_int32(patch_size_for_synthesis, 30, "Patch size for synthesis.");
+DEFINE_int32(num_cg_iterations, 25, "Number of CG iterations.");
 
 using namespace Eigen;
 using namespace std;
@@ -66,11 +70,13 @@ int main(int argc, char* argv[]) {
     ifstr.close();
   }
   {
+    texture_input.pyramid_level_for_floor = FLAGS_pyramid_level_for_floor;
     texture_input.max_texture_size_per_floor_patch = FLAGS_max_texture_size_per_floor_patch;
     texture_input.max_texture_size_per_wall_patch = FLAGS_max_texture_size_per_wall_patch;
-    texture_input.texture_height_per_wall = FLAGS_texture_height_per_wall;
+    texture_input.texture_height_per_wall  = FLAGS_texture_height_per_wall;
     texture_input.position_error_for_floor = FLAGS_position_error_for_floor;
     texture_input.patch_size_for_synthesis = FLAGS_patch_size_for_synthesis;
+    texture_input.num_cg_iterations        = FLAGS_num_cg_iterations;
   }
   // Unit for a texel.
   // const double texel_size = ComputeTexelSize(panoramas) * FLAGS_texel_size_rescale;

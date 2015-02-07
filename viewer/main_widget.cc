@@ -282,40 +282,33 @@ void MainWidget::paintGL() {
     // becomes slow. So, we do this only when the mouse is not
     // moving. Interaction
     if (fresh_screen_for_panorama && !mouse_down) {
-      RenderPolygonLabels(navigation,
-                          polygon_renderer,
-                          frameids,
-                          panorama_to_room[navigation.GetCameraPanorama().start_index],
+      RenderPolygonLabels(panorama_to_room[navigation.GetCameraPanorama().start_index],
                           HeightAdjustment(),
                           kDepthOrderHeightAdjustment);
       fresh_screen_for_panorama = false;
     }
     
     if (!RightAfterSimpleClick(0.0)) {
-      RenderPanorama(navigation, panorama_renderers, 1.0);
+      RenderPanorama(1.0);
     } else {
       const double alpha = Fade();
-      RenderPanorama(navigation, panorama_renderers, 1.0 - alpha * 0.7);
+      RenderPanorama(1.0 - alpha * 0.7);
       // Checks if any room should be highlighted.
       int room_highlighted = -1;
       if (!mouse_down)
         room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]),
-                                               frameids,
-                                               viewport);
-      RenderPolygon(navigation, polygon_renderer,
-                    panorama_to_room[navigation.GetCameraPanorama().start_index],
+                                                        mouseMovePosition[1]));
+      RenderPolygon(panorama_to_room[navigation.GetCameraPanorama().start_index],
                     alpha / 2.0,
                     HeightAdjustment(),
                     kDepthOrderHeightAdjustment,
                     room_highlighted);
-      RenderThumbnail(panel_renderer, mouseMovePosition, viewport, 1.0, room_highlighted, this);
+      RenderThumbnail(1.0, room_highlighted, this);
     }
     break;
   }
   case kPanoramaTransition: {
-    RenderPanoramaTransition(program, navigation, panorama_renderers, frameids, texids, width(), height(),
-                             navigation.GetCameraPanorama().start_index,
+    RenderPanoramaTransition(navigation.GetCameraPanorama().start_index,
                              navigation.GetCameraPanorama().end_index,
                              navigation.ProgressInverse());
     break;
@@ -323,76 +316,68 @@ void MainWidget::paintGL() {
   case kAir: {
     const double kNoHeightAdjustment = 0.0;
     if (fresh_screen_for_air && !mouse_down) {
-      RenderPolygonLabels(navigation, polygon_renderer, frameids,
-                          -1, kNoHeightAdjustment, kUniformHeightAdjustment);
+      RenderPolygonLabels(-1, kNoHeightAdjustment, kUniformHeightAdjustment);
       fresh_screen_for_air = false;
     }
         
     if (!RightAfterSimpleClick(0.0)) {
-      RenderTexturedPolygon(polygon_renderer, 1.0);
-      RenderObjects(object_renderer, 1.0);
+      RenderTexturedPolygon(1.0);
+      RenderObjects(1.0);
     } else {
       const double alpha = Fade();
-      RenderTexturedPolygon(polygon_renderer, 1.0 - alpha * 0.7);
-      RenderObjects(object_renderer, 1.0 - alpha * 0.7);
+      RenderTexturedPolygon(1.0 - alpha * 0.7);
+      RenderObjects(1.0 - alpha * 0.7);
 
       int room_highlighted = -1;
       if (!mouse_down)
         room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]),
-                                               frameids,
-                                               viewport);
+                                                        mouseMovePosition[1]));
+
       // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, room_highlighted);
-      RenderPolygon(navigation, polygon_renderer, -1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
-      RenderThumbnail(panel_renderer, mouseMovePosition, viewport, 1.0, room_highlighted, this);
+      RenderPolygon(-1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
+      RenderThumbnail(1.0, room_highlighted, this);
     }
     break;
   }
   case kAirTransition: {
-    RenderTexturedPolygon(polygon_renderer, 1.0);
-    RenderObjects(object_renderer, 1.0);
+    RenderTexturedPolygon(1.0);
+    RenderObjects(1.0);
     break;
   }
   case kFloorplan:
   case kFloorplanTransition: {
-    RenderFloorplan(floorplan_renderer, 1.0);
-    RenderAllThumbnails(panel_renderer, floorplan, viewport, modelview, projection, 1.0, -1, this);
+    RenderFloorplan(1.0);
+    RenderAllThumbnails(1.0, -1, this);
     
     break;
   }
   case kPanoramaToAirTransition: {
-    RenderPanoramaToAirTransition(program, navigation, panorama_renderers, polygon_renderer,
-                                  object_renderer, frameids, texids, width(), height());
+    RenderPanoramaToAirTransition();
     break;
   }
   case kAirToPanoramaTransition: {
-    RenderPanoramaToAirTransition(program, navigation, panorama_renderers, polygon_renderer,
-                                  object_renderer, frameids, texids, width(), height(), kFlip);
+    RenderPanoramaToAirTransition(kFlip);
     break;
   }
   case kPanoramaToFloorplanTransition: {
-    RenderPanoramaToFloorplanTransition(program, navigation, panorama_renderers, floorplan_renderer,
-                                        frameids, texids, width(), height());
+    RenderPanoramaToFloorplanTransition();
     break;
   }
   case kFloorplanToPanoramaTransition: {
-    RenderPanoramaToFloorplanTransition(program, navigation, panorama_renderers, floorplan_renderer,
-                                        frameids, texids, width(), height(), kFlip);
+    RenderPanoramaToFloorplanTransition(kFlip);
     break;
   }
   case kAirToFloorplanTransition: {
-    RenderAirToFloorplanTransition(program, navigation, polygon_renderer, object_renderer,
-                                   floorplan_renderer, frameids, texids, width(), height());
+    RenderAirToFloorplanTransition();
     break;
   }
   case kFloorplanToAirTransition: {
-    RenderAirToFloorplanTransition(program, navigation, polygon_renderer, object_renderer,
-                                   floorplan_renderer, frameids, texids, width(), height(), kFlip);
+    RenderAirToFloorplanTransition(kFlip);
     break;
   }
     
   case kPanoramaTour: {
-    RenderPanoramaTour(program, navigation, panorama_renderers, frameids, texids, width(), height());
+    RenderPanoramaTour();
     break;
   }
   default: {
@@ -440,9 +425,7 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
     if (navigation.GetCameraStatus() == kPanorama &&
         RightAfterSimpleClick(0.0)) {
       const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
-                                                                mousePressPosition[1]),
-                                                       frameids,
-                                                       viewport);
+                                                                mousePressPosition[1]));
       //simple_click_time.start();
       if (room_highlighted != -1) {
         vector<int> indexes;
@@ -459,9 +442,7 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
     } else if (navigation.GetCameraStatus() == kAir &&
                RightAfterSimpleClick(0.0)) {
       const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
-                                                                mousePressPosition[1]),
-                                                       frameids,
-                                                       viewport);
+                                                                mousePressPosition[1]));
       if (room_highlighted != -1) {
         navigation.AirToPanorama(room_to_panorama[room_highlighted]);
         // Not perfect, the following line is good enough.

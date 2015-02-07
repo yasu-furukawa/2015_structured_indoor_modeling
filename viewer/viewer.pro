@@ -31,7 +31,6 @@ qtHaveModule(opengl) {
 
     HEADERS += \
         main_widget.h \
-        main_widget_render.h \
         main_widget_util.h \
         configuration.h \
         navigation.h \

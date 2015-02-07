@@ -290,7 +290,7 @@ void PoissonBlendSub(const SynthesisData& synthesis_data,
   Eigen::VectorXd ATb = A2.transpose() * b2;
   
   ConjugateGradient<SparseMatrix<double> > cg;
-  cg.setMaxIterations(50);
+  cg.setMaxIterations(synthesis_data.num_cg_iterations);
   cg.compute(ATA);
   cerr << "CG solve..." << flush;
 
@@ -478,6 +478,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   vector<vector<Vector3d> > laplacians(width * height);
   vector<vector<Vector3d> > values(width * height);
 
+  cerr << "stitch " << flush;
   set<pair<int, int> > visited_grids;
   while (true) {
     // Find a grid position with the most constraints.
@@ -531,6 +532,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   // Poisson blend.
   cv::imshow("before", *floor_texture);
 
+  cerr << "blend" << flush;
   PoissonBlend(synthesis_data, laplacians, values, floor_texture);
   // cerr << "done" << endl;
 }

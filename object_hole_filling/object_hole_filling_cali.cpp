@@ -20,7 +20,7 @@ using namespace Eigen;
 using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
-DEFINE_int32(label_num,6000,"Number of superpixel");
+DEFINE_int32(label_num,12000,"Number of superpixel");
 
 int main(int argc, char **argv){
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv){
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
   startid = 0;
-  for (int id=startid; id<startid+1; id++) {
+  for (int id=startid; id<endid; id++) {
     cout<<"======================="<<endl;
     //reading point cloud and convert to depth
 
@@ -111,25 +111,30 @@ int main(int argc, char **argv){
     cout<<"Number of object:"<<objectnum<<endl;
     
     cout<<"Getting superpixel confidence.."<<endl;
-    getSuperpixelLabel(curob, panorama, depth.GetDepthmap(), labels,labelgroup, superpixelConfidence, numlabels);
+    for(int groupid = 0;groupid < objectgroup.size(); ++groupid){
+      cout<<"For object: "<<groupid<<endl;
+      getSuperpixelLabel(curob, objectgroup[groupid], panorama, depth.GetDepthmap(), labels,labelgroup, superpixelConfidence, numlabels);
 #if 1
-    //save the mask
-    int minc = *min_element(superpixelConfidence.begin(), superpixelConfidence.end());
-    int maxc = *max_element(superpixelConfidence.begin(), superpixelConfidence.end());
+      //save the mask
+      int minc = *min_element(superpixelConfidence.begin(), superpixelConfidence.end());
+      int maxc = *max_element(superpixelConfidence.begin(), superpixelConfidence.end());
 
-    Mat outmask = panorama.GetRGBImage().clone();
-    for(int i=0;i<imgwidth*imgheight;++i){
+      Mat outmask = panorama.GetRGBImage().clone();
+      for(int i=0;i<imgwidth*imgheight;++i){
 	int x = i % imgwidth;
 	int y = i / imgwidth;
 	int curconfidence =(int)((float) (superpixelConfidence[labels[i]] - minc) / (float)(maxc - minc) * 255.0);
+	//if(superpixelConfidence[labels[i]] < 60)
+	//outmask.at<Vec3b>(y,x) = Vec3b(0,0,0);
 	Vec3b curpix((uchar)curconfidence,(uchar)curconfidence,(uchar)curconfidence);
 	outmask.at<Vec3b>(y,x) = curpix;
-    }
-    sprintf(buffer,"objectmask%03d.png",id);
-    imwrite(buffer, outmask);
-    waitKey(10);
+      }
+      sprintf(buffer,"object_project/objectmask%03d_object%03d.png",id, groupid);
+      imwrite(buffer, outmask);
+      waitKey(10);
 #endif
-   
+
+    }
   }
 
   return 0;

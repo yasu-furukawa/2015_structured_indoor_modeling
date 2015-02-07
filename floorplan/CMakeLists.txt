@@ -57,12 +57,16 @@ set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions")
 # Creating entries for target: floorplan_generation_cli
 # ############################
 
+if(UNIX)
+set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
+endif(UNIX)
+
+if(${CMAKE_SYSTEM} MATCHES "Darwin")
+   set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
+endif(${CMAKE_SYSTEM} MATCHES "Darwin")
+
+
 add_executable( generate_floorplan_cli generate_floorplan_cli.cc ../base/floorplan.cc )
 # add_to_cached_list( CGAL_EXECUTABLE_TARGETS floorplan_generation_cli )
 target_link_libraries(generate_floorplan_cli   ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} )
 target_link_libraries(generate_floorplan_cli gflags )
-
-
-add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc ../base/floorplan.cc ../base/panorama.cc )
-target_link_libraries( generate_thumbnail_cli ${OpenCV_LIBS} )
-target_link_libraries( generate_thumbnail_cli gflags )

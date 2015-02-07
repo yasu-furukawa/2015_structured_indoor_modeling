@@ -118,6 +118,36 @@ private:
     static const double kRenderMargin;
     static const double kFadeInSeconds;
     static const double kFadeOutSeconds;    
+
+    //----------------------------------------------------------------------
+    // Render functions.
+    void RenderFloorplan(const double alpha);
+    void RenderPanorama(const double alpha);
+    void RenderObjects(const double alpha);
+    void RenderPolygon(const int room_not_rendered,
+                       const double alpha,
+                       const double height_adjustment,
+                       const bool depth_order_height_adjustment,
+                       const int room_highlighted);
+    void RenderTexturedPolygon(const double alpha);
+    void RenderPolygonLabels(const int room_not_rendered,
+                             const double height_adjustment,
+                             const bool depth_order_height_adjustment);
+    void RenderThumbnail(const double alpha,
+                         const int room_highlighted,
+                         QGLWidget* qgl_widget);
+    void RenderAllThumbnails(const double alpha,
+                             const int room_highlighted,
+                             QGLWidget* qgl_widget);
+    void RenderPanoramaTransition(const int start_index,
+                                  const int end_index,
+                                  const double start_weight);
+    void BlendFrames(const double weight, const int divide_by_alpha_mode);
+    void RenderPanoramaTour();    
+    void RenderPanoramaToAirTransition(const bool flip = false);
+    void RenderPanoramaToFloorplanTransition(const bool flip = false);
+    void RenderAirToFloorplanTransition(const bool flip = false);
+    int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
 };
 
 }  // namespace structured_indoor_modeling
