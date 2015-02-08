@@ -8,14 +8,17 @@
 namespace structured_indoor_modeling {
 
 struct SynthesisData {
+  SynthesisData(const std::vector<cv::Mat>& projected_textures) :
+    projected_textures(projected_textures) {
+  }
+  
+  const std::vector<cv::Mat>& projected_textures;
+  
+  int num_cg_iterations;
   Eigen::Vector2i texture_size;
   int patch_size;
   int margin;
-
-  std::vector<cv::Mat> projected_textures;
   std::vector<bool> mask;
-
-  int num_cg_iterations;
 };
 
 void CollectCandidatePatches(const SynthesisData& synthesis_data,

@@ -27,16 +27,6 @@ struct TextureInput {
   int num_cg_iterations;
 };
 
-struct RoomInput {
-  double average_floor_height;
-  double average_ceiling_height;
-  cv::Mat room_segments;
-
-  // Changes for each room.
-  int room;
-  std::set<int> panorama_ids;
-};
- 
 // Patch where texture is generated.
 struct Patch {
   // ceiling 0------1
@@ -63,6 +53,11 @@ struct Patch {
   //----------------------------------------------------------------------  
   Eigen::Vector3d Interpolate(const Eigen::Vector2d& uv) const {
     return vertices[0] + uv[0] * (vertices[1] - vertices[0]) + uv[1] * (vertices[3] - vertices[0]);
+  }
+
+  Eigen::Vector2d LocalToTexture(const Eigen::Vector2d& local) const {
+    return Eigen::Vector2d(texture_size[0] * (local[0] - min_xy_local[0]) / (max_xy_local[0] - min_xy_local[0]),
+                           texture_size[1] * (local[1] - min_xy_local[1]) / (max_xy_local[1] - min_xy_local[1]));
   }
 };
 
