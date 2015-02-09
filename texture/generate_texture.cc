@@ -326,32 +326,6 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
   cout << floorplan.GetNumRooms() << " rooms: " << flush;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     cout << room << '.' << flush;
-    // Collect panoramas for room.
-    /*
-    for (int p = 0; p < panoramas.size(); ++p) {
-      const Vector3d local_center =
-        floorplan.GetFloorplanToGlobal().transpose() * panoramas[p][kLevel].GetCenter();
-      const Vector2i texel_int =
-        ConvertLocalToTexelInt(Vector2d(local_center[0], local_center[1]), *floor_patch);
-
-      if (room_input.room_segments.at<unsigned char>(texel_int[1], texel_int[0]) == room)
-        room_input.panorama_ids.insert(p);
-    }
-
-
-    {    
-      const int kKernelWidth = 5;
-      const int kTime = 2; // 2
-      for (int t = 0; t < kTime; ++t)
-        image_process::Erode(depth_width, depth_height, kKernelWidth, &floor_mask);
-
-
-
-    if (room_input.panorama_ids.empty()) {
-      room_input.panorama_ids.insert(FindClosestPanoramaToRoom(texture_input, *floor_patch,
-                                                               room_input.room_segments, room));
-    }
-    */
     GenerateFloorTexture(room, texture_input, projected_textures, room_segments,
                          *floor_patch, &floor_texture);
   }
@@ -1019,54 +993,11 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
 
     {    
       const int kKernelWidth = 5;
-      const int kTime = 2;
+      const int kTime = 3;
       for (int t = 0; t < kTime; ++t)
         image_process::Erode(depth_width, depth_height, kKernelWidth, &floor_mask);
     }
 
-    // {
-    //   char buffer[1024];
-    //   sprintf(buffer, "pano_depth_mask_%03d.pgm", p);
-    //   ofstream ofstr;
-    //   ofstr.open(buffer);
-    //   ofstr << "P2" << endl
-    //         << depth_width << ' ' << depth_height << endl
-    //         << 255 << endl;
-    //   for (int i = 0; i < floor_mask.size(); ++i)
-    //     if (floor_mask[i])
-    //       ofstr << "0 ";
-    //     else
-    //       ofstr << "255 ";
-    //   ofstr.close();
-    // }
-
-    // {
-    //   char buffer[1024];
-    //   sprintf(buffer, "pano_mask_%03d.ppm", p);
-    //   ofstream ofstr;
-    //   ofstr.open(buffer);
-    //   ofstr << "P3" << endl
-    //         << panorama.Width() << ' ' << panorama.Height() << endl
-    //         << 255 << endl;
-    //   for (int y = 0; y < panorama.Height(); ++y) {
-    //     for (int x = 0; x < panorama.Width(); ++x) {
-    //       Vector3f rgb = panorama.GetRGB(Vector2d(x, y));
-    //       Vector2d depth_pixel = panorama.RGBToDepth(Vector2d(x, y));
-    //       const int depth_x = static_cast<int>(round(depth_pixel[0])) % depth_width;
-    //       const int depth_y = static_cast<int>(round(depth_pixel[1]));
-    //       if (floor_mask[depth_y * panorama.DepthWidth() + depth_x]) {
-    //         rgb[0] = 0.0;
-    //         rgb[1] /= 3.0;
-    //         rgb[2] /= 3.0;
-    //       }
-    //       ofstr << (int)(rgb[2]) << ' '
-    //             << (int)(rgb[1]) << ' '
-    //             << (int)(rgb[0]) << ' ';
-    //     }
-    //   }
-    //   ofstr.close();
-    // }    
-    
     cv::Mat projected_texture(texture_size[1], texture_size[0], CV_8UC3, cv::Scalar(0));
     const Vector2d xy_diff = max_xy_local - min_xy_local;
     for (int y = 0; y < texture_size[1]; ++y) {

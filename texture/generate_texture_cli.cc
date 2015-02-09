@@ -26,9 +26,9 @@ DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 DEFINE_double(position_error_for_floor, 0.08, "How much error is allowed for a point to be on a floor.");
 
 // The following flags should be rescaled together. They are sensitive.
-DEFINE_int32(max_texture_size_per_floor_patch, 1024, "Maximum texture size for each floor patch.");
-DEFINE_int32(patch_size_for_synthesis, 30, "Patch size for synthesis.");
-DEFINE_int32(num_cg_iterations, 25, "Number of CG iterations.");
+DEFINE_int32(max_texture_size_per_floor_patch, 1500, "Maximum texture size for each floor patch.");
+DEFINE_int32(patch_size_for_synthesis, 45, "Patch size for synthesis.");
+DEFINE_int32(num_cg_iterations, 40, "Number of CG iterations.");
 
 using namespace Eigen;
 using namespace std;

@@ -200,10 +200,10 @@ void MainWidget::resizeGL(int w, int h) {
 void MainWidget::SetMatrices() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  const double kMinDistance = 10;
-  const double kMaxDistance = 120000;
+  const double max_distance = navigation.GetFloorplanHeight() * 2.0;
+  const double min_distance = max_distance / 10000.0;
   gluPerspective(navigation.GetFieldOfViewInDegrees(),
-                 width() / static_cast<double>(height()), kMinDistance, kMaxDistance);
+                 width() / static_cast<double>(height()), min_distance, max_distance);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
@@ -220,7 +220,7 @@ void MainWidget::SetMatrices() {
     cerr << "black?" << endl
          << center << endl
          << direction << endl;
-  
+
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],
             0, 0, 1);

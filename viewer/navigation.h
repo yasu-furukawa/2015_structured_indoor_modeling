@@ -116,6 +116,8 @@ class Navigation {
   double ProgressInverse() const;
   double GetFieldOfViewInDegrees() const;
   double GetAverageDistance() const { return average_distance; }
+  double GetAirHeight() const { return air_height; }
+  double GetFloorplanHeight() const { return floorplan_height; }
 
   //----------------------------------------------------------------------
   void Init();

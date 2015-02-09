@@ -1,4 +1,5 @@
 #include <Eigen/Sparse>
+#include <fstream>
 #include "synthesize.h"
 
 using namespace Eigen;
@@ -114,6 +115,8 @@ bool FindGridWithMostValid(const SynthesisData& synthesis_data,
 
 void SetDataForBlending(const int width,
                         const std::vector<bool>& mask,
+                        const std::vector<bool>& initial_mask,
+                        const std::vector<bool>& pixel_guarded,
                         const cv::Mat& patch,
                         const Eigen::Vector2i& x_range,
                         const Eigen::Vector2i& y_range,
@@ -127,8 +130,16 @@ void SetDataForBlending(const int width,
       const int index = y * width + x;
       if (!mask[index])
         continue;
-
       Vector3d laplacian(0, 0, 0);
+
+      if (initial_mask[index] != initial_mask[index - 1] ||
+          initial_mask[index] != initial_mask[index + 1] ||
+          initial_mask[index] != initial_mask[index - width] ||
+          initial_mask[index] != initial_mask[index + width]) {
+        laplacians->at(index).push_back(laplacian);
+        continue;
+      }
+      
       Vector3i counts(0, 0, 0);
       for (int c = 0; c < kNumChannels; ++c) {
         if (mask[index - 1]) {
@@ -163,6 +174,13 @@ void SetDataForBlending(const int width,
       const int index = y * width + x;
       if (!mask[index])
         continue;
+
+      if (pixel_guarded[index])
+        continue;
+
+      // if (!initial_mask[index])
+      // continue;
+      
       Vector3d value;
       for (int c = 0; c < kNumChannels; ++c) {
         value[c] = patch.at<cv::Vec3b>(patch_y, patch_x)[c];
@@ -246,7 +264,7 @@ void PoissonBlendSub(const SynthesisData& synthesis_data,
         b.push_back(average_laplacian[index][channel]);
       }
     }
-  }
+  }  
   
   // If no constraint, add value constraints.
   /*
@@ -299,7 +317,7 @@ void PoissonBlendSub(const SynthesisData& synthesis_data,
     x0[v] = floor_texture->at<cv::Vec3b>(indexes[v][1], indexes[v][0])[channel];
         
   VectorXd x = cg.solveWithGuess(ATb, x0);
-  cerr << "done." << endl;
+  cerr << "done. " << flush;
   for (int v = 0; v < (int)indexes.size(); ++v) {
     floor_texture->at<cv::Vec3b>(indexes[v][1], indexes[v][0])[channel] = 
       static_cast<unsigned char>(x[v]);
@@ -336,6 +354,7 @@ void PoissonBlend(const SynthesisData& synthesis_data,
       }
     }
   }
+  
   // For each channel.
   const int kNumChannels = 3;
   for (int c = 0; c < kNumChannels; ++c) {
@@ -343,20 +362,109 @@ void PoissonBlend(const SynthesisData& synthesis_data,
                     indexes, inverse_indexes, c, floor_texture);
 
   }
+  cerr << " all done." << endl;
 }
 
-void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_texture) {
+void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_texture,
+                       vector<bool>* pixel_guarded) {
   const cv::Vec3b kHole(0, 0, 0);
   const int kInvalid = -1;
+
+  const int width      = synthesis_data.texture_size[0];
+  const int height     = synthesis_data.texture_size[1];
+  const vector<bool>& mask = synthesis_data.mask;
+
+  const int guard_radius = synthesis_data.margin;
+  vector<bool> texture_used(synthesis_data.projected_textures.size(), false);
+  pixel_guarded->clear();
+  pixel_guarded->resize(width * height, false);
+
+  while (true) {
+    int best_index = kInvalid;
+    int best_count = 0;
+    
+    for (int i = 0; i < synthesis_data.projected_textures.size(); ++i) {
+      if (texture_used[i])
+        continue;
+      const cv::Mat& image = synthesis_data.projected_textures[i];
+      // Count the number of non-black pixels that are not used.
+      int count = 0;
+      for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+          const int index = y * width + x;
+          if (mask[index] && image.at<cv::Vec3b>(y, x) != kHole && !pixel_guarded->at(index))
+            ++count;
+        }
+      }
+      if (best_index == kInvalid || count > best_count) {
+        best_index = i;
+        best_count = count;
+      }
+    }
+
+    if (best_index == kInvalid || best_count == 0)
+      break;
+
+    //----------------------------------------------------------------------      
+    // Copy reference to the output.
+    //----------------------------------------------------------------------
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        const cv::Vec3b color = synthesis_data.projected_textures[best_index].at<cv::Vec3b>(y, x);
+        const int index = y * width + x;
+        if (mask[index] && color != kHole && !pixel_guarded->at(index)) {
+          floor_texture->at<cv::Vec3b>(y, x) = color;
+        }
+      }
+    }
+
+    texture_used[best_index] = true;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        const cv::Vec3b color = synthesis_data.projected_textures[best_index].at<cv::Vec3b>(y, x);
+        const int index = y * width + x;
+        if (mask[index] && color != kHole) {
+          for (int j = -guard_radius; j <= guard_radius; ++j) {
+            const int ytmp = y + j;
+            if (ytmp < 0 || height <= ytmp)
+              continue;
+            for (int i = -guard_radius; i <= guard_radius; ++i) {
+              const int xtmp = x + i;
+              if (xtmp < 0 || width <= xtmp)
+                continue;
+              pixel_guarded->at(ytmp * width + xtmp) = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  int index = 0;
+  for (int y = 0; y < floor_texture->rows; ++y) {
+    for (int x = 0; x < floor_texture->cols; ++x, ++index) {
+      if (floor_texture->at<cv::Vec3b>(y, x) != kHole) {
+        pixel_guarded->at(index) = false;
+      }
+    }
+  }
+  
+  /*
+  const cv::Vec3b kHole(0, 0, 0);
+  const int kInvalid = -1;
+
+  const int width      = synthesis_data.texture_size[0];
+  const int height     = synthesis_data.texture_size[1];
   int best_index = kInvalid;
   int best_count = 0;
+  const vector<bool>& mask = synthesis_data.mask;
   for (int i = 0; i < synthesis_data.projected_textures.size(); ++i) {
     const cv::Mat& image = synthesis_data.projected_textures[i];
     // Count the number of non-black pixels.
     int count = 0;
-    for (int y = 0; y < image.rows; ++y) {
-      for (int x = 0; x < image.cols; ++x) {
-        if (image.at<cv::Vec3b>(y, x) != kHole)
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        if (mask[y * width + x] && image.at<cv::Vec3b>(y, x) != kHole)
           ++count;
       }
     }
@@ -366,16 +474,13 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
     }
   }
 
-  //----------------------------------------------------------------------    
-  const int width      = synthesis_data.texture_size[0];
-  const int height     = synthesis_data.texture_size[1];
-  
+  //----------------------------------------------------------------------      
   // Copy reference to the output.
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       const cv::Vec3b color = synthesis_data.projected_textures[best_index].at<cv::Vec3b>(y, x);
       const int index = y * width + x;
-      if (synthesis_data.mask[index] && color != kHole) {
+      if (mask[index] && color != kHole) {
         floor_texture->at<cv::Vec3b>(y, x) = color;        
       }
     }
@@ -389,7 +494,7 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
     int index = 0;
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x, ++index) {
-        if (!synthesis_data.mask[index])
+        if (!mask[index])
           continue;
         if (floor_texture->at<cv::Vec3b>(y, x) != kHole)
           continue;
@@ -399,6 +504,7 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
       }
     }
   }
+  */
 }
   
 }  // namespace
@@ -458,13 +564,26 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
                        cv::Mat* floor_texture) {
   // First identify the projected texture with the most area.
   const cv::Vec3b kHole(0, 0, 0);
-  InitializeTexture(synthesis_data, floor_texture);
+  // Pixels that are right around the initial floor_texture. "Value"
+  // constraint should not be enforced here for smooth transition.
+  vector<bool> pixel_guarded;
+  InitializeTexture(synthesis_data, floor_texture, &pixel_guarded);
+
+  vector<bool> initial_mask(floor_texture->rows * floor_texture->cols, false);
+  int index = 0;
+  for (int y = 0; y < floor_texture->rows; ++y) {
+    for (int x = 0; x < floor_texture->cols; ++x, ++index) {
+      if (floor_texture->at<cv::Vec3b>(y, x) != kHole) {
+        initial_mask[index] = true;
+      }
+    }
+  }
 
   // Simple case. Use one image to synthesize.
   cv::imshow("source", *floor_texture);
   // cv::waitKey(0);
   
-  const double kMarginResidual = 2.5;
+  const double kMarginResidualScale = 1.25;
   const int width      = synthesis_data.texture_size[0];
   const int height     = synthesis_data.texture_size[1];
   const int patch_size = synthesis_data.patch_size;
@@ -501,11 +620,11 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
     double current_min = kLarge;
     for (int p = 0; p < patches.size(); ++p) {
       residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
-                                               current_min + kMarginResidual);
+                                               current_min * kMarginResidualScale);
       current_min = min(current_min, residuals[p]);
     }
     const double min_residual = *min_element(residuals.begin(), residuals.end());
-    const double threshold = min_residual + kMarginResidual;
+    const double threshold = min_residual * kMarginResidualScale;
     vector<int> candidates;
     for (int i = 0; i < (int)residuals.size(); ++i) {
       if (residuals[i] <= threshold)
@@ -516,12 +635,24 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
     // << min_residual << ' ' << threshold;
     const int patch_id = candidates[rand() % candidates.size()];
     // cerr << "  patch: " << patch_id << endl;
-    CopyPatch(synthesis_data.mask, patches[patch_id], x_range, y_range, floor_texture);
+    cv::Mat patch_with_initial_texture = patches[patch_id];
+    // overwrite with floor_texture and initial_mask.
+    for (int y = y_range[0]; y < y_range[1]; ++y) {
+      for (int x = x_range[0]; x < x_range[1]; ++x) {
+        if (synthesis_data.mask[y * width + x] && initial_mask[y * width + x])
+          patch_with_initial_texture.at<cv::Vec3b>(y - y_range[0], x - x_range[0]) =
+            floor_texture->at<cv::Vec3b>(y, x);
+      }
+    }
+    
+    CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, floor_texture);
 
     // cout << "setdataforblending" << endl;
     SetDataForBlending(width,
                        synthesis_data.mask,
-                       patches[patch_id],
+                       initial_mask,
+                       pixel_guarded,
+                       patch_with_initial_texture,
                        x_range,
                        y_range,
                        &laplacians,
@@ -537,6 +668,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   // cerr << "done" << endl;
 }
 
+  /*
 void SynthesizeQuilt(const SynthesisData& synthesis_data,
                      const std::vector<cv::Mat>& patches,
                      cv::Mat* floor_texture) {
@@ -618,5 +750,6 @@ void SynthesizeQuilt(const SynthesisData& synthesis_data,
   PoissonBlend(synthesis_data, laplacians, values, floor_texture);
   // cerr << "done" << endl;
 }
-  
+  */  
+
 }  // namespace structured_indoor_modeling

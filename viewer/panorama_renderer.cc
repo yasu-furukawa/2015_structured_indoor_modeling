@@ -25,39 +25,37 @@ void PanoramaRenderer::Render(const double alpha) const {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   
-  const int kSkip = 1;
-  
   glBegin(GL_TRIANGLES);
   glColor4f(alpha, alpha, alpha, 1.0);
-  for (int y = 0; y < depth_height - kSkip - 1; y += kSkip) {
-    for (int x = 0; x < depth_width; x += kSkip) {
-      const int right_x = (x + kSkip) % depth_width;
+  for (int y = 0; y < depth_height - 1; ++y) {
+    for (int x = 0; x < depth_width; ++x) {
+      const int right_x = (x + 1) % depth_width;
       const int index00 = y * depth_width + x;
       const int index01 = y * depth_width + right_x;
-      const int index10 = (y + kSkip) * depth_width + x;
-      const int index11 = (y + kSkip) * depth_width + right_x;
+      const int index10 = (y + 1) * depth_width + x;
+      const int index11 = (y + 1) * depth_width + right_x;
       // 00
       glTexCoord2d(x / static_cast<double>(depth_width),
                    1.0 - y / static_cast<double>(depth_height));
       glVertex3d(depth_mesh[index00][0], depth_mesh[index00][1], depth_mesh[index00][2]);
       // 10
       glTexCoord2d(x / static_cast<double>(depth_width),
-                   1.0 - (y + kSkip) / static_cast<double>(depth_height));
+                   1.0 - (y + 1) / static_cast<double>(depth_height));
       glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
       // 01
-      glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
+      glTexCoord2d((x + 1) / static_cast<double>(depth_width),
                    1.0 - y / static_cast<double>(depth_height));
       glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
       // 10
       glTexCoord2d(x / static_cast<double>(depth_width),
-                   1.0 - (y + kSkip) / static_cast<double>(depth_height));
+                   1.0 - (y + 1) / static_cast<double>(depth_height));
       glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
       // 11
-      glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
-                   1.0 - (y + kSkip) / static_cast<double>(depth_height));
+      glTexCoord2d((x + 1) / static_cast<double>(depth_width),
+                   1.0 - (y + 1) / static_cast<double>(depth_height));
       glVertex3d(depth_mesh[index11][0], depth_mesh[index11][1], depth_mesh[index11][2]);
       // 01
-      glTexCoord2d((x + kSkip) / static_cast<double>(depth_width),
+      glTexCoord2d((x + 1) / static_cast<double>(depth_width),
                    1.0 - y / static_cast<double>(depth_height));
       glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
     }
@@ -113,7 +111,7 @@ void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_ra
     for (int x = 0; x < depth_width; ++x) {
       double distance;
       ifstr >> distance;
-      
+
       const Vector2d pixel = panorama->DepthToRGB(Vector2d(x, y));
       depth_mesh[y * depth_width + x] = panorama->Unproject(pixel, distance);
     }
