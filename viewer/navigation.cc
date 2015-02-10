@@ -625,7 +625,7 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
 }  
 
 void Navigation::MoveToPanorama(const int target_panorama_index) {
-  cout << "Move to " << target_panorama_index << endl;
+  cerr << "Move to " << target_panorama_index << endl;
   camera_panorama.end_index = target_panorama_index;
   camera_panorama.end_center = panoramas[target_panorama_index].GetCenter();
 

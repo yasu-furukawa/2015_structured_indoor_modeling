@@ -370,12 +370,11 @@ void SetWallPatches(const TextureInput& texture_input,
       // Grab texture.
       GrabTexture(texture_input.panoramas[best_panorama], &patch);
 
-      /*
+
       cv::Mat patch_mat;
       ConvertPatchToMat(patch, &patch_mat);
       cv::imshow("Patch.", patch_mat);
       cv::waitKey(0);
-      */
     }
   }
 }
@@ -435,11 +434,13 @@ namespace {
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
                           const Patch& patch,
                           vector<pair<double, int> >* visible_panoramas_weights) {
+  //const Vector3d patch_normal =
+  //(patch.vertices[3] - patch.vertices[0]).cross(patch.vertices[1] - patch.vertices[0]).normalized();
+  
   const int kFirstLevel = 0;
   visible_panoramas_weights->clear();
   for (int p = 0; p < panoramas.size(); ++p) {
     const Vector3d& center = panoramas[p][kFirstLevel].GetCenter();
-
     double weight = 0.0;
     // Sample points on the patch, and check the visibility for each panorama.
     const int kNumSamples1D = 5;
@@ -464,7 +465,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
   sort(visible_panoramas_weights->rbegin(), visible_panoramas_weights->rend());
 
   const int kMinimumKeep = 1;
-  const double kVisibilityThreshold = -0.4;
+  const double kVisibilityThreshold = 0.0;
   int num_to_keep;
   for (num_to_keep = kMinimumKeep; num_to_keep < visible_panoramas_weights->size(); ++num_to_keep) {
     if (kVisibilityThreshold < visible_panoramas_weights->at(num_to_keep).first)
@@ -1115,11 +1116,32 @@ void GenerateFloorTexture(const int room,
   }
 
   vector<cv::Mat> patches;
-  CollectCandidatePatches(synthesis_data, &patches);
+  const int kTimes = 3;
+  for (int t = 0; t < kTimes; ++t) {
+    CollectCandidatePatches(synthesis_data, &patches);
+    if (!patches.empty()) {
+      break;
+    }
+    
+    cerr << "No patches! Cut patch size by half." << endl;
+    synthesis_data.patch_size /= 2;
+  }
   if (patches.empty()) {
-    cerr << "No patches! Need to tune parameters." << endl;
+    cerr << "Do not find any texture. Gave up. Paint light gray." << endl;
+    const cv::Vec3b kLightGray(200, 200, 200);
+    int index = 0;
+    for (int y = 0; y < floor_patch.texture_size[1]; ++y) {
+      for (int x = 0; x < floor_patch.texture_size[0]; ++x, ++index) {
+        if (synthesis_data.mask[index]) {
+          floor_texture->at<cv::Vec3b>(y, x) = kLightGray;
+        }
+      }
+    }
+
+    
     return;
   }
+  
   SynthesizePoisson(synthesis_data, patches, floor_texture);
   
   cv::imshow("result", *floor_texture);
