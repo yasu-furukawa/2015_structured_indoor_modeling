@@ -1138,7 +1138,6 @@ void GenerateFloorTexture(const int room,
         }
       }
     }
-
     
     return;
   }

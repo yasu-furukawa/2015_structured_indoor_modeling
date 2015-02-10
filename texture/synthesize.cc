@@ -320,7 +320,7 @@ void PoissonBlendSub(const SynthesisData& synthesis_data,
   cerr << "done. " << flush;
   for (int v = 0; v < (int)indexes.size(); ++v) {
     floor_texture->at<cv::Vec3b>(indexes[v][1], indexes[v][0])[channel] = 
-      static_cast<unsigned char>(x[v]);
+      static_cast<unsigned char>(max(0.0, min(255.0, x[v])));
   }  
 }    
   
