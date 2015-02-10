@@ -5,6 +5,8 @@ using namespace cv;
 using namespace Eigen;
 using namespace structured_indoor_modeling;
 
+#define PI 3.1415927
+
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
   if(!image.data){
     cout << "invlid image"<<endl;
@@ -65,7 +67,6 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
   int objectnum = 0;
   vector <Vector3f> colors;
   int totalnum = point_cloud.GetNumPoints();
-  int unit = point_cloud.GetNumPoints() / 100;
   for(int i=0;i<point_cloud.GetNumPoints();++i){
     structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
     Vector3f curcolor = curpt.color;
@@ -103,8 +104,8 @@ void getSuperpixelLabel(const PointCloud &point_cloud,const vector<int> &objectg
 	double depthv = depthmap[(int)depth_pixel[1] * panorama.DepthWidth() + (int)depth_pixel[0]];
 	double curdepth = offset.norm();
 	//visibility test
-	//	if(curdepth > depthv)
-	//continue;
+	if(curdepth > depthv)
+	  continue;
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
 	superpixelConfidence[superpixellabel] += 1;
     }
@@ -112,4 +113,54 @@ void getSuperpixelLabel(const PointCloud &point_cloud,const vector<int> &objectg
     // 	if(superpixelConfidence[i] < (int) labelgroup[i].size() * 0.4)
     // 	    superpixelConfidence[i] = 0;
     // }
+}
+
+void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<int,int>, int> &pairmap){
+  //four connectivities
+  for(int y=0;y<height-1;y++){
+    for(int x=0;x<width-1;x++){
+      int label1 = labels[y*width+x]; //origin
+      int label2 = labels[(y+1)*width+x]; //down
+      int label3 = labels[y*width+x+1]; //right
+      int minlabelx = std::min(label1,label3);
+      int maxlabelx = std::max(label1,label3);
+      int minlabely = std::min(label1,label2);
+      int maxlabely = std::max(label1,label2);
+      auto iter = pairmap.find(pair<int,int>(minlabelx,maxlabelx));
+      if(iter != pairmap.end())
+	iter->second += 1;
+      else
+	pairmap.insert(pair<pair<int,int>,int>(pair<int,int>(minlabelx,maxlabelx),1));
+
+      iter = pairmap.find(pair<int,int>(minlabely,maxlabely));
+      if(iter != pairmap.end())
+	iter->second += 1;
+      else
+	pairmap.insert(pair<pair<int,int>,int>(pair<int,int>(minlabely,maxlabely),1));
+    }
+  }
+}
+
+
+inline float gaussian(float x, float sigma){
+  return 1.0/(sigma*std::sqrt(2*PI)) * std::exp(-1*(x*x/(2*sigma*sigma)));
+}
+
+MRF::CostVal fnCost(int pix1,int pix2,int l1,int l2){
+  
+}
+
+void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, float smoothnessweight, vector <int> &superpixelLabel){
+  int superpixelnum = superpixelConfidence.size();
+  vector<MRF::CostVal>Data(superpixelnum * 2,(MRF::CostVal)0.0);
+  vector<MRF::CostVal>Smoothness (4,(MRF::CostVal)0.0);
+  
+  //Construct data term
+  for(int i=0;i<superpixelnum;i++){
+    Data[2*i] = gaussian(1.0/((float)superpixelConfidence[i] + 0.01), 10) ;    //assign 0
+    Data[2*i+1] = gaussian((float)superpixelConfidence[i], 10);  //assign 1
+  }
+
+
+  
 }

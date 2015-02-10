@@ -38,6 +38,7 @@ int main(int argc, char **argv){
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
   startid = 0;
+  endid = 1;
   for (int id=startid; id<endid; id++) {
     cout<<"======================="<<endl;
     //reading point cloud and convert to depth
@@ -65,7 +66,7 @@ int main(int argc, char **argv){
     vector<int> labels(imgwidth*imgheight);
     char buffer[100];
 
-    sprintf(buffer,"SLIC%03d.txt",id);
+    sprintf(buffer,"superpixel/SLIC%03d.txt",id);
     ifstream labelin(buffer, ios::binary);
     if(!labelin.is_open()){
 	cout<<"Performing SLICO Superpixel..."<<endl;
@@ -76,7 +77,7 @@ int main(int argc, char **argv){
 	slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[0],numlabels,FLAGS_label_num,0.0);
 	slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[0],imgwidth,imgheight);
 
-	sprintf(buffer,"SLIC%03d.txt",id);
+	sprintf(buffer,"superpixel/SLIC%03d.txt",id);
 	slic.SaveSuperpixelLabels(&labels[0],imgwidth,imgheight,numlabels," ",string(buffer));
 	cout<<"numlabels: "<<numlabels<<endl;
 	Mat out;
@@ -109,6 +110,34 @@ int main(int argc, char **argv){
     cout<<"Grouping objects..."<<endl;
     int objectnum = groupObject(curob, objectgroup);
     cout<<"Number of object:"<<objectnum<<endl;
+
+
+
+
+
+    //debug the projection
+#if 0
+    Vector3d temp(-3854.73,2324.54,-610.86);
+    Vector2d tempRGB = panorama.Project(temp);
+    int templabel = labels[(int)tempRGB[1] * imgwidth + (int)tempRGB[0]];
+    Mat tempMat(imgheight,imgwidth,CV_8UC3,Scalar(0,0,0));
+    for(int i=0;i<labelgroup[templabel].size();i++){
+      int tempx = labelgroup[templabel][i] % imgwidth;
+      int tempy = labelgroup[templabel][i] / imgwidth;
+      tempMat.at<Vec3b>(tempy,tempx) = Vec3b(255,255,255);
+    }
+    imwrite("ProjectionTest.png",tempMat);
+    waitKey(10);
+#endif
+    
+
+
+
+    //get super pixel topology
+    cout<<"Getting pairwise structure..."<<endl;
+    map<pair<int,int>,int> pairmap;
+    pairSuperpixel(labels, imgwidth, imgheight, pairmap);
+    
     
     cout<<"Getting superpixel confidence.."<<endl;
     for(int groupid = 0;groupid < objectgroup.size(); ++groupid){
@@ -134,7 +163,12 @@ int main(int argc, char **argv){
       waitKey(10);
 #endif
 
-    }
+
+      //MRF Optimize
+      vector <int> superpixelLabel(numlabels);
+      MRFOptimizeLabels(superpixelConfidence, pairmap, 0.1, superpixelLabel);
+      
+    }//for groupid
   }
 
   return 0;

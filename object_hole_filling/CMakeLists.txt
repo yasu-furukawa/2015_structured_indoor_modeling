@@ -17,6 +17,7 @@ add_executable(Object_hole_filling object_hole_filling.cpp SLIC.cpp object_hole_
 
 target_link_libraries(Object_hole_filling gflags)
 target_link_libraries(Object_hole_filling opencv_core opencv_highgui opencv_imgproc)
+target_link_libraries(Object_hole_filling MRF)
 
 if(${CMAKE_SYSTEM} MATCHES "Linux")
 	target_link_libraries(Object_hole_filling pthread)
