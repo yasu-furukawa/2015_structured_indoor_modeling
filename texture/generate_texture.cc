@@ -370,11 +370,12 @@ void SetWallPatches(const TextureInput& texture_input,
       // Grab texture.
       GrabTexture(texture_input.panoramas[best_panorama], &patch);
 
-
+      /*
       cv::Mat patch_mat;
       ConvertPatchToMat(patch, &patch_mat);
       cv::imshow("Patch.", patch_mat);
       cv::waitKey(0);
+      */
     }
   }
 }
