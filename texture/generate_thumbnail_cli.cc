@@ -102,7 +102,7 @@ void Render(const Panorama& panorama,
             const int height,
             cv::Mat* thumbnail,
             std::vector<Vector3d>* depth_points) {
-  const int kOffset = height * 0.2;
+  const int kOffset = -height * 0.05;
   *thumbnail = cv::Mat(height, width, CV_8UC3);
   // Render.
   Vector3d optical_center = panorama.GetCenter();
@@ -253,6 +253,8 @@ void FindPanoramaClosestToTheRoomCenter(const Input& input) {
 }
 
 void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
+  const FileIO file_io(input.data_directory);
+
   for (int room = 0; room < input.floorplan.GetNumRooms(); ++room) {
     double length_unit = 0.0;
     const int num_walls = input.floorplan.GetNumWalls(room);
@@ -262,13 +264,14 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
                       input.floorplan.GetRoomVertexLocal(room, next_w)).norm();
     }
     length_unit /= 100;
-    
+
+    int best_panorama_for_room = -1;
+    int best_area_for_room = 0;
+    cv::Mat best_thumbnail_for_room;
     for (int p = 0; p < (int)input.panoramas.size(); ++p) {
       const Vector3d panorama_center =
         input.floorplan.GetFloorplanToGlobal().transpose() * input.panoramas[p].GetCenter();
       const Vector2d panorama_center2(panorama_center[0], panorama_center[1]);
-      if (!IsInside(input.floorplan, room, panorama_center2))
-        continue;
 
       // Compute the area of a room that is visible from a panorama.
       const int kNumAngleSamples = 360;
@@ -314,19 +317,52 @@ void FindThumbnailPerRoomFromEachPanorama(const Input& input) {
       Render(input.panoramas[p], look_at, input.thumbnail_horizontal_angle,
              input.thumbnail_width, input.thumbnail_height, &thumbnail, NULL);
 
+      if (best_area_for_room < best_area) {
+        best_panorama_for_room = p;
+        best_area_for_room = best_area;
+        best_thumbnail_for_room = thumbnail;
+      }
 
-      const FileIO file_io(input.data_directory);
-      const string filename = file_io.GetRoomThumbnailPerPanorama(room, p);
-      cv::imwrite(filename, thumbnail);
-      {
-        char buffer[1024];
-        sprintf(buffer, "%s_%d", filename.c_str(), best_area);
-        ofstream ofstr;
-        ofstr.open(buffer);
-        ofstr << best_area << endl;
-        ofstr.close();
+      if (IsInside(input.floorplan, room, panorama_center2)) {
+        const string filename = file_io.GetRoomThumbnailPerPanorama(room, p);
+        cv::imwrite(filename, thumbnail);
+        {
+          char buffer[1024];
+          sprintf(buffer, "%s_%d", filename.c_str(), best_area);
+          ofstream ofstr;
+          ofstr.open(buffer);
+          ofstr << best_area << endl;
+          ofstr.close();
+        }
       }
     }
+    if (best_panorama_for_room == -1) {
+      Vector2d center_before_rotation(0, 0);
+      for (int w = 0; w < input.floorplan.GetNumWalls(room); ++w) {
+        center_before_rotation += input.floorplan.GetRoomVertexLocal(room, w);
+      }
+      center_before_rotation /= input.floorplan.GetNumWalls(room);
+      const Vector3d room_center =
+        input.floorplan.GetFloorplanToGlobal() * Vector3d(center_before_rotation[0],
+                                                          center_before_rotation[1],
+                                                          (input.floorplan.GetFloorHeight(room) +
+                                                           (input.floorplan.GetCeilingHeight(room)) / 2.0));
+      
+      int best_panorama = -1;
+      double best_distance = 0.0;
+      for (int p = 0; p < (int)input.panoramas.size(); ++p) {
+        const double distance = (input.panoramas[p].GetCenter() - room_center).norm();
+        if (best_panorama == -1 || best_distance > distance) {
+          best_distance = distance;
+          best_panorama = p;
+        }
+      }
+
+      cv::Mat thumbnail;
+      Render(input.panoramas[best_panorama], room_center, input.thumbnail_horizontal_angle,
+             input.thumbnail_width, input.thumbnail_height, &best_thumbnail_for_room, NULL);
+    }
+    cv::imwrite(file_io.GetRoomThumbnail(room), best_thumbnail_for_room);
   }
 }
 
@@ -340,8 +376,8 @@ int main(int argc, char* argv[]) {
   input.thumbnail_width            = 400;
   input.thumbnail_height           = 300;
   // For recognition.
-  input.thumbnail_horizontal_angle = 60.0 * M_PI / 180.0;
-  // input.thumbnail_horizontal_angle = 100.0 * M_PI / 180.0;
+  //input.thumbnail_horizontal_angle = 60.0 * M_PI / 180.0;
+  input.thumbnail_horizontal_angle = 90.0 * M_PI / 180.0;
 
   // Shrink panorama to this size before sampling.
   input.panorama_width = 1024;
@@ -353,13 +389,15 @@ int main(int argc, char* argv[]) {
   
   Init(argv[1], start_panorama, &input);
 
-  if (1) {
+  /*
+  if (0) {
     FindPanoramaClosestToTheRoomCenter(input);
   };
     
   if (0) {
     GeneratePinholeImages(input);
   }
+  */
 
   if (1) {
     FindThumbnailPerRoomFromEachPanorama(input);
