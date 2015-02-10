@@ -48,12 +48,15 @@ void MainWidget::RenderFloorplan(const double alpha) {
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
-  // glEnable(GL_BLEND);
-  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  
+
+  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+  glEnable(GL_BLEND);
+  glEnable(GL_POLYGON_SMOOTH);
+
   floorplan_renderer.Render(alpha);
 
-  // glDisable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
 
@@ -529,6 +532,7 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
 
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
   const double kFullOpacity = 1.0;
   RenderTexturedPolygon(kFullOpacity);
   RenderObjects(kFullOpacity);

@@ -26,8 +26,6 @@ void DrawRectangleAndCircle(const Vector3d& position,
   const Vector3d v2 = next_position + radius * y_axis;
   const Vector3d v3 = next_position - radius * y_axis;
 
-  glEnable(GL_POLYGON_SMOOTH);
-
   glBegin(GL_QUADS);
   glColor4f(color[0], color[1], color[2], color[3]);
   glVertex3d(v3[0], v3[1], v3[2]);
@@ -52,19 +50,19 @@ void DrawRectangleAndCircle(const Vector3d& position,
 // =======
 const PaintStyle kDefaultStyle(Vector3f(0.3, 0.3, 0.3),
                                Vector3f(0.3, 1.0, 0.3),
-                               3.0);
+                               1.5);
 
 const PaintStyle kShowerStyle(Vector3f(0.3, 0.3, 0.3),
                               Vector3f(0.3, 1.0, 1.0),
-                              3.0);
+                              1.5);
 
 const PaintStyle kKitchenStyle(Vector3f(0.3, 0.3, 0.3),
                                Vector3f(1.0, 0.8, 0.2),
-                               3.0);
+                               1.5);
 
 const PaintStyle kDiningStyle(Vector3f(0.3, 0.3, 0.3),
                               Vector3f(1.0, 0.8, 0.2),
-                              3.0);
+                              1.5);
   
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
 }
@@ -127,7 +125,7 @@ void FloorplanRenderer::Render(const double alpha) const {
                                       paint_style.stroke_color[2],
                                       alpha));
     }
-  }  
+  }
 }
 
 }  // namespace structured_indoor_modeling

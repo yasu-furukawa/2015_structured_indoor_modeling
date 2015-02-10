@@ -7,7 +7,6 @@ void main() {
   vec4 rgba0 = texture2D(tex0, gl_TexCoord[0].st);
   vec4 rgba1 = texture2D(tex1, gl_TexCoord[0].st);
 
-
   if (divide_by_alpha == 0) {
     gl_FragColor = rgba0 * weight + rgba1 * (1.0 - weight);
   } else if (divide_by_alpha == 1) {
@@ -31,7 +30,6 @@ void main() {
       gl_FragColor = rgba0 * weight + rgba1 * (1.0 - weight);
     }
   }
-
 
 
 

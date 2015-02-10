@@ -14,11 +14,11 @@ struct PaintStyle {
 public:
   Eigen::Vector3f fill_color;
   Eigen::Vector3f stroke_color;
-  int stroke_width;
+  double stroke_width;
 
   PaintStyle(const Eigen::Vector3f& fill_color,
              const Eigen::Vector3f& stroke_color,
-             const int stroke_width) :
+             const double stroke_width) :
     fill_color(fill_color),
       stroke_color(stroke_color),
     stroke_width(stroke_width) {
