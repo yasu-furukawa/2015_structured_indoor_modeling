@@ -370,12 +370,10 @@ void SetWallPatches(const TextureInput& texture_input,
       // Grab texture.
       GrabTexture(texture_input.panoramas[best_panorama], &patch);
 
-      /*
       cv::Mat patch_mat;
       ConvertPatchToMat(patch, &patch_mat);
       cv::imshow("Patch.", patch_mat);
       cv::waitKey(0);
-      */
     }
   }
 }
@@ -435,25 +433,32 @@ namespace {
 void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
                           const Patch& patch,
                           vector<pair<double, int> >* visible_panoramas_weights) {
-  //const Vector3d patch_normal =
-  //(patch.vertices[3] - patch.vertices[0]).cross(patch.vertices[1] - patch.vertices[0]).normalized();
-  
+  const Vector3d patch_normal =
+    (patch.vertices[3] - patch.vertices[0]).cross(patch.vertices[1] - patch.vertices[0]).normalized();
+  const double kHolePenalty = 1.0;
+  const double kNormalScale = 0.25;
   const int kFirstLevel = 0;
   visible_panoramas_weights->clear();
   for (int p = 0; p < panoramas.size(); ++p) {
     const Vector3d& center = panoramas[p][kFirstLevel].GetCenter();
     double weight = 0.0;
     // Sample points on the patch, and check the visibility for each panorama.
-    const int kNumSamples1D = 5;
+    const int kNumSamples1D = 10;
     for (int j = 0; j < kNumSamples1D; ++j) {
       const double v = (j + 0.5) / kNumSamples1D;
       for (int i = 0; i < kNumSamples1D; ++i) {
         const double u = (i + 0.5) / kNumSamples1D;
         const Vector3d sample = patch.Interpolate(Vector2d(u, v));
-
-        const double patch_distance = (center - sample).norm();
+        Vector3d diff = center - sample;
+        const double patch_distance = diff.norm();
 
         const Vector2d pixel = panoramas[p][kFirstLevel].Project(sample);
+        if (panoramas[p][kFirstLevel].GetRGB(pixel) == Vector3f(0, 0, 0)) {
+          weight -= kHolePenalty;
+        }
+
+        weight += kNormalScale * patch_normal.dot(diff.normalized());
+
         const Vector2d depth_pixel = panoramas[p][kFirstLevel].RGBToDepth(pixel);        
         const double depth_distance = panoramas[p][kFirstLevel].GetDepth(depth_pixel);
         weight += (depth_distance - patch_distance) / panoramas[p][kFirstLevel].GetAverageDistance();
@@ -462,9 +467,10 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     weight /= kNumSamples1D * kNumSamples1D;
     visible_panoramas_weights->push_back(make_pair(weight, p));
   }
-
+  
   sort(visible_panoramas_weights->rbegin(), visible_panoramas_weights->rend());
 
+  /*
   const int kMinimumKeep = 1;
   const double kVisibilityThreshold = 0.0;
   int num_to_keep;
@@ -496,6 +502,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     item.first = -fabs(acos(top.dot(bottom)) - kOptimalAngle);
   }
   sort(visible_panoramas_weights->rbegin(), visible_panoramas_weights->rend());
+  */
 }
 
   /*
