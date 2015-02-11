@@ -63,27 +63,27 @@ void DrawRectangleAndCircle(const Vector3d& position,
 // =======
   const PaintStyle kDefaultStyle(PaintStyle::SolidColor,
                                  Vector3f(1.0, 1.0, 1.0),
-                                 Vector3f(0.3, 1.0, 0.3),
+                                 Vector3f(0, 0, 0),
                                  1.5);
 
 const PaintStyle kShowerStyle(PaintStyle::SolidColor,
                               Vector3f(1.0, 1.0, 1.0),
-                              Vector3f(0.3, 1.0, 1.0),
+                              Vector3f(0, 0, 0),
                               1.5);
 
   const PaintStyle kKitchenStyle(PaintStyle::VerticalStripe,
                                  Vector3f(0.7, 0.5, 0.0),
-                                 Vector3f(1.0, 0.8, 0.2),
+                                 Vector3f(0, 0, 0),
                                  1.5);
 
   const PaintStyle kDiningStyle(PaintStyle::SolidColor,
                               Vector3f(0.3, 0.3, 0.3),
-                              Vector3f(1.0, 0.8, 0.2),
+                              Vector3f(0, 0, 0),
                               1.5);
 
 const PaintStyle kBedStyle(PaintStyle::Sheep,
                            Vector3f(0.3, 0.3, 0.3),
-                           Vector3f(1.0, 0.8, 0.2),
+                           Vector3f(0, 0, 0),
                            1.5);
   
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
