@@ -98,12 +98,14 @@ void MainWidget::AllocateResources() {
     glBindTexture(GL_TEXTURE_2D, 0);    
       
     glBindRenderbuffer(GL_RENDERBUFFER, renderids[i]);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width(), height());
+    // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width(), height());
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height());
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
       
     glBindFramebuffer(GL_FRAMEBUFFER, frameids[i]);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texids[i], 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderids[i]);
+    // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderids[i]);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderids[i]);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
