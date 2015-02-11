@@ -49,13 +49,16 @@ void MainWidget::RenderFloorplan(const double alpha) {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
 
+  //????
+  //glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
   glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glEnable(GL_POLYGON_SMOOTH);
+  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
   floorplan_renderer.Render(viewport, modelview, projection, alpha);
 
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
@@ -576,7 +579,8 @@ void MainWidget::ClearDisplay() {
 }
 
 void MainWidget::ClearDisplayWithWhite() {
-  glClearColor(1.0, 1.0, 1.0, 0.0);
+  //???
+  // glClearColor(1.0, 1.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
 }    

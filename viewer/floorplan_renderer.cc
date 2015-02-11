@@ -68,7 +68,7 @@ void DrawRectangleAndCircle(const Vector3d& position,
 
 const PaintStyle kShowerStyle(PaintStyle::SolidColor,
                               Vector3f(1.0, 1.0, 1.0),
-                              Vector3f(0, 0, 0),
+                              Vector3f(1, 1, 1),
                               1.5);
 
   const PaintStyle kKitchenStyle(PaintStyle::VerticalStripe,
@@ -127,6 +127,8 @@ void FloorplanRenderer::Render(const GLint viewport[],
 
   const double unit = max(x_range[1] - x_range[0], y_range[1] - y_range[0]) / 100;
   
+
+  /*
   // Interior.
   glEnable(GL_STENCIL_TEST);  
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -146,7 +148,8 @@ void FloorplanRenderer::Render(const GLint viewport[],
     RenderRoomFill(room, unit, paint_style, alpha, kUseStencil);
   }
   glDisable(GL_STENCIL_TEST);  
-
+  */
+  
   // Outline.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const PaintStyle paint_style = GetPaintStyle(floorplan.GetRoomName(room));

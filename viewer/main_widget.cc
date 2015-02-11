@@ -37,6 +37,10 @@ const int kNumBuffers = 2;
 const double MainWidget::kRenderMargin = 0.2;
 const double MainWidget::kFadeInSeconds = 0.2;
 const double MainWidget::kFadeOutSeconds = 1.5;
+// The background color is not exactly 0, because we want to treat a
+// pure black pixel in panorama images as holes. Fragment shader
+// handles the pure black pixel in a special way, and we want the
+// background color to be intensity 1 (avoid pure black).
 const Eigen::Vector3f MainWidget::kBackgroundColor = Eigen::Vector3f(0.005, 0.005, 0.005);
 
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
