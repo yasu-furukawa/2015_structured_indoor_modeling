@@ -142,25 +142,76 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 }
 
 
-inline float gaussian(float x, float sigma){
+inline double gaussian(double x, double sigma){
   return 1.0/(sigma*std::sqrt(2*PI)) * std::exp(-1*(x*x/(2*sigma*sigma)));
 }
 
-MRF::CostVal fnCost(int pix1,int pix2,int l1,int l2){
-  
+
+double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
+  return gaussian(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
+}
+
+MRF::CostVal funcCost(int pix1,int pix2,int i,int j){
+  if(i == j)
+    return 0.0;
+  else
+    return 1.0;
 }
 
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, float smoothnessweight, vector <int> &superpixelLabel){
   int superpixelnum = superpixelConfidence.size();
-  vector<MRF::CostVal>Data(superpixelnum * 2,(MRF::CostVal)0.0);
-  vector<MRF::CostVal>Smoothness (4,(MRF::CostVal)0.0);
-  
-  //Construct data term
+  vector<MRF::CostVal>data(superpixelnum * 2);
+  vector<MRF::CostVal>smooth(4);
+  //model
   for(int i=0;i<superpixelnum;i++){
-    Data[2*i] = gaussian(1.0/((float)superpixelConfidence[i] + 0.01), 10) ;    //assign 0
-    Data[2*i+1] = gaussian((float)superpixelConfidence[i], 10);  //assign 1
+    data[2*i] = (MRF::CostVal)gaussian(1.0/((double)superpixelConfidence[i] + 0.001), 1) ;    //assign 0
+    data[2*i+1] = (MRF::CostVal)gaussian((double)superpixelConfidence[i], 1);  //assign 1
+  }
+  
+  smooth[0] = 0; smooth[3] = 0;
+  smooth[1] = 1; smooth[2] = 1;
+   
+  DataCost *dataterm = new DataCost(&data[0]);
+  SmoothnessCost *smoothnessterm = new SmoothnessCost(funcCost);
+  EnergyFunction *energy = new EnergyFunction(dataterm,smoothnessterm);
+
+  MRF *mrf;
+  mrf = new Expansion(superpixelnum, 2, energy);
+
+  //solve
+  mrf->initialize();
+    
+  for(auto mapiter:pairmap){
+    pair<int,int> curpair = mapiter.first;
+    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)diffFunc(curpair.first,curpair.second,superpixelConfidence);
+    mrf->setNeighbors(curpair.first,curpair.second, weight);
   }
 
+  mrf->clearAnswer();
+  
+  for(int i=0;i<superpixelnum;i++)
+    mrf->setLabel(i,0);
 
+  MRF::EnergyVal E;
+  E = mrf->totalEnergy();
+
+  printf("Energy at the Start= %g (%g,%g)\n",(float)E,(float)mrf->smoothnessEnergy(),(float)mrf->dataEnergy());
+
+  float t,tot_t = 0;
+  for(int iter=0;iter<6;iter++){
+    mrf->optimize(10,t);
+    tot_t = tot_t + t;
+    printf("energy = %g (%f secs)\n",(float)E,tot_t);
+  }
+  
+  //copy the solution
+  superpixelLabel.clear();
+  superpixelLabel.resize(superpixelnum);
+  for(int i=0;i<superpixelnum;i++){
+    superpixelLabel[i] = mrf->getLabel(i);
+  }
+  delete mrf;
+  delete smoothnessterm;
+  delete dataterm;
   
 }

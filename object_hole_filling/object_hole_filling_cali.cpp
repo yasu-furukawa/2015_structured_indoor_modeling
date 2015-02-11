@@ -105,14 +105,10 @@ int main(int argc, char **argv){
     vector <vector<int> >labelgroup;
     labelTolabelgroup(labels, labelgroup, numlabels);
  
-    vector <int> superpixelConfidence(numlabels);
     vector <vector <int> >objectgroup;
     cout<<"Grouping objects..."<<endl;
     int objectnum = groupObject(curob, objectgroup);
     cout<<"Number of object:"<<objectnum<<endl;
-
-
-
 
 
     //debug the projection
@@ -131,16 +127,15 @@ int main(int argc, char **argv){
 #endif
     
 
-
-
     //get super pixel topology
     cout<<"Getting pairwise structure..."<<endl;
     map<pair<int,int>,int> pairmap;
     pairSuperpixel(labels, imgwidth, imgheight, pairmap);
     
-    
     cout<<"Getting superpixel confidence.."<<endl;
-    for(int groupid = 0;groupid < objectgroup.size(); ++groupid){
+    vector<int>superpixelConfidence;
+    
+    for(int groupid = 2;groupid <3; ++groupid){
       cout<<"For object: "<<groupid<<endl;
       getSuperpixelLabel(curob, objectgroup[groupid], panorama, depth.GetDepthmap(), labels,labelgroup, superpixelConfidence, numlabels);
 #if 1
@@ -167,7 +162,19 @@ int main(int argc, char **argv){
       //MRF Optimize
       vector <int> superpixelLabel(numlabels);
       MRFOptimizeLabels(superpixelConfidence, pairmap, 0.1, superpixelLabel);
-      
+
+      //save optimize result
+      Mat optimizeout(imgheight,imgwidth,CV_8UC3,Scalar(0,0,0));
+      for(int y=0;y<imgheight;y++){
+	for(int x=0;x<imgwidth;x++){
+	  int curlabel = superpixelLabel[labels[y*imgwidth + x]];
+	  if(curlabel == 1)
+	    optimizeout.at<Vec3b>(y,x) = Vec3b(255,255,255);
+	}
+      }
+      sprintf(buffer,"object_project/optimize%03d_obj%03d.png",id,groupid);
+      imwrite(buffer,optimizeout);
+      waitKey(10);
     }//for groupid
   }
 

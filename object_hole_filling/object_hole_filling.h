@@ -9,6 +9,7 @@
 #include "MRF/mrf.h"
 #include "MRF/GCoptimization.h"
 
+
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
 
