@@ -53,7 +53,7 @@ void MainWidget::RenderFloorplan(const double alpha) {
   glEnable(GL_BLEND);
   glEnable(GL_POLYGON_SMOOTH);
 
-  floorplan_renderer.Render(alpha);
+  floorplan_renderer.Render(viewport, modelview, projection, alpha);
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_BLEND);
@@ -511,7 +511,9 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
   
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClearColor(1.0, 1.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearColor(0.0, 0.0, 0.0, 0.0);
   glEnable(GL_TEXTURE_2D);
   RenderFloorplan(kFullOpacity);
 
@@ -539,7 +541,9 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
+  glClearColor(1.0, 1.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearColor(0.0, 0.0, 0.0, 0.0);
   RenderFloorplan(kFullOpacity);
 
   // Blend the two.

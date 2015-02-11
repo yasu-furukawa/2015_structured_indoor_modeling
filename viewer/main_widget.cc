@@ -348,6 +348,9 @@ void MainWidget::paintGL() {
   }
   case kFloorplan:
   case kFloorplanTransition: {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     RenderFloorplan(1.0);
     RenderAllThumbnails(1.0, -1, this);
     
