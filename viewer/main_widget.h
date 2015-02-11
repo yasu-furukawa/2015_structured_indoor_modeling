@@ -117,7 +117,8 @@ private:
     
     static const double kRenderMargin;
     static const double kFadeInSeconds;
-    static const double kFadeOutSeconds;    
+    static const double kFadeOutSeconds;
+    static const Eigen::Vector3f kBackgroundColor;
 
     //----------------------------------------------------------------------
     // Render functions.
@@ -148,6 +149,9 @@ private:
     void RenderPanoramaToFloorplanTransition(const bool flip = false);
     void RenderAirToFloorplanTransition(const bool flip = false);
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
+
+    void ClearDisplay();
+    void ClearDisplayWithWhite();
 };
 
 }  // namespace structured_indoor_modeling

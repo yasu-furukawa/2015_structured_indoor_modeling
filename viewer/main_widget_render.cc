@@ -511,9 +511,7 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
   
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClearColor(1.0, 1.0, 1.0, 0.0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+  ClearDisplayWithWhite();
   glEnable(GL_TEXTURE_2D);
   RenderFloorplan(kFullOpacity);
 
@@ -532,7 +530,7 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
 void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
   const double kFullOpacity = 1.0;
@@ -541,9 +539,7 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClearColor(1.0, 1.0, 1.0, 0.0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+  ClearDisplayWithWhite();
   RenderFloorplan(kFullOpacity);
 
   // Blend the two.
@@ -565,5 +561,24 @@ int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
   
   return static_cast<int>(data) - 1;
 }
+
+void MainWidget::ClearDisplay() {
+  switch (navigation.GetCameraStatus()) {
+  case kFloorplan:
+  case kFloorplanTransition: {
+    ClearDisplayWithWhite();
+    break;
+  }
+  default: {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
+  }
+}
+
+void MainWidget::ClearDisplayWithWhite() {
+  glClearColor(1.0, 1.0, 1.0, 0.0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+}    
   
 }  // namespace structured_indoor_modeling

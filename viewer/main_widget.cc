@@ -37,6 +37,7 @@ const int kNumBuffers = 2;
 const double MainWidget::kRenderMargin = 0.2;
 const double MainWidget::kFadeInSeconds = 0.2;
 const double MainWidget::kFadeOutSeconds = 1.5;
+const Eigen::Vector3f MainWidget::kBackgroundColor = Eigen::Vector3f(0.005, 0.005, 0.005);
 
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
@@ -175,8 +176,7 @@ void MainWidget::InitializeShaders() {
 void MainWidget::initializeGL() {
   initializeOpenGLFunctions();
   InitializeShaders();
-  //qglClearColor(Qt::black);
-  glClearColor(0, 0, 0, 0);
+  glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
@@ -271,7 +271,8 @@ void MainWidget::SetMatrices() {
 }
 
 void MainWidget::paintGL() {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  ClearDisplay();
+    
   SetMatrices();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -348,9 +349,6 @@ void MainWidget::paintGL() {
   }
   case kFloorplan:
   case kFloorplanTransition: {
-    glClearColor(1.0, 1.0, 1.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
     RenderFloorplan(1.0);
     RenderAllThumbnails(1.0, -1, this);
     
