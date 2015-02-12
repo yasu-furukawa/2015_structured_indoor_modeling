@@ -25,7 +25,6 @@
 // #include <opencv2/imgproc/imgproc.hpp>
 
 #include "main_widget_util.h"
-#include "main_widget_render.h"
 
 using namespace Eigen;
 using namespace std;
@@ -186,6 +185,7 @@ void MainWidget::initializeGL() {
 
   object_renderer.InitGL();
   polygon_renderer.InitGL();
+  floorplan_renderer.InitGL(this);
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
   panel_renderer.InitGL(this);
@@ -354,7 +354,8 @@ void MainWidget::paintGL() {
   case kFloorplan:
   case kFloorplanTransition: {
     RenderFloorplan(1.0);
-    RenderAllThumbnails(1.0, -1, this);
+    // RenderAllThumbnails(1.0, -1, this);
+    RenderAllRoomNames(1.0, this);
     
     break;
   }

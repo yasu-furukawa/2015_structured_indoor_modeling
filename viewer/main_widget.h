@@ -140,6 +140,9 @@ private:
     void RenderAllThumbnails(const double alpha,
                              const int room_highlighted,
                              QGLWidget* qgl_widget);
+    void RenderAllRoomNames(const double alpha,
+                            QGLWidget* qgl_widget);
+    
     void RenderPanoramaTransition(const int start_index,
                                   const int end_index,
                                   const double start_weight);
