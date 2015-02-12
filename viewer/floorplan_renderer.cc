@@ -27,22 +27,27 @@ namespace structured_indoor_modeling {
 namespace {
 
 // =======
-  const PaintStyle kDefaultStyle(PaintStyle::SolidColor,
-                                 Vector3f(1.0, 0.98, 0.70),
-                                 Vector3f(0, 0, 0),
-                                 1.5);
-
-  const PaintStyle kShowerStyle(PaintStyle::WaterDrop,
-                              Vector3f(176/255.0, 196/255.0, 222/255.0),
-                              Vector3f(0, 0, 0),
-                              1.5);
-
-  const PaintStyle kKitchenStyle(PaintStyle::VerticalStripe,
+  const PaintStyle kDefaultStyle(PaintStyle::VerticalStripe,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
                                  Vector3f(0, 0, 0),
                                  1.5);
 
-  const PaintStyle kDiningStyle(PaintStyle::SolidColor,
+  const PaintStyle kCorridorStyle(PaintStyle::SolidColor,
+                                 Vector3f(240/255.0, 230/255.0, 140/255.0),
+                                 Vector3f(0, 0, 0),
+                                 1.5);
+  
+  const PaintStyle kTileStyle(PaintStyle::Tile,
+                              Vector3f(176/255.0, 196/255.0, 222/255.0),
+                              Vector3f(0, 0, 0),
+                              1.5);
+  
+  const PaintStyle kKitchenStyle(PaintStyle::Kitchen,
+                                 Vector3f(216/255.0, 191/255.0, 216/255.0),
+                                 Vector3f(0, 0, 0),
+                                 1.5);
+
+  const PaintStyle kDiningStyle(PaintStyle::Kitchen,
                               Vector3f(1, 1, 1),
                               Vector3f(0, 0, 0),
                               1.5);
@@ -110,22 +115,80 @@ void ComputeRanges(const Floorplan& floorplan, const int room, Vector2d* x_range
 }  // namespace
 
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
+  sheep_texture_id = -1;
+  kitchen_texture_id = -1;
+  tile_texture_id = -1;
 }
 
 FloorplanRenderer::~FloorplanRenderer() {
+  if (sheep_texture_id != -1)
+    widget->deleteTexture(sheep_texture_id);
+  if (kitchen_texture_id != -1)
+    widget->deleteTexture(kitchen_texture_id);
+  if (tile_texture_id != -1)
+    widget->deleteTexture(tile_texture_id);
 }
 
 void FloorplanRenderer::Init() {
 }
 
+void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
+  widget = widget_tmp;
+  
+  initializeGLFunctions();
+  // Likely need to change for windows.
+  {
+    sheep_image.load("texture/sheep.png");
+    if (sheep_image.isNull()) {
+      cout << "texture/sheep.png cannot be loaded." << endl
+           << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
+      exit (1);
+    }
+    sheep_texture_id = widget->bindTexture(sheep_image);
+  }
+  {
+    kitchen_image.load("texture/kitchen.jpg");
+    if (kitchen_image.isNull()) {
+      cout << "texture/kitchen.jpg cannot be loaded." << endl
+           << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
+      exit (1);
+    }
+    kitchen_texture_id = widget->bindTexture(kitchen_image);
+  }
+  {
+    tile_image.load("texture/tile.jpg");
+    if (tile_image.isNull()) {
+      cout << "texture/tile.jpg cannot be loaded." << endl
+           << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
+      exit (1);
+    }
+    tile_texture_id = widget->bindTexture(tile_image);
+  }
+  
+  // Set nearest filtering mode for texture minification
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  
+  // Set bilinear filtering mode for texture magnification
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  
+  // Wrap texture coordinates by repeating
+  // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+  
 PaintStyle FloorplanRenderer::GetPaintStyle(const vector<string>& room_names) const {
   for (const auto& word : room_names) {
     if (word == "shower" || word == "showerroom" || word == "bathroom")
-      return kShowerStyle;
+      return kTileStyle;
     else if (word == "kitchen")
       return kKitchenStyle;
     else if (word == "dining")
       return kDiningStyle;
+    else if (word == "bedroom")
+      return kBedStyle;
+    else if (word == "corridor")
+      return kCorridorStyle;
   }
   return kDefaultStyle;
 }
@@ -198,90 +261,190 @@ void FloorplanRenderer::RenderRoomFill(const int room,
     switch (paint_style.fill_style) {
     case PaintStyle::SolidColor: {
       // Avoid strange weak lines between triangle.
-      glDisable(GL_BLEND);
-      glBegin(GL_TRIANGLES);
-      glColor4f(paint_style.fill_color[0],
-                paint_style.fill_color[1],
-                paint_style.fill_color[2],
-                alpha);
-      const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
-      for (const auto& triangle : floor_triangulation.triangles) {
-        for (int i = 0; i < 3; ++i) {
-          
-          const int index = triangle.indices[i];
-          const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
-          glVertex3d(position[0], position[1], position[2]);
-        }
-      }
-      glEnd();
-      glEnable(GL_BLEND);
+      RenderSolidColor(room, paint_style, unit, alpha);
       break;
     }
     case PaintStyle::VerticalStripe: {
-      Vector2d x_range, y_range;
-      ComputeRanges(floorplan, room, &x_range, &y_range);
-
-      const double spacing = unit * 3;
-      glLineWidth(2.0);
-      glBegin(GL_LINES);
-      for (double x = x_range[0]; x < x_range[1]; x += spacing) {
-        const Vector3d top_local(x, y_range[0], floorplan.GetFloorHeight(room));
-        const Vector3d bottom_local(x, y_range[1], floorplan.GetFloorHeight(room));
-        const Vector3d top_global = floorplan.GetFloorplanToGlobal() * top_local;
-        const Vector3d bottom_global = floorplan.GetFloorplanToGlobal() * bottom_local;
-        glColor3f(paint_style.fill_color[0], paint_style.fill_color[1], paint_style.fill_color[2]);
-        glVertex3d(top_global[0], top_global[1], top_global[2]);
-        glVertex3d(bottom_global[0], bottom_global[1], bottom_global[2]);
-      }
-      for (double y = y_range[0]; y < y_range[1]; y += spacing) {
-        const Vector3d top_local(x_range[0], y, floorplan.GetFloorHeight(room));
-        const Vector3d bottom_local(x_range[1], y, floorplan.GetFloorHeight(room));
-        const Vector3d top_global = floorplan.GetFloorplanToGlobal() * top_local;
-        const Vector3d bottom_global = floorplan.GetFloorplanToGlobal() * bottom_local;
-        glColor3f(paint_style.fill_color[0], paint_style.fill_color[1], paint_style.fill_color[2]);
-        glVertex3d(top_global[0], top_global[1], top_global[2]);
-        glVertex3d(bottom_global[0], bottom_global[1], bottom_global[2]);
-      }
-      glEnd();
+      RenderVerticalStripe(room, paint_style, unit, alpha);
       break;
     }
     case PaintStyle::WaterDrop: {
-      Vector2d x_range, y_range;
-      ComputeRanges(floorplan, room, &x_range, &y_range);
-
-      const double spacing = unit * 2;
-      const double radius = unit * 0.5;
-
-      for (double y = y_range[0] - spacing / 2.0; y < y_range[1] + spacing / 2.0; y += spacing) {
-        for (double x = x_range[0] - spacing / 2.0; x < x_range[1] + spacing / 2.0; x += spacing) {
-          const int kNumSamples = 20;
-          glBegin(GL_TRIANGLE_FAN);
-          glColor3f(paint_style.fill_color[0], paint_style.fill_color[1], paint_style.fill_color[2]);
-          for (int i = 0; i < kNumSamples; ++i) {
-            const double angle = 2.0 * M_PI * i / kNumSamples;
-            
-            const Vector3d local(x + cos(angle) * radius,
-                                 y + sin(angle) * radius,
-                                 floorplan.GetFloorHeight(room));
-            const Vector3d global = floorplan.GetFloorplanToGlobal() * local;
-
-            glVertex3d(global[0], global[1], global[2]);
-          }
-          glEnd();
-        }
-      }
+      RenderWaterDrop(room, paint_style, unit, alpha);
       break;
     }
     case PaintStyle::Sheep: {
-      
-      
+      RenderSheep(room, paint_style, unit, alpha);
+      break;
+    }
+    case PaintStyle::Kitchen: {
+      RenderKitchen(room, paint_style, unit, alpha);
+      break;
+    }
+    case PaintStyle::Tile: {
+      RenderTile(room, paint_style, unit, alpha);
+      break;
     }
     }    
   }
-
-  
 }    
 
+void FloorplanRenderer::RenderSolidColor(const int room,
+                                         const PaintStyle& paint_style,
+                                         const double unit,
+                                         const double alpha) const {
+  glDisable(GL_BLEND);
+  glBegin(GL_TRIANGLES);
+  glColor4f(paint_style.fill_color[0],
+            paint_style.fill_color[1],
+            paint_style.fill_color[2],
+            alpha);
+  const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
+  for (const auto& triangle : floor_triangulation.triangles) {
+    for (int i = 0; i < 3; ++i) {
+      
+      const int index = triangle.indices[i];
+      const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
+      glVertex3d(position[0], position[1], position[2]);
+    }
+  }
+  glEnd();
+  glEnable(GL_BLEND);
+}
+
+void FloorplanRenderer::RenderVerticalStripe(const int room,
+                                             const PaintStyle& paint_style,
+                                             const double unit,
+                                             const double alpha) const {
+  Vector2d x_range, y_range;
+  ComputeRanges(floorplan, room, &x_range, &y_range);
+
+  const double spacing = unit * 3;
+  glLineWidth(2.0);
+  glBegin(GL_LINES);
+  for (double x = x_range[0]; x < x_range[1]; x += spacing) {
+    const Vector3d top_local(x, y_range[0], floorplan.GetFloorHeight(room));
+    const Vector3d bottom_local(x, y_range[1], floorplan.GetFloorHeight(room));
+    const Vector3d top_global = floorplan.GetFloorplanToGlobal() * top_local;
+    const Vector3d bottom_global = floorplan.GetFloorplanToGlobal() * bottom_local;
+    glColor3f(paint_style.fill_color[0], paint_style.fill_color[1], paint_style.fill_color[2]);
+    glVertex3d(top_global[0], top_global[1], top_global[2]);
+    glVertex3d(bottom_global[0], bottom_global[1], bottom_global[2]);
+  }
+  for (double y = y_range[0]; y < y_range[1]; y += spacing) {
+    const Vector3d top_local(x_range[0], y, floorplan.GetFloorHeight(room));
+    const Vector3d bottom_local(x_range[1], y, floorplan.GetFloorHeight(room));
+    const Vector3d top_global = floorplan.GetFloorplanToGlobal() * top_local;
+    const Vector3d bottom_global = floorplan.GetFloorplanToGlobal() * bottom_local;
+    glColor3f(paint_style.fill_color[0], paint_style.fill_color[1], paint_style.fill_color[2]);
+    glVertex3d(top_global[0], top_global[1], top_global[2]);
+    glVertex3d(bottom_global[0], bottom_global[1], bottom_global[2]);
+  }
+  glEnd();
+}
+
+void FloorplanRenderer::RenderWaterDrop(const int room,
+                                        const PaintStyle& paint_style,
+                                        const double unit,
+                                        const double alpha) const {
+  Vector2d x_range, y_range;
+  ComputeRanges(floorplan, room, &x_range, &y_range);
+  
+  const double spacing = unit * 2;
+  const double radius = unit * 0.5;
+  const double margin = spacing / 2.0;
+  
+  for (double y = y_range[0] - margin; y < y_range[1] + spacing + margin; y += spacing) {
+    for (double x = x_range[0] - margin; x < x_range[1] + spacing + margin; x += spacing) {
+      const int kNumSamples = 20;
+      glBegin(GL_TRIANGLE_FAN);
+      glColor3f(paint_style.fill_color[0], paint_style.fill_color[1], paint_style.fill_color[2]);
+      for (int i = 0; i < kNumSamples; ++i) {
+        const double angle = 2.0 * M_PI * i / kNumSamples;
+        
+        const Vector3d local(x + cos(angle) * radius,
+                             y + sin(angle) * radius,
+                             floorplan.GetFloorHeight(room));
+        const Vector3d global = floorplan.GetFloorplanToGlobal() * local;
+        
+        glVertex3d(global[0], global[1], global[2]);
+      }
+      glEnd();
+    }
+  }
+}
+
+void FloorplanRenderer::RenderSheep(const int room,
+                                    const PaintStyle& paint_style,
+                                    const double unit,
+                                    const double alpha) const {
+  const double kSheepTextureScale = 30;
+  RenderTexture(room, paint_style, unit, alpha, sheep_texture_id, kSheepTextureScale);
+}
+
+void FloorplanRenderer::RenderKitchen(const int room,
+                                      const PaintStyle& paint_style,
+                                        const double unit,
+                                      const double alpha) const {
+  const double kKitchenTextureScale = 30;
+  RenderTexture(room, paint_style, unit, alpha, kitchen_texture_id, kKitchenTextureScale);
+}
+
+void FloorplanRenderer::RenderTile(const int room,
+                                   const PaintStyle& paint_style,
+                                   const double unit,
+                                   const double alpha) const {
+  const double kTileTextureScale = 60;
+  RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
+}
+  
+void FloorplanRenderer::RenderTexture(const int room,
+                                      const PaintStyle& paint_style,
+                                      const double unit,
+                                      const double alpha,
+                                      const GLint texture_id,
+                                      const double texture_scale) const {
+  Vector2d x_range, y_range;
+  ComputeRanges(floorplan, room, &x_range, &y_range);
+  
+  const double spacing = unit * texture_scale;
+  const double margin = spacing / 2.0;
+  
+  glBindTexture(GL_TEXTURE_2D, texture_id);
+  
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  
+  glEnable(GL_TEXTURE_2D);
+  glBegin(GL_QUADS);
+  glColor4f(1, 1, 1, alpha);
+  
+  const Vector3d local00(x_range[0] - margin, y_range[0] - margin, floorplan.GetFloorHeight(room));
+  const Vector3d local01(x_range[0] - margin, y_range[1] + margin, floorplan.GetFloorHeight(room));
+  const Vector3d local10(x_range[1] + margin, y_range[0] - margin, floorplan.GetFloorHeight(room));
+  const Vector3d local11(x_range[1] + margin, y_range[1] + margin, floorplan.GetFloorHeight(room));
+  const Vector3d global00 = floorplan.GetFloorplanToGlobal() * local00;
+  const Vector3d global01 = floorplan.GetFloorplanToGlobal() * local01;
+  const Vector3d global10 = floorplan.GetFloorplanToGlobal() * local10;
+  const Vector3d global11 = floorplan.GetFloorplanToGlobal() * local11;
+  
+  glTexCoord2d(local00[0] / spacing, local00[1] / spacing);
+  glVertex3d(global00[0], global00[1], global00[2]);
+  
+  glTexCoord2d(local10[0] / spacing, local10[1] / spacing);
+  glVertex3d(global10[0], global10[1], global10[2]);
+  
+  glTexCoord2d(local11[0] / spacing, local11[1] / spacing);
+  glVertex3d(global11[0], global11[1], global11[2]);
+  
+  glTexCoord2d(local01[0] / spacing, local01[1] / spacing);
+  glVertex3d(global01[0], global01[1], global01[2]);
+  
+  glEnd();
+  glDisable(GL_TEXTURE_2D);
+}
+  
 void FloorplanRenderer::RenderRoomStroke(const int room,
                                          const PaintStyle& paint_style,
                                          const double alpha) const {

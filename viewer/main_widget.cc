@@ -181,6 +181,7 @@ void MainWidget::initializeGL() {
 
   object_renderer.InitGL();
   polygon_renderer.InitGL();
+  floorplan_renderer.InitGL(this);
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
   panel_renderer.InitGL(this);

@@ -16,7 +16,9 @@ public:
     SolidColor,
     VerticalStripe,
     WaterDrop,
-    Sheep
+    Sheep,
+    Kitchen,
+    Tile
   };
 
   FillStyle fill_style;
@@ -40,6 +42,7 @@ class FloorplanRenderer : protected QGLFunctions {
   FloorplanRenderer(const Floorplan& floorplan);
   virtual ~FloorplanRenderer();
   void Init();
+  void InitGL(QGLWidget* widget_tmp);
   void Render(const double alpha) const;
 
  private:
@@ -53,16 +56,55 @@ class FloorplanRenderer : protected QGLFunctions {
   void RenderRoomStroke(const int room,
                         const PaintStyle& paint_style,
                         const double alpha) const;
+
+
+  void RenderSolidColor(const int room,
+                        const PaintStyle& paint_style,
+                        const double unit,
+                        const double alpha) const;
+
+  void RenderVerticalStripe(const int room,
+                            const PaintStyle& paint_style,
+                            const double unit,
+                            const double alpha) const;
+
+  void RenderWaterDrop(const int room,
+                       const PaintStyle& paint_style,
+                       const double unit,
+                       const double alpha) const;
+
+  void RenderSheep(const int room,
+                   const PaintStyle& paint_style,
+                   const double unit,
+                   const double alpha) const;
+
+  void RenderKitchen(const int room,
+                     const PaintStyle& paint_style,
+                     const double unit,
+                     const double alpha) const;
+
+  void RenderTile(const int room,
+                  const PaintStyle& paint_style,
+                  const double unit,
+                  const double alpha) const;
+
+  void RenderTexture(const int room,
+                     const PaintStyle& paint_style,
+                     const double unit,
+                     const double alpha,
+                     const GLint texture_id,
+                     const double texture_scale) const;
   
-  /*
-  void RenderShape(const Shape& shape,
-                   const double floor_height,
-                   const PolygonStyle& style,
-                   const double alpha);
-  */
   
   //Floorplan floorplan;
+  QGLWidget* widget;
   const Floorplan& floorplan;
+  QImage sheep_image;
+  QImage kitchen_image;
+  QImage tile_image;
+  GLint sheep_texture_id;
+  GLint kitchen_texture_id;  
+  GLint tile_texture_id;  
 };
  
 }  // namespace structured_indoor_modeling
