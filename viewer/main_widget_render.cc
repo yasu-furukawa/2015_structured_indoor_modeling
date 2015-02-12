@@ -31,35 +31,21 @@ namespace structured_indoor_modeling {
   
 void MainWidget::RenderFloorplan(const double alpha) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
- 
-  //RenderTexturedPolygon(alpha);
-  //RenderObjects(alpha);
-
-  /*
-  FloorplanStyle style;
-  style.outer_style.stroke_color = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
-  style.outer_style.fill_color   = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
-  style.outer_style.stroke_width = 1.0;
-
-  style.inner_style.stroke_color = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
-  style.inner_style.fill_color   = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
-  style.inner_style.stroke_width = 1.0;
-  */
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
 
   // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
-  // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
   // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE_MINUS_SRC_ALPHA);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glEnable(GL_POLYGON_SMOOTH);
   glEnable(GL_LINE_SMOOTH);
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
-  floorplan_renderer.Render(alpha);
+  floorplan_renderer.Render(alpha, viewport, modelview, projection);
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
@@ -613,8 +599,7 @@ void MainWidget::ClearDisplay() {
 }
 
 void MainWidget::ClearDisplayWithWhite() {
-  //???
-  // glClearColor(1.0, 1.0, 1.0, 0.0);
+  glClearColor(1.0, 1.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
 }    

@@ -29,32 +29,32 @@ namespace {
 // =======
   const PaintStyle kDefaultStyle(PaintStyle::VerticalStripe,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
-                                 Vector3f(0, 0, 0),
+                                 Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  1.5);
 
   const PaintStyle kCorridorStyle(PaintStyle::SolidColor,
                                  Vector3f(240/255.0, 230/255.0, 140/255.0),
-                                 Vector3f(0, 0, 0),
+                                 Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  1.5);
   
   const PaintStyle kTileStyle(PaintStyle::Tile,
                               Vector3f(176/255.0, 196/255.0, 222/255.0),
-                              Vector3f(0, 0, 0),
+                              Vector3f(1/255.0, 1/255.0, 1/255.0),
                               1.5);
   
   const PaintStyle kKitchenStyle(PaintStyle::Kitchen,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
-                                 Vector3f(0, 0, 0),
+                                 Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  1.5);
 
   const PaintStyle kDiningStyle(PaintStyle::Kitchen,
-                              Vector3f(1, 1, 1),
-                              Vector3f(0, 0, 0),
-                              1.5);
+                                Vector3f(1, 1, 1),
+                                Vector3f(1/255.0, 1/255.0, 1/255.0),
+                                1.5);
 
   const PaintStyle kBedStyle(PaintStyle::Sheep,
                              Vector3f(1, 1, 1),
-                             Vector3f(0, 0, 0),
+                             Vector3f(1/255.0, 1/255.0, 1/255.0),
                              1.5);
   
   
@@ -156,7 +156,7 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
     kitchen_texture_id = widget->bindTexture(kitchen_image);
   }
   {
-    tile_image.load("texture/tile.jpg");
+    tile_image.load("texture/tile.png");
     if (tile_image.isNull()) {
       cout << "texture/tile.jpg cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
@@ -193,7 +193,14 @@ PaintStyle FloorplanRenderer::GetPaintStyle(const vector<string>& room_names) co
   return kDefaultStyle;
 }
 
-void FloorplanRenderer::Render(const double alpha) const {
+void FloorplanRenderer::Render(const double alpha,
+                               const GLint viewport_tmp[],
+                               const GLdouble modelview_tmp[],
+                               const GLdouble projection_tmp[]) {
+  viewport = viewport_tmp;
+  modelview = modelview_tmp;
+  projection = projection_tmp;
+  
   Vector2d x_range, y_range;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const Vector2d center = floorplan.GetRoomCenterLocal(room);
@@ -392,7 +399,7 @@ void FloorplanRenderer::RenderTile(const int room,
                                    const PaintStyle& paint_style,
                                    const double unit,
                                    const double alpha) const {
-  const double kTileTextureScale = 60;
+  const double kTileTextureScale = 10;
   RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
 }
   
@@ -402,8 +409,24 @@ void FloorplanRenderer::RenderTexture(const int room,
                                       const double alpha,
                                       const GLint texture_id,
                                       const double texture_scale) const {
+  Vector3d screen_x_axis;
+  {
+    Vector3d center, right;
+    gluUnProject(viewport[1] / 2, viewport[3] / 2, 1, modelview, projection, viewport,
+                 &center[0], &center[1], &center[2]);
+    gluUnProject(viewport[1] / 2 + 1, viewport[3] / 2, 1, modelview, projection, viewport,
+                 &right[0], &right[1], &right[2]);
+    screen_x_axis = (right - center).normalized();
+  }
+  
   Vector2d x_range, y_range;
   ComputeRanges(floorplan, room, &x_range, &y_range);
+  // Make it bigger and square for easy handling of rotation.
+  if (y_range[1] - y_range[0] > x_range[1] - x_range[0]) {
+    x_range[1] = x_range[0] + (y_range[1] - y_range[0]);
+  } else {
+    y_range[1] = y_range[0] + (x_range[1] - x_range[0]);
+  }
   
   const double spacing = unit * texture_scale;
   const double margin = spacing / 2.0;
@@ -427,18 +450,43 @@ void FloorplanRenderer::RenderTexture(const int room,
   const Vector3d global01 = floorplan.GetFloorplanToGlobal() * local01;
   const Vector3d global10 = floorplan.GetFloorplanToGlobal() * local10;
   const Vector3d global11 = floorplan.GetFloorplanToGlobal() * local11;
-  
-  glTexCoord2d(local00[0] / spacing, local00[1] / spacing);
-  glVertex3d(global00[0], global00[1], global00[2]);
-  
-  glTexCoord2d(local10[0] / spacing, local10[1] / spacing);
-  glVertex3d(global10[0], global10[1], global10[2]);
-  
-  glTexCoord2d(local11[0] / spacing, local11[1] / spacing);
-  glVertex3d(global11[0], global11[1], global11[2]);
-  
-  glTexCoord2d(local01[0] / spacing, local01[1] / spacing);
-  glVertex3d(global01[0], global01[1], global01[2]);
+
+  vector<Vector3d> globals;
+  globals.push_back(global00);
+  globals.push_back(global10);
+  globals.push_back(global11);
+  globals.push_back(global01);
+
+  vector<Vector2d> uvs;
+  uvs.push_back(Vector2d(local00[0] / spacing, local00[1] / spacing));
+  uvs.push_back(Vector2d(local10[0] / spacing, local10[1] / spacing));
+  uvs.push_back(Vector2d(local11[0] / spacing, local11[1] / spacing));
+  uvs.push_back(Vector2d(local01[0] / spacing, local01[1] / spacing));
+
+  const Vector3d x_axis = (global10 - global00).normalized();
+  const Vector3d y_axis = (global01 - global00).normalized();
+  const double x_dot = screen_x_axis.dot(x_axis);
+  const double y_dot = screen_x_axis.dot(y_axis);
+  // Offset;
+  int uv_offset = 0;
+  if (fabs(x_dot) > fabs(y_dot)) {
+    if (x_dot > 0.0) {
+      uv_offset = 0;
+    } else {
+      uv_offset = 2;
+    }
+  } else {
+    if (y_dot > 0.0) {
+      uv_offset = 3;
+    } else {
+      uv_offset = 1;
+    }
+  }
+
+  for (int i = 0; i < 4; ++i) {
+    glTexCoord2d(uvs[(i + uv_offset) % 4][0], uvs[(i + uv_offset) % 4][1]);
+    glVertex3d(globals[i][0], globals[i][1], globals[i][2]);
+  }
   
   glEnd();
   glDisable(GL_TEXTURE_2D);
