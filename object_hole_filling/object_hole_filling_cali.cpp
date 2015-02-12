@@ -135,7 +135,7 @@ int main(int argc, char **argv){
     cout<<"Getting superpixel confidence.."<<endl;
     vector<int>superpixelConfidence;
     
-    for(int groupid = 2;groupid <3; ++groupid){
+    for(int groupid = 0;groupid <objectgroup.size(); ++groupid){
       cout<<"For object: "<<groupid<<endl;
       getSuperpixelLabel(curob, objectgroup[groupid], panorama, depth.GetDepthmap(), labels,labelgroup, superpixelConfidence, numlabels);
 #if 1
