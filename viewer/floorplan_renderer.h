@@ -40,10 +40,7 @@ class FloorplanRenderer : protected QGLFunctions {
   FloorplanRenderer(const Floorplan& floorplan);
   virtual ~FloorplanRenderer();
   void Init();
-  void Render(const GLint viewport[],
-              const GLdouble modelview[],
-              const GLdouble projection[],
-              const double alpha) const;
+  void Render(const double alpha) const;
 
  private:
   PaintStyle GetPaintStyle(const std::vector<std::string>& room_name) const;

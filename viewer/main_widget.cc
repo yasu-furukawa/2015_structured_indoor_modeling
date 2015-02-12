@@ -25,7 +25,6 @@
 // #include <opencv2/imgproc/imgproc.hpp>
 
 #include "main_widget_util.h"
-#include "main_widget_render.h"
 
 using namespace Eigen;
 using namespace std;
@@ -350,7 +349,8 @@ void MainWidget::paintGL() {
   case kFloorplan:
   case kFloorplanTransition: {
     RenderFloorplan(1.0);
-    RenderAllThumbnails(1.0, -1, this);
+    // RenderAllThumbnails(1.0, -1, this);
+    RenderAllRoomNames(1.0, this);
     
     break;
   }

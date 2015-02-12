@@ -49,13 +49,19 @@ void MainWidget::RenderFloorplan(const double alpha) {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
 
-  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+  // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+  // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
+  // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glEnable(GL_POLYGON_SMOOTH);
+  glEnable(GL_LINE_SMOOTH);
+  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
-  floorplan_renderer.Render(viewport, modelview, projection, alpha);
+  floorplan_renderer.Render(alpha);
 
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
@@ -471,6 +477,38 @@ void MainWidget::RenderAllThumbnails(const double alpha,
 
   glPopAttrib();
 }
+
+void MainWidget::RenderAllRoomNames(const double alpha,
+                                    QGLWidget* qgl_widget) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  // Make thumbnails smaller when rendering everything.
+  glDisable(GL_TEXTURE_2D);
+  glColor4f(0, 0, 0, alpha);
+  const int num_room = floorplan.GetNumRooms();
+
+  const QFont font("Times", 14);
+  const double kCharacterWidth = 7.25;
+  for (int room = 0; room < num_room; ++room) {
+    const Vector3d& center = floorplan.GetRoomCenterFloorGlobal(room);
+    GLdouble u, v, w;
+    gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
+
+    const vector<string>& name = floorplan.GetRoomName(room);
+    string full_name("");
+    for (const auto& word : name) {
+      full_name = full_name + string(" ") + word;
+    }  
+    
+    qgl_widget->renderText(u - full_name.length() * kCharacterWidth / 2.0,
+                           viewport[3] - v,
+                           full_name.c_str(),
+                           font);
+  }
+
+  glEnable(GL_TEXTURE_2D);
+  glPopAttrib();
+}  
 
 void MainWidget::RenderPanoramaToAirTransition(const bool flip) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
