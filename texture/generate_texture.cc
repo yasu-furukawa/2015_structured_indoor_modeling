@@ -461,7 +461,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
         }
 
         double dot = patch_normal.dot(diff.normalized());
-        dot = min(kGoodNormal, dot) - kPoorNoaml;
+        dot = min(kGoodNormal, dot) - kPoorNormal;
           weight += kNormalScale * dot;
 
         const Vector2d depth_pixel = panoramas[p][kFirstLevel].RGBToDepth(pixel);        
