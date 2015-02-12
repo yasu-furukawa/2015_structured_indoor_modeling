@@ -29,7 +29,7 @@ using namespace std;
 
 namespace structured_indoor_modeling {
   
-void MainWidget::RenderFloorplan(const double alpha) {
+void MainWidget::RenderFloorplan(const double alpha, const bool emphasize) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
   glDisable(GL_DEPTH_TEST);
@@ -45,7 +45,7 @@ void MainWidget::RenderFloorplan(const double alpha) {
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
-  floorplan_renderer.Render(alpha, viewport, modelview, projection);
+  floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize);
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
@@ -379,6 +379,25 @@ void MainWidget::RenderPolygonLabels(const int room_not_rendered,
   glPopAttrib();
 }
 
+void MainWidget::RenderFloorplanLabels() {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_CULL_FACE);
+
+  floorplan_renderer.RenderLabels();
+
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_TEXTURE_2D);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  glPopAttrib();
+}
+
 void MainWidget::RenderThumbnail(const double alpha,
 				 const int room_highlighted,
 				 QGLWidget* qgl_widget) {
@@ -536,7 +555,7 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   ClearDisplayWithWhite();
   glEnable(GL_TEXTURE_2D);
-  RenderFloorplan(kFullOpacity);
+  RenderFloorplan(kFullOpacity, false);
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
@@ -563,26 +582,31 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   ClearDisplayWithWhite();
-  RenderFloorplan(kFullOpacity);
+  RenderFloorplan(kFullOpacity, false);
 
   // Blend the two.
   double weight = navigation.ProgressInverse();
   if (flip)
     weight = 1.0 - weight;
   weight = 1.0 - cos(weight * M_PI / 2);
-  const int kKeepPolygon = 2;
-  BlendFrames(weight, kKeepPolygon);
+  const int kDivideByAlpha = 1;
+  BlendFrames(weight, kDivideByAlpha);
 
   glPopAttrib();
 }
   
 int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
-  unsigned char data;
+  unsigned char red, green, blue;
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
-  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_BLUE, GL_UNSIGNED_BYTE, &data);
+  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_RED, GL_UNSIGNED_BYTE, &red);
+  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_GREEN, GL_UNSIGNED_BYTE, &green);
+  glReadPixels(pixel[0], viewport[3] - pixel[1], 1, 1, GL_BLUE, GL_UNSIGNED_BYTE, &blue);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  
-  return static_cast<int>(data) - 1;
+
+  // Background color is not 0 exactly, and this is just for a safety guard.
+  if (red != 0 || green != 0)
+    return -1;
+  return static_cast<int>(blue) - 1;
 }
 
 void MainWidget::ClearDisplay() {

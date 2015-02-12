@@ -77,6 +77,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   prev_height_adjustment = 0.0;
   fresh_screen_for_panorama = true;
   fresh_screen_for_air = true;
+  fresh_screen_for_floorplan = true;
 
   simple_click_time.start();
   double_click_time.start();
@@ -249,6 +250,7 @@ void MainWidget::SetMatrices() {
     if (viewport_old[i] != viewport[i]) {
       fresh_screen_for_panorama = true;
       fresh_screen_for_air = true;
+      fresh_screen_for_floorplan = true;
       break;
     }
   }
@@ -256,6 +258,7 @@ void MainWidget::SetMatrices() {
     if (modelview_old[i] != modelview[i]) {
       fresh_screen_for_panorama = true;
       fresh_screen_for_air = true;
+      fresh_screen_for_floorplan = true;
       break;
     }
   }
@@ -263,6 +266,7 @@ void MainWidget::SetMatrices() {
     if (projection_old[i] != projection[i]) {
       fresh_screen_for_panorama = true;
       fresh_screen_for_air = true;
+      fresh_screen_for_floorplan = true;
       break;
     }
   }
@@ -351,9 +355,33 @@ void MainWidget::paintGL() {
     RenderObjects(1.0);
     break;
   }
-  case kFloorplan:
+  case kFloorplan: {
+    if (fresh_screen_for_floorplan && !mouse_down) {
+      RenderFloorplanLabels();
+      fresh_screen_for_floorplan = false;
+    }
+
+    if (!RightAfterSimpleClick(0.0)) {
+      const bool kNoEmphasize = false;
+      RenderFloorplan(1.0, kNoEmphasize);
+      RenderAllRoomNames(1.0, this);
+    } else {
+      const bool kEmphasize = true;
+      RenderFloorplan(1.0, kEmphasize);
+    
+      RenderAllRoomNames(1.0, this);
+
+      int room_highlighted = -1;
+      if (!mouse_down)
+        room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
+                                                        mouseMovePosition[1]));
+      if (room_highlighted != -1)
+        RenderThumbnail(1.0, room_highlighted, this);
+    }
+    break;
+  }
   case kFloorplanTransition: {
-    RenderFloorplan(1.0);
+    RenderFloorplan(1.0, false);
     // RenderAllThumbnails(1.0, -1, this);
     RenderAllRoomNames(1.0, this);
     
@@ -453,6 +481,15 @@ void MainWidget::mouseReleaseEvent(QMouseEvent *e) {
                                                                 mousePressPosition[1]));
       if (room_highlighted != -1) {
         navigation.AirToPanorama(room_to_panorama[room_highlighted]);
+        // Not perfect, the following line is good enough.
+        simple_click_time_offset_by_move = 0;
+      }
+    } else if (navigation.GetCameraStatus() == kFloorplan &&
+               RightAfterSimpleClick(0.0)) {
+      const int room_highlighted = FindRoomHighlighted(Vector2i(mousePressPosition[0],
+                                                                mousePressPosition[1]));
+      if (room_highlighted != -1) {
+        navigation.FloorplanToPanorama(room_to_panorama[room_highlighted]);
         // Not perfect, the following line is good enough.
         simple_click_time_offset_by_move = 0;
       }      

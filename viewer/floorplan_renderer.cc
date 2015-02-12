@@ -193,10 +193,30 @@ PaintStyle FloorplanRenderer::GetPaintStyle(const vector<string>& room_names) co
   return kDefaultStyle;
 }
 
+void FloorplanRenderer::RenderLabels() {
+  glDisable(GL_BLEND);
+  glBegin(GL_TRIANGLES);
+  glDisable(GL_CULL_FACE);
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
+    for (const auto& triangle : floor_triangulation.triangles) {
+      for (int i = 0; i < 3; ++i) {
+        const int index = triangle.indices[i];
+        const Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
+        glColor3ub(0, 0, room + 1);
+        glVertex3d(position[0], position[1], position[2]);
+      }
+    }
+  }
+  glEnd();
+  glEnable(GL_BLEND);
+}
+  
 void FloorplanRenderer::Render(const double alpha,
                                const GLint viewport_tmp[],
                                const GLdouble modelview_tmp[],
-                               const GLdouble projection_tmp[]) {
+                               const GLdouble projection_tmp[],
+                               const bool emphasize) {
   viewport = viewport_tmp;
   modelview = modelview_tmp;
   projection = projection_tmp;
@@ -239,10 +259,44 @@ void FloorplanRenderer::Render(const double alpha,
   // Outline.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const PaintStyle paint_style = GetPaintStyle(floorplan.GetRoomName(room));
-    RenderRoomStroke(room, paint_style, alpha);
+    RenderRoomStroke(room, paint_style, alpha, emphasize);
+  }
+  for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
+    {
+      Vector3d lhs = floorplan.GetDoorVertexGlobal(door, 0);
+      Vector3d rhs = floorplan.GetDoorVertexGlobal(door, 1);
+      RenderDoor(lhs, rhs);
+    }
+    {
+      Vector3d lhs = floorplan.GetDoorVertexGlobal(door, 2);
+      Vector3d rhs = floorplan.GetDoorVertexGlobal(door, 3);
+      RenderDoor(lhs, rhs);
+    }
   }
 }
 
+void FloorplanRenderer::RenderDoor(const Vector3d& lhs,
+                                   const Vector3d& rhs) {
+  /*
+  // Draw arch and the door at 90 degrees.
+  Vector3d diff = rhs - lhs;
+  // Rotate around up axis.
+  
+  
+  const int kNumSamples = 20;
+  glBegin(GL_TRIANGLE_FAN);
+  glColor4f(color[0], color[1], color[2], color[3]);
+  for (int i = 0; i < kNumSamples; ++i) {
+    const double angle = 2.0 * M_PI * i / kNumSamples;
+    Vector3d point = position + cos(angle) * radius * x_axis + sin(angle) * radius * y_axis;
+    glVertex3d(point[0], point[1], point[2]);
+  }
+  glEnd();
+  */
+
+
+}
+  
 void FloorplanRenderer::RenderRoomFill(const int room,
                                        const double unit,
                                        const PaintStyle& paint_style,
@@ -494,10 +548,20 @@ void FloorplanRenderer::RenderTexture(const int room,
   
 void FloorplanRenderer::RenderRoomStroke(const int room,
                                          const PaintStyle& paint_style,
-                                         const double alpha) const {
+                                         const double alpha,
+                                         const bool emphasize) const {
   Vector3d z_axis(0, 0, 1);
   z_axis = floorplan.GetFloorplanToGlobal() * z_axis;
-  const double radius = paint_style.stroke_width * floorplan.GetGridUnit();  
+  double radius = paint_style.stroke_width * floorplan.GetGridUnit();
+  Vector3d color(paint_style.stroke_color[0],
+                 paint_style.stroke_color[1],
+                 paint_style.stroke_color[2]);
+
+  if (emphasize) {
+    radius *= 1.5;
+    for (int i = 0; i < 3; ++i)
+      color[i] = min(1.0, color[i] + 0.25);
+  }
   
   // Boundary.
   for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
@@ -507,10 +571,7 @@ void FloorplanRenderer::RenderRoomStroke(const int room,
     const Vector3d next_position = floorplan.GetFloorVertexGlobal(room, next_vertex);
     
     DrawRectangleAndCircle(position, next_position, z_axis, radius,
-                           Vector4f(paint_style.stroke_color[0],
-                                    paint_style.stroke_color[1],
-                                    paint_style.stroke_color[2],
-                                    alpha));
+                           Vector4f(color[0], color[1], color[2], alpha));
   }
 }
   
