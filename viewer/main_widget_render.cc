@@ -37,8 +37,8 @@ void MainWidget::RenderFloorplan(const double alpha) {
 
   // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
   // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE_MINUS_SRC_ALPHA);
-  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
-  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glEnable(GL_POLYGON_SMOOTH);
   glEnable(GL_LINE_SMOOTH);
