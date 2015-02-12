@@ -366,6 +366,7 @@ void MainWidget::paintGL() {
       RenderFloorplan(1.0, kNoEmphasize);
       RenderAllRoomNames(1.0, this);
     } else {
+      cout << HeightAdjustment() << endl;
       const bool kEmphasize = true;
       RenderFloorplan(1.0, kEmphasize);
     

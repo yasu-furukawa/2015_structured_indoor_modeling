@@ -276,7 +276,7 @@ void FloorplanRenderer::Render(const double alpha,
 }
 
 void FloorplanRenderer::RenderDoor(const Vector3d& lhs,
-                                   const Vector3d& rhs) {
+                                   const Vector3d& rhs) const {
   /*
   // Draw arch and the door at 90 degrees.
   Vector3d diff = rhs - lhs;

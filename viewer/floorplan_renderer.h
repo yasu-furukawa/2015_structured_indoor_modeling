@@ -115,7 +115,8 @@ class FloorplanRenderer : protected QGLFunctions {
                      const GLint texture_id,
                      const double texture_scale) const;
   
-  void RenderDoor(const Vector3d& lhs, const Vector3d& rhs) const;
+  void RenderDoor(const Eigen::Vector3d& lhs,
+                  const Eigen::Vector3d& rhs) const;
   
   //Floorplan floorplan;
   QGLWidget* widget;
