@@ -438,6 +438,8 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
     (patch.vertices[3] - patch.vertices[0]).cross(patch.vertices[1] - patch.vertices[0]).normalized();
   const double kHolePenalty = 1.0;
   const double kNormalScale = 0.25;
+  const double kGoodNormal = cos(30.0 * M_PI / 180.0);
+  const double kPoorNormal = cos(60.0 * M_PI / 180.0);
   const int kFirstLevel = 0;
   visible_panoramas_weights->clear();
   for (int p = 0; p < panoramas.size(); ++p) {
@@ -458,7 +460,9 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
           weight -= kHolePenalty;
         }
 
-        weight += kNormalScale * patch_normal.dot(diff.normalized());
+        double dot = patch_normal.dot(diff.normalized());
+        dot = min(kGoodNormal, dot) - kPoorNoaml;
+          weight += kNormalScale * dot;
 
         const Vector2d depth_pixel = panoramas[p][kFirstLevel].RGBToDepth(pixel);        
         const double depth_distance = panoramas[p][kFirstLevel].GetDepth(depth_pixel);
