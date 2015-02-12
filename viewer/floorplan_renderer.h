@@ -61,7 +61,8 @@ class FloorplanRenderer : protected QGLFunctions {
               const GLint viewport[],
               const GLdouble modelview[],
               const GLdouble projection[],
-              const bool emphasize);
+              const bool emphasize,
+              const double height_adjustment);
 
  private:
   PaintStyle GetPaintStyle(const std::vector<std::string>& room_name) const;
@@ -75,7 +76,8 @@ class FloorplanRenderer : protected QGLFunctions {
   void RenderRoomStroke(const int room,
                         const PaintStyle& paint_style,
                         const double alpha,
-                        const bool emphasize) const;
+                        const bool emphasize,
+                        const double height_adjustment) const;
 
 
   void RenderSolidColor(const int room,
@@ -115,8 +117,11 @@ class FloorplanRenderer : protected QGLFunctions {
                      const GLint texture_id,
                      const double texture_scale) const;
   
-  void RenderDoor(const Eigen::Vector3d& lhs,
-                  const Eigen::Vector3d& rhs) const;
+  void RenderDoor(const Eigen::Vector3d& start,
+                  const Eigen::Vector3d& end,
+                  const Eigen::Vector3d& top,
+                  const bool emphasize,
+                  const double height_adjustment) const;
   
   //Floorplan floorplan;
   QGLWidget* widget;

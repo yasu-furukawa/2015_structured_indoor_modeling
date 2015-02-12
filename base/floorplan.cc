@@ -526,7 +526,7 @@ ostream& operator<<(ostream& ostr, const LineDoor& line_door) {
 
   const int kNumTriangles = 8;
   for (int t = 0; t < kNumTriangles; ++t) {
-    ostr << line_door.triangles[t];
+    ostr << line_door.triangles[t] << endl;
   }
   
   return ostr;

@@ -123,7 +123,9 @@ private:
 
     //----------------------------------------------------------------------
     // Render functions.
-    void RenderFloorplan(const double alpha, const bool emphasize);
+    void RenderFloorplan(const double alpha,
+                         const bool emphasize,
+                         const double height_adjustment);
     void RenderPanorama(const double alpha);
     void RenderObjects(const double alpha);
     void RenderPolygon(const int room_not_rendered,

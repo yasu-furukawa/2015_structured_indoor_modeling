@@ -29,7 +29,9 @@ using namespace std;
 
 namespace structured_indoor_modeling {
   
-void MainWidget::RenderFloorplan(const double alpha, const bool emphasize) {
+void MainWidget::RenderFloorplan(const double alpha,
+                                 const bool emphasize,
+                                 const double height_adjustment) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
   glDisable(GL_DEPTH_TEST);
@@ -45,7 +47,7 @@ void MainWidget::RenderFloorplan(const double alpha, const bool emphasize) {
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
-  floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize);
+  floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize, height_adjustment);
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
@@ -555,7 +557,7 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   ClearDisplayWithWhite();
   glEnable(GL_TEXTURE_2D);
-  RenderFloorplan(kFullOpacity, false);
+  RenderFloorplan(kFullOpacity, false, 1);
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
@@ -582,7 +584,7 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   ClearDisplayWithWhite();
-  RenderFloorplan(kFullOpacity, false);
+  RenderFloorplan(kFullOpacity, false, 1);
 
   // Blend the two.
   double weight = navigation.ProgressInverse();

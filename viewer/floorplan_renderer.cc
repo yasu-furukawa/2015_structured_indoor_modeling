@@ -30,32 +30,32 @@ namespace {
   const PaintStyle kDefaultStyle(PaintStyle::VerticalStripe,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
-                                 1.5);
+                                 2);
 
   const PaintStyle kCorridorStyle(PaintStyle::SolidColor,
                                  Vector3f(240/255.0, 230/255.0, 140/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
-                                 1.5);
+                                 2);
   
   const PaintStyle kTileStyle(PaintStyle::Tile,
                               Vector3f(176/255.0, 196/255.0, 222/255.0),
                               Vector3f(1/255.0, 1/255.0, 1/255.0),
-                              1.5);
+                              2);
   
   const PaintStyle kKitchenStyle(PaintStyle::Kitchen,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
-                                 1.5);
+                                 2);
 
   const PaintStyle kDiningStyle(PaintStyle::Kitchen,
                                 Vector3f(1, 1, 1),
                                 Vector3f(1/255.0, 1/255.0, 1/255.0),
-                                1.5);
+                                2);
 
   const PaintStyle kBedStyle(PaintStyle::Sheep,
                              Vector3f(1, 1, 1),
                              Vector3f(1/255.0, 1/255.0, 1/255.0),
-                             1.5);
+                             2);
   
   
 void DrawRectangleAndCircle(const Vector3d& position,
@@ -216,7 +216,8 @@ void FloorplanRenderer::Render(const double alpha,
                                const GLint viewport_tmp[],
                                const GLdouble modelview_tmp[],
                                const GLdouble projection_tmp[],
-                               const bool emphasize) {
+                               const bool emphasize,
+                               const double height_adjustment) {
   viewport = viewport_tmp;
   modelview = modelview_tmp;
   projection = projection_tmp;
@@ -259,42 +260,80 @@ void FloorplanRenderer::Render(const double alpha,
   // Outline.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const PaintStyle paint_style = GetPaintStyle(floorplan.GetRoomName(room));
-    RenderRoomStroke(room, paint_style, alpha, emphasize);
+    RenderRoomStroke(room, paint_style, alpha, emphasize, height_adjustment);
   }
+
   for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
     {
-      Vector3d lhs = floorplan.GetDoorVertexGlobal(door, 0);
-      Vector3d rhs = floorplan.GetDoorVertexGlobal(door, 1);
-      RenderDoor(lhs, rhs);
+      const Vector3d start = floorplan.GetDoorVertexGlobal(door, 1);
+      const Vector3d end   = floorplan.GetDoorVertexGlobal(door, 0);
+      const Vector3d top   = floorplan.GetDoorVertexGlobal(door, 2);
+      RenderDoor(start, end, top, emphasize, height_adjustment);
     }
     {
-      Vector3d lhs = floorplan.GetDoorVertexGlobal(door, 2);
-      Vector3d rhs = floorplan.GetDoorVertexGlobal(door, 3);
-      RenderDoor(lhs, rhs);
+      const Vector3d start = floorplan.GetDoorVertexGlobal(door, 5);
+      const Vector3d end   = floorplan.GetDoorVertexGlobal(door, 4);
+      const Vector3d top   = floorplan.GetDoorVertexGlobal(door, 6);
+      RenderDoor(start, end, top, emphasize, height_adjustment);
     }
   }
 }
 
-void FloorplanRenderer::RenderDoor(const Vector3d& lhs,
-                                   const Vector3d& rhs) const {
-  /*
+void FloorplanRenderer::RenderDoor(const Vector3d& start,
+                                   const Vector3d& end,
+                                   const Vector3d& top,
+                                   const bool emphasize,
+                                   const double height_adjustment) const {
   // Draw arch and the door at 90 degrees.
-  Vector3d diff = rhs - lhs;
-  // Rotate around up axis.
-  
-  
-  const int kNumSamples = 20;
+  Vector3d door_x = end - start;
+  Vector3d zaxis = (top - start).normalized();
+  Vector3d door_y = zaxis.cross(door_x);
+
+  double max_angle;
+  if (emphasize)
+    max_angle = 80.0 * M_PI / 180.0 * height_adjustment;
+  else
+    max_angle = 0.0;
+  const double kAngleStep = 5.0 * M_PI / 180.0;
+  // Rotate door around axis by angle.
+
+  {
+    glLineWidth(0.5);
+    glBegin(GL_LINE_STRIP);
+    glColor3ub(50, 205, 50);
+    glVertex3d(start[0], start[1], start[2]);
+    glVertex3d(end[0], end[1], end[2]);
+    for (double angle = kAngleStep; angle <= max_angle; angle += kAngleStep) {
+      Vector3d pos = cos(angle) * door_x + sin(angle) * door_y;
+      pos += start;
+      glVertex3d(pos[0], pos[1], pos[2]);
+    }
+    glEnd();
+  }
+  {
+    glLineWidth(2);
+    glBegin(GL_LINES);
+    glColor3ub(50, 205, 50);
+    glVertex3d(start[0], start[1], start[2]);
+    Vector3d pos = cos(max_angle) * door_x + sin(max_angle) * door_y;
+    pos += start;
+    glVertex3d(pos[0], pos[1], pos[2]);
+    glEnd();
+  }
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glBegin(GL_TRIANGLE_FAN);
-  glColor4f(color[0], color[1], color[2], color[3]);
-  for (int i = 0; i < kNumSamples; ++i) {
-    const double angle = 2.0 * M_PI * i / kNumSamples;
-    Vector3d point = position + cos(angle) * radius * x_axis + sin(angle) * radius * y_axis;
-    glVertex3d(point[0], point[1], point[2]);
+  glColor4ub(50, 205, 50, 50);
+  glVertex3d(start[0], start[1], start[2]);
+  glVertex3d(end[0], end[1], end[2]);
+  for (double angle = kAngleStep; angle <= max_angle; angle += kAngleStep) {
+    Vector3d pos = cos(angle) * door_x + sin(angle) * door_y;
+    pos += start;
+    glVertex3d(pos[0], pos[1], pos[2]);
   }
   glEnd();
-  */
-
-
+  glDisable(GL_BLEND);
 }
   
 void FloorplanRenderer::RenderRoomFill(const int room,
@@ -549,7 +588,8 @@ void FloorplanRenderer::RenderTexture(const int room,
 void FloorplanRenderer::RenderRoomStroke(const int room,
                                          const PaintStyle& paint_style,
                                          const double alpha,
-                                         const bool emphasize) const {
+                                         const bool emphasize,
+                                         const double height_adjustment) const {
   Vector3d z_axis(0, 0, 1);
   z_axis = floorplan.GetFloorplanToGlobal() * z_axis;
   double radius = paint_style.stroke_width * floorplan.GetGridUnit();
@@ -557,12 +597,6 @@ void FloorplanRenderer::RenderRoomStroke(const int room,
                  paint_style.stroke_color[1],
                  paint_style.stroke_color[2]);
 
-  if (emphasize) {
-    radius *= 1.5;
-    for (int i = 0; i < 3; ++i)
-      color[i] = min(1.0, color[i] + 0.25);
-  }
-  
   // Boundary.
   for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
     const int next_vertex = (vertex + 1) % floorplan.GetNumRoomVertices(room);

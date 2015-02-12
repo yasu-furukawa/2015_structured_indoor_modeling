@@ -363,13 +363,11 @@ void MainWidget::paintGL() {
 
     if (!RightAfterSimpleClick(0.0)) {
       const bool kNoEmphasize = false;
-      RenderFloorplan(1.0, kNoEmphasize);
+      RenderFloorplan(1.0, kNoEmphasize, 0);
       RenderAllRoomNames(1.0, this);
     } else {
-      cout << HeightAdjustment() << endl;
       const bool kEmphasize = true;
-      RenderFloorplan(1.0, kEmphasize);
-    
+      RenderFloorplan(1.0, kEmphasize, HeightAdjustment());    
       RenderAllRoomNames(1.0, this);
 
       int room_highlighted = -1;
@@ -382,7 +380,7 @@ void MainWidget::paintGL() {
     break;
   }
   case kFloorplanTransition: {
-    RenderFloorplan(1.0, false);
+    RenderFloorplan(1.0, false, 0);
     // RenderAllThumbnails(1.0, -1, this);
     RenderAllRoomNames(1.0, this);
     
