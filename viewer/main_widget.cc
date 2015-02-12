@@ -25,7 +25,6 @@
 // #include <opencv2/imgproc/imgproc.hpp>
 
 #include "main_widget_util.h"
-#include "main_widget_render.h"
 
 using namespace Eigen;
 using namespace std;
@@ -37,6 +36,11 @@ const int kNumBuffers = 2;
 const double MainWidget::kRenderMargin = 0.2;
 const double MainWidget::kFadeInSeconds = 0.2;
 const double MainWidget::kFadeOutSeconds = 1.5;
+// The background color is not exactly 0, because we want to treat a
+// pure black pixel in panorama images as holes. Fragment shader
+// handles the pure black pixel in a special way, and we want the
+// background color to be intensity 1 (avoid pure black).
+const Eigen::Vector3f MainWidget::kBackgroundColor = Eigen::Vector3f(0.005, 0.005, 0.005);
 
 MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
@@ -175,13 +179,13 @@ void MainWidget::InitializeShaders() {
 void MainWidget::initializeGL() {
   initializeOpenGLFunctions();
   InitializeShaders();
-  //qglClearColor(Qt::black);
-  glClearColor(0, 0, 0, 0);
+  glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
   object_renderer.InitGL();
   polygon_renderer.InitGL();
+  floorplan_renderer.InitGL(this);
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
   panel_renderer.InitGL(this);
@@ -271,7 +275,8 @@ void MainWidget::SetMatrices() {
 }
 
 void MainWidget::paintGL() {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  ClearDisplay();
+    
   SetMatrices();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -349,7 +354,8 @@ void MainWidget::paintGL() {
   case kFloorplan:
   case kFloorplanTransition: {
     RenderFloorplan(1.0);
-    RenderAllThumbnails(1.0, -1, this);
+    // RenderAllThumbnails(1.0, -1, this);
+    RenderAllRoomNames(1.0, this);
     
     break;
   }

@@ -31,31 +31,22 @@ namespace structured_indoor_modeling {
   
 void MainWidget::RenderFloorplan(const double alpha) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
- 
-  //RenderTexturedPolygon(alpha);
-  //RenderObjects(alpha);
-
-  /*
-  FloorplanStyle style;
-  style.outer_style.stroke_color = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
-  style.outer_style.fill_color   = Eigen::Vector3f(0.3f, 0.3f, 0.3f);
-  style.outer_style.stroke_width = 1.0;
-
-  style.inner_style.stroke_color = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
-  style.inner_style.fill_color   = Eigen::Vector3f(0.7f, 0.7f, 0.7f);
-  style.inner_style.stroke_width = 1.0;
-  */
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
 
-  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+  // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+  // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ZERO);
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glEnable(GL_POLYGON_SMOOTH);
+  glEnable(GL_LINE_SMOOTH);
+  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
-  floorplan_renderer.Render(alpha);
+  floorplan_renderer.Render(alpha, viewport, modelview, projection);
 
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
@@ -472,6 +463,38 @@ void MainWidget::RenderAllThumbnails(const double alpha,
   glPopAttrib();
 }
 
+void MainWidget::RenderAllRoomNames(const double alpha,
+                                    QGLWidget* qgl_widget) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  // Make thumbnails smaller when rendering everything.
+  glDisable(GL_TEXTURE_2D);
+  glColor4f(0, 0, 0, alpha);
+  const int num_room = floorplan.GetNumRooms();
+
+  const QFont font("Times", 14);
+  const double kCharacterWidth = 7.25;
+  for (int room = 0; room < num_room; ++room) {
+    const Vector3d& center = floorplan.GetRoomCenterFloorGlobal(room);
+    GLdouble u, v, w;
+    gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
+
+    const vector<string>& name = floorplan.GetRoomName(room);
+    string full_name("");
+    for (const auto& word : name) {
+      full_name = full_name + string(" ") + word;
+    }  
+    
+    qgl_widget->renderText(u - full_name.length() * kCharacterWidth / 2.0,
+                           viewport[3] - v,
+                           full_name.c_str(),
+                           font);
+  }
+
+  glEnable(GL_TEXTURE_2D);
+  glPopAttrib();
+}  
+
 void MainWidget::RenderPanoramaToAirTransition(const bool flip) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
@@ -511,7 +534,7 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
   
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  ClearDisplayWithWhite();
   glEnable(GL_TEXTURE_2D);
   RenderFloorplan(kFullOpacity);
 
@@ -530,7 +553,7 @@ void MainWidget::RenderPanoramaToFloorplanTransition(const bool flip) {
 void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
   const double kFullOpacity = 1.0;
@@ -539,7 +562,7 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  ClearDisplayWithWhite();
   RenderFloorplan(kFullOpacity);
 
   // Blend the two.
@@ -561,5 +584,24 @@ int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
   
   return static_cast<int>(data) - 1;
 }
+
+void MainWidget::ClearDisplay() {
+  switch (navigation.GetCameraStatus()) {
+  case kFloorplan:
+  case kFloorplanTransition: {
+    ClearDisplayWithWhite();
+    break;
+  }
+  default: {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
+  }
+}
+
+void MainWidget::ClearDisplayWithWhite() {
+  glClearColor(1.0, 1.0, 1.0, 0.0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+}    
   
 }  // namespace structured_indoor_modeling

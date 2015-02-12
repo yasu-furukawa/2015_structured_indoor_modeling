@@ -117,7 +117,8 @@ private:
     
     static const double kRenderMargin;
     static const double kFadeInSeconds;
-    static const double kFadeOutSeconds;    
+    static const double kFadeOutSeconds;
+    static const Eigen::Vector3f kBackgroundColor;
 
     //----------------------------------------------------------------------
     // Render functions.
@@ -139,6 +140,9 @@ private:
     void RenderAllThumbnails(const double alpha,
                              const int room_highlighted,
                              QGLWidget* qgl_widget);
+    void RenderAllRoomNames(const double alpha,
+                            QGLWidget* qgl_widget);
+    
     void RenderPanoramaTransition(const int start_index,
                                   const int end_index,
                                   const double start_weight);
@@ -148,6 +152,9 @@ private:
     void RenderPanoramaToFloorplanTransition(const bool flip = false);
     void RenderAirToFloorplanTransition(const bool flip = false);
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
+
+    void ClearDisplay();
+    void ClearDisplayWithWhite();
 };
 
 }  // namespace structured_indoor_modeling
