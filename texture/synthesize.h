@@ -27,12 +27,6 @@ void CollectCandidatePatches(const SynthesisData& synthesis_data,
 void SynthesizePoisson(const SynthesisData& synthesis_data,
                        const std::vector<cv::Mat>& patches,
                        cv::Mat* floor_texture);
-
-/*
-void SynthesizeQuilt(const SynthesisData& synthesis_data,
-                     const std::vector<cv::Mat>& patches,
-                     cv::Mat* floor_texture);
-*/
  
 }  // namespace structured_indoor_modeling
 

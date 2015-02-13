@@ -42,7 +42,6 @@ struct Patch {
   Eigen::Vector2d min_xy_local;
   Eigen::Vector2d max_xy_local;
   
-
   void InitVertices(const double floor_height) {
     vertices[0] = Eigen::Vector3d(min_xy_local[0], min_xy_local[1], floor_height);
     vertices[1] = Eigen::Vector3d(max_xy_local[0], min_xy_local[1], floor_height);
