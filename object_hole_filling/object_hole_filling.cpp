@@ -173,16 +173,10 @@ double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
   return gaussian(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
 }
 
-MRF::CostVal funcCost(int pix1,int pix2,int i,int j){
-  if(i == j)
-    return 0;
-  else
-    return 1;
-}
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
-    return colordiff.norm();
+    return gaussian(colordiff.norm(),20);
 }
 
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
@@ -195,8 +189,8 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
     data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
     data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
   }
-  smooth[0] = 1; smooth[3] = 1;
-  smooth[1] = 0; smooth[2] = 0;
+  smooth[0] = 0; smooth[3] = 0;
+  smooth[1] = 1; smooth[2] = 1;
 
   DataCost *dataterm = new DataCost(&data[0]);
   SmoothnessCost *smoothnessterm = new SmoothnessCost(&smooth[0]);
@@ -210,8 +204,8 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 
   for(auto mapiter:pairmap){
     pair<int,int> curpair = mapiter.first;
-//    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(diffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
-    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 0.05);
+    //    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(diffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
+    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 500);
 //    cout<<colorDiffFunc(curpair.first,curpair.second,averageRGB)<<endl;
     mrf->setNeighbors(curpair.first,curpair.second, weight);
   }
