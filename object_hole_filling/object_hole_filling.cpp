@@ -45,10 +45,26 @@ void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth
 }
 
 
-void labelTolabelgroup(const std::vector<int>& labels, std::vector< std::vector<int> >&labelgroup, int numgroup){
+void labelTolabelgroup(const vector<int>& labels, const Panorama &panorama, vector< vector<int> >&labelgroup, vector< Vector3d >& averageRGB, int numgroup){
+    int width = panorama.Width();
+    int height = panorama.Height();
   labelgroup.resize(numgroup);
+  averageRGB.resize(numgroup);
+  for(auto &rgb: averageRGB)
+      rgb.resize(3);
   for(int i=0;i<labels.size();i++){
     labelgroup[labels[i]].push_back(i);
+  }
+  for(int i=0;i<labelgroup.size();i++){
+      averageRGB[i][0] = 0; averageRGB[i][1] = 0; averageRGB[i][2] = 0;
+      for(int j=0;j<labelgroup[i].size();j++){
+	  int curpix = labelgroup[i][j];
+	  Vector3f curcolor = panorama.GetRGB(Vector2d((double)(curpix % width),  (double)(curpix / width)));
+	  averageRGB[i][0] += curcolor[0];
+	  averageRGB[i][1] += curcolor[1];
+	  averageRGB[i][2] += curcolor[2];
+      }
+      averageRGB[i] = averageRGB[i] / (double)labelgroup[i].size();
   }
 }
 
@@ -164,7 +180,12 @@ MRF::CostVal funcCost(int pix1,int pix2,int i,int j){
     return 1;
 }
 
-void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, float smoothnessweight, vector <int> &superpixelLabel){
+double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
+    Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
+    return colordiff.norm();
+}
+
+void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
   int superpixelnum = superpixelConfidence.size();
   vector<MRF::CostVal>data(superpixelnum * 2);
   vector<MRF::CostVal>smooth(4);
@@ -174,8 +195,8 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
     data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
     data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
   }
-  smooth[0] = 0; smooth[3] = 0;
-  smooth[1] = 1; smooth[2] = 1;
+  smooth[0] = 1; smooth[3] = 1;
+  smooth[1] = 0; smooth[2] = 0;
 
   DataCost *dataterm = new DataCost(&data[0]);
   SmoothnessCost *smoothnessterm = new SmoothnessCost(&smooth[0]);
@@ -189,7 +210,9 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 
   for(auto mapiter:pairmap){
     pair<int,int> curpair = mapiter.first;
-    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(diffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
+//    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(diffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
+    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 0.05);
+//    cout<<colorDiffFunc(curpair.first,curpair.second,averageRGB)<<endl;
     mrf->setNeighbors(curpair.first,curpair.second, weight);
   }
   
