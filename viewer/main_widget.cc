@@ -74,7 +74,9 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   
   current_width = current_height = -1;
 
-  prev_height_adjustment = 0.0;
+  prev_animation_linear = 0.0;
+  prev_animation_trapezoid = 0.0;
+  
   fresh_screen_for_panorama = true;
   fresh_screen_for_air = true;
   fresh_screen_for_floorplan = true;
@@ -271,13 +273,102 @@ void MainWidget::SetMatrices() {
     }
   }
 
-  if (prev_height_adjustment != HeightAdjustment()) {
+  if (prev_animation_linear != AnimationLinear()) {
     fresh_screen_for_panorama = true;
     fresh_screen_for_air = true;
+    fresh_screen_for_floorplan = true;
+    prev_animation_linear = AnimationLinear();  
   }
-  prev_height_adjustment = HeightAdjustment();  
+
+  if (prev_animation_trapezoid != AnimationTrapezoid()) {
+    fresh_screen_for_panorama = true;
+    fresh_screen_for_air = true;
+    fresh_screen_for_floorplan = true;
+    prev_animation_trapezoid = AnimationTrapezoid();  
+  }
 }
 
+void MainWidget::PaintPanorama() {
+  const bool kDepthOrderHeightAdjustment = true;
+  // When mouse is moving, this is called in every frame, and
+  // becomes slow. So, we do this only when the mouse is not
+  // moving. Interaction
+  if (fresh_screen_for_panorama && !mouse_down) {
+    RenderPolygonLabels(panorama_to_room[navigation.GetCameraPanorama().start_index],
+                        AnimationLinear(),
+                        kDepthOrderHeightAdjustment);
+    fresh_screen_for_panorama = false;
+  }
+  
+  if (RightAfterSimpleClick(0.0)) {
+    const double trapezoid = AnimationTrapezoid();
+    RenderPanorama(1.0 - trapezoid * 0.7);
+    // Checks if any room should be highlighted.
+    int room_highlighted = -1;
+    if (!mouse_down)
+      room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
+                                                      mouseMovePosition[1]));
+    RenderPolygon(panorama_to_room[navigation.GetCameraPanorama().start_index],
+                  trapezoid / 2.0,
+                  AnimationLinear(),
+                  kDepthOrderHeightAdjustment,
+                  room_highlighted);
+    RenderThumbnail(1.0, room_highlighted, this);
+  } else {
+    RenderPanorama(1.0);
+  }    
+}
+
+void MainWidget::PaintAir() {
+  const bool kUniformHeightAdjustment = false;
+  const double kNoHeightAdjustment = 0.0;
+  if (fresh_screen_for_air && !mouse_down) {
+    RenderPolygonLabels(-1, kNoHeightAdjustment, kUniformHeightAdjustment);
+    fresh_screen_for_air = false;
+  }
+  
+  if (RightAfterSimpleClick(0.0)) {
+    const double trapezoid = AnimationTrapezoid();
+    RenderTexturedPolygon(1.0 - trapezoid * 0.7);
+    RenderObjects(1.0 - trapezoid * 0.7);
+    
+    int room_highlighted = -1;
+    if (!mouse_down)
+      room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
+                                                      mouseMovePosition[1]));
+    
+    RenderPolygon(-1, trapezoid / 2.0, 1.0 - trapezoid, kUniformHeightAdjustment, room_highlighted);
+    RenderThumbnail(1.0, room_highlighted, this);
+  } else {
+    RenderTexturedPolygon(1.0);
+    RenderObjects(1.0);
+  }    
+}
+
+void MainWidget::PaintFloorplan() {
+  if (fresh_screen_for_floorplan && !mouse_down) {
+    RenderFloorplanLabels();
+    fresh_screen_for_floorplan = false;
+  }
+  
+  if (RightAfterSimpleClick(0.0)) {
+    const bool kEmphasize = true;
+    RenderFloorplan(1.0, kEmphasize, AnimationTrapezoid());    
+    RenderAllRoomNames(1.0, this);
+    
+    int room_highlighted = -1;
+    if (!mouse_down)
+      room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
+                                                      mouseMovePosition[1]));
+    if (room_highlighted != -1)
+      RenderThumbnail(1.0, room_highlighted, this);
+  } else {
+    const bool kNoEmphasize = false;
+    RenderFloorplan(1.0, kNoEmphasize, 0);
+    RenderAllRoomNames(1.0, this);
+  }    
+}
+  
 void MainWidget::paintGL() {
   ClearDisplay();
     
@@ -285,37 +376,9 @@ void MainWidget::paintGL() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   const bool kFlip = true;
-  const bool kDepthOrderHeightAdjustment = true;
-  const bool kUniformHeightAdjustment = false;
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
-    // When mouse is moving, this is called in every frame, and
-    // becomes slow. So, we do this only when the mouse is not
-    // moving. Interaction
-    if (fresh_screen_for_panorama && !mouse_down) {
-      RenderPolygonLabels(panorama_to_room[navigation.GetCameraPanorama().start_index],
-                          HeightAdjustment(),
-                          kDepthOrderHeightAdjustment);
-      fresh_screen_for_panorama = false;
-    }
-    
-    if (!RightAfterSimpleClick(0.0)) {
-      RenderPanorama(1.0);
-    } else {
-      const double alpha = Fade();
-      RenderPanorama(1.0 - alpha * 0.7);
-      // Checks if any room should be highlighted.
-      int room_highlighted = -1;
-      if (!mouse_down)
-        room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]));
-      RenderPolygon(panorama_to_room[navigation.GetCameraPanorama().start_index],
-                    alpha / 2.0,
-                    HeightAdjustment(),
-                    kDepthOrderHeightAdjustment,
-                    room_highlighted);
-      RenderThumbnail(1.0, room_highlighted, this);
-    }
+    PaintPanorama();
     break;
   }
   case kPanoramaTransition: {
@@ -325,29 +388,7 @@ void MainWidget::paintGL() {
     break;
   }
   case kAir: {
-    const double kNoHeightAdjustment = 0.0;
-    if (fresh_screen_for_air && !mouse_down) {
-      RenderPolygonLabels(-1, kNoHeightAdjustment, kUniformHeightAdjustment);
-      fresh_screen_for_air = false;
-    }
-        
-    if (!RightAfterSimpleClick(0.0)) {
-      RenderTexturedPolygon(1.0);
-      RenderObjects(1.0);
-    } else {
-      const double alpha = Fade();
-      RenderTexturedPolygon(1.0 - alpha * 0.7);
-      RenderObjects(1.0 - alpha * 0.7);
-
-      int room_highlighted = -1;
-      if (!mouse_down)
-        room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]));
-
-      // RenderPolygon(-1, 1.0 / 3.0, kNoHeightAdjustment, kUniformHeightAdjustment, room_highlighted);
-      RenderPolygon(-1, 1.0 / 3.0, 1.0 - alpha, kUniformHeightAdjustment, room_highlighted);
-      RenderThumbnail(1.0, room_highlighted, this);
-    }
+    PaintAir();
     break;
   }
   case kAirTransition: {
@@ -356,34 +397,12 @@ void MainWidget::paintGL() {
     break;
   }
   case kFloorplan: {
-    if (fresh_screen_for_floorplan && !mouse_down) {
-      RenderFloorplanLabels();
-      fresh_screen_for_floorplan = false;
-    }
-
-    if (!RightAfterSimpleClick(0.0)) {
-      const bool kNoEmphasize = false;
-      RenderFloorplan(1.0, kNoEmphasize, 0);
-      RenderAllRoomNames(1.0, this);
-    } else {
-      const bool kEmphasize = true;
-      RenderFloorplan(1.0, kEmphasize, HeightAdjustment());    
-      RenderAllRoomNames(1.0, this);
-
-      int room_highlighted = -1;
-      if (!mouse_down)
-        room_highlighted = FindRoomHighlighted(Vector2i(mouseMovePosition[0],
-                                                        mouseMovePosition[1]));
-      if (room_highlighted != -1)
-        RenderThumbnail(1.0, room_highlighted, this);
-    }
+    PaintFloorplan();
     break;
   }
   case kFloorplanTransition: {
     RenderFloorplan(1.0, false, 0);
-    // RenderAllThumbnails(1.0, -1, this);
     RenderAllRoomNames(1.0, this);
-    
     break;
   }
   case kPanoramaToAirTransition: {
@@ -410,7 +429,6 @@ void MainWidget::paintGL() {
     RenderAirToFloorplanTransition(kFlip);
     break;
   }
-    
   case kPanoramaTour: {
     RenderPanoramaTour();
     break;
@@ -700,25 +718,27 @@ bool MainWidget::RightAfterSimpleClick(const double margin) const {
   }
 }
 
+  /*
 double MainWidget::Progress() {
   return ProgressFunction(simple_click_time.elapsed() / 1000.0,
                           simple_click_time_offset_by_move / 1000.0,
                           kFadeInSeconds,
                           kFadeOutSeconds);
 }
+  */
 
-double MainWidget::Fade() {
-  return FadeFunction(simple_click_time.elapsed() / 1000.0,
-                      simple_click_time_offset_by_move / 1000.0,
-                      kFadeInSeconds,
-                      kFadeOutSeconds);
+double MainWidget::AnimationTrapezoid() {
+  return AnimationTrapezoidUtil(simple_click_time.elapsed() / 1000.0,
+                                simple_click_time_offset_by_move / 1000.0,
+                                kFadeInSeconds,
+                                kFadeOutSeconds);
 }
 
-double MainWidget::HeightAdjustment() {
-  return HeightAdjustmentFunction(simple_click_time.elapsed() / 1000.0,
-                                  simple_click_time_offset_by_move / 1000.0,
-                                  kFadeInSeconds,
-                                  kFadeOutSeconds);
+double MainWidget::AnimationLinear() {
+  return AnimationLinearUtil(simple_click_time.elapsed() / 1000.0,
+                             simple_click_time_offset_by_move / 1000.0,
+                             kFadeInSeconds,
+                             kFadeOutSeconds);
 }
   
 }  // namespace structured_indoor_modeling

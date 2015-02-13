@@ -32,20 +32,22 @@ int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panor
                                       const GLdouble modelview[],
                                       const GLdouble projection[]);
 
+/*
 double ProgressFunction(const double elapsed,
                         const double offset,
                         const double fade_in_seconds,
                         const double fade_out_seconds);
+*/
 
-double FadeFunction(const double elapsed,
-                    const double offset,
-                    const double fade_in_seconds,
-                    const double fade_out_seconds);
+double AnimationTrapezoidUtil(const double elapsed,
+                              const double offset,
+                              const double fade_in_seconds,
+                              const double fade_out_seconds);
 
-double HeightAdjustmentFunction(const double elapsed,
-                                const double offset,
-                                const double fade_in_seconds,
-                                const double fade_out_seconds);
+double AnimationLinearUtil(const double elapsed,
+                           const double offset,
+                           const double fade_in_seconds,
+                           const double fade_out_seconds);
 
 void SetPanoramaToRoom(const Floorplan& floorplan,
                        const std::vector<PanoramaRenderer>& panorama_renderers,

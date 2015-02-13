@@ -578,10 +578,10 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
     // diameter must be visible in the given field-of-view along air_angle.
     const double diameter = max(x_range[1] - x_range[0], y_range[1] - y_range[0]);
     air_height = diameter / 2.0 / tan(air_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(air_angle);
-    air_height *= 0.8;
+    air_height *= 0.75;
 
     floorplan_height = diameter / 2.0 / tan(floorplan_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(floorplan_angle);
-    floorplan_height *= 0.8;
+    floorplan_height *= 0.75;
   }
 
   const Vector2d center_local((x_range[0] + x_range[1]) / 2.0,

@@ -297,10 +297,12 @@ void FloorplanRenderer::RenderDoor(const Vector3d& start,
   const double kAngleStep = 5.0 * M_PI / 180.0;
   // Rotate door around axis by angle.
 
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   {
     glLineWidth(0.5);
     glBegin(GL_LINE_STRIP);
-    glColor3ub(50, 205, 50);
+    glColor4ub(50, 205, 50, 255);
     glVertex3d(start[0], start[1], start[2]);
     glVertex3d(end[0], end[1], end[2]);
     for (double angle = kAngleStep; angle <= max_angle; angle += kAngleStep) {
@@ -313,7 +315,7 @@ void FloorplanRenderer::RenderDoor(const Vector3d& start,
   {
     glLineWidth(2);
     glBegin(GL_LINES);
-    glColor3ub(50, 205, 50);
+    glColor4ub(50, 205, 50, 255);
     glVertex3d(start[0], start[1], start[2]);
     Vector3d pos = cos(max_angle) * door_x + sin(max_angle) * door_y;
     pos += start;
@@ -321,8 +323,6 @@ void FloorplanRenderer::RenderDoor(const Vector3d& start,
     glEnd();
   }
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glBegin(GL_TRIANGLE_FAN);
   glColor4ub(50, 205, 50, 50);
   glVertex3d(start[0], start[1], start[2]);

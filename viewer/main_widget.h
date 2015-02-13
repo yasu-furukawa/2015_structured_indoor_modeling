@@ -77,7 +77,8 @@ private:
     GLdouble modelview[16];
     GLdouble projection[16];
     // GUI states.
-    double prev_height_adjustment;
+    double prev_animation_linear;
+    double prev_animation_trapezoid;    
     bool fresh_screen_for_panorama;
     bool fresh_screen_for_air;
     bool fresh_screen_for_floorplan;
@@ -107,10 +108,9 @@ private:
 
     // After a single click, where we are between kFadeInSeconds and
     // kFadeOutSeconds.
-    double Progress();
-    double Fade();
-    double HeightAdjustment();
-
+    // double Progress();
+    double AnimationTrapezoid();
+    double AnimationLinear();
 
     std::map<int, int> panorama_to_room;
     std::map<int, int> room_to_panorama;
@@ -121,6 +121,12 @@ private:
     static const double kFadeOutSeconds;
     static const Eigen::Vector3f kBackgroundColor;
 
+    //----------------------------------------------------------------------
+    // Paint functions.
+    void PaintPanorama();
+    void PaintAir();
+    void PaintFloorplan();
+    
     //----------------------------------------------------------------------
     // Render functions.
     void RenderFloorplan(const double alpha,
