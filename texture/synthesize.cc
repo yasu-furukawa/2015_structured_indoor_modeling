@@ -605,7 +605,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
     if (!FindGridWithMostValid(synthesis_data, *floor_texture, visited_grids, &best_grid))
       break;
     visited_grids.insert(pair<int, int>(best_grid[0], best_grid[1]));
-    // cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
+    cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
 
     // Put a texture at best_grid from candidates.
     const int min_x = best_grid[0] * (patch_size - margin);
@@ -615,38 +615,61 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
     const Vector2i x_range(min_x, max_x);
     const Vector2i y_range(min_y, max_y);
 
-    vector<double> residuals(patches.size(), 0);
-    const double kLarge = 10000.0;
-    double current_min = kLarge;
-    for (int p = 0; p < patches.size(); ++p) {
-      residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
-                                               current_min * kMarginResidualScale);
-      current_min = min(current_min, residuals[p]);
-    }
-    const double min_residual = *min_element(residuals.begin(), residuals.end());
-    const double threshold = min_residual * kMarginResidualScale;
-    vector<int> candidates;
-    for (int i = 0; i < (int)residuals.size(); ++i) {
-      if (residuals[i] <= threshold)
-        candidates.push_back(i);
-    }
-
-    // cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
-    // << min_residual << ' ' << threshold;
-    const int patch_id = candidates[rand() % candidates.size()];
-    // cerr << "  patch: " << patch_id << endl;
-    cv::Mat patch_with_initial_texture = patches[patch_id];
-    // overwrite with floor_texture and initial_mask.
-    for (int y = y_range[0]; y < y_range[1]; ++y) {
-      for (int x = x_range[0]; x < x_range[1]; ++x) {
-        if (synthesis_data.mask[y * width + x] && initial_mask[y * width + x])
-          patch_with_initial_texture.at<cv::Vec3b>(y - y_range[0], x - x_range[0]) =
-            floor_texture->at<cv::Vec3b>(y, x);
+    int num_holes = 0;
+    {
+      for (int y = min_y; y < max_y; ++y) {
+        for (int x = min_x; x < max_x; ++x) {
+          const int index = y * width + x;
+          if (!synthesis_data.mask[index])
+            continue;
+          if (floor_texture->at<cv::Vec3b>(y, x) == kHole)
+            ++num_holes;
+        }
       }
     }
-    
-    CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, floor_texture);
 
+    cv::Mat patch_with_initial_texture(patch_size, patch_size, CV_8UC3, cv::Scalar(0));
+    if (num_holes == 0) {
+      for (int y = min_y; y < max_y; ++y) {
+        for (int x = min_x; x < max_x; ++x) {
+          const int index = y * width + x;
+          patch_with_initial_texture.at<cv::Vec3b>(y - min_y, x - min_x) =
+            floor_texture->at<cv::Vec3b>(y, x);
+        }
+      }
+    } else {
+      vector<double> residuals(patches.size(), 0);
+      const double kLarge = 10000.0;
+      double current_min = kLarge;
+      for (int p = 0; p < patches.size(); ++p) {
+        residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+                                                 current_min * kMarginResidualScale);
+        current_min = min(current_min, residuals[p]);
+      }
+      const double min_residual = *min_element(residuals.begin(), residuals.end());
+      const double threshold = min_residual * kMarginResidualScale;
+      vector<int> candidates;
+      for (int i = 0; i < (int)residuals.size(); ++i) {
+        if (residuals[i] <= threshold)
+          candidates.push_back(i);
+      }
+      
+      // cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
+      // << min_residual << ' ' << threshold;
+      const int patch_id = candidates[rand() % candidates.size()];
+      // cerr << "  patch: " << patch_id << endl;
+      patch_with_initial_texture = patches[patch_id];
+      // overwrite with floor_texture and initial_mask.
+      for (int y = y_range[0]; y < y_range[1]; ++y) {
+        for (int x = x_range[0]; x < x_range[1]; ++x) {
+          if (synthesis_data.mask[y * width + x] && initial_mask[y * width + x])
+            patch_with_initial_texture.at<cv::Vec3b>(y - y_range[0], x - x_range[0]) =
+              floor_texture->at<cv::Vec3b>(y, x);
+        }
+      }
+      
+      CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, floor_texture);
+    }
     // cout << "setdataforblending" << endl;
     SetDataForBlending(width,
                        synthesis_data.mask,
