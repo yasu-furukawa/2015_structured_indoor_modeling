@@ -88,7 +88,8 @@ int main(int argc, char* argv[]) {
   // Floor texture.
   cerr << "Set floor patch." << endl;
   Patch floor_patch;
-  SetFloorPatch(texture_input, &floor_patch);
+  //???
+  //SetFloorPatch(texture_input, &floor_patch);
   cerr << "done." << endl << "Set wall patches." << endl;
   // Wall textures.
   vector<vector<Patch> > wall_patches;

@@ -34,30 +34,37 @@ void PanoramaRenderer::Render(const double alpha) const {
       const int index01 = y * depth_width + right_x;
       const int index10 = (y + 1) * depth_width + x;
       const int index11 = (y + 1) * depth_width + right_x;
+
+      const Vector3d v00 = depth_mesh[index00];
+      const Vector3d v10 = depth_mesh[index10];
+      const Vector3d v01 = depth_mesh[index01];
+      const Vector3d v11 = depth_mesh[index11];
+      
       // 00
-      glTexCoord2d(x / static_cast<double>(depth_width),
-                   1.0 - y / static_cast<double>(depth_height));
-      glVertex3d(depth_mesh[index00][0], depth_mesh[index00][1], depth_mesh[index00][2]);
+      glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
+                   1.0 - (y + 0.5) / static_cast<double>(depth_height));
+      glVertex3d(v00[0], v00[1], v00[2]);
       // 10
-      glTexCoord2d(x / static_cast<double>(depth_width),
-                   1.0 - (y + 1) / static_cast<double>(depth_height));
-      glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
+      glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
+                   1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
+      glVertex3d(v10[0], v10[1], v10[2]);
       // 01
-      glTexCoord2d((x + 1) / static_cast<double>(depth_width),
-                   1.0 - y / static_cast<double>(depth_height));
-      glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
+      glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
+                   1.0 - (y + 0.5) / static_cast<double>(depth_height));
+      glVertex3d(v01[0], v01[1], v01[2]);
+
       // 10
-      glTexCoord2d(x / static_cast<double>(depth_width),
-                   1.0 - (y + 1) / static_cast<double>(depth_height));
-      glVertex3d(depth_mesh[index10][0], depth_mesh[index10][1], depth_mesh[index10][2]);
+      glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
+                   1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
+      glVertex3d(v10[0], v10[1], v10[2]);
       // 11
-      glTexCoord2d((x + 1) / static_cast<double>(depth_width),
-                   1.0 - (y + 1) / static_cast<double>(depth_height));
-      glVertex3d(depth_mesh[index11][0], depth_mesh[index11][1], depth_mesh[index11][2]);
+      glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
+                   1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
+      glVertex3d(v11[0], v11[1], v11[2]);
       // 01
-      glTexCoord2d((x + 1) / static_cast<double>(depth_width),
-                   1.0 - y / static_cast<double>(depth_height));
-      glVertex3d(depth_mesh[index01][0], depth_mesh[index01][1], depth_mesh[index01][2]);
+      glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
+                   1.0 - (y + 0.5) / static_cast<double>(depth_height));
+      glVertex3d(v01[0], v01[1], v01[2]);
     }
   }
   
@@ -98,25 +105,36 @@ void PanoramaRenderer::InitGL() {
 }
   
 void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_range) {
+  /*
   ifstream ifstr;
   ifstr.open(filename.c_str());
   
   string header;
   double min_depth, max_depth;
   ifstr >> header >> depth_width >> depth_height >> min_depth >> max_depth;
-  
-  depth_mesh.resize(depth_width * depth_height);
-  
+
+  vector<double> depths;
+  depths.reserve(depth_width * depth_height);
   for (int y = 0; y < depth_height; ++y) {
     for (int x = 0; x < depth_width; ++x) {
       double distance;
       ifstr >> distance;
-
-      const Vector2d pixel = panorama->DepthToRGB(Vector2d(x, y));
-      depth_mesh[y * depth_width + x] = panorama->Unproject(pixel, distance);
+      depths.push_back(distance);
     }
   }
   ifstr.close();
+  */
+
+  depth_width  = panorama->DepthWidth();
+  depth_height = panorama->DepthHeight();
+
+  depth_mesh.resize(depth_width * depth_height);
+  for (int y = 0; y < depth_height; ++y) {
+    for (int x = 0; x < depth_width; ++x) {
+      const Vector2d pixel = panorama->DepthToRGB(Vector2d(x + 0.5, y + 0.5));
+      depth_mesh[y * depth_width + x] = panorama->Unproject(pixel, panorama->GetDepth(Vector2d(x, y)));
+    }
+  }
 }
 
 }  // namespace structured_indoor_modeling

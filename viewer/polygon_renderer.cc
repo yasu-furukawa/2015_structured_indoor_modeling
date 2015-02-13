@@ -375,6 +375,12 @@ void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
                                               const int room_not_rendered,
                                               std::vector<double>* target_ceiling_heights) {
   target_ceiling_heights->resize(floorplan.GetNumRooms());
+  if (!depth_order_height_adjustment) {    
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      target_ceiling_heights->at(room) = floorplan.GetFloorHeight(room);
+      return;
+    }
+  }
   
   const Vector3d local_center = floorplan.GetFloorplanToGlobal().transpose() * center;
 
@@ -405,14 +411,8 @@ void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
     average_length /= floorplan.GetNumRooms();
   }
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    double target_length;
-    if (depth_order_height_adjustment) {
-      target_length =
-        average_length * (room_orders[room] + 1) / (floorplan.GetNumRooms() - 1);
-    }
-    else {
-      target_length = average_length * 0.2;
-    }
+    const double target_length =
+      average_length * (room_orders[room] + 1) / (floorplan.GetNumRooms() - 1);
     target_ceiling_heights->at(room) = floorplan.GetFloorHeight(room) + target_length;
   }
 }

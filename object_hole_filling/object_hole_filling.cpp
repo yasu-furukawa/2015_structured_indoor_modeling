@@ -45,10 +45,26 @@ void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth
 }
 
 
-void labelTolabelgroup(const std::vector<int>& labels, std::vector< std::vector<int> >&labelgroup, int numgroup){
+void labelTolabelgroup(const vector<int>& labels, const Panorama &panorama, vector< vector<int> >&labelgroup, vector< Vector3d >& averageRGB, int numgroup){
+    int width = panorama.Width();
+    int height = panorama.Height();
   labelgroup.resize(numgroup);
+  averageRGB.resize(numgroup);
+  for(auto &rgb: averageRGB)
+      rgb.resize(3);
   for(int i=0;i<labels.size();i++){
     labelgroup[labels[i]].push_back(i);
+  }
+  for(int i=0;i<labelgroup.size();i++){
+      averageRGB[i][0] = 0; averageRGB[i][1] = 0; averageRGB[i][2] = 0;
+      for(int j=0;j<labelgroup[i].size();j++){
+	  int curpix = labelgroup[i][j];
+	  Vector3f curcolor = panorama.GetRGB(Vector2d((double)(curpix % width),  (double)(curpix / width)));
+	  averageRGB[i][0] += curcolor[0];
+	  averageRGB[i][1] += curcolor[1];
+	  averageRGB[i][2] += curcolor[2];
+      }
+      averageRGB[i] = averageRGB[i] / (double)labelgroup[i].size();
   }
 }
 
@@ -126,24 +142,30 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
       int maxlabelx = std::max(label1,label3);
       int minlabely = std::min(label1,label2);
       int maxlabely = std::max(label1,label2);
-      auto iter = pairmap.find(pair<int,int>(minlabelx,maxlabelx));
-      if(iter != pairmap.end())
-	iter->second += 1;
-      else
-	pairmap.insert(pair<pair<int,int>,int>(pair<int,int>(minlabelx,maxlabelx),1));
 
-      iter = pairmap.find(pair<int,int>(minlabely,maxlabely));
-      if(iter != pairmap.end())
-	iter->second += 1;
-      else
-	pairmap.insert(pair<pair<int,int>,int>(pair<int,int>(minlabely,maxlabely),1));
+      if(label1 != label3){
+	auto iter = pairmap.find(pair<int,int>(minlabelx,maxlabelx));
+	if(iter != pairmap.end())
+	  iter->second += 1;
+	else
+	  pairmap.insert(pair<pair<int,int>,int>(pair<int,int>(minlabelx,maxlabelx),1));
+      }
+
+      if(label1 != label2){
+	auto iter = pairmap.find(pair<int,int>(minlabely,maxlabely));
+	if(iter != pairmap.end())
+	  iter->second += 1;
+	else
+	  pairmap.insert(pair<pair<int,int>,int>(pair<int,int>(minlabely,maxlabely),1));
+      }
     }
   }
 }
 
 
-inline double gaussian(double x, double sigma){
-  return 1.0/(sigma*std::sqrt(2*PI)) * std::exp(-1*(x*x/(2*sigma*sigma)));
+inline float gaussian(double x, double sigma){
+  //  return 1.0/(sigma*std::sqrt(2*PI)) * std::exp(-1*(x*x/(2*sigma*sigma)));
+  return std::exp(-1*(x*x/(2*sigma*sigma)));
 }
 
 
@@ -151,28 +173,27 @@ double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
   return gaussian(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
 }
 
-MRF::CostVal funcCost(int pix1,int pix2,int i,int j){
-  if(i == j)
-    return 0.0;
-  else
-    return 1.0;
+
+double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
+    Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
+    return gaussian(colordiff.norm(),20);
 }
 
-void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, float smoothnessweight, vector <int> &superpixelLabel){
+void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
   int superpixelnum = superpixelConfidence.size();
   vector<MRF::CostVal>data(superpixelnum * 2);
   vector<MRF::CostVal>smooth(4);
   //model
+
   for(int i=0;i<superpixelnum;i++){
-    data[2*i] = (MRF::CostVal)gaussian(1.0/((double)superpixelConfidence[i] + 0.001), 1) ;    //assign 0
-    data[2*i+1] = (MRF::CostVal)gaussian((double)superpixelConfidence[i], 1);  //assign 1
+    data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
+    data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
   }
-  
   smooth[0] = 0; smooth[3] = 0;
   smooth[1] = 1; smooth[2] = 1;
-   
+
   DataCost *dataterm = new DataCost(&data[0]);
-  SmoothnessCost *smoothnessterm = new SmoothnessCost(funcCost);
+  SmoothnessCost *smoothnessterm = new SmoothnessCost(&smooth[0]);
   EnergyFunction *energy = new EnergyFunction(dataterm,smoothnessterm);
 
   MRF *mrf;
@@ -180,13 +201,15 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 
   //solve
   mrf->initialize();
-    
+
   for(auto mapiter:pairmap){
     pair<int,int> curpair = mapiter.first;
-    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)diffFunc(curpair.first,curpair.second,superpixelConfidence);
+    //    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(diffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
+    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 500);
+//    cout<<colorDiffFunc(curpair.first,curpair.second,averageRGB)<<endl;
     mrf->setNeighbors(curpair.first,curpair.second, weight);
   }
-
+  
   mrf->clearAnswer();
   
   for(int i=0;i<superpixelnum;i++)
@@ -195,14 +218,12 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
   MRF::EnergyVal E;
   E = mrf->totalEnergy();
 
-  printf("Energy at the Start= %g (%g,%g)\n",(float)E,(float)mrf->smoothnessEnergy(),(float)mrf->dataEnergy());
+  printf("Energy at the Start= %d (%d,%d)\n",E,mrf->dataEnergy(),mrf->smoothnessEnergy());
 
-  float t,tot_t = 0;
-  for(int iter=0;iter<6;iter++){
-    mrf->optimize(10,t);
-    tot_t = tot_t + t;
-    printf("energy = %g (%f secs)\n",(float)E,tot_t);
-  }
+  float t;
+  mrf->optimize(100,t);
+  E = mrf->totalEnergy();
+  printf("Energy at the end = %d (%d,%d) (%g secs)\n",E,mrf->dataEnergy(),mrf->smoothnessEnergy(),t);
   
   //copy the solution
   superpixelLabel.clear();
@@ -213,5 +234,4 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
   delete mrf;
   delete smoothnessterm;
   delete dataterm;
-  
 }

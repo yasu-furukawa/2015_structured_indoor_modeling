@@ -38,6 +38,15 @@ bool IsInside(const Floorplan floorplan, const int room, const Vector2d& point) 
     return false;
 }
 
+double ProgressFunction(const double elapsed,
+                        const double offset,
+                        const double fade_in_seconds,
+                        const double fade_out_seconds) {
+  return max(0.0,
+             ((elapsed - offset) - fade_in_seconds) /
+             (fade_out_seconds - fade_in_seconds));
+}
+  
 }  // namespace
 
 int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panorama_renderers,
@@ -67,19 +76,10 @@ int FindPanoramaFromAirFloorplanClick(const std::vector<PanoramaRenderer>& panor
   return best_index;
 }
 
-double ProgressFunction(const double elapsed,
-                        const double offset,
-                        const double fade_in_seconds,
-                        const double fade_out_seconds) {
-  return max(0.0,
-             ((elapsed - offset) - fade_in_seconds) /
-             (fade_out_seconds - fade_in_seconds));
-}
-
-double FadeFunction(const double elapsed,
-                    const double offset,
-                    const double fade_in_seconds,
-                    const double fade_out_seconds) {
+double AnimationTrapezoidUtil(const double elapsed,
+                              const double offset,
+                              const double fade_in_seconds,
+                              const double fade_out_seconds) {
   // When a mouse keeps moving (offset is large, we draw with a full opacity).
   const double progress = ProgressFunction(elapsed, offset, fade_in_seconds, fade_out_seconds);
   const double kSpeed = 20.0;
@@ -95,16 +95,17 @@ double FadeFunction(const double elapsed,
   }
 }
 
-double HeightAdjustmentFunction(const double elapsed,
-                                const double offset,
-                                const double fade_in_seconds,
-                                const double fade_out_seconds) {
+double AnimationLinearUtil(const double elapsed,
+                           const double offset,
+                           const double fade_in_seconds,
+                           const double fade_out_seconds) {
   // When a mouse keeps moving (offset is large, we draw with a full opacity).
   if (offset > fade_in_seconds)
     return 1.0;
 
   const double progress = ProgressFunction(elapsed, offset, fade_in_seconds, fade_out_seconds);
-  return min(1.0, 0.2 + 10.0 * max(0.0, progress - 0.2));
+  // return min(1.0, 0.2 + 10.0 * max(0.0, progress - 0.2));
+  return min(1.0, 10.0 * max(0.0, progress - 0.2));
 }
 
 void SetPanoramaToRoom(const Floorplan& floorplan,
@@ -181,6 +182,7 @@ double ComputePanoramaDistance(const PanoramaRenderer& lhs,
   // Search in some radius.
   const int wradius = rhs.DepthWidth() / 20;
   const int hradius = rhs.DepthHeight() / 20;
+
   const double distance = (lhs_panorama.GetCenter() - rhs_panorama.GetCenter()).norm();
 
   int connected = 0;

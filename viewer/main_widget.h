@@ -77,9 +77,11 @@ private:
     GLdouble modelview[16];
     GLdouble projection[16];
     // GUI states.
-    double prev_height_adjustment;
+    double prev_animation_linear;
+    double prev_animation_trapezoid;    
     bool fresh_screen_for_panorama;
     bool fresh_screen_for_air;
+    bool fresh_screen_for_floorplan;
     double simple_click_time_offset_by_move;
     
     QBasicTimer timer;
@@ -106,10 +108,9 @@ private:
 
     // After a single click, where we are between kFadeInSeconds and
     // kFadeOutSeconds.
-    double Progress();
-    double Fade();
-    double HeightAdjustment();
-
+    // double Progress();
+    double AnimationTrapezoid();
+    double AnimationLinear();
 
     std::map<int, int> panorama_to_room;
     std::map<int, int> room_to_panorama;
@@ -121,8 +122,16 @@ private:
     static const Eigen::Vector3f kBackgroundColor;
 
     //----------------------------------------------------------------------
+    // Paint functions.
+    void PaintPanorama();
+    void PaintAir();
+    void PaintFloorplan();
+    
+    //----------------------------------------------------------------------
     // Render functions.
-    void RenderFloorplan(const double alpha);
+    void RenderFloorplan(const double alpha,
+                         const bool emphasize,
+                         const double height_adjustment);
     void RenderPanorama(const double alpha);
     void RenderObjects(const double alpha);
     void RenderPolygon(const int room_not_rendered,
@@ -134,6 +143,7 @@ private:
     void RenderPolygonLabels(const int room_not_rendered,
                              const double height_adjustment,
                              const bool depth_order_height_adjustment);
+    void RenderFloorplanLabels();
     void RenderThumbnail(const double alpha,
                          const int room_highlighted,
                          QGLWidget* qgl_widget);

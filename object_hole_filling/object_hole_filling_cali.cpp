@@ -103,7 +103,8 @@ int main(int argc, char **argv){
     curob.Init(objectcloudpath);
     
     vector <vector<int> >labelgroup;
-    labelTolabelgroup(labels, labelgroup, numlabels);
+    vector <Vector3d> averageRGB;
+    labelTolabelgroup(labels, panorama, labelgroup, averageRGB, numlabels);
  
     vector <vector <int> >objectgroup;
     cout<<"Grouping objects..."<<endl;
@@ -135,7 +136,7 @@ int main(int argc, char **argv){
     cout<<"Getting superpixel confidence.."<<endl;
     vector<int>superpixelConfidence;
     
-    for(int groupid = 2;groupid <3; ++groupid){
+    for(int groupid = 0;groupid <objectgroup.size(); ++groupid){
       cout<<"For object: "<<groupid<<endl;
       getSuperpixelLabel(curob, objectgroup[groupid], panorama, depth.GetDepthmap(), labels,labelgroup, superpixelConfidence, numlabels);
 #if 1
@@ -161,15 +162,20 @@ int main(int argc, char **argv){
 
       //MRF Optimize
       vector <int> superpixelLabel(numlabels);
-      MRFOptimizeLabels(superpixelConfidence, pairmap, 0.1, superpixelLabel);
+      MRFOptimizeLabels(superpixelConfidence, pairmap, averageRGB,  0.1, superpixelLabel);
 
       //save optimize result
-      Mat optimizeout(imgheight,imgwidth,CV_8UC3,Scalar(0,0,0));
+      Mat optimizeout = panorama.GetRGBImage().clone();
       for(int y=0;y<imgheight;y++){
 	for(int x=0;x<imgwidth;x++){
 	  int curlabel = superpixelLabel[labels[y*imgwidth + x]];
-	  if(curlabel == 1)
-	    optimizeout.at<Vec3b>(y,x) = Vec3b(255,255,255);
+	  Vec3b curpix = optimizeout.at<Vec3b>(y,x);
+	  if(curlabel == 1){
+	      curpix[0] = 255;
+	  }
+	  else
+	      curpix[2] = 255;
+	  optimizeout.at<Vec3b>(y,x) = curpix;
 	}
       }
       sprintf(buffer,"object_project/optimize%03d_obj%03d.png",id,groupid);
