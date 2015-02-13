@@ -437,7 +437,7 @@ void FindVisiblePanoramas(const std::vector<std::vector<Panorama> >& panoramas,
   const Vector3d patch_normal =
     (patch.vertices[3] - patch.vertices[0]).cross(patch.vertices[1] - patch.vertices[0]).normalized();
   const double kHolePenalty = 1.0;
-  const double kNormalScale = 0.25;
+  const double kNormalScale = 1.0;
   const double kGoodNormal = cos(30.0 * M_PI / 180.0);
   const double kPoorNormal = cos(60.0 * M_PI / 180.0);
   const int kFirstLevel = 0;
