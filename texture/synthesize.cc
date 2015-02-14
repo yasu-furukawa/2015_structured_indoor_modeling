@@ -90,6 +90,7 @@ bool FindGridWithMostValid(const SynthesisData& synthesis_data,
 
       // Count the number of non-black pixels.
       int num_valids = 0;
+      int num_holes  = 0;
       for (int y = min_y; y < max_y; ++y) {
         for (int x = min_x; x < max_x; ++x) {
           const int index = y * width + x;
@@ -98,20 +99,24 @@ bool FindGridWithMostValid(const SynthesisData& synthesis_data,
 
           if (floor_texture.at<cv::Vec3b>(y, x) != kHole)
             ++num_valids;
+          else
+            ++num_holes;
         }
       }
       if (num_valids > best_count) {
         *grid = Vector2i(i, j);
         best_count = num_valids;
       }
-    }
+      if (num_holes == 0 && num_valids != 0) {
+        return true;
+      }
+    }      
   }
-
   if (best_count == 0)
     return false;
   else
     return true;
-}  
+}
 
 void SetDataForBlending(const int width,
                         const std::vector<bool>& mask,
@@ -605,8 +610,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
     if (!FindGridWithMostValid(synthesis_data, *floor_texture, visited_grids, &best_grid))
       break;
     visited_grids.insert(pair<int, int>(best_grid[0], best_grid[1]));
-    cerr << "best grid " << best_grid[0] << ' ' << best_grid[1] << endl;
-
+    
     // Put a texture at best_grid from candidates.
     const int min_x = best_grid[0] * (patch_size - margin);
     const int max_x = min(width, min_x + patch_size);

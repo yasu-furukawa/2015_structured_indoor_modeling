@@ -1026,7 +1026,9 @@ void GenerateFloorTexture(const int room,
 
 void SynthesizePatch(Patch* patch) {
   vector<cv::Mat> projected_textures;
-  cv::Mat projected_texture(patch->texture_size[1], patch->texture_size[0], CV_8UC3);
+  cv::Mat projected_texture(patch->texture_size[1],
+                            patch->texture_size[0],
+                            CV_8UC3);
   {
     int index = 0;
     for (int y = 0; y < patch->texture_size[1]; ++y)
@@ -1035,7 +1037,6 @@ void SynthesizePatch(Patch* patch) {
                                                           patch->texture[3 * index + 1],
                                                           patch->texture[3 * index + 2]);
   }
-  cv::imshow("before", projected_texture);
   
   projected_textures.push_back(projected_texture);
   SynthesisData synthesis_data(projected_textures);
@@ -1051,7 +1052,9 @@ void SynthesizePatch(Patch* patch) {
   if (patches.empty())
     return;
   
-  cv::Mat synthesized_texture(patch->texture_size[1], patch->texture_size[0], CV_8UC3);
+  cv::Mat synthesized_texture(patch->texture_size[1],
+                              patch->texture_size[0],
+                              CV_8UC3);
   SynthesizePoisson(synthesis_data, patches, &synthesized_texture);
   cv::imshow("result", synthesized_texture);
 
