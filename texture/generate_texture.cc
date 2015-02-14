@@ -127,6 +127,8 @@ void GenerateFloorTexture(const int room,
 
 void SynthesizePatch(Patch* patch);
 
+void ShrinkTexture(const int shrink_pixels, Patch* patch);
+
 }  // namespace
 
 int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
@@ -321,7 +323,8 @@ void SetWallPatches(const TextureInput& texture_input,
     
   wall_patches->clear();
   wall_patches->resize(floorplan.GetNumRooms());
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+  // ????for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+  for (int room = 6; room < floorplan.GetNumRooms(); ++room) {
     cout << room << '/' << floorplan.GetNumRooms() << ' ' << flush;
     wall_patches->at(room).resize(floorplan.GetNumWalls(room));
     for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
@@ -343,6 +346,9 @@ void SetWallPatches(const TextureInput& texture_input,
                      &patch);
       // Grab texture.
       GrabTexture(texture_input.panoramas[best_panorama], &patch);
+
+      const int kShrinkPixels = 2;
+      ShrinkTexture(kShrinkPixels, &patch);
 
       bool hole = false;
       for (int i = 0; i < patch.texture.size(); i+=3) {
@@ -1039,6 +1045,7 @@ void SynthesizePatch(Patch* patch) {
   }
   
   projected_textures.push_back(projected_texture);
+
   SynthesisData synthesis_data(projected_textures);
 
   synthesis_data.num_cg_iterations = 50;
@@ -1054,7 +1061,8 @@ void SynthesizePatch(Patch* patch) {
   
   cv::Mat synthesized_texture(patch->texture_size[1],
                               patch->texture_size[0],
-                              CV_8UC3);
+                              CV_8UC3,
+                              cv::Scalar(0));
   SynthesizePoisson(synthesis_data, patches, &synthesized_texture);
   cv::imshow("result", synthesized_texture);
 
@@ -1065,6 +1073,48 @@ void SynthesizePatch(Patch* patch) {
         patch->texture[3 * index + 0] = synthesized_texture.at<cv::Vec3b>(y, x)[0];
         patch->texture[3 * index + 1] = synthesized_texture.at<cv::Vec3b>(y, x)[1];
         patch->texture[3 * index + 2] = synthesized_texture.at<cv::Vec3b>(y, x)[2];
+      }
+    }
+  }
+}
+
+void ShrinkTexture(const int shrink_pixels, Patch* patch) {
+  vector<bool> valids(patch->texture_size[0] * patch->texture_size[1], false);
+  int index = 0;
+  for (int y = 0; y < patch->texture_size[1]; ++y) {
+    for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+      if (patch->texture[3 * index + 0] != 0 ||
+          patch->texture[3 * index + 1] != 0 ||
+          patch->texture[3 * index + 2] != 0) {
+        valids[index] = true;
+      }
+    }
+  }
+
+  for (int t = 0; t < shrink_pixels; ++t) {
+    vector<bool> valids_org = valids;
+    int index = 0;
+    for (int y = 0; y < patch->texture_size[1]; ++y) {
+      for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+        if (!valids_org[index]) {
+          if ((x != 0                          && valids_org[index - 1]) ||
+              (x != patch->texture_size[0] - 1 && valids_org[index + 1]) ||
+              (y != 0                          && valids_org[index - patch->texture_size[0]]) ||
+              (y != patch->texture_size[1] - 1 && valids_org[index + patch->texture_size[0]])) {
+            valids[index] = true;
+          }
+        }
+      }
+    }
+  }
+
+  index = 0;
+  for (int y = 0; y < patch->texture_size[1]; ++y) {
+    for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+      if (!valids[index]) {
+        patch->texture[3 * index + 0] = 0;
+        patch->texture[3 * index + 1] = 0;
+        patch->texture[3 * index + 2] = 0;
       }
     }
   }

@@ -392,6 +392,7 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
       if (texture_used[i])
         continue;
       const cv::Mat& image = synthesis_data.projected_textures[i];
+
       // Count the number of non-black pixels that are not used.
       int count = 0;
       for (int y = 0; y < height; ++y) {
@@ -574,6 +575,10 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   vector<bool> pixel_guarded;
   InitializeTexture(synthesis_data, floor_texture, &pixel_guarded);
 
+  // Simple case. Use one image to synthesize.
+  cv::imshow("source", *floor_texture);
+  // cv::waitKey(0);
+  
   vector<bool> initial_mask(floor_texture->rows * floor_texture->cols, false);
   int index = 0;
   for (int y = 0; y < floor_texture->rows; ++y) {
@@ -583,10 +588,6 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
       }
     }
   }
-
-  // Simple case. Use one image to synthesize.
-  cv::imshow("source", *floor_texture);
-  // cv::waitKey(0);
   
   const double kMarginResidualScale = 1.25;
   const int width      = synthesis_data.texture_size[0];
