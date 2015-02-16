@@ -516,7 +516,8 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
 }  // namespace
 
 void CollectCandidatePatches(const SynthesisData& synthesis_data,
-                             std::vector<cv::Mat>* patches) {
+                             std::vector<cv::Mat>* patches,
+                             std::vector<Eigen::Vector2i>* patch_positions) {
   const std::vector<bool>& mask = synthesis_data.mask;
   const Eigen::Vector2i& texture_size = synthesis_data.texture_size;
   const int patch_size = synthesis_data.patch_size;
@@ -559,6 +560,7 @@ void CollectCandidatePatches(const SynthesisData& synthesis_data,
         }
         if (!fail_texture) {
           patches->push_back(patch);
+          patch_positions->push_back(Vector2i(x, y));
         }
       }
     }
@@ -567,6 +569,8 @@ void CollectCandidatePatches(const SynthesisData& synthesis_data,
 
 void SynthesizePoisson(const SynthesisData& synthesis_data,
                        const std::vector<cv::Mat>& patches,
+                       const std::vector<Eigen::Vector2i>& patch_positions,
+                       const bool vertical_constraint,
                        cv::Mat* floor_texture) {
   // First identify the projected texture with the most area.
   const cv::Vec3b kHole(0, 0, 0);
@@ -577,6 +581,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
 
   // Simple case. Use one image to synthesize.
   cv::imshow("source", *floor_texture);
+  // cv::imwrite("source.png", *floor_texture);
   // cv::waitKey(0);
   
   vector<bool> initial_mask(floor_texture->rows * floor_texture->cols, false);
@@ -646,23 +651,54 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
       vector<double> residuals(patches.size(), 0);
       const double kLarge = 10000.0;
       double current_min = kLarge;
-      for (int p = 0; p < patches.size(); ++p) {
-        residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
-                                                 current_min * kMarginResidualScale);
-        current_min = min(current_min, residuals[p]);
-      }
-      const double min_residual = *min_element(residuals.begin(), residuals.end());
-      const double threshold = min_residual * kMarginResidualScale;
       vector<int> candidates;
-      for (int i = 0; i < (int)residuals.size(); ++i) {
-        if (residuals[i] <= threshold)
-          candidates.push_back(i);
+      
+      if (vertical_constraint) {
+        // First search along vertical.
+        bool found = false;
+        for (int p = 0; p < patch_positions.size(); ++p) {
+          if (patch_positions[p][0] == min_x) {
+            residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+                                                     current_min * kMarginResidualScale);
+            current_min = min(current_min, residuals[p]);
+            found = true;
+          } else {
+            residuals[p] = kLarge;
+          }
+        }
+        if (!found) {
+          for (int p = 0; p < patches.size(); ++p) {
+            residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+                                                     current_min * kMarginResidualScale);
+            current_min = min(current_min, residuals[p]);
+          }
+          
+          const double min_residual = *min_element(residuals.begin(), residuals.end());
+          const double threshold = min_residual * kMarginResidualScale;
+          for (int i = 0; i < (int)residuals.size(); ++i) {
+            if (residuals[i] <= threshold)
+              candidates.push_back(i);
+          }
+        }
+      } else {
+        for (int p = 0; p < patches.size(); ++p) {
+          residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+                                                   current_min * kMarginResidualScale);
+          current_min = min(current_min, residuals[p]);
+        }
+        
+        const double min_residual = *min_element(residuals.begin(), residuals.end());
+        const double threshold = min_residual * kMarginResidualScale;
+        for (int i = 0; i < (int)residuals.size(); ++i) {
+          if (residuals[i] <= threshold)
+            candidates.push_back(i);
+        }
       }
       
-      // cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
-      // << min_residual << ' ' << threshold;
+      //cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
+      //<< min_residual << ' ' << threshold;
       const int patch_id = candidates[rand() % candidates.size()];
-      // cerr << "  patch: " << patch_id << endl;
+      //cerr << "  patch: " << patch_id << endl;
       patch_with_initial_texture = patches[patch_id];
       // overwrite with floor_texture and initial_mask.
       for (int y = y_range[0]; y < y_range[1]; ++y) {
@@ -674,6 +710,9 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
       }
       
       CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, floor_texture);
+
+      cv::imshow("next", *floor_texture);
+      //cv::waitKey(0);
     }
     // cout << "setdataforblending" << endl;
     SetDataForBlending(width,
@@ -690,7 +729,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   // cerr << "blend" << endl;
   // Poisson blend.
   cv::imshow("before", *floor_texture);
-
+  
   cerr << "blend" << flush;
   PoissonBlend(synthesis_data, laplacians, values, floor_texture);
   // cerr << "done" << endl;

@@ -89,6 +89,7 @@ public:
   bool IsInsideRGB(const Eigen::Vector2d& pixel) const;
   bool IsInsideDepth(const Eigen::Vector2d& depth_pixel) const;
 
+  // Shrink only and suggested for integer shrink ratio (e.g., making a width half or 1/3).
   void ResizeRGB(const Eigen::Vector2i& size);
 
   // void ReleaseMemory();
@@ -115,6 +116,8 @@ private:
   double phi_per_depth_pixel;
 
   double average_distance;
+
+  bool only_background_black;
 };
 
 }  // namespace structured_indoor_modeling

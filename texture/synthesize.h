@@ -22,10 +22,13 @@ struct SynthesisData {
 };
 
 void CollectCandidatePatches(const SynthesisData& synthesis_data,
-                             std::vector<cv::Mat>* patches);
+                             std::vector<cv::Mat>* patches,
+                             std::vector<Eigen::Vector2i>* patch_positions);
 
 void SynthesizePoisson(const SynthesisData& synthesis_data,
                        const std::vector<cv::Mat>& patches,
+                       const std::vector<Eigen::Vector2i>& patch_positions,
+                       const bool vertical_constraint,
                        cv::Mat* floor_texture);
  
 }  // namespace structured_indoor_modeling

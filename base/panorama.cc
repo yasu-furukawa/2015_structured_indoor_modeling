@@ -9,6 +9,7 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 Panorama::Panorama() {
+  only_background_black = false;
 }
 
 bool Panorama::Init(const FileIO& file_io,
@@ -122,13 +123,47 @@ Eigen::Vector3f Panorama::GetRGB(const Eigen::Vector2d& pixel) const {
   const cv::Vec3b& color01 = rgb_image.at<cv::Vec3b>(v0, u1_corrected);
   const cv::Vec3b& color10 = rgb_image.at<cv::Vec3b>(v1, u0);
   const cv::Vec3b& color11 = rgb_image.at<cv::Vec3b>(v1, u1_corrected);
-      
-  return Vector3f((weight00 * color00[0] + weight01 * color01[0] +
-                   weight10 * color10[0] + weight11 * color11[0]),
-                  (weight00 * color00[1] + weight01 * color01[1] +
-                   weight10 * color10[1] + weight11 * color11[1]),
-                  (weight00 * color00[2] + weight01 * color01[2] +
-                   weight10 * color10[2] + weight11 * color11[2]));
+
+  const cv::Vec3b kHole(0, 0, 0);
+  if (only_background_black) {
+    double weight_sum = 0.0;
+    Vector3f color_sum(0, 0, 0);
+    if (color00 != kHole) {
+      color_sum += Vector3f(weight00 * color00[0],
+                            weight00 * color00[1],
+                            weight00 * color00[2]);
+      weight_sum += weight00;
+    }
+    if (color01 != kHole) {
+      color_sum += Vector3f(weight01 * color01[0],
+                            weight01 * color01[1],
+                            weight01 * color01[2]);
+      weight_sum += weight01;
+    }
+    if (color10 != kHole) {
+      color_sum += Vector3f(weight10 * color10[0],
+                            weight10 * color10[1],
+                            weight10 * color10[2]);
+      weight_sum += weight10;
+    }
+    if (color11 != kHole) {
+      color_sum += Vector3f(weight11 * color11[0],
+                            weight11 * color11[1],
+                            weight11 * color11[2]);
+      weight_sum += weight11;
+    }
+    if (weight_sum == 0.0)
+      return Vector3f(0, 0, 0);
+    else
+      return color_sum / weight_sum;
+  } else {
+    return Vector3f((weight00 * color00[0] + weight01 * color01[0] +
+                     weight10 * color10[0] + weight11 * color11[0]),
+                    (weight00 * color00[1] + weight01 * color01[1] +
+                     weight10 * color10[1] + weight11 * color11[1]),
+                    (weight00 * color00[2] + weight01 * color01[2] +
+                     weight10 * color10[2] + weight11 * color11[2]));
+  }
 }
 
 double Panorama::GetDepth(const Eigen::Vector2d& depth_pixel) const {
@@ -190,13 +225,48 @@ bool Panorama::IsInsideDepth(const Eigen::Vector2d& depth_pixel) const {
 }
 
 void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
-  cv::Mat resized_rgb_image;
-  cv::resize(rgb_image, resized_rgb_image, cv::Size(size[0], size[1]));
-  rgb_image = resized_rgb_image;
+  if (only_background_black) {
+    const cv::Vec3b kHole(0, 0, 0);
+    cv::Mat resized_rgb_image(size[1], size[0], CV_8UC3);
+    const int x_scale = width  / size[0];
+    const int y_scale = height / size[1];
+    
+    for (int y = 0; y < size[1]; ++y) {
+      const int start_y = y * y_scale;
+      const int end_y   = (y + 1) * y_scale;
+      for (int x = 0; x < size[0]; ++x) {
+        const int start_x = x * x_scale;
+        const int end_x   = (x + 1) * x_scale;
 
+        Vector3f color(0, 0, 0);
+        int denom = 0;
+        for (int j = start_y; j < end_y; ++j) {
+          for (int i = start_x; i < end_x; ++i) {
+            const cv::Vec3b v3b = rgb_image.at<cv::Vec3b>(j, i);
+            if (v3b != kHole) {
+              color += Vector3f(v3b[0], v3b[1], v3b[2]);
+              ++denom;
+            }
+          }
+        }
+        if (denom != 0)
+          color /= denom;
+        resized_rgb_image.at<cv::Vec3b>(y, x) =
+          cv::Vec3b(static_cast<int>(round(color[0])),
+                    static_cast<int>(round(color[1])),
+                    static_cast<int>(round(color[2])));
+      }
+    }
+    rgb_image = resized_rgb_image;
+  } else {
+    cv::Mat resized_rgb_image;
+    cv::resize(rgb_image, resized_rgb_image, cv::Size(size[0], size[1]));
+    rgb_image = resized_rgb_image;
+  }
+  
   width  = size[0];
   height = size[1];
-
+    
   phi_per_pixel = phi_range / height;
 }
 
@@ -298,6 +368,7 @@ void Panorama::MakeOnlyBackgroundBlack() {
         rgb_image.at<cv::Vec3b>(y, x) = cv::Vec3b(1, 1, 1);
     }
   }
+  only_background_black = true;
 }
 
 }  // namespace structured_indoor_modeling

@@ -159,12 +159,12 @@ void ReadPanoramas(const FileIO& file_io,
     panoramas->at(p_index).resize(num_pyramid_levels);
     for (int level = 0; level < num_pyramid_levels; ++level) {
       panoramas->at(p_index)[level].Init(file_io, p);
+      panoramas->at(p_index)[level].MakeOnlyBackgroundBlack();
       if (level != 0) {
         const int new_width  = panoramas->at(p_index)[level].Width()  / (0x01 << level);
         const int new_height = panoramas->at(p_index)[level].Height() / (0x01 << level);
         panoramas->at(p_index)[level].ResizeRGB(Vector2i(new_width, new_height));
       }
-      panoramas->at(p_index)[level].MakeOnlyBackgroundBlack();
     }
   }
   cout << " done." << endl;
@@ -323,11 +323,13 @@ void SetWallPatches(const TextureInput& texture_input,
     
   wall_patches->clear();
   wall_patches->resize(floorplan.GetNumRooms());
-  // ????for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+  // for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
   for (int room = 6; room < floorplan.GetNumRooms(); ++room) {
     cout << room << '/' << floorplan.GetNumRooms() << ' ' << flush;
     wall_patches->at(room).resize(floorplan.GetNumWalls(room));
-    for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+    //???
+    // for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+    for (int wall = 2; wall < floorplan.GetNumWalls(room); ++wall) {
       const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
       Patch& patch = wall_patches->at(room)[wall];
       patch.vertices[0] = floorplan.GetCeilingVertexGlobal(room, wall);
@@ -347,7 +349,7 @@ void SetWallPatches(const TextureInput& texture_input,
       // Grab texture.
       GrabTexture(texture_input.panoramas[best_panorama], &patch);
 
-      const int kShrinkPixels = 2;
+      const int kShrinkPixels = 6;
       ShrinkTexture(kShrinkPixels, &patch);
 
       bool hole = false;
@@ -1000,9 +1002,10 @@ void GenerateFloorTexture(const int room,
   }
 
   vector<cv::Mat> patches;
+  vector<Eigen::Vector2i> patch_positions;
   const int kTimes = 3;
   for (int t = 0; t < kTimes; ++t) {
-    CollectCandidatePatches(synthesis_data, &patches);
+    CollectCandidatePatches(synthesis_data, &patches, &patch_positions);
     if (!patches.empty()) {
       break;
     }
@@ -1024,8 +1027,9 @@ void GenerateFloorTexture(const int room,
     
     return;
   }
-  
-  SynthesizePoisson(synthesis_data, patches, floor_texture);
+
+  const bool kNoVerticalConstraint = false;
+  SynthesizePoisson(synthesis_data, patches, patch_positions, kNoVerticalConstraint, floor_texture);
   
   cv::imshow("result", *floor_texture);
 }
@@ -1045,17 +1049,17 @@ void SynthesizePatch(Patch* patch) {
   }
   
   projected_textures.push_back(projected_texture);
-
   SynthesisData synthesis_data(projected_textures);
 
   synthesis_data.num_cg_iterations = 50;
   synthesis_data.texture_size = patch->texture_size;
-  synthesis_data.patch_size = 40;
-  synthesis_data.margin = synthesis_data.patch_size / 6;
+  synthesis_data.patch_size = min(80, min(patch->texture_size[0], patch->texture_size[1]));
+  synthesis_data.margin = synthesis_data.patch_size / 4;
   synthesis_data.mask.resize(patch->texture_size[0] * patch->texture_size[1], true);
 
   vector<cv::Mat> patches;
-  CollectCandidatePatches(synthesis_data, &patches);
+  vector<Eigen::Vector2i> patch_positions;
+  CollectCandidatePatches(synthesis_data, &patches, &patch_positions);
   if (patches.empty())
     return;
   
@@ -1063,7 +1067,9 @@ void SynthesizePatch(Patch* patch) {
                               patch->texture_size[0],
                               CV_8UC3,
                               cv::Scalar(0));
-  SynthesizePoisson(synthesis_data, patches, &synthesized_texture);
+  const bool kVerticalConstraint = true;
+  SynthesizePoisson(synthesis_data, patches, patch_positions, kVerticalConstraint,
+                    &synthesized_texture);
   cv::imshow("result", synthesized_texture);
 
   {
