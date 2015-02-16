@@ -652,7 +652,6 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
       const double kLarge = 10000.0;
       double current_min = kLarge;
       vector<int> candidates;
-      
       if (vertical_constraint) {
         // First search along vertical.
         bool found = false;
@@ -672,13 +671,12 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
                                                      current_min * kMarginResidualScale);
             current_min = min(current_min, residuals[p]);
           }
-          
-          const double min_residual = *min_element(residuals.begin(), residuals.end());
-          const double threshold = min_residual * kMarginResidualScale;
-          for (int i = 0; i < (int)residuals.size(); ++i) {
-            if (residuals[i] <= threshold)
-              candidates.push_back(i);
-          }
+        }          
+        const double min_residual = *min_element(residuals.begin(), residuals.end());
+        const double threshold = min_residual * kMarginResidualScale;
+        for (int i = 0; i < (int)residuals.size(); ++i) {
+          if (residuals[i] <= threshold)
+            candidates.push_back(i);
         }
       } else {
         for (int p = 0; p < patches.size(); ++p) {
@@ -694,11 +692,10 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
             candidates.push_back(i);
         }
       }
-      
-      //cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << ' '
-      //<< min_residual << ' ' << threshold;
+      // cerr << "Candidate: " << (int)candidates.size() << '/' << residuals.size() << endl;
+      // << min_residual << ' ' << threshold;
       const int patch_id = candidates[rand() % candidates.size()];
-      //cerr << "  patch: " << patch_id << endl;
+      // cerr << "  patch: " << patch_id << endl;
       patch_with_initial_texture = patches[patch_id];
       // overwrite with floor_texture and initial_mask.
       for (int y = y_range[0]; y < y_range[1]; ++y) {
@@ -708,7 +705,6 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
               floor_texture->at<cv::Vec3b>(y, x);
         }
       }
-      
       CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, floor_texture);
 
       cv::imshow("next", *floor_texture);

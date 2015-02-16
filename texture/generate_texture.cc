@@ -323,13 +323,10 @@ void SetWallPatches(const TextureInput& texture_input,
     
   wall_patches->clear();
   wall_patches->resize(floorplan.GetNumRooms());
-  // for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-  for (int room = 6; room < floorplan.GetNumRooms(); ++room) {
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     cout << room << '/' << floorplan.GetNumRooms() << ' ' << flush;
     wall_patches->at(room).resize(floorplan.GetNumWalls(room));
-    //???
-    // for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
-    for (int wall = 2; wall < floorplan.GetNumWalls(room); ++wall) {
+    for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
       const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
       Patch& patch = wall_patches->at(room)[wall];
       patch.vertices[0] = floorplan.GetCeilingVertexGlobal(room, wall);
