@@ -10,7 +10,6 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 PointCloud::PointCloud() {
-  num_object = -1;
 }
 
 bool PointCloud::Init(const FileIO& file_io, const int panorama) {
@@ -35,9 +34,9 @@ bool PointCloud::Init(const std::string& filename) {
     ifstr >> stmp;
 
   ifstr >> stmp;
-  if(stmp == "property"){
+  if(stmp == "property") {
     has_object_id = true;
-    for(int i=0;i<3;i++)
+    for(int i = 0; i < 3; ++i)
       ifstr >> stmp;
   }
     
@@ -56,10 +55,12 @@ bool PointCloud::Init(const std::string& filename) {
           >> point.color[0] >> point.color[1] >> point.color[2]
           >> point.normal[0] >> point.normal[1] >> point.normal[2]
           >> point.intensity;
-
-    if(has_object_id){
+    
+    if (has_object_id) {
       ifstr >> point.object_id;
       object_num = point.object_id > object_num ? point.object_id : object_num;
+    } else {
+      point.object_id = -1;
     }
     
     point.depth_position[0] -= kXOffset;
