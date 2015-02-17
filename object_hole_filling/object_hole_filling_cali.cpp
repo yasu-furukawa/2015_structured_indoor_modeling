@@ -37,8 +37,8 @@ int main(int argc, char **argv){
   confin.close();
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
-  startid = 0;
-  endid = 1;
+  startid = 3;
+  endid = 4;
   for (int id=startid; id<endid; id++) {
     cout<<"======================="<<endl;
     //reading point cloud and convert to depth
@@ -101,6 +101,7 @@ int main(int argc, char **argv){
     string objectcloudpath = file_io.GetObjectPointClouds(id);
     cout << objectcloudpath<<endl;
     curob.Init(objectcloudpath);
+    cout<<"curob.num_object: " << curob.GetNumObjects()<<endl;
     
     vector <vector<int> >labelgroup;
     vector <Vector3d> averageRGB;
@@ -139,6 +140,7 @@ int main(int argc, char **argv){
     for(int groupid = 0;groupid <objectgroup.size(); ++groupid){
       cout<<"For object: "<<groupid<<endl;
       getSuperpixelLabel(curob, objectgroup[groupid], panorama, depth.GetDepthmap(), labels,labelgroup, superpixelConfidence, numlabels);
+      
 #if 1
       //save the mask
       int minc = *min_element(superpixelConfidence.begin(), superpixelConfidence.end());

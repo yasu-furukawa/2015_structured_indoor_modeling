@@ -952,14 +952,19 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
       point.color[0] = (*color_table)[segments[p]][0];
       point.color[1] = (*color_table)[segments[p]][1];
       point.color[2] = (*color_table)[segments[p]][2];
+      point.object_id = segments[p];
       object_points.push_back(point);
       break;
     }
     }
   }
-    
+
+  //number of object, should be the largest element of vector segments
+  int num_object = *max_element(segments.begin(), segments.end());
   PointCloud pc;
   pc.SetPoints(object_points);
+  printf("%s\n", filename.c_str());
+  printf("num of object: %d\n", num_object);
   pc.Rotate(rotation);
   pc.Write(filename);
 }

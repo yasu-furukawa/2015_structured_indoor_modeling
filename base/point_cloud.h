@@ -44,6 +44,8 @@ struct Point {
   Eigen::Vector3f color;
   Eigen::Vector3d normal;
   int intensity;
+  int object_id;
+  Point(){object_id = -1;}
 };
 
 class PointCloud {
@@ -65,6 +67,7 @@ class PointCloud {
   int GetNumPoints() const { return points.size(); }
   int GetDepthWidth() const { return depth_width; }
   int GetDepthHeight() const { return depth_height; }
+  int GetNumObjects() const { return num_object; }
   const Point& GetPoint(const int p) const { return points[p]; }
   Point& GetPoint(const int p) { return points[p]; }
 
@@ -75,11 +78,15 @@ class PointCloud {
   void AddPoints(const PointCloud& point_cloud) {
     points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
   }
+  void SetNum_Object(int num){
+    num_object = num;
+  }
 
  private:
   std::vector<Point> points;
   int depth_width;
   int depth_height;
+  int num_object;
 };
 
 typedef std::vector<PointCloud> PointClouds;

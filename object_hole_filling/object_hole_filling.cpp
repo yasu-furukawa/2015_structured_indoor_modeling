@@ -80,28 +80,37 @@ bool visibilityTest(const structured_indoor_modeling::Point &pt, const structure
 }
 
 int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup){
-  int objectnum = 0;
-  vector <Vector3f> colors;
-  int totalnum = point_cloud.GetNumPoints();
+  // int objectnum = 0;
+  // vector <Vector3f> colors;
+  // int totalnum = point_cloud.GetNumPoints();
+  // for(int i=0;i<point_cloud.GetNumPoints();++i){
+  //   structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
+  //   Vector3f curcolor = curpt.color;
+  //   bool flag = true;
+  //   for(int j=0;j<colors.size();++j){
+  //     if(curcolor == colors[j]){
+  // 	objectgroup[j].push_back(i);
+  // 	flag = false;
+  //     }
+  //   }
+  //   if(flag){
+  //     objectgroup.resize(objectgroup.size() + 1);
+  //     objectgroup.back().push_back(i);
+  //     colors.push_back(curcolor);
+  //     objectnum++;
+  //   }
+  // }
+
+  objectgroup.resize(point_cloud.GetNumObjects());
   for(int i=0;i<point_cloud.GetNumPoints();++i){
     structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
-    Vector3f curcolor = curpt.color;
-    bool flag = true;
-    for(int j=0;j<colors.size();++j){
-      if(curcolor == colors[j]){
-	objectgroup[j].push_back(i);
-	flag = false;
-      }
-    }
-    if(flag){
-      objectgroup.resize(objectgroup.size() + 1);
-      objectgroup.back().push_back(i);
-      colors.push_back(curcolor);
-      objectnum++;
-    }
+    int curid = curpt.object_id;
+    objectgroup[curid].push_back(i);
   }
-  return objectnum;
+  return (int)objectgroup.size();
 }
+
+
 
 void getSuperpixelLabel(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <int> &superpixelConfidence, int superpixelnum){
     superpixelConfidence.clear();

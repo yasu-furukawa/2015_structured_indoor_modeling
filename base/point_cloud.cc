@@ -10,7 +10,7 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 PointCloud::PointCloud() {
-  
+  num_object = -1;
 }
 
 bool PointCloud::Init(const FileIO& file_io, const int panorama) {
@@ -25,13 +25,21 @@ bool PointCloud::Init(const std::string& filename) {
     return false;
   }
 
+  bool has_object_id = false;
   string stmp;
   for (int i = 0; i < 6; ++i)
     ifstr >> stmp;
-  int num_points;
+  int num_points, itemp, object_num = -1;
   ifstr >> num_points;
-  for (int i = 0; i < 37; ++i)
+  for (int i = 0; i < 36; ++i)
     ifstr >> stmp;
+
+  ifstr >> stmp;
+  if(stmp == "property"){
+    has_object_id = true;
+    for(int i=0;i<3;i++)
+      ifstr >> stmp;
+  }
     
   const int kXOffset = 1;
   const int kYOffset = 1;
@@ -40,20 +48,29 @@ bool PointCloud::Init(const std::string& filename) {
   depth_height = 0;
 
   points.resize(num_points);
+
+  //to handle different point format
   for (auto& point : points) {
     ifstr >> point.depth_position[0] >> point.depth_position[1]
           >> point.position[0] >> point.position[1] >> point.position[2]
           >> point.color[0] >> point.color[1] >> point.color[2]
           >> point.normal[0] >> point.normal[1] >> point.normal[2]
           >> point.intensity;
-      
+    if(has_object_id){
+      ifstr >> point.object_id;
+      object_num = point.object_id > object_num ? point.object_id : object_num;
+    }
     point.depth_position[0] -= kXOffset;
     point.depth_position[1] -= kYOffset;
       
     depth_width = max(point.depth_position[0] + 1, depth_width);
     depth_height = max(point.depth_position[1] + 1, depth_height);
   }
+  
   ifstr.close();
+
+  if(has_object_id)
+    num_object = object_num + 1;
 
   return true;
 }
@@ -84,6 +101,7 @@ void PointCloud::Write(const std::string& filename) {
         << "property float ny" << endl
         << "property float nz" << endl
         << "property uchar intensity" << endl
+	<< "property uchar object_id"<<endl
         << "end_header" << endl;
   for (const auto& point : points) {
     ofstr << point.depth_position[0] + kXOffset << ' '
@@ -97,7 +115,8 @@ void PointCloud::Write(const std::string& filename) {
           << point.normal[0] << ' '
           << point.normal[1] << ' '
           << point.normal[2] << ' '
-          << point.intensity << endl;
+          << point.intensity << ' '
+	  << point.object_id << endl;
   }
 
   ofstr.close();
