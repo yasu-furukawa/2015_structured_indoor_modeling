@@ -175,28 +175,16 @@ void MainWidget::InitializeShaders() {
   // if (!blend_program.bind())
   // close();
 
-
-  /*
-  // Override system locale until shaders are compiled
-  setlocale(LC_NUMERIC, "C");
-
   // Compile vertex shader
-  if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/panorama_vshader.glsl"))
+  if (!panorama_program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/panorama_vshader.glsl"))
     close();
   // Compile fragment shader
-  if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/panorama_fshader.glsl"))
+  if (!panorama_program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/panorama_fshader.glsl"))
     close();
   // Link shader pipeline
-  if (!program.link())
+  if (!panorama_program.link())
     close();
-  // Bind shader pipeline for use
-  // if (!program.bind())
-  // close();
-  
-  // Restore system locale
-  setlocale(LC_ALL, "");
-    
-   */
+
   // Restore system locale
   setlocale(LC_ALL, "");
 }

@@ -18,7 +18,7 @@ class PanoramaRenderer : protected QGLFunctions {
  public:
   PanoramaRenderer();
   virtual ~PanoramaRenderer();
-  void Render(const double alpha) const;
+  void Render(const double alpha, QOpenGLShaderProgram* program);
   // void Init(const PanoramaConfiguration& panorama_configuration, QGLWidget* widget);
   void Init(const FileIO& file_io, const int panorama_id, const Panorama* panorama, QGLWidget* widget);
   void InitGL();
@@ -44,8 +44,6 @@ class PanoramaRenderer : protected QGLFunctions {
   int depth_width;
   int depth_height;
   std::vector<Eigen::Vector3d> depth_mesh;
-
-  static QOpenGLShaderProgram program;
 };
 
 }  // namespace structured_indoor_modeling

@@ -89,6 +89,7 @@ private:
     QVector2D mouseMovePosition;
 
     QOpenGLShaderProgram blend_program;
+    QOpenGLShaderProgram panorama_program;
 
     QTime simple_click_time;
     QTime double_click_time;

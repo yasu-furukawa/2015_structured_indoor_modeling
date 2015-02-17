@@ -22,6 +22,8 @@ class PolygonRenderer : protected QGLFunctions {
   PolygonRenderer(const Floorplan& floorplan);
   virtual ~PolygonRenderer();
   void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const;
+  void RenderDoors(const double alpha) const;
+  
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,
                      const double height_adjustment,

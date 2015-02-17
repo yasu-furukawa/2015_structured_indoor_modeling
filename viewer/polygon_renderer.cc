@@ -370,6 +370,33 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const dou
   */
 }
 
+ void PolygonRenderer::RenderDoors(const double alpha) const {
+   glBegin(GL_QUADS);
+   glColor4f(alpha, alpha, alpha, 1.0);
+   for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
+   }
+   glEnd();
+ }    
+  
 void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
                                               const bool depth_order_height_adjustment,
                                               const int room_not_rendered,

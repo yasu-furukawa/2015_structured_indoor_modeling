@@ -306,7 +306,7 @@ void Panorama::InitDepthImage(const FileIO& file_io,
   }
   ifstr.close();
 
-  average_distance /= depth_width * depth_height;
+  average_distance /= depth_width * depth_height;  
 }
   
 void Panorama::InitCameraParameters(const FileIO& file_io,

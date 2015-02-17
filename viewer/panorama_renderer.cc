@@ -17,25 +17,25 @@ PanoramaRenderer::~PanoramaRenderer() {
         widget->deleteTexture(texture_id);
 }
 
-void PanoramaRenderer::Render(const double alpha) const {
-  /*
-  if (!program.bind()) {
+void PanoramaRenderer::Render(const double alpha, QOpenGLShaderProgram* program) {
+  if (!program->bind()) {
     cerr << "Cannot bind." << endl;
     exit (1);
   }
-  program.setUniformValue("phi_range", static_cast<float>(panorama->GetPhiRange()));
+  program->setUniformValue("phi_range", static_cast<float>(panorama->GetPhiRange()));
 
-  GLfloat[4][4] global_to_local;
+  GLfloat global_to_local[4][4];
   for (int y = 0; y < 4; ++y) {
     for (int x = 0; x < 4; ++x) {
       global_to_local[y][x] = panorama->GetGlobalToLocal()(x, y);
     }
   }
-  program.setUniformValue("global_to_local", global_to_local);
-  program.setUniformValue("tex0", 0);
+  program->setUniformValue("global_to_local", global_to_local);
+  program->setUniformValue("alpha", static_cast<float>(alpha));
+  program->setUniformValue("tex0", 0);
 
   glActiveTexture(GL_TEXTURE0);
-  */
+
   glBindTexture(GL_TEXTURE_2D, texture_id);
   glEnable(GL_TEXTURE_2D);
   
@@ -45,7 +45,7 @@ void PanoramaRenderer::Render(const double alpha) const {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   
   glBegin(GL_TRIANGLES);
-  glColor4f(alpha, alpha, alpha, 1.0);
+  // glColor4f(alpha, alpha, alpha, 1.0);
   for (int y = 0; y < depth_height - 1; ++y) {
     for (int x = 0; x < depth_width; ++x) {
       const int right_x = (x + 1) % depth_width;
@@ -60,35 +60,35 @@ void PanoramaRenderer::Render(const double alpha) const {
       const Vector3d v11 = depth_mesh[index11];
       
       // 00
-      glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
-                   1.0 - (y + 0.5) / static_cast<double>(depth_height));
+      //glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
+      //1.0 - (y + 0.5) / static_cast<double>(depth_height));
       glVertex3d(v00[0], v00[1], v00[2]);
       // 10
-      glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
-                   1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
+      //glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
+      //1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
       glVertex3d(v10[0], v10[1], v10[2]);
       // 01
-      glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
-                   1.0 - (y + 0.5) / static_cast<double>(depth_height));
+      //glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
+      //1.0 - (y + 0.5) / static_cast<double>(depth_height));
       glVertex3d(v01[0], v01[1], v01[2]);
 
       // 10
-      glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
-                   1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
+      //glTexCoord2d((x + 0.5) / static_cast<double>(depth_width),
+      //1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
       glVertex3d(v10[0], v10[1], v10[2]);
       // 11
-      glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
-                   1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
+      //glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
+      //1.0 - (y + 0.5 + 1) / static_cast<double>(depth_height));
       glVertex3d(v11[0], v11[1], v11[2]);
       // 01
-      glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
-                   1.0 - (y + 0.5) / static_cast<double>(depth_height));
+      //glTexCoord2d((x + 0.5 + 1) / static_cast<double>(depth_width),
+      //1.0 - (y + 0.5) / static_cast<double>(depth_height));
       glVertex3d(v01[0], v01[1], v01[2]);
     }
   }
   glEnd();
 
-  // program.release();
+  program->release();
 }
   
 void PanoramaRenderer::Init(const FileIO& file_io,

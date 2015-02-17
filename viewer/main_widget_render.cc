@@ -16,10 +16,6 @@
 #elif _WIN32
 #include <windows.h>
 #include <GL/glu.h>
-//#ifndef __glew_h__
-//#include <GL/glew.h>
-//#include <GL/glext.h>
-//#endif
 #else
 #include <OpenGL/glu.h>
 #endif
@@ -64,14 +60,14 @@ void MainWidget::RenderPanorama(const double alpha) {
 
   switch (navigation.GetCameraStatus()) {
   case kPanorama: {
-    panorama_renderers[navigation.GetCameraPanorama().start_index].Render(alpha);
+    panorama_renderers[navigation.GetCameraPanorama().start_index].Render(alpha, &panorama_program);
     break;
   }
   case kPanoramaToAirTransition:
   case kAirToPanoramaTransition:
   case kPanoramaToFloorplanTransition:
   case kFloorplanToPanoramaTransition: {
-    panorama_renderers[navigation.GetCameraInTransition().camera_panorama.start_index].Render(alpha);
+    panorama_renderers[navigation.GetCameraInTransition().camera_panorama.start_index].Render(alpha, &panorama_program);
     break;
   }
   default: {
@@ -108,13 +104,13 @@ void MainWidget::RenderPanoramaTransition(const int start_index,
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);    
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[start_index].Render(1.0);
+  panorama_renderers[start_index].Render(1.0, &panorama_program);
 
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
-  panorama_renderers[end_index].Render(1.0);
+  panorama_renderers[end_index].Render(1.0, &panorama_program);
 
   // Blend the two.
   // const double weight_end = 1.0 - weight_start;
@@ -349,6 +345,10 @@ void MainWidget::RenderTexturedPolygon(const double alpha) {
   
   glDisable(GL_CULL_FACE);
   glDisable(GL_TEXTURE_2D);
+
+  {
+    polygon_renderer.RenderDoors(alpha * 0.2);
+  }
 
   glPopAttrib();  
 }
