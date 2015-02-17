@@ -15,8 +15,9 @@ void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuff
 //convert a SLIC image to a Mat
 void ImagebufferToMat(const std::vector<unsigned int>&imagebuffer,const int imgwidth, const int imgheight, cv::Mat &image);
 
-//convert pixel label to label group
+void ReadObjectCloud(const structured_indoor_modeling::FileIO& file_io, std::vector< structured_indoor_modeling::PointCloud>&objectCloud, std::vector< std::vector<int> >&objectgroup);
 
+//convert pixel label to label group
 void labelTolabelgroup(const std::vector<int>& labels,const structured_indoor_modeling::Panorama &panorama, std::vector< std::vector<int> >&labelgroup,std::vector< Eigen::Vector3d >&averageRGB, int numgroup);
 
 bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);

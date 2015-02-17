@@ -1,5 +1,7 @@
 #include "object_hole_filling.h"
 
+#include <fstream>
+
 using namespace std;
 using namespace cv;
 using namespace Eigen;
@@ -25,7 +27,7 @@ void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
   }
 }
 
-
+n
 void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth,const int imgheight,  Mat& image){
   if(imagebuffer.size() != imgwidth * imgheight){
     cout << "Sizes don't agree!"<<endl;
@@ -177,6 +179,22 @@ inline float gaussian(double x, double sigma){
   return std::exp(-1*(x*x/(2*sigma*sigma)));
 }
 
+void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup){
+  int roomid = 0;
+  while(1){
+    string filename = file_io.GetObjectPointClouds(roomid);
+    ifstream fin(filename.c_str());
+    if(!fin.is_open())
+      break;
+    fin.close();
+    PointCloud curob;
+    curob.Init(filename);
+    objectCloud.push_back(curob);
+    vector <vector <int> > curgroup;
+    groupObject(curob, curgroup);
+    objectgroup.push_back(curgroup);
+  }
+}
 
 double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
   return gaussian(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
