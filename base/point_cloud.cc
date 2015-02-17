@@ -56,10 +56,12 @@ bool PointCloud::Init(const std::string& filename) {
           >> point.color[0] >> point.color[1] >> point.color[2]
           >> point.normal[0] >> point.normal[1] >> point.normal[2]
           >> point.intensity;
+
     if(has_object_id){
       ifstr >> point.object_id;
       object_num = point.object_id > object_num ? point.object_id : object_num;
     }
+    
     point.depth_position[0] -= kXOffset;
     point.depth_position[1] -= kYOffset;
       

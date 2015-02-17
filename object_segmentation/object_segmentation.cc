@@ -963,8 +963,6 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
   int num_object = *max_element(segments.begin(), segments.end());
   PointCloud pc;
   pc.SetPoints(object_points);
-  printf("%s\n", filename.c_str());
-  printf("num of object: %d\n", num_object);
   pc.Rotate(rotation);
   pc.Write(filename);
 }
