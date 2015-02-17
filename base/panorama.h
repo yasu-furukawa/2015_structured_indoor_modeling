@@ -78,6 +78,7 @@ public:
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
   const cv::Mat GetRGBImage(){return rgb_image;}
   double GetPhiRange() const;
+  double GetPhiPerPixel() const;
   Eigen::Matrix4d GetGlobalToLocal() const;
   Eigen::Matrix4d GetLocalToGlobal() const;
   

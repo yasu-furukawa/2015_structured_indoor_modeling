@@ -160,11 +160,11 @@ void MainWidget::InitializeShaders() {
   setlocale(LC_NUMERIC, "C");
 
   // Compile vertex shader
-  if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/vshader.glsl"))
+  if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/blend_vshader.glsl"))
     close();
   
   // Compile fragment shader
-  if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/fshader.glsl"))
+  if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/blend_fshader.glsl"))
     close();
   
   // Link shader pipeline

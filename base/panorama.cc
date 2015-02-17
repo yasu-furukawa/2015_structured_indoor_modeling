@@ -198,6 +198,10 @@ double Panorama::GetPhiRange() const {
   return phi_range;
 }
 
+double Panorama::GetPhiPerPixel() const {
+  return phi_per_pixel;
+}  
+
 Eigen::Matrix4d Panorama::GetGlobalToLocal() const {
   return global_to_local;
 }

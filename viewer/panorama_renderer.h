@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QGLFunctions>
 #include <QGLWidget>
+#include <QOpenGLShaderProgram>
 
 #include "configuration.h"
 
@@ -43,6 +44,8 @@ class PanoramaRenderer : protected QGLFunctions {
   int depth_width;
   int depth_height;
   std::vector<Eigen::Vector3d> depth_mesh;
+
+  static QOpenGLShaderProgram program;
 };
 
 }  // namespace structured_indoor_modeling
