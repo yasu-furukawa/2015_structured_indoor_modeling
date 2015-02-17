@@ -32,7 +32,6 @@ Floorplan::Floorplan(const std::string& filename) {
   ifstr >> *this;
   ifstr.close();
 
-
   const int num_room = GetNumRooms();
   room_centers_local.resize(num_room);
   for (int room = 0; room < num_room; ++room) {

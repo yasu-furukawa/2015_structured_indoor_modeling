@@ -29,7 +29,6 @@
   information. For the coordinate, the function name indicates the
   coordinate system to be used.
 
-
   The room shape is given as an array of 2D coordinates (XY) in the
   local coordinate frame. Therefore, the number of vertices for a
   room, and the number of walls for a room are equal. The wall may
@@ -41,7 +40,6 @@
   the triangulation are the same as the room vertices. Therefore, the
   floor/ceiling triangle simply stores the indexes to the room
   vertices.
-
 
   < Example >
   ifstream ifstr;
@@ -241,7 +239,7 @@ struct LineRoom {
   // Ceiling triangulations.
   FloorCeilingTriangulation ceiling_triangulation;
 };
- 
+
 }  // namespace structured_indoor_modeling
  
 #endif  // FLOORPLAN_H__
