@@ -88,7 +88,7 @@ private:
     QVector2D mousePressPosition;
     QVector2D mouseMovePosition;
 
-    QOpenGLShaderProgram program;
+    QOpenGLShaderProgram blend_program;
 
     QTime simple_click_time;
     QTime double_click_time;

@@ -147,13 +147,13 @@ void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   //////////////////////////////////////////////////////////////////////
-  if (!program.bind()) {
+  if (!blend_program.bind()) {
     cerr << "Cannot bind." << endl;
     exit (1);
   }
 
-  program.setUniformValue("weight", static_cast<float>(weight));
-  program.setUniformValue("divide_by_alpha", divide_by_alpha_mode);
+  blend_program.setUniformValue("weight", static_cast<float>(weight));
+  blend_program.setUniformValue("divide_by_alpha", divide_by_alpha_mode);
   
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texids[0]);
@@ -165,8 +165,8 @@ void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode
 
   glDisable(GL_DEPTH_TEST);
   
-  program.setUniformValue("tex0", 0);
-  program.setUniformValue("tex1", 1);
+  blend_program.setUniformValue("tex0", 0);
+  blend_program.setUniformValue("tex1", 1);
 
   glBegin(GL_QUADS);
   glDisable(GL_DEPTH_TEST);
@@ -183,7 +183,7 @@ void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode
   glVertex3f(0, height(), 0.0f);
   glEnd();
   
-  program.release();
+  blend_program.release();
 
   glActiveTexture(GL_TEXTURE1);
   glDisable(GL_TEXTURE_2D);

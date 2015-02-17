@@ -18,12 +18,12 @@ PanoramaRenderer::~PanoramaRenderer() {
 }
 
 void PanoramaRenderer::Render(const double alpha) const {
+  /*
   if (!program.bind()) {
     cerr << "Cannot bind." << endl;
     exit (1);
   }
   program.setUniformValue("phi_range", static_cast<float>(panorama->GetPhiRange()));
-
 
   GLfloat[4][4] global_to_local;
   for (int y = 0; y < 4; ++y) {
@@ -35,6 +35,7 @@ void PanoramaRenderer::Render(const double alpha) const {
   program.setUniformValue("tex0", 0);
 
   glActiveTexture(GL_TEXTURE0);
+  */
   glBindTexture(GL_TEXTURE_2D, texture_id);
   glEnable(GL_TEXTURE_2D);
   
@@ -87,7 +88,7 @@ void PanoramaRenderer::Render(const double alpha) const {
   }
   glEnd();
 
-  program.release();
+  // program.release();
 }
   
 void PanoramaRenderer::Init(const FileIO& file_io,
@@ -121,26 +122,6 @@ void PanoramaRenderer::InitGL() {
   // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-
-  // Override system locale until shaders are compiled
-  setlocale(LC_NUMERIC, "C");
-
-  // Compile vertex shader
-  if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/panorama_vshader.glsl"))
-    close();
-  // Compile fragment shader
-  if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/panorama_fshader.glsl"))
-    close();
-  // Link shader pipeline
-  if (!program.link())
-    close();
-  // Bind shader pipeline for use
-  // if (!program.bind())
-  // close();
-  
-  // Restore system locale
-  setlocale(LC_ALL, "");
 }
   
 void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_range) {
