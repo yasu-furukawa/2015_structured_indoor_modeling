@@ -10,7 +10,6 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 PointCloud::PointCloud() {
-  num_object = -1;
 }
 
 bool PointCloud::Init(const FileIO& file_io, const int panorama) {
@@ -18,6 +17,8 @@ bool PointCloud::Init(const FileIO& file_io, const int panorama) {
 }
 
 bool PointCloud::Init(const std::string& filename) {
+  num_object = -1;
+  
   ifstream ifstr;
   ifstr.open(filename.c_str());
   if (!ifstr.is_open()) {
@@ -25,6 +26,8 @@ bool PointCloud::Init(const std::string& filename) {
     return false;
   }
 
+  center[0] = 0.0;center[1] = 0.0;center[2] = 0.0;
+  
   bool has_object_id = false;
   string stmp;
   for (int i = 0; i < 6; ++i)
@@ -57,6 +60,7 @@ bool PointCloud::Init(const std::string& filename) {
           >> point.normal[0] >> point.normal[1] >> point.normal[2]
           >> point.intensity;
 
+    center += point.position;
     if(has_object_id){
       ifstr >> point.object_id;
       object_num = point.object_id > object_num ? point.object_id : object_num;
@@ -68,6 +72,8 @@ bool PointCloud::Init(const std::string& filename) {
     depth_width = max(point.depth_position[0] + 1, depth_width);
     depth_height = max(point.depth_position[1] + 1, depth_height);
   }
+
+  center /= (double)num_points;
   
   ifstr.close();
 
@@ -162,6 +168,11 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Transform(local_to_global);
 }
 
+
+Vector3d PointCloud::GetCenter(){
+  return center;
+}
+  
 void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
   for (auto& point : points) {
     Vector4d position4(point.position[0], point.position[1], point.position[2], 1.0);

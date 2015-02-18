@@ -42,12 +42,12 @@ struct Point {
   Eigen::Vector2i depth_position;
   Eigen::Vector3d position;
   Eigen::Vector3f color;
+
   Eigen::Vector3d normal;
   int intensity;
   int object_id;
   Point(){object_id = -1;}
 };
-
 class PointCloud {
  public:
   PointCloud();
@@ -68,6 +68,7 @@ class PointCloud {
   int GetDepthWidth() const { return depth_width; }
   int GetDepthHeight() const { return depth_height; }
   int GetNumObjects() const { return num_object; }
+  Eigen::Vector3d GetCenter();
   const Point& GetPoint(const int p) const { return points[p]; }
   Point& GetPoint(const int p) { return points[p]; }
 
@@ -84,6 +85,7 @@ class PointCloud {
 
  private:
   std::vector<Point> points;
+  Eigen::Vector3d center;
   int depth_width;
   int depth_height;
   int num_object;

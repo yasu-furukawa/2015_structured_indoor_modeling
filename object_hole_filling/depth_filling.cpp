@@ -166,5 +166,9 @@ namespace structured_indoor_modeling{
 	waitKey(10);
     }
 
+
+    void DepthFilling::SaveDepthFile(string path){
+      
+    }
  
 }//namespace

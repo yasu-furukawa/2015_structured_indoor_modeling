@@ -27,7 +27,7 @@ void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
   }
 }
 
-n
+
 void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth,const int imgheight,  Mat& image){
   if(imagebuffer.size() != imgwidth * imgheight){
     cout << "Sizes don't agree!"<<endl;
@@ -182,7 +182,8 @@ inline float gaussian(double x, double sigma){
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup){
   int roomid = 0;
   while(1){
-    string filename = file_io.GetObjectPointClouds(roomid);
+    string filename = file_io.GetObjectPointClouds(roomid++);
+    cout<< "Reading " << filename<<endl;
     ifstream fin(filename.c_str());
     if(!fin.is_open())
       break;
