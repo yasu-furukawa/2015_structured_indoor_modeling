@@ -71,6 +71,7 @@ class PointCloud {
   int GetNumObjects() const { return num_objects; }
   const Point& GetPoint(const int p) const { return points[p]; }
   Point& GetPoint(const int p) { return points[p]; }
+  bool HasObjectId() const { return has_object_id; }
 
   // Setters.
   void SetPoints(const std::vector<Point>& new_points) {
@@ -89,7 +90,10 @@ class PointCloud {
   std::vector<Point> points;
   int depth_width;
   int depth_height;
+  bool has_object_id;
   int num_objects;
+
+  static const int kDepthPositionOffset;
 };
 
 typedef std::vector<PointCloud> PointClouds;
