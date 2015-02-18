@@ -29,6 +29,7 @@
   point_cloud3.AddPoints(point_cloud2);
   point_cloud3.Write("new_file.ply");
  */
+
 #ifndef BASE_POINT_CLOUD_H_
 #define BASE_POINT_CLOUD_H_
 
@@ -46,7 +47,7 @@ struct Point {
   Eigen::Vector3d normal;
   int intensity;
   int object_id;
-  Point(){object_id = -1;}
+  // Point(){object_id = -1;}
 };
 class PointCloud {
  public:
@@ -67,10 +68,12 @@ class PointCloud {
   int GetNumPoints() const { return points.size(); }
   int GetDepthWidth() const { return depth_width; }
   int GetDepthHeight() const { return depth_height; }
+
   int GetNumObjects() const { return num_object; }
   Eigen::Vector3d GetCenter();
   const Point& GetPoint(const int p) const { return points[p]; }
   Point& GetPoint(const int p) { return points[p]; }
+  bool HasObjectId() const { return has_object_id; }
 
   // Setters.
   void SetPoints(const std::vector<Point>& new_points) {
@@ -79,16 +82,21 @@ class PointCloud {
   void AddPoints(const PointCloud& point_cloud) {
     points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
   }
-  void SetNum_Object(int num){
+  /*
+  void SetNumObjects(int num){
     num_object = num;
   }
+  */
 
  private:
   std::vector<Point> points;
   Eigen::Vector3d center;
   int depth_width;
   int depth_height;
-  int num_object;
+  bool has_object_id;
+  int num_objects;
+
+  static const int kDepthPositionOffset;
 };
 
 typedef std::vector<PointCloud> PointClouds;

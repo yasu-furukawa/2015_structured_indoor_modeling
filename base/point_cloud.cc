@@ -9,6 +9,8 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+const int PointCloud::kDepthPositionOffset = 1;
+
 PointCloud::PointCloud() {
 }
 
@@ -29,30 +31,30 @@ bool PointCloud::Init(const std::string& filename) {
   center[0] = 0.0;center[1] = 0.0;center[2] = 0.0;
   
   bool has_object_id = false;
+
   string stmp;
   for (int i = 0; i < 6; ++i)
     ifstr >> stmp;
-  int num_points, itemp, object_num = -1;
+  int num_points;
   ifstr >> num_points;
   for (int i = 0; i < 36; ++i)
     ifstr >> stmp;
 
   ifstr >> stmp;
-  if(stmp == "property"){
+  if(stmp == "property") {
     has_object_id = true;
-    for(int i=0;i<3;i++)
+    for(int i = 0; i < 3; ++i)
       ifstr >> stmp;
   }
     
-  const int kXOffset = 1;
-  const int kYOffset = 1;
-  
   depth_width = 0;
   depth_height = 0;
 
   points.resize(num_points);
 
-  //to handle different point format
+  const int kInvalidObjectId = -1;
+
+  // To handle different point format.
   for (auto& point : points) {
     ifstr >> point.depth_position[0] >> point.depth_position[1]
           >> point.position[0] >> point.position[1] >> point.position[2]
@@ -63,11 +65,12 @@ bool PointCloud::Init(const std::string& filename) {
     center += point.position;
     if(has_object_id){
       ifstr >> point.object_id;
-      object_num = point.object_id > object_num ? point.object_id : object_num;
+    } else {
+      point.object_id = kInvalidObjectId;
     }
     
-    point.depth_position[0] -= kXOffset;
-    point.depth_position[1] -= kYOffset;
+    point.depth_position[0] -= kDepthPositionOffset;
+    point.depth_position[1] -= kDepthPositionOffset;
       
     depth_width = max(point.depth_position[0] + 1, depth_width);
     depth_height = max(point.depth_position[1] + 1, depth_height);
@@ -77,8 +80,14 @@ bool PointCloud::Init(const std::string& filename) {
   
   ifstr.close();
 
-  if(has_object_id)
-    num_object = object_num + 1;
+  // Setting num_objects.
+  num_objects = -1;
+  if(has_object_id) {
+    for (const auto& point : points) {
+      num_objects = max(num_objects, point.object_id);
+    }
+    ++num_objects;
+  }
 
   return true;
 }
@@ -91,9 +100,6 @@ void PointCloud::Write(const std::string& filename) {
     exit (1);
   }
 
-  const int kXOffset = 1;
-  const int kYOffset = 1;
-  
   ofstr << "ply" << endl
         << "format ascii 1.0" << endl
         << "element vertex " << (int)points.size() << endl
@@ -108,12 +114,15 @@ void PointCloud::Write(const std::string& filename) {
         << "property float nx" << endl
         << "property float ny" << endl
         << "property float nz" << endl
-        << "property uchar intensity" << endl
-	<< "property uchar object_id"<<endl
-        << "end_header" << endl;
+        << "property uchar intensity" << endl;
+  if (has_object_id) {
+    ofstr << "property uchar object_id" << endl;
+  }
+  ofstr << "end_header" << endl;
+  
   for (const auto& point : points) {
-    ofstr << point.depth_position[0] + kXOffset << ' '
-          << point.depth_position[1] + kYOffset << ' '
+    ofstr << point.depth_position[0] + kDepthPositionOffset << ' '
+          << point.depth_position[1] + kDepthPositionOffset << ' '
           << point.position[0] << ' '
           << point.position[1] << ' '
           << point.position[2] << ' '
@@ -123,8 +132,10 @@ void PointCloud::Write(const std::string& filename) {
           << point.normal[0] << ' '
           << point.normal[1] << ' '
           << point.normal[2] << ' '
-          << point.intensity << ' '
-	  << point.object_id << endl;
+          << point.intensity;
+    if (has_object_id)
+      ofstr << ' ' << point.object_id;
+    ofstr << endl;
   }
 
   ofstr.close();

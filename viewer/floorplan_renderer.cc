@@ -138,7 +138,14 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
   initializeGLFunctions();
   // Likely need to change for windows.
   {
+	#ifdef _WIN32
+//    TCHAR szBuf[MAX_PATH];
+//    GetCurrentDirectory(_countof(szBuf), szBuf);
+//    OutputDebugString(szBuf);
+    sheep_image.load("../viewer/texture/sheep.png");
+	#else
     sheep_image.load("texture/sheep.png");
+	#endif
     if (sheep_image.isNull()) {
       cout << "texture/sheep.png cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
@@ -147,7 +154,12 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
     sheep_texture_id = widget->bindTexture(sheep_image);
   }
   {
+    #ifdef _WIN32
+    kitchen_image.load("../viewer/texture/kitchen.jpg");
+    #else
     kitchen_image.load("texture/kitchen.jpg");
+    #endif
+
     if (kitchen_image.isNull()) {
       cout << "texture/kitchen.jpg cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
@@ -156,7 +168,12 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
     kitchen_texture_id = widget->bindTexture(kitchen_image);
   }
   {
+    #ifdef _WIN32
+    tile_image.load("../viewer/texture/kitchen.jpg");
+    #else
     tile_image.load("texture/tile.png");
+    #endif
+
     if (tile_image.isNull()) {
       cout << "texture/tile.jpg cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
