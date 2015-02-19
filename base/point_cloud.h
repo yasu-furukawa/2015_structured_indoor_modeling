@@ -68,9 +68,10 @@ class PointCloud {
   int GetNumPoints() const { return points.size(); }
   int GetDepthWidth() const { return depth_width; }
   int GetDepthHeight() const { return depth_height; }
-
-  int GetNumObjects() const { return num_object; }
-  Eigen::Vector3d GetCenter();
+  std::vector<double> GetBoundingbox(){ return boundingbox;}
+  double GetBoundingboxVolume();
+  int GetNumObjects() const { return num_objects; }
+  Eigen::Vector3d GetCenter(){ return center;}
   const Point& GetPoint(const int p) const { return points[p]; }
   Point& GetPoint(const int p) { return points[p]; }
   bool HasObjectId() const { return has_object_id; }
@@ -82,11 +83,6 @@ class PointCloud {
   void AddPoints(const PointCloud& point_cloud) {
     points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
   }
-  /*
-  void SetNumObjects(int num){
-    num_object = num;
-  }
-  */
 
  private:
   std::vector<Point> points;
@@ -95,6 +91,7 @@ class PointCloud {
   int depth_height;
   bool has_object_id;
   int num_objects;
+  std::vector <double> boundingbox; //xmin,xmax,ymin,ymax,zmin,zmax
 
   static const int kDepthPositionOffset;
 };
@@ -104,3 +101,13 @@ typedef std::vector<PointCloud> PointClouds;
 }  // namespace structured_indoor_modeling
 
 #endif  // BASE_POINT_CLOUD_H_
+
+
+
+
+
+
+
+
+
+

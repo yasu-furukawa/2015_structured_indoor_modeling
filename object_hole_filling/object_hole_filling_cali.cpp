@@ -41,11 +41,13 @@ int main(int argc, char **argv){
   //read and group object point cloud
   vector <PointCloud> objectcloud;
   vector <vector <vector<int> > >objectgroup;
+  vector <vector <double> > objectvolume;
   cout <<"Reading object pointcloud!"<<endl;
-  ReadObjectCloud(file_io, objectcloud, objectgroup);
+  ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
     
   startid = 0;
   endid = 1;
+
   for (int id=startid; id<endid; id++) {
     cout<<"======================="<<endl;
     //reading point cloud and convert to depth
@@ -103,15 +105,18 @@ int main(int argc, char **argv){
     }
 
 
-    ////////////////////////////////////////////////////
-    Vector3d curpancenter = panorama.GetCenter();
-    cout<<"panorama center:"<<curpancenter.transpose()<<endl;
     
-    for(int roomid=0;roomid<objectcloud.size();roomid++){
-      cout<<"room center:"<<objectcloud[roomid].GetCenter().transpose() <<endl;
-      Vector3d center_dis = curpancenter - objectcloud[roomid].GetCenter();
-      cout << "id:"<<id<<' '<<"roomid:"<<roomid<<' '<<"distance:"<<center_dis.norm()<<endl;
-      
+    ////////////////////////////////////////////////////
+    vector <vector<int> >labelgroup;
+    vector <Vector3d> averageRGB;
+    labelTolabelgroup(labels, panorama, labelgroup, averageRGB, numlabels);
+    
+    for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
+      for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
+	cout << "room: "<<roomid<<' '<<"object: "<<groupid<<' '<< "volume: "<<objectvolume[roomid][groupid]<<endl;
+	vector <int> superpixelConfidence;
+	getSuperpixelLabel(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence, numlabels);
+      }
     }
 
 

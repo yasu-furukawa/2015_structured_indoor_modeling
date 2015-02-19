@@ -19,7 +19,7 @@ bool PointCloud::Init(const FileIO& file_io, const int panorama) {
 }
 
 bool PointCloud::Init(const std::string& filename) {
-  num_object = -1;
+  num_objects = -1;
   
   ifstream ifstr;
   ifstr.open(filename.c_str());
@@ -49,11 +49,14 @@ bool PointCloud::Init(const std::string& filename) {
     
   depth_width = 0;
   depth_height = 0;
-
+  boundingbox.resize(6);
+  boundingbox[0] = 1e100;  boundingbox[1] = -1e100; boundingbox[2] = 1e100; boundingbox[3] = -1e100;
+  boundingbox[4] = 1e100; boundingbox[5] = -1e100;
   points.resize(num_points);
 
   const int kInvalidObjectId = -1;
 
+  
   // To handle different point format.
   for (auto& point : points) {
     ifstr >> point.depth_position[0] >> point.depth_position[1]
@@ -71,7 +74,14 @@ bool PointCloud::Init(const std::string& filename) {
     
     point.depth_position[0] -= kDepthPositionOffset;
     point.depth_position[1] -= kDepthPositionOffset;
-      
+
+    boundingbox[0] = min(point.position[0],boundingbox[0]);
+    boundingbox[1] = max(point.position[0],boundingbox[0]);
+    boundingbox[2] = min(point.position[1],boundingbox[1]);
+    boundingbox[3] = max(point.position[1],boundingbox[1]);
+    boundingbox[4] = min(point.position[2],boundingbox[2]);
+    boundingbox[5] = max(point.position[2],boundingbox[2]);
+    
     depth_width = max(point.depth_position[0] + 1, depth_width);
     depth_height = max(point.depth_position[1] + 1, depth_height);
   }
@@ -91,7 +101,7 @@ bool PointCloud::Init(const std::string& filename) {
 
   return true;
 }
-
+  
 void PointCloud::Write(const std::string& filename) {
   ofstream ofstr;
   ofstr.open(filename.c_str());
@@ -180,8 +190,10 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 }
 
 
-Vector3d PointCloud::GetCenter(){
-  return center;
+double PointCloud::GetBoundingboxVolume(){
+  if(boundingbox.size() == 0)
+    return 0;
+  return (boundingbox[1]-boundingbox[0])*(boundingbox[3]-boundingbox[2])*(boundingbox[5]-boundingbox[4]);
 }
   
 void PointCloud::Transform(const Eigen::Matrix4d& transformation) {

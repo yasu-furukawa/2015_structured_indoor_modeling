@@ -81,7 +81,8 @@ bool visibilityTest(const structured_indoor_modeling::Point &pt, const structure
   return true;
 }
 
-int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup){
+
+int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup, vector<double>&objectVolume){
   // int objectnum = 0;
   // vector <Vector3f> colors;
   // int totalnum = point_cloud.GetNumPoints();
@@ -104,11 +105,32 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
   // }
 
   objectgroup.resize(point_cloud.GetNumObjects());
+  objectVolume.resize(point_cloud.GetNumObjects());
+
+  vector <vector <double> >boundingbox(objectgroup.size());
+  for(int i=0;i<boundingbox.size();i++){
+    boundingbox[i].resize(6);
+    boundingbox[i][0] = 1e100; boundingbox[i][1] = -1e100;
+    boundingbox[i][2] = 1e100; boundingbox[i][3] = -1e100;
+    boundingbox[i][4] = 1e100; boundingbox[i][5] = -1e100;
+  }
+  
   for(int i=0;i<point_cloud.GetNumPoints();++i){
     structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
     int curid = curpt.object_id;
+    boundingbox[curid][0] = min(boundingbox[curid][0],curpt.position[0]);
+    boundingbox[curid][1] = max(boundingbox[curid][1],curpt.position[0]);
+    boundingbox[curid][2] = min(boundingbox[curid][2],curpt.position[1]);
+    boundingbox[curid][3] = max(boundingbox[curid][3],curpt.position[1]);
+    boundingbox[curid][4] = min(boundingbox[curid][4],curpt.position[2]);
+    boundingbox[curid][5] = max(boundingbox[curid][5],curpt.position[2]);
     objectgroup[curid].push_back(i);
   }
+
+  for(int i=0;i<boundingbox.size();i++){
+    objectVolume[i] = (boundingbox[i][1] - boundingbox[i][0])*(boundingbox[i][3] - boundingbox[i][2]) * (boundingbox[i][5] - boundingbox[i][4]);
+  }
+  
   return (int)objectgroup.size();
 }
 
@@ -179,7 +201,7 @@ inline float gaussian(double x, double sigma){
   return std::exp(-1*(x*x/(2*sigma*sigma)));
 }
 
-void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup){
+void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
   int roomid = 0;
   while(1){
     string filename = file_io.GetObjectPointClouds(roomid++);
@@ -192,8 +214,10 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     curob.Init(filename);
     objectCloud.push_back(curob);
     vector <vector <int> > curgroup;
-    groupObject(curob, curgroup);
+    vector <double> curvolume;
+    groupObject(curob, curgroup, curvolume);
     objectgroup.push_back(curgroup);
+    objectVolume.push_back(curvolume);
   }
 }
 
