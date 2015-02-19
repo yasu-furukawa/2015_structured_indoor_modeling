@@ -38,13 +38,16 @@ int main(int argc, char **argv){
   string pathtodata_s(pathtodata);
   FileIO file_io(pathtodata_s);
 
+  //////////////////////////////////////
   //read and group object point cloud
   vector <PointCloud> objectcloud;
+  vector <PointCloud> backgroundCloud;
   vector <vector <vector<int> > >objectgroup;
   vector <vector <double> > objectvolume;
   cout <<"Reading object pointcloud!"<<endl;
   ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
-    
+
+  //////////////////////////////////////
   startid = 0;
   endid = 1;
 
@@ -105,18 +108,46 @@ int main(int argc, char **argv){
     }
 
 
-    
-    ////////////////////////////////////////////////////
     vector <vector<int> >labelgroup;
     vector <Vector3d> averageRGB;
     labelTolabelgroup(labels, panorama, labelgroup, averageRGB, numlabels);
+    cout<<"Getting pairwise structure..."<<endl;
+    map<pair<int,int>,int> pairmap;
+    pairSuperpixel(labels, imgwidth, imgheight, pairmap);
+    
+    ////////////////////////////////////////////////////
+    //get the superpixel confidence for each object and background
     
     for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
+      vector <vector<int> >superpixelConfidence(objectgroup[roomid].size());
       for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-	cout << "room: "<<roomid<<' '<<"object: "<<groupid<<' '<< "volume: "<<objectvolume[roomid][groupid]<<endl;
-	vector <int> superpixelConfidence;
-	getSuperpixelLabel(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence, numlabels);
+	//	cout << "room: "<<roomid<<' '<<"object: "<<groupid<<' '<< "volume: "<<objectvolume[roomid][groupid]<<endl;
+	getSuperpixelLabel(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence[groupid], numlabels);
       }
+      
+#if 1
+      //save the mask
+      int minc = *min_element(superpixelConfidence.begin(), superpixelConfidence.end());
+      int maxc = *max_element(superpixelConfidence.begin(), superpixelConfidence.end());
+      
+      int minv = MAX_INT;
+      int maxv = MIN_INT;
+      
+      Mat outmask = panorama.GetRGBImage().clone();
+      for(int i=0;i<imgwidth*imgheight;++i){
+      	int x = i % imgwidth;
+      	int y = i / imgwidth;
+      	int curconfidence =(int)((float) (superpixelConfidence[labels[i]] - minc) / (float)(maxc - minc) * 255.0);
+      	//if(superpixelConfidence[labels[i]] < 60)
+      	//outmask.at<Vec3b>(y,x) = Vec3b(0,0,0);
+      	Vec3b curpix((uchar)curconfidence,(uchar)curconfidence,(uchar)curconfidence);
+      	outmask.at<Vec3b>(y,x) = curpix;
+            }
+            sprintf(buffer,"object_project/objectmask%03d_object%03d.png",id, groupid);
+            imwrite(buffer, outmask);
+            waitKey(10);
+#endif
+
     }
 
 

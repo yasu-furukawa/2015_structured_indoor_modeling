@@ -74,11 +74,13 @@ bool ProcessRoom(const FileIO& file_io,
   char buffer[1024];
   {
     map<int, Vector3i> color_table;
+    printf("%s\n", file_io.GetObjectPointClouds(room).c_str());
     WriteObjectPointsWithColor(points, segments, file_io.GetObjectPointClouds(room),
                                floorplan.GetFloorplanToGlobal(),
                                &color_table);
   }
   {
+    printf("%s\n", file_io.GetFloorWallPointClouds(room).c_str());
     WriteOtherPointsWithColor(points, segments, file_io.GetFloorWallPointClouds(room),
                               floorplan.GetFloorplanToGlobal());
   }

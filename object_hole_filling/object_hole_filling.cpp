@@ -204,14 +204,25 @@ inline float gaussian(double x, double sigma){
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
   int roomid = 0;
   while(1){
-    string filename = file_io.GetObjectPointClouds(roomid++);
-    cout<< "Reading " << filename<<endl;
+    string filename = file_io.GetObjectPointClouds(roomid);
+    string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
+
     ifstream fin(filename.c_str());
     if(!fin.is_open())
       break;
     fin.close();
-    PointCloud curob;
+    PointCloud curob, curwall;
+    cout<< "Reading " << filename<<endl;
     curob.Init(filename);
+    cout<< "Reading " << filename_wall<<endl;
+    curwall.Init(filename_wall);
+    for(int i=0;i<curwall.GetNumPoints();i++){
+      curwall.GetPoint(i).object_id = curob.GetNumObjects();
+    }
+    cout<<"objectnum:" <<curob.GetNumObjects()<<endl;
+    curob.AddPoints(curwall);
+    cout<<"objectnum2:" << curob.GetNumObjects()<<endl;
+    
     objectCloud.push_back(curob);
     vector <vector <int> > curgroup;
     vector <double> curvolume;
@@ -220,6 +231,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     objectVolume.push_back(curvolume);
   }
 }
+
 
 double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
   return gaussian(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
@@ -235,8 +247,8 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
   int superpixelnum = superpixelConfidence.size();
   vector<MRF::CostVal>data(superpixelnum * 2);
   vector<MRF::CostVal>smooth(4);
-  //model
 
+  //model
   for(int i=0;i<superpixelnum;i++){
     data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
     data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
@@ -286,4 +298,33 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
   delete mrf;
   delete smoothnessterm;
   delete dataterm;
+}
+
+
+void MRFOptimizeLabels_multiLayer(const vector< vector<int> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int> superpixelLabel){
+  int superpixelnum = superpixelConfidence[0].size();
+  vector<MRF::CostVal>data(superpixelnum * numlabels);
+  vector<MRF::CostVal>smooth(numlabels * numlabels);
+
+  for(int i=0;i<superpixelnum;i++){
+    for(int label=0;label<numlabels - 1;label++){
+    }
+    data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
+    data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
+  }
+  smooth[0] = 0; smooth[3] = 0;
+  smooth[1] = 1; smooth[2] = 1;
+
+  DataCost *dataterm = new DataCost(&data[0]);
+  SmoothnessCost *smoothnessterm = new SmoothnessCost(&smooth[0]);
+  EnergyFunction *energy = new EnergyFunction(dataterm,smoothnessterm);
+
+  MRF *mrf;
+  mrf = new Expansion(superpixelnum, 2, energy);
+
+
+  delete mrf;
+  delete smoothnessterm;
+  delete dataterm;
+  
 }

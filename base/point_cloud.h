@@ -47,7 +47,7 @@ struct Point {
   Eigen::Vector3d normal;
   int intensity;
   int object_id;
-  // Point(){object_id = -1;}
+  Point(){object_id = 0;}
 };
 class PointCloud {
  public:
@@ -82,6 +82,7 @@ class PointCloud {
   }
   void AddPoints(const PointCloud& point_cloud) {
     points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
+    num_objects += point_cloud.GetNumObjects();
   }
 
  private:

@@ -15,6 +15,7 @@ void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuff
 //convert a SLIC image to a Mat
 void ImagebufferToMat(const std::vector<unsigned int>&imagebuffer,const int imgwidth, const int imgheight, cv::Mat &image);
 
+//this funtion will read the object cloud and floor_wall cloud. It'll treat floor_wall as another object
 void ReadObjectCloud(const structured_indoor_modeling::FileIO& file_io, std::vector< structured_indoor_modeling::PointCloud>&objectCloud, std::vector< std::vector< std::vector<int> > >&objectgroup, std::vector< std::vector<double> >&objectVolume);
 
 //convert pixel label to label group
@@ -29,6 +30,14 @@ void getSuperpixelLabel(const structured_indoor_modeling::PointCloud &point_clou
 void pairSuperpixel(const std::vector <int> &labels, int width, int height, std::map<std::pair<int,int>, int> &pairmap);
 
 void MRFOptimizeLabels(const std::vector<int>&superpixelConfidence,  const std::map<std::pair<int,int>,int> &pairmap,const std::vector< Eigen::Vector3d >&averageRGB,  float smoothweight, std::vector<int>&superpixelLabel);
+
+void MRFOptimizeLabels_multiLayer(const std::vector< vector<int> >&superpixelConfidence, const std::map<std::pair<int,int>,int> &pairmap, const std::vector< Eigen::Vector3d> &averageRGB, float smoothweight, int numlabels, std::vector <int> superpixelLabel);
+
+
+
+
+
+
 
 
 

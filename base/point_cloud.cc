@@ -19,7 +19,7 @@ bool PointCloud::Init(const FileIO& file_io, const int panorama) {
 }
 
 bool PointCloud::Init(const std::string& filename) {
-  num_objects = -1;
+  num_objects = 1;
   
   ifstream ifstr;
   ifstr.open(filename.c_str());
@@ -91,7 +91,6 @@ bool PointCloud::Init(const std::string& filename) {
   ifstr.close();
 
   // Setting num_objects.
-  num_objects = -1;
   if(has_object_id) {
     for (const auto& point : points) {
       num_objects = max(num_objects, point.object_id);

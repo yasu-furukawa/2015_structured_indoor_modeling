@@ -977,10 +977,12 @@ void WriteOtherPointsWithColor(const std::vector<Point>& points,
     switch (segments[p]) {
     case kFloor: {
       point.color = Vector3f(0, 0, 255);
+      point.object_id = 0;
       break;
     }
     case kWall: {
       point.color = Vector3f(0, 255, 0);
+      point.object_id = 0;
       break;
     }
       /*
@@ -991,6 +993,7 @@ void WriteOtherPointsWithColor(const std::vector<Point>& points,
       */
     case kInitial: {
       point.color = Vector3f(255, 255, 255);
+      point.object_id = 0;
       break;
     }
     default: {
