@@ -30,10 +30,8 @@ bool ProcessRoom(const FileIO& file_io,
   cout << "Room: " << room << endl;
   vector<Point> points;
   CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
-  
   if (points.empty())
     return false;
-  
   cout << "Filtering... " << points.size() << " -> " << flush;
   FilterNoisyPoints(&points);
   cout << points.size() << " done." << endl;

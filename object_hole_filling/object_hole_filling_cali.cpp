@@ -22,6 +22,9 @@ using namespace structured_indoor_modeling;
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,12000,"Number of superpixel");
 
+Vec3b colortable[] = {Vec3b((uchar)255,(uchar)0,(uchar)0), Vec3b((uchar)0,(uchar)255,(uchar)0), Vec3b((uchar)0,(uchar)0,(uchar)255), Vec3b((uchar)255,(uchar)255,(uchar)0), Vec3b((uchar)255,(uchar)0,(uchar)255), Vec3b((uchar)0,(uchar)255,(uchar)255), Vec3b((uchar)128,(uchar)0,(uchar)0), Vec3b((uchar)0,(uchar)128,(uchar)0), Vec3b((uchar)0,(uchar)0,(uchar)128), Vec3b((uchar)128,(uchar)128,(uchar)0), Vec3b((uchar)128,(uchar)0,(uchar)128), Vec3b((uchar)0,(uchar)128,(uchar)128), Vec3b((uchar)255,(uchar)128,(uchar)128),Vec3b((uchar)128,(uchar)255,(uchar)128),Vec3b((uchar)128,(uchar)128,(uchar)255)};
+
+
 int main(int argc, char **argv){
 
   gflags::ParseCommandLineFlags(&argc,&argv,true);
@@ -60,7 +63,7 @@ int main(int argc, char **argv){
     panorama.Init(file_io, id);
 
     PointCloud curpc;
-    cout<<"reading point cloud..."<<endl;
+    cout<<"reading pnaorama  point cloud..."<<endl;
     curpc.Init(file_io, id);
     curpc.ToGlobal(file_io, id);
     
@@ -99,6 +102,7 @@ int main(int argc, char **argv){
 	imwrite(buffer,out);
 	waitKey(10);
     }else{
+	cout <<"Reading superpixel from file"<<endl;
 	labelin.read((char*)&numlabels, sizeof(int));
 	labels.resize(imgwidth * imgheight);
 	for(int i=0;i<labels.size();i++){
@@ -106,7 +110,6 @@ int main(int argc, char **argv){
 	}
 	labelin.close();
     }
-
 
     vector <vector<int> >labelgroup;
     vector <Vector3d> averageRGB;
@@ -119,34 +122,69 @@ int main(int argc, char **argv){
     //get the superpixel confidence for each object and background
     
     for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
-      vector <vector<int> >superpixelConfidence(objectgroup[roomid].size());
+      vector <vector<double> >superpixelConfidence(objectgroup[roomid].size());
+      cout<<"Get superpixel confidence"<<endl;
       for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-	//	cout << "room: "<<roomid<<' '<<"object: "<<groupid<<' '<< "volume: "<<objectvolume[roomid][groupid]<<endl;
-	getSuperpixelLabel(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence[groupid], numlabels);
+	getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence[groupid], numlabels);
       }
+
       
-#if 1
+#if 0
+      cout<<"saving mask..."<<endl;
       //save the mask
-      int minc = *min_element(superpixelConfidence.begin(), superpixelConfidence.end());
-      int maxc = *max_element(superpixelConfidence.begin(), superpixelConfidence.end());
-      
-      int minv = MAX_INT;
-      int maxv = MIN_INT;
-      
-      Mat outmask = panorama.GetRGBImage().clone();
-      for(int i=0;i<imgwidth*imgheight;++i){
-      	int x = i % imgwidth;
-      	int y = i / imgwidth;
-      	int curconfidence =(int)((float) (superpixelConfidence[labels[i]] - minc) / (float)(maxc - minc) * 255.0);
-      	//if(superpixelConfidence[labels[i]] < 60)
-      	//outmask.at<Vec3b>(y,x) = Vec3b(0,0,0);
-      	Vec3b curpix((uchar)curconfidence,(uchar)curconfidence,(uchar)curconfidence);
-      	outmask.at<Vec3b>(y,x) = curpix;
-            }
-            sprintf(buffer,"object_project/objectmask%03d_object%03d.png",id, groupid);
-            imwrite(buffer, outmask);
-            waitKey(10);
+      double minc = 1e100;
+      double maxc = -1e100;
+
+      for(int i=0;i<superpixelConfidence.size();i++){
+	  for(int j=0;j<superpixelConfidence[i].size();j++){
+	      minc = min(superpixelConfidence[i][j], minc);
+	      maxc = max(superpixelConfidence[i][j], maxc);
+	  }
+      }
+//      Mat outmask = panorama.GetRGBImage().clone();
+      Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
+      for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
+	  int colorid = groupid % 15;
+	  for(int i=0;i<imgwidth*imgheight;++i){
+	      int x = i % imgwidth;
+	      int y = i / imgwidth;
+	      double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
+	      //if(superpixelConfidence[labels[i]] < 60)
+	      //outmask.at<Vec3b>(y,x) = Vec3b(0,0,0);
+//	      if(curconfidence > 0)
+//		  cout<<curconfidence<<endl;
+	      double r = (double)colortable[colorid][0] * curconfidence * 4;
+	      double g = (double)colortable[colorid][1] * curconfidence * 4;
+	      double b = (double)colortable[colorid][2] * curconfidence * 4;
+	      Vec3b curpix((uchar)r, (uchar)g, (uchar)b);
+	      outmask.at<Vec3b>(y,x) += curpix;
+//	      if(outmask.at<Vec3b>(y,x)[0] > (uchar)0)
+//		  cout<<x<<' '<<y<<' '<<(int)outmask.at<Vec3b>(y,x)[0]<<' '<<(int)outmask.at<Vec3b>(y,x)[1]<<' '<<(int)outmask.at<Vec3b>(y,x)[2]<<endl;
+	  }
+      }
+      sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d.jpg",id, roomid);
+      imwrite(buffer, outmask);
+      waitKey(30);
 #endif
+
+
+      vector <int> superpixelLabel;
+      cout<<"Optimizing..."<<endl;
+      MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB,  0.5, objectgroup[roomid].size(),superpixelLabel);
+
+      //save optimize result
+      Mat optimizeout = panorama.GetRGBImage().clone();
+      for(int y=0;y<imgheight;y++){
+	  for(int x=0;x<imgwidth;x++){
+	      int curlabel = superpixelLabel[labels[y*imgwidth + x]];
+	      int colorid = curlabel % 15;
+	      Vec3b curpix = colortable[colorid] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
+	      optimizeout.at<Vec3b>(y,x) = curpix;
+	  }
+      }
+      sprintf(buffer,"object_project/optimize%03d_obj%03d.png",id,roomid);
+      imwrite(buffer,optimizeout);
+      waitKey(10);
 
     }
 

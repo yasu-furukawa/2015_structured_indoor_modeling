@@ -123,11 +123,9 @@ void PointCloud::Write(const std::string& filename) {
         << "property float nx" << endl
         << "property float ny" << endl
         << "property float nz" << endl
-        << "property uchar intensity" << endl;
-  if (has_object_id) {
-    ofstr << "property uchar object_id" << endl;
-  }
-  ofstr << "end_header" << endl;
+        << "property uchar intensity" << endl
+	<< "property uchar object_id" << endl
+	<< "end_header" << endl;
   
   for (const auto& point : points) {
     ofstr << point.depth_position[0] + kDepthPositionOffset << ' '
@@ -141,10 +139,8 @@ void PointCloud::Write(const std::string& filename) {
           << point.normal[0] << ' '
           << point.normal[1] << ' '
           << point.normal[2] << ' '
-          << point.intensity;
-    if (has_object_id)
-      ofstr << ' ' << point.object_id;
-    ofstr << endl;
+          << point.intensity << ' '
+	  << point.object_id << endl;
   }
 
   ofstr.close();

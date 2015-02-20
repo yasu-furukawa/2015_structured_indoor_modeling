@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(Object_hole_filling)
 
 set( CMAKE_CXX_FLAGS "-std=c++11 -Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
+set( CMAKE_PREFIX_PATH "/usr/local/" )
 
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
 	include_directories(/usr/local/include/eigen3)

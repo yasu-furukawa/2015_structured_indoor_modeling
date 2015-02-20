@@ -9,6 +9,8 @@ using namespace structured_indoor_modeling;
 
 #define PI 3.1415927
 
+
+
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
   if(!image.data){
     cout << "invlid image"<<endl;
@@ -114,7 +116,6 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
     boundingbox[i][2] = 1e100; boundingbox[i][3] = -1e100;
     boundingbox[i][4] = 1e100; boundingbox[i][5] = -1e100;
   }
-  
   for(int i=0;i<point_cloud.GetNumPoints();++i){
     structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
     int curid = curpt.object_id;
@@ -126,7 +127,6 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
     boundingbox[curid][5] = max(boundingbox[curid][5],curpt.position[2]);
     objectgroup[curid].push_back(i);
   }
-
   for(int i=0;i<boundingbox.size();i++){
     objectVolume[i] = (boundingbox[i][1] - boundingbox[i][0])*(boundingbox[i][3] - boundingbox[i][2]) * (boundingbox[i][5] - boundingbox[i][4]);
   }
@@ -136,7 +136,7 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
 
 
 
-void getSuperpixelLabel(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <int> &superpixelConfidence, int superpixelnum){
+void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <double> &superpixelConfidence, int superpixelnum){
     superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
     for(int i=0;i<superpixelConfidence.size();++i)
@@ -202,7 +202,7 @@ inline float gaussian(double x, double sigma){
 }
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-  int roomid = 0;
+  int roomid = 1;
   while(1){
     string filename = file_io.GetObjectPointClouds(roomid);
     string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -219,16 +219,15 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     for(int i=0;i<curwall.GetNumPoints();i++){
       curwall.GetPoint(i).object_id = curob.GetNumObjects();
     }
-    cout<<"objectnum:" <<curob.GetNumObjects()<<endl;
     curob.AddPoints(curwall);
-    cout<<"objectnum2:" << curob.GetNumObjects()<<endl;
-    
+
     objectCloud.push_back(curob);
     vector <vector <int> > curgroup;
     vector <double> curvolume;
     groupObject(curob, curgroup, curvolume);
     objectgroup.push_back(curgroup);
     objectVolume.push_back(curvolume);
+    break;
   }
 }
 
@@ -301,28 +300,77 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 }
 
 
-void MRFOptimizeLabels_multiLayer(const vector< vector<int> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int> superpixelLabel){
+void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int>& superpixelLabel){
+
   int superpixelnum = superpixelConfidence[0].size();
+
   vector<MRF::CostVal>data(superpixelnum * numlabels);
   vector<MRF::CostVal>smooth(numlabels * numlabels);
 
   for(int i=0;i<superpixelnum;i++){
     for(int label=0;label<numlabels - 1;label++){
+	data[numlabels * i + label] = (MRF::CostVal)( gaussian((float)superpixelConfidence[label][i],1) * 1000);
+	for(int errlabel;errlabel<numlabels-1;errlabel++){
+	    if(errlabel == label)
+		continue;
+	    data[numlabels * i + label] += (MRF::CostVal)( (1.0 - gaussian((float)superpixelConfidence[errlabel][i],1) ) * 10);
+	}
     }
-    data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
-    data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
+    
+//    data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
+    //  data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
   }
-  smooth[0] = 0; smooth[3] = 0;
-  smooth[1] = 1; smooth[2] = 1;
 
+  for(int label1=0; label1<numlabels; label1++){
+      for(int label2=0; label2<numlabels; label2++){
+	  if(label1 == label2){
+	      smooth[label1 * numlabels + label2] = 0;
+	      smooth[label2 * numlabels + label1] = 0;
+	  }
+	  else{
+	      smooth[label1 * numlabels + label2] = 1;
+	      smooth[label2 * numlabels + label1] = 1;
+	  }
+      }
+  }
+  
   DataCost *dataterm = new DataCost(&data[0]);
   SmoothnessCost *smoothnessterm = new SmoothnessCost(&smooth[0]);
   EnergyFunction *energy = new EnergyFunction(dataterm,smoothnessterm);
 
   MRF *mrf;
-  mrf = new Expansion(superpixelnum, 2, energy);
+  mrf = new Expansion(superpixelnum, numlabels, energy);
 
+  //solve
+  mrf->initialize();
 
+  for(auto mapiter:pairmap){
+      pair<int,int> curpair = mapiter.first;
+      MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 1000 * smoothweight);
+      mrf->setNeighbors(curpair.first,curpair.second, weight);
+  }
+  
+  mrf->clearAnswer();
+
+  for(int i=0;i<superpixelnum;i++)
+      mrf->setLabel(i,0);
+
+  MRF::EnergyVal E;
+  E = mrf->totalEnergy();
+  printf("Energy at the Start= %d (%d,%d)\n",E,mrf->dataEnergy(),mrf->smoothnessEnergy());
+
+  float t;
+  cout<<"solving..."<<endl;
+  mrf->optimize(100,t);
+  E = mrf->totalEnergy();
+  printf("Energy at the end = %d (%d,%d) (%g secs)\n",E,mrf->dataEnergy(),mrf->smoothnessEnergy(),t);
+  
+  //copy the solution
+  superpixelLabel.clear();
+  superpixelLabel.resize(superpixelnum);
+  for(int i=0;i<superpixelnum;i++){
+      superpixelLabel[i] = mrf->getLabel(i);
+  }
   delete mrf;
   delete smoothnessterm;
   delete dataterm;
