@@ -51,8 +51,8 @@ int main(int argc, char **argv){
   ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
   //////////////////////////////////////
-  startid = 0;
-  endid = 1;
+  startid = 1;
+  endid = 2;
 
   for (int id=startid; id<endid; id++) {
     cout<<"======================="<<endl;
@@ -129,7 +129,7 @@ int main(int argc, char **argv){
       }
 
       
-#if 0
+#if 1
       cout<<"saving mask..."<<endl;
       //save the mask
       double minc = 1e100;
@@ -170,15 +170,20 @@ int main(int argc, char **argv){
 
       vector <int> superpixelLabel;
       cout<<"Optimizing..."<<endl;
-      MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB,  0.5, objectgroup[roomid].size(),superpixelLabel);
+      MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, 0.05, objectgroup[roomid].size(),superpixelLabel);
 
       //save optimize result
       Mat optimizeout = panorama.GetRGBImage().clone();
       for(int y=0;y<imgheight;y++){
 	  for(int x=0;x<imgwidth;x++){
 	      int curlabel = superpixelLabel[labels[y*imgwidth + x]];
-	      int colorid = curlabel % 15;
-	      Vec3b curpix = colortable[colorid] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
+	      int colorid = curlabel;
+	      Vec3b curpix;
+	      if(colorid <= 15)
+		  curpix = colortable[colorid] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
+	      else
+		  curpix = Vec3b((uchar)rand()%255,(uchar)rand()%255,(uchar)rand()%255);
+
 	      optimizeout.at<Vec3b>(y,x) = curpix;
 	  }
       }

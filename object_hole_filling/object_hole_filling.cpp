@@ -196,7 +196,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 }
 
 
-inline float gaussian(double x, double sigma){
+inline double gaussian(double x, double sigma){
   //  return 1.0/(sigma*std::sqrt(2*PI)) * std::exp(-1*(x*x/(2*sigma*sigma)));
   return std::exp(-1*(x*x/(2*sigma*sigma)));
 }
@@ -239,7 +239,8 @@ double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
-    return gaussian(colordiff.norm(),20);
+//    cout<<gaussian(colordiff.norm(),20)<<endl;
+    return max(gaussian(colordiff.norm(),20),0.1);
 }
 
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
@@ -308,13 +309,13 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
   vector<MRF::CostVal>smooth(numlabels * numlabels);
 
   for(int i=0;i<superpixelnum;i++){
-    for(int label=0;label<numlabels - 1;label++){
+    for(int label=0;label<numlabels;label++){
 	data[numlabels * i + label] = (MRF::CostVal)( gaussian((float)superpixelConfidence[label][i],1) * 1000);
-	for(int errlabel;errlabel<numlabels-1;errlabel++){
-	    if(errlabel == label)
-		continue;
-	    data[numlabels * i + label] += (MRF::CostVal)( (1.0 - gaussian((float)superpixelConfidence[errlabel][i],1) ) * 10);
-	}
+	// for(int errlabel;errlabel<numlabels-1;errlabel++){
+	//     if(errlabel == label)
+	// 	continue;
+	//      data[numlabels * i + label] += (MRF::CostVal)( (1.0 - gaussian((float)superpixelConfidence[errlabel][i],1) ) * 10);
+	// }
     }
     
 //    data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
