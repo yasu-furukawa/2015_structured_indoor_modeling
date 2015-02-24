@@ -23,6 +23,7 @@ namespace structured_indoor_modeling{
     //just for debugging
     void SaveDepthmap(std::string path);
     void SaveDepthFile(std::string path);
+    bool ReadDepthFromFile(std::string path);
     const std::vector<double>& GetDepthmap(){return depthmap;}
   private:
     std::vector <double> depthmap;

@@ -1,6 +1,10 @@
 #include "object_hole_filling.h"
-
+#include <numeric>
+#include <iostream>
+#include <iterator>
+#include <algorithm>
 #include <fstream>
+#include "gnuplot_i.hpp"
 
 using namespace std;
 using namespace cv;
@@ -227,7 +231,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     groupObject(curob, curgroup, curvolume);
     objectgroup.push_back(curgroup);
     objectVolume.push_back(curvolume);
-    break;
   }
 }
 
@@ -240,7 +243,7 @@ double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
 //    cout<<gaussian(colordiff.norm(),20)<<endl;
-    return max(gaussian(colordiff.norm(),20),0.1);
+    return max(gaussian(colordiff.norm(),50),0.1);
 }
 
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
@@ -311,26 +314,17 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
   for(int i=0;i<superpixelnum;i++){
     for(int label=0;label<numlabels;label++){
 	data[numlabels * i + label] = (MRF::CostVal)( gaussian((float)superpixelConfidence[label][i],1) * 1000);
-	// for(int errlabel;errlabel<numlabels-1;errlabel++){
-	//     if(errlabel == label)
-	// 	continue;
-	//      data[numlabels * i + label] += (MRF::CostVal)( (1.0 - gaussian((float)superpixelConfidence[errlabel][i],1) ) * 10);
-	// }
     }
-    
-//    data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
-    //  data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
   }
 
   for(int label1=0; label1<numlabels; label1++){
       for(int label2=0; label2<numlabels; label2++){
 	  if(label1 == label2){
-	      smooth[label1 * numlabels + label2] = 0;
-	      smooth[label2 * numlabels + label1] = 0;
+	    smooth[label1 * numlabels + label2] = 0;
 	  }
 	  else{
-	      smooth[label1 * numlabels + label2] = 1;
-	      smooth[label2 * numlabels + label1] = 1;
+	    smooth[label1 * numlabels + label2] = 1;
+	    smooth[label2 * numlabels + label1] = 1;
 	  }
       }
   }
@@ -345,7 +339,26 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
   //solve
   mrf->initialize();
 
-  for(auto mapiter:pairmap){
+#if 0
+  //statistics for colordiff
+  vector <double> colordiffarray;
+  for(const auto &mapiter:pairmap){
+    pair<int,int> curpair = mapiter.first;
+    double v = (double)mapiter.second * std::abs((averageRGB[curpair.first] - averageRGB[curpair.second]).norm());
+    colordiffarray.push_back(v);
+  }
+
+  double mean = std::accumulate(colordiffarray.begin(), colordiffarray.end(), 0.0) / (double)colordiffarray.size();
+  vector<double>diff(colordiffarray.size());
+  std::transform(colordiffarray.begin(),colordiffarray.end(),diff.begin(),std::bind2nd(std::minus<double>(),mean));
+  double var = std::sqrt(std::inner_product(diff.begin(),diff.end(),diff.begin(),0.0) / ((double)diff.size() - 1));
+  cout<<"size of array: "<<colordiffarray.size()<<' '<<"mean: "<<mean<<' '<<"variance: "<<var<<endl;
+  ofstream mystream("color.txt");
+  std::copy(colordiffarray.begin(),colordiffarray.end(),std::ostream_iterator<double>(mystream,"\n"));
+  mystream.close();
+#endif
+ 
+  for(const auto &mapiter:pairmap){
       pair<int,int> curpair = mapiter.first;
       MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 1000 * smoothweight);
       mrf->setNeighbors(curpair.first,curpair.second, weight);

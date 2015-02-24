@@ -2,6 +2,7 @@
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
 #include "../base/file_io.h"
+#include <fstream>
 
 using namespace std;
 using namespace Eigen;
@@ -168,7 +169,32 @@ namespace structured_indoor_modeling{
 
 
     void DepthFilling::SaveDepthFile(string path){
-      
+      ofstream depthout(path.c_str());
+      if(!depthin.is_open()){
+	printf("cannot open file to write: %s\n",path.c_str());
+	return;
+      }
+      if(depthmap.size() == 0 || depthmap.size()!=depthwidth*depthheight){
+	printf("error in depthmap, cannot save\n");
+	return;
+      }
+      depthout.write((char*)&depthwidth,sizeof(int));
+      depthout.write((char*)&depthheight,sizeof(int));
+      depthout.write((char*)&depthmap[0],depthmap.size()*sizeof(double));
     }
+
+
+  bool DepthFilling::ReadDepthFromFile(string path){
+    ifstream depthin(path.c_str());
+    if(!depthin.is_open())
+      return false;
+    depthin.read((char*)&depthwidth,sizeof(int));
+    depthin.read((char*)&depthheight,sizeof(int));
+    depthmap.clear();
+    depthmap.resize(depthwidth*depthheight);
+    depthin.read((char*)&depthmap[0],depthwidth*depthheight*sizeof(double));
+    depthin.close();
+  }
+  
  
 }//namespace
