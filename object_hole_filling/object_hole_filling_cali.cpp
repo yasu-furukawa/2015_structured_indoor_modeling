@@ -21,9 +21,9 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.08,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.1,"Weight of smoothness term");
 
-Vec3b colortable[] = {Vec3b((uchar)255,(uchar)0,(uchar)0), Vec3b((uchar)0,(uchar)255,(uchar)0), Vec3b((uchar)0,(uchar)0,(uchar)255), Vec3b((uchar)255,(uchar)255,(uchar)0), Vec3b((uchar)255,(uchar)0,(uchar)255), Vec3b((uchar)0,(uchar)255,(uchar)255), Vec3b((uchar)128,(uchar)0,(uchar)0), Vec3b((uchar)0,(uchar)128,(uchar)0), Vec3b((uchar)0,(uchar)0,(uchar)128), Vec3b((uchar)128,(uchar)128,(uchar)0), Vec3b((uchar)128,(uchar)0,(uchar)128), Vec3b((uchar)0,(uchar)128,(uchar)128), Vec3b((uchar)255,(uchar)128,(uchar)128),Vec3b((uchar)128,(uchar)255,(uchar)128),Vec3b((uchar)128,(uchar)128,(uchar)255)};
+Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255), Vec3b(128,0,0), Vec3b(0,128,0), Vec3b(0,0,128), Vec3b(128,128,0), Vec3b(128,0,128), Vec3b(0,128,128), Vec3b(255,128,128),Vec3b(128,255,128),Vec3b(128,128,255)};
 
 
 int main(int argc, char **argv){
@@ -34,6 +34,7 @@ int main(int argc, char **argv){
   }
   //get path to data
   char pathtodata[100];
+  char buffer[100];
   int startid, endid;
   ifstream confin(FLAGS_config_path.c_str());
   confin.getline(pathtodata,100);
@@ -52,9 +53,9 @@ int main(int argc, char **argv){
   ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
   //////////////////////////////////////
-  startid = 0;
-  endid = 16;
-
+  PointCloud resultCloud;
+  
+  //////////////////////////////////////
   for (int id=startid; id<endid; id++) {
     cout<<"======================="<<endl;
     //reading point cloud and convert to depth
@@ -71,18 +72,22 @@ int main(int argc, char **argv){
     //Get depthmap
     cout<<"Processing depth map..."<<endl;
     DepthFilling depth;
-    depth.Init(curpc, panorama);
-    depth.SaveDepthmap("./depth.png");
-    depth.fill_hole(panorama);
-    depth.SaveDepthmap("./depth_denoise.png");
+    sprintf(buffer,"depth/panorama%03d.depth",id);
+    if(!depth.ReadDepthFromFile(string(buffer))){
+	depth.Init(curpc, panorama);
+	depth.fill_hole(panorama);
+	depth.SaveDepthFile(string(buffer));
+    }
+    sprintf(buffer,"depth/panoramaDepth%03d.png",id);
+    depth.SaveDepthmap(string(buffer));
 
     int imgwidth = panorama.Width();
     int imgheight = panorama.Height();
     int numlabels(0);
     vector<int> labels(imgwidth*imgheight);
-    char buffer[100];
+    
 
-    sprintf(buffer,"superpixel/SLIC%03d.txt",id);
+    sprintf(buffer,"superpixel/SLIC%03d",id);
     ifstream labelin(buffer, ios::binary);
     if(!labelin.is_open()){
 	cout<<"Performing SLICO Superpixel..."<<endl;
@@ -93,7 +98,7 @@ int main(int argc, char **argv){
 	slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[0],numlabels,FLAGS_label_num,0.0);
 	slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[0],imgwidth,imgheight);
 
-	sprintf(buffer,"superpixel/SLIC%03d.txt",id);
+	sprintf(buffer,"superpixel/SLIC%03d",id);
 	slic.SaveSuperpixelLabels(&labels[0],imgwidth,imgheight,numlabels," ",string(buffer));
 	cout<<"numlabels: "<<numlabels<<endl;
 	Mat out;
@@ -130,7 +135,7 @@ int main(int argc, char **argv){
       for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
 	getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence[groupid], numlabels);
       }
-#if 1
+#if 0
       cout<<"saving mask..."<<endl;
       //save the mask
       double minc = 1e100;
@@ -166,6 +171,7 @@ int main(int argc, char **argv){
       cout<<"Optimizing..."<<endl;
       MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel);
 
+#if 1
       //save optimize result
       Mat optimizeout = panorama.GetRGBImage().clone();
       for(int y=0;y<imgheight;y++){
@@ -184,10 +190,17 @@ int main(int argc, char **argv){
       sprintf(buffer,"object_project/optimize_pan%03d_room%03d.png",id,roomid);
       imwrite(buffer,optimizeout);
       waitKey(10);
+#endif
 
+      //back project
+      cout<<"Back projecting..."<<endl;
+      BackProjectObject(panorama,depth.GetDepthmap(), superpixelLabel, labelgroup, resultCloud);
     }
   }
 
+  /////////////////////////////
+  cout<<endl<<"All done! Saving result..."<<endl;
+  resultCloud.Write("result.ply");
   return 0;
 }
 

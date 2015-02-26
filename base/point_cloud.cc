@@ -12,6 +12,15 @@ namespace structured_indoor_modeling {
 const int PointCloud::kDepthPositionOffset = 1;
 
 PointCloud::PointCloud() {
+    boundingbox.resize(6);
+    center.resize(3);
+    boundingbox[0] = 1e100; boundingbox[2] = 1e100; boundingbox[4] = 1e100;
+    boundingbox[1] = -1e100; boundingbox[3] = -1e100; boundingbox[5] = -1e100;
+    depth_width = 0;
+    depth_height = 0;
+    num_objects = 0;
+    has_object_id = true;
+    center[0] = 0; center[1] = 0; center[2] = 0;
 }
 
 bool PointCloud::Init(const FileIO& file_io, const int panorama) {
@@ -49,9 +58,11 @@ bool PointCloud::Init(const std::string& filename) {
     
   depth_width = 0;
   depth_height = 0;
-  boundingbox.resize(6);
   boundingbox[0] = 1e100;  boundingbox[1] = -1e100; boundingbox[2] = 1e100; boundingbox[3] = -1e100;
   boundingbox[4] = 1e100; boundingbox[5] = -1e100;
+
+  
+  points.clear();
   points.resize(num_points);
 
   const int kInvalidObjectId = -1;
@@ -184,7 +195,34 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Transform(local_to_global);
 }
 
+void PointCloud::AddPoints(const PointCloud& point_cloud){
+    points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
+    num_objects += point_cloud.GetNumObjects();
+}
 
+//add an array of Point to the point cloud. Update each member variable
+void PointCloud::AddPoints(const vector<Point>& new_points){
+    int orilength = points.size();
+    center = center * (double)orilength;
+    int oriobjectnum = num_objects;
+    points.insert(points.end(), new_points.begin(), new_points.end());
+    for(int i=orilength;i<points.size();i++){
+	points[i].object_id += oriobjectnum;
+	center += points[i].position;
+	num_objects = std::max(num_objects, points[i].object_id);
+	depth_width = std::max(depth_width,points[i].depth_position[0]);
+	depth_height = std::max(depth_height,points[i].depth_position[1]);
+	boundingbox[0] = std::min(boundingbox[0],points[i].position[0]);
+	boundingbox[1] = std::max(boundingbox[1],points[i].position[0]);
+	boundingbox[2] = std::min(boundingbox[2],points[i].position[1]);
+	boundingbox[3] = std::max(boundingbox[3],points[i].position[1]);
+	boundingbox[4] = std::min(boundingbox[4],points[i].position[2]);
+	boundingbox[5] = std::max(boundingbox[5],points[i].position[2]);
+    }
+    center = center / (double)points.size();
+}
+
+    
 double PointCloud::GetBoundingboxVolume(){
   if(boundingbox.size() == 0)
     return 0;

@@ -76,10 +76,12 @@ namespace structured_indoor_modeling{
     }
     
      void DepthFilling::fill_hole(const Panorama& panorama){
+	 printf("Performing depth impainting...\n");
 	 int invalidnum= 0;
 
 	 //invalidcoord: size of invalidnum
 	 //invalidindx: size of depthnum
+	 
 	 vector <int> invalidcoord;
 	 vector <int> invalidindex(depthmap.size());
 	 
@@ -170,7 +172,7 @@ namespace structured_indoor_modeling{
 
     void DepthFilling::SaveDepthFile(string path){
       ofstream depthout(path.c_str());
-      if(!depthin.is_open()){
+      if(!depthout.is_open()){
 	printf("cannot open file to write: %s\n",path.c_str());
 	return;
       }
@@ -180,6 +182,8 @@ namespace structured_indoor_modeling{
       }
       depthout.write((char*)&depthwidth,sizeof(int));
       depthout.write((char*)&depthheight,sizeof(int));
+      depthout.write((char*)&min_depth,sizeof(double));
+      depthout.write((char*)&max_depth,sizeof(double));
       depthout.write((char*)&depthmap[0],depthmap.size()*sizeof(double));
     }
 
@@ -188,12 +192,17 @@ namespace structured_indoor_modeling{
     ifstream depthin(path.c_str());
     if(!depthin.is_open())
       return false;
+    printf("Read depth from file!\n");
     depthin.read((char*)&depthwidth,sizeof(int));
     depthin.read((char*)&depthheight,sizeof(int));
+    depthin.read((char*)&min_depth,sizeof(double));
+    depthin.read((char*)&max_depth,sizeof(double));
     depthmap.clear();
     depthmap.resize(depthwidth*depthheight);
     depthin.read((char*)&depthmap[0],depthwidth*depthheight*sizeof(double));
     depthin.close();
+
+    return true;
   }
   
  

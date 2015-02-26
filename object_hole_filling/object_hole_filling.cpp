@@ -4,7 +4,6 @@
 #include <iterator>
 #include <algorithm>
 #include <fstream>
-#include "gnuplot_i.hpp"
 
 using namespace std;
 using namespace cv;
@@ -89,26 +88,6 @@ bool visibilityTest(const structured_indoor_modeling::Point &pt, const structure
 
 
 int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup, vector<double>&objectVolume){
-  // int objectnum = 0;
-  // vector <Vector3f> colors;
-  // int totalnum = point_cloud.GetNumPoints();
-  // for(int i=0;i<point_cloud.GetNumPoints();++i){
-  //   structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
-  //   Vector3f curcolor = curpt.color;
-  //   bool flag = true;
-  //   for(int j=0;j<colors.size();++j){
-  //     if(curcolor == colors[j]){
-  // 	objectgroup[j].push_back(i);
-  // 	flag = false;
-  //     }
-  //   }
-  //   if(flag){
-  //     objectgroup.resize(objectgroup.size() + 1);
-  //     objectgroup.back().push_back(i);
-  //     colors.push_back(curcolor);
-  //     objectnum++;
-  //   }
-  // }
 
   objectgroup.resize(point_cloud.GetNumObjects());
   objectVolume.resize(point_cloud.GetNumObjects());
@@ -231,6 +210,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     groupObject(curob, curgroup, curvolume);
     objectgroup.push_back(curgroup);
     objectVolume.push_back(curvolume);
+    break;
   }
 }
 
@@ -390,3 +370,36 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
   delete dataterm;
   
 }
+
+
+void BackProjectObject(const Panorama &panorama, const vector<double>&depth, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &objectcloud){
+    int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
+    vector<structured_indoor_modeling::Point>pointtoadd;
+
+    int imgwidth = panorama.Width();
+    int imgheight = panorama.Height();
+    int depthwidth = panorama.DepthWidth();
+    int depthheight = panorama.DepthHeight();
+    
+    for(int superpixelid=0; superpixelid<segmentation.size(); superpixelid++){
+	if(segmentation[superpixelid] < backgroundlabel){   //object
+	    for(int pixelid=0; pixelid<labelgroup[superpixelid].size(); pixelid++){
+		int pix = labelgroup[superpixelid][pixelid];
+		Vector2d pixloc((double)(pix % imgwidth), (double)(pix / imgwidth));
+		Vector2d depthloc = panorama.RGBToDepth(pixloc);
+		Vector3d worldcoord = panorama.Unproject(pixloc, depth[(int)(depthloc[0]+depthloc[1]*depthwidth)]);
+		structured_indoor_modeling::Point curpt;
+		curpt.position = worldcoord;
+		curpt.color = panorama.GetRGB(pixloc);
+		curpt.depth_position = Vector2i(0,0);
+		curpt.normal = Vector3d(0,0,0);
+		curpt.intensity = 0.0;
+		curpt.object_id = segmentation[superpixelid];
+		pointtoadd.push_back(curpt);
+	    }
+	}
+    }
+    objectcloud.AddPoints(pointtoadd);
+}
+
+
