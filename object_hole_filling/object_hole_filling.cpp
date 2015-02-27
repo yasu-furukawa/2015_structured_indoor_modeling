@@ -210,7 +210,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     groupObject(curob, curgroup, curvolume);
     objectgroup.push_back(curgroup);
     objectVolume.push_back(curvolume);
-    break;
   }
 }
 
@@ -223,7 +222,7 @@ double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
 //    cout<<gaussian(colordiff.norm(),20)<<endl;
-    return max(gaussian(colordiff.norm(),50),0.1);
+    return max(gaussian(colordiff.norm(),80),0.1);
 }
 
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
@@ -372,10 +371,10 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 }
 
 
-void BackProjectObject(const Panorama &panorama, const vector<double>&depth, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &objectcloud){
+void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &objectcloud){
     int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
     vector<structured_indoor_modeling::Point>pointtoadd;
-
+    
     int imgwidth = panorama.Width();
     int imgheight = panorama.Height();
     int depthwidth = panorama.DepthWidth();
@@ -387,10 +386,16 @@ void BackProjectObject(const Panorama &panorama, const vector<double>&depth, con
 		int pix = labelgroup[superpixelid][pixelid];
 		Vector2d pixloc((double)(pix % imgwidth), (double)(pix / imgwidth));
 		Vector2d depthloc = panorama.RGBToDepth(pixloc);
-		Vector3d worldcoord = panorama.Unproject(pixloc, depth[(int)(depthloc[0]+depthloc[1]*depthwidth)]);
+		Vector3f curcolor = panorama.GetRGB(pixloc);
+		double depthv = depth.GetDepth(depthloc[0],depthloc[1]);
+		if(curcolor.norm() == 0 || depthv < 0)
+		    continue;
+
+		Vector3d worldcoord = panorama.Unproject(pixloc, depthv);
+		//Vector3d worldcoord = panorama.Unproject(pixloc,panorama.GetDepth(depthloc));
 		structured_indoor_modeling::Point curpt;
 		curpt.position = worldcoord;
-		curpt.color = panorama.GetRGB(pixloc);
+		curpt.color = curcolor;
 		curpt.depth_position = Vector2i(0,0);
 		curpt.normal = Vector3d(0,0,0);
 		curpt.intensity = 0.0;

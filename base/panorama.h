@@ -76,7 +76,7 @@ public:
   // Performs bilinear interpolation.
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
-  const cv::Mat GetRGBImage(){return rgb_image;}
+  const cv::Mat GetRGBImage() const{return rgb_image;} 
   double GetPhiRange() const;
   double GetPhiPerPixel() const;
   Eigen::Matrix4d GetGlobalToLocal() const;

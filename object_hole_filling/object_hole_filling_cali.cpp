@@ -53,7 +53,7 @@ int main(int argc, char **argv){
   ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
   //////////////////////////////////////
-  PointCloud resultCloud;
+
   
   //////////////////////////////////////
   for (int id=startid; id<endid; id++) {
@@ -68,6 +68,8 @@ int main(int argc, char **argv){
     cout<<"reading pnaorama  point cloud..."<<endl;
     curpc.Init(file_io, id);
     curpc.ToGlobal(file_io, id);
+
+    PointCloud resultCloud;
     
     //Get depthmap
     cout<<"Processing depth map..."<<endl;
@@ -194,13 +196,13 @@ int main(int argc, char **argv){
 
       //back project
       cout<<"Back projecting..."<<endl;
-      BackProjectObject(panorama,depth.GetDepthmap(), superpixelLabel, labelgroup, resultCloud);
+      BackProjectObject(panorama,depth, superpixelLabel, labelgroup, resultCloud);
+      /////////////////////////////
+      cout<<endl<<"All done! Saving result..."<<endl;
+      sprintf(buffer,"object/result%03d.ply",id);
+      resultCloud.Write(string(buffer));
     }
   }
-
-  /////////////////////////////
-  cout<<endl<<"All done! Saving result..."<<endl;
-  resultCloud.Write("result.ply");
   return 0;
 }
 
