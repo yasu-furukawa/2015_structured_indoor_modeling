@@ -26,18 +26,20 @@ if (WIN32)
 	link_directories("C:\\gflags-2.1.1\\lib")	
 endif (WIN32)
 
-add_executable( generate_texture_cli generate_texture_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
+add_executable( generate_texture_cli generate_texture_cli.cc
+generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/geometry.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
 target_link_libraries( generate_texture_cli ${OpenCV_LIBS} )
 # TARGET_LINK_LIBRARIES( generate_texture_cli ceres )
 TARGET_LINK_LIBRARIES( generate_texture_cli gflags )
 # TARGET_LINK_LIBRARIES( generate_texture_cli glog )
 
-add_executable( color_point_cloud_cli color_point_cloud_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc ../base/kdtree/KDtree.cc )
+add_executable( color_point_cloud_cli color_point_cloud_cli.cc
+generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/geometry.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc ../base/kdtree/KDtree.cc )
 target_link_libraries( color_point_cloud_cli ${OpenCV_LIBS} )
 # TARGET_LINK_LIBRARIES( color_point_cloud_cli ceres )
 TARGET_LINK_LIBRARIES( color_point_cloud_cli gflags )
 # TARGET_LINK_LIBRARIES( color_point_cloud_cli glog )
 
-add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc ../base/floorplan.cc ../base/panorama.cc )
+add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc ../base/floorplan.cc ../base/geometry.cc ../base/panorama.cc )
 target_link_libraries( generate_thumbnail_cli ${OpenCV_LIBS} )
 target_link_libraries( generate_thumbnail_cli gflags )

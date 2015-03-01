@@ -67,9 +67,10 @@
 #include <string>
 #include <vector>
 
+#include "geometry.h"
+
 namespace structured_indoor_modeling {
 
-struct Triangle;
 struct WallTriangulation;
 struct FloorCeilingTriangulation;
 struct LineDoorFace;
@@ -189,14 +190,6 @@ std::ostream& operator<<(std::ostream& ostr, const Floorplan& floorplan);
 // Data structure details. One should not really understand these to
 // use this class.
 //----------------------------------------------------------------------
-struct Triangle {
-  // Vertex indices.
-  Eigen::Vector3i indices;
-  // Texture image index.
-  int image_index;
-  // UV coordinate.
-  Eigen::Vector2d uvs[3];
-};
 
 // Wall triangulation needs to store the vertex information.
 struct WallTriangulation {
