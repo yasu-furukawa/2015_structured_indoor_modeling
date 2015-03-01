@@ -39,7 +39,9 @@ class IndoorPolygon {
   IndoorPolygon();
   IndoorPolygon(const std::string& filename);
 
-  int GetNumSegments();
+  int GetNumSegments() { return segments.size(); }
+  const Segment& GetSegment(const int segment) const { return segments[segment]; }
+  Segment& GetSegment(const int segment) { return segments[segment]; }
   
  private:
   Eigen::Matrix4d floorplan_to_global;

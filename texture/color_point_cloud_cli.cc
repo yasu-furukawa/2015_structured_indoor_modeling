@@ -15,7 +15,7 @@
 #include "../base/file_io.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
-#include "generate_texture.h"
+#include "generate_texture_floorplan.h"
 
 using namespace Eigen;
 using namespace std;

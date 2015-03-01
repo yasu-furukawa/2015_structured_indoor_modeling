@@ -137,9 +137,15 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
   ostr << static_cast<int>(segment.vertices.size()) << ' '
        << static_cast<int>(segment.triangles.size()) << endl;
 
-    
-      
+  for (const auto& vertex : segment.vertices) {
+    ostr << vertex[0] << ' ' << vertex[1] << ' ' << vertex[2] << endl;
+  }
 
+  for (const auto& triangle : segment.triangles) {
+    ostr << triangle << endl;
+  }
+      
+  return ostr;
 }
   
 std::istream& operator>>(std::istream& istr, IndoorPolygon& indoor_polygon) {
@@ -164,8 +170,19 @@ std::istream& operator>>(std::istream& istr, IndoorPolygon& indoor_polygon) {
 }
   
 std::ostream& operator<<(std::ostream& ostr, const IndoorPolygon& indoor_polygon) {
+  ostr << "INDOOR_POLYGON" << endl;
+  for (int y = 0; y < 4; ++y) {
+    for (int x = 0; x < 4; ++x) {
+      ostr << indoor_polygon.floorplan_to_global(y, x) << ' ';
+    }
+    ostr << endl;
+  }
+  ostr << indoor_polygon.GetNumSegments() << endl;
+  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+    ostr << indoor_polygon.GetSegment(s) << endl;
+  }
   
-
+  return ostr;
 }  
 
 }  // namespace structured_indoor_modeling
