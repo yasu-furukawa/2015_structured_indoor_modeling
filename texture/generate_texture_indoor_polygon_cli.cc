@@ -80,7 +80,12 @@ int main(int argc, char* argv[]) {
   
   vector<Patch> patches(indoor_polygon.GetNumSegments());
   for (int p = 0; p < patches.size(); ++p) {
-    SetPatch(texture_input, indoor_polygon.GetSegment(p), &patches[p]);
+    const Segment& segment = indoor_polygon.GetSegment(p);
+    bool visibility_check = false;
+    if (segment.type == Segment::FLOOR) {
+      visibility_check = true;
+    }
+    SetPatch(texture_input, segment, visibility_check, &patches[p]);
   }
 
   // Texture image.

@@ -17,6 +17,7 @@
 #ifndef FILE_IO_H__
 #define FILE_IO_H__
 #include <stdio.h>
+#include <string>
 namespace structured_indoor_modeling {
 
 class FileIO {
@@ -99,6 +100,11 @@ class FileIO {
     return buffer;
   }
 
+  std::string GetTextureImageIndoorPolygon(const int index) const {
+    sprintf(buffer, "%s/texture_atlas/texture_image_indoor_polygon_%03d.png", data_directory.c_str(), index);
+    return buffer;
+  }
+  
   std::string GetRoomThumbnail(const int room) const {
     sprintf(buffer, "%s/thumbnail/room_thumbnail%03d.png", data_directory.c_str(), room);
     return buffer;

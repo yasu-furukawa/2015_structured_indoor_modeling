@@ -21,7 +21,7 @@ struct Patch {
   // patch zaxis is the normal.
   
   // Axis aligned bounding box.
-  Eigen::Vector3d patch_axes[3];
+  Eigen::Vector3d axes[3];
 
   Eigen::Vector3d vertices[4];
   Eigen::Vector2i texture_size;
@@ -35,8 +35,8 @@ struct Patch {
     const double x_length = (vertices[1] - vertices[0]).norm();
     const double y_length = (vertices[3] - vertices[0]).norm();
     
-    return Eigen::Vector2d(std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(patch_axes[0]) / x_length)),
-                           std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(patch_axes[1]) / y_length)));
+    return Eigen::Vector2d(std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(axes[0]) / x_length)),
+                           std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(axes[1]) / y_length)));
   }
 
   Eigen::Vector2d UVToTexture(const Eigen::Vector2d& uv) const {
@@ -59,6 +59,7 @@ struct TextureInput {
 
 void SetPatch(const TextureInput& texture_input,
               const Segment& segment,
+              const bool visibility_check,
               Patch* patch);
 
 void PackTexture(const Patch& patch,
