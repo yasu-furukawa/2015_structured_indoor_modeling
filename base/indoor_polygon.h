@@ -42,9 +42,13 @@ class IndoorPolygon {
   int GetNumSegments() { return segments.size(); }
   const Segment& GetSegment(const int segment) const { return segments[segment]; }
   Segment& GetSegment(const int segment) { return segments[segment]; }
+
+  Eigen::Vector3d FloorplanToGlobal(const Eigen::Vector3d& floorplan) const;
+  Eigen::Vector3d GlobalToFloorplan(const Eigen::Vector3d& global) const;
   
  private:
   Eigen::Matrix4d floorplan_to_global;
+  Eigen::Matrix4d global_to_floorplan;
   std::vector<Segment> segments;
 };
 

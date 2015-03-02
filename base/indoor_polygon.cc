@@ -5,6 +5,24 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+Eigen::Vector3d IndoorPolygon::FloorplanToGlobal(const Eigen::Vector3d& floorplan) const {
+  Eigen::Vector4d coord(floorplan[0],
+                        floorplan[1],
+                        floorplan[2],
+                        1.0);
+  coord = floorplan_to_global * coord;
+  return Eigen::Vector3d(coord[0], coord[1], coord[2]);
+}
+
+Eigen::Vector3d IndoorPolygon::GlobalToFloorplan(const Eigen::Vector3d& global) const {
+  Eigen::Vector4d coord(global[0],
+                        global[1],
+                        global[2],
+                        1.0);
+  coord = global_to_floorplan * coord;
+  return Eigen::Vector3d(coord[0], coord[1], coord[2]);
+}  
+
 std::istream& operator>>(std::istream& istr, Segment& segment) {
   string header;
   istr >> header;
@@ -157,6 +175,18 @@ std::istream& operator>>(std::istream& istr, IndoorPolygon& indoor_polygon) {
     }
   }
 
+  {
+    Matrix3d rotation = indoor_polygon.floorplan_to_global.block(0, 0, 3, 3);
+
+    indoor_polygon.global_to_floorplan.block(0, 0, 3, 3) = rotation.transpose();
+    indoor_polygon.global_to_floorplan.block(0, 3, 3, 1) =
+      - rotation.transpose() * indoor_polygon.floorplan_to_global.block(0, 3, 3, 1);
+    indoor_polygon.global_to_floorplan(3, 0) = 0.0;
+    indoor_polygon.global_to_floorplan(3, 1) = 0.0;
+    indoor_polygon.global_to_floorplan(3, 2) = 0.0;
+    indoor_polygon.global_to_floorplan(3, 3) = 1.0;
+  }
+  
   int num_segments;
   istr >> num_segments;
   indoor_polygon.segments.clear();
