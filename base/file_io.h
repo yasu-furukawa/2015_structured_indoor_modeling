@@ -85,6 +85,14 @@ class FileIO {
     sprintf(buffer, "%s/floorplan.svg", data_directory.c_str());
     return buffer;
   }
+  std::string GetIndoorPolygon() const {
+    sprintf(buffer, "%s/indoor_polygon.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetIndoorPolygonFinal() const {
+    sprintf(buffer, "%s/indoor_polygon_final.txt", data_directory.c_str());
+    return buffer;
+  }  
 
   std::string GetTextureImage(const int index) const {
     sprintf(buffer, "%s/texture_atlas/texture_image_%03d.png", data_directory.c_str(), index);
