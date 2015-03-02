@@ -27,21 +27,10 @@ struct Patch {
   Eigen::Vector2i texture_size;
   std::vector<unsigned char> texture;
 
-  Eigen::Vector3d UVToManhattan(const Eigen::Vector2d& uv) const {
-    return vertices[0] + uv[0] * (vertices[1] - vertices[0]) + uv[1] * (vertices[3] - vertices[0]);
-  }
-
-  Eigen::Vector2d ManhattanToUV(const Eigen::Vector3d& manhattan) const {
-    const double x_length = (vertices[1] - vertices[0]).norm();
-    const double y_length = (vertices[3] - vertices[0]).norm();
-    
-    return Eigen::Vector2d(std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(axes[0]) / x_length)),
-                           std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(axes[1]) / y_length)));
-  }
-
-  Eigen::Vector2d UVToTexture(const Eigen::Vector2d& uv) const {
-    return Eigen::Vector2d(texture_size[0] * uv[0], texture_size[1] * uv[1]);
-  }
+  Eigen::Vector3d UVToManhattan(const Eigen::Vector2d& uv) const;
+  Eigen::Vector2d ManhattanToUV(const Eigen::Vector3d& manhattan) const;
+  Eigen::Vector2d UVToTexture(const Eigen::Vector2d& uv) const;
+  Eigen::Vector2d TextureToUV(const Eigen::Vector2d& texture) const;
 };
   
 // Input data from cli.cc.
@@ -55,8 +44,13 @@ struct TextureInput {
   double position_error_for_floor;
   double patch_size_for_synthesis;
   int num_cg_iterations;
+
+  double texel_unit;
 };
 
+double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
+                        const int target_texture_size_for_vertical);
+ 
 void SetPatch(const TextureInput& texture_input,
               const Segment& segment,
               const bool visibility_check,

@@ -6,6 +6,31 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+Eigen::Vector3d Patch::UVToManhattan(const Eigen::Vector2d& uv) const {
+  return vertices[0] + uv[0] * (vertices[1] - vertices[0]) + uv[1] * (vertices[3] - vertices[0]);
+}
+
+Eigen::Vector2d Patch::ManhattanToUV(const Eigen::Vector3d& manhattan) const {
+  const double x_length = (vertices[1] - vertices[0]).norm();
+  const double y_length = (vertices[3] - vertices[0]).norm();
+  
+  return Eigen::Vector2d(std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(axes[0]) / x_length)),
+                         std::max(0.0, std::min(1.0, (manhattan - vertices[0]).dot(axes[1]) / y_length)));
+}
+  
+Eigen::Vector2d Patch::UVToTexture(const Eigen::Vector2d& uv) const {
+  return Eigen::Vector2d(texture_size[0] * uv[0], texture_size[1] * uv[1]);
+}
+  
+Eigen::Vector2d Patch::TextureToUV(const Eigen::Vector2d& texture) const {
+  return Eigen::Vector2d(texture[0] / texture_size[0], texture[1] / texture_size[1]);
+}
+
+double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
+                        const int target_texture_size_for_vertical) {
+  return 0.0;
+}
+  
 void SetPatch(const TextureInput& texture_input,
               const Segment& segment,
               const bool visibility_check,
@@ -59,9 +84,31 @@ void SetPatch(const TextureInput& texture_input,
   }
 
   // Set vertices.
+  Vector3d min_xyz, max_xyz;
+  for (int v = 0; v < segment.vertices.size(); ++v) {
+    for (int i = 0; i < 3; ++i) {
+      const double offset = segment.vertices[v].dot(patch->axes[i]);
+      if (v == 0) {
+        min_xyz[i] = max_xyz[i] = offset;
+      } else {
+        min_xyz[i] = min(min_xyz[i], offset);
+        max_xyz[i] = max(max_xyz[i], offset);
+      }
+    }
+  }
+  if (min_xyz[2] != max_xyz[2]) {
+    cerr << "Impossible: " << min_xyz[2] << ' ' << max_xyz[2] << endl;
+  }
+  const double z = min_xyz[2];
 
-
+  patch->vertices[0] = Vector3d(min_xyz[0], min_xyz[1], z);
+  patch->vertices[1] = Vector3d(max_xyz[0], min_xyz[1], z);
+  patch->vertices[2] = Vector3d(max_xyz[0], max_xyz[1], z);
+  patch->vertices[3] = Vector3d(min_xyz[0], max_xyz[1], z);
+  
   // Set texture_size.
+  //texture_input....
+  
 }
 
 void PackTexture(const Patch& patch,

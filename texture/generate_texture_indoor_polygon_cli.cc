@@ -20,6 +20,8 @@ DEFINE_int32(start_panorama, 0, "First panorama id.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 DEFINE_int32(pyramid_level, 1, "Level of pyramid for floor texture.");
 DEFINE_int32(max_texture_size_per_non_floor_patch, 1024, "Maximum texture size for each wall patch.");
+DEFINE_int32(target_texture_size_for_vertical, 256, "How many texture pixels between floor and ceiling.");
+
 DEFINE_double(position_error_for_floor, 0.08, "How much error is allowed for a point to be on a floor.");
 
 // The following flags should be rescaled together. They are sensitive.
@@ -77,6 +79,7 @@ int main(int argc, char* argv[]) {
     texture_input.patch_size_for_synthesis = FLAGS_patch_size_for_synthesis;
     texture_input.num_cg_iterations        = FLAGS_num_cg_iterations;
   }
+  texture_input.texel_unit = ComputeTexelUnit(indoor_polygon, FLAGS_target_texture_size_for_vertical);
   
   vector<Patch> patches(indoor_polygon.GetNumSegments());
   for (int p = 0; p < patches.size(); ++p) {
