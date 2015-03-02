@@ -206,7 +206,7 @@ namespace structured_indoor_modeling{
   }
   
 
-    inline double DepthFilling::GetDepth(int x,int y) const{
+    double DepthFilling::GetDepth(int x,int y) const{
 	if(x>=0 && x<depthwidth && y>=0 && y<depthheight)
 	    return depthmap[x+y*depthwidth];
 	else
@@ -218,11 +218,24 @@ namespace structured_indoor_modeling{
 	    return -1;
 	int xl = floor(x); int xh = ceil(x);
 	int yl = floor(y); int yh = ceil(y);
+	
 	double weight0 = ((double)xh - x) * ((double)yh - y);
 	double weight1 = (x - (double)xl) * ((double)yh - y);
 	double weight2 = (x - (double)xl) * (y - (double)yl);
 	double weight3 = ((double)xh - x) * (y - (double)yl);
-	double res = weight0 * GetDepth(xl,yl) + weight1 * GetDepth(xh,yl) + weight2 * GetDepth(xh,yh) + weight3 * GetDepth(xl,yh);
+	if(GetDepth(xl,yl) < 0)
+	    weight0 = 0;
+	if(GetDepth(xh,yl) < 0)
+	    weight1 = 0;
+	if(GetDepth(xh,yh) < 0)
+	    weight2 = 0;
+	if(GetDepth(xl,yh) < 0)
+	    weight3 = 0;
+
+	double sumweight = weight0+weight1+weight2+weight3;
+	if(sumweight == 0)
+	    return -1;
+	double res = weight0 * GetDepth(xl,yl) + weight1 * GetDepth(xh,yl) + weight2 * GetDepth(xh,yh) + weight3 * GetDepth(xl,yh) / sumweight;
 	return res;
     }
 }//namespace
