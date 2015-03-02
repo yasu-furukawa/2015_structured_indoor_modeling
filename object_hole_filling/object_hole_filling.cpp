@@ -225,6 +225,11 @@ double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     return max(gaussian(colordiff.norm(),80),0.1);
 }
 
+double depthDiffFunc(int pix1,int pix2, const DepthFilling &depth, const pair<int,int> &pair){
+    double res = 0.0;
+    return res;
+}
+
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
   int superpixelnum = superpixelConfidence.size();
   vector<MRF::CostVal>data(superpixelnum * 2);
@@ -283,7 +288,7 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 }
 
 
-void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int>& superpixelLabel){
+void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, const DepthFilling &depth, float smoothweight, int numlabels, vector <int>& superpixelLabel){
 
   int superpixelnum = superpixelConfidence[0].size();
 
@@ -387,6 +392,9 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, cons
 		Vector2d pixloc((double)(pix % imgwidth), (double)(pix / imgwidth));
 		Vector2d depthloc = panorama.RGBToDepth(pixloc);
 		Vector3f curcolor = panorama.GetRGB(pixloc);
+		float temp = curcolor[2];
+		curcolor[2] = curcolor[0];
+		curcolor[0] = temp;
 		double depthv = depth.GetDepth(depthloc[0],depthloc[1]);
 		if(curcolor.norm() == 0 || depthv < 0)
 		    continue;

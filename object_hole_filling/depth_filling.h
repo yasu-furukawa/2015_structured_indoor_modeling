@@ -24,7 +24,7 @@ namespace structured_indoor_modeling{
     void SaveDepthmap(std::string path);
     void SaveDepthFile(std::string path);
     double GetDepth(double x,double y) const;
-    inline double GetDepth(int x,int y) const;
+    double GetDepth(int x,int y) const;
     bool ReadDepthFromFile(std::string path);
     const std::vector<double>& GetDepthmap() const{return depthmap;}
   private:

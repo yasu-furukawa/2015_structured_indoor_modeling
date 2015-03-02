@@ -119,7 +119,11 @@ class FileIO {
   std::string GetFloorWallPointClouds(const int room) const {
     sprintf(buffer, "%s/object/floor_wall_%03d.ply", data_directory.c_str(), room);
     return buffer;
-  }    
+  }
+  std::string GetRefinedObjectClouds(const int room) const{
+    sprintf(buffer, "%s/object/object_refined_room%03d.ply",data_directory.c_str(),room);
+    return buffer;
+  }
   
  private:
   const std::string data_directory;
