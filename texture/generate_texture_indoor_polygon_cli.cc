@@ -14,20 +14,20 @@
 #include "../base/floorplan.h"
 #include "../base/panorama.h"
 #include "generate_texture.h"
+#include "generate_texture_indoor_polygon.h"
 
 DEFINE_int32(start_panorama, 0, "First panorama id.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
-DEFINE_int32(pyramid_level_for_floor, 1, "Level of pyramid for floor texture.");
-DEFINE_int32(max_texture_size_per_wall_patch, 1024, "Maximum texture size for each wall patch.");
-DEFINE_int32(texture_height_per_wall, 512, "Texture height for each wall patch.");
-DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
-
+DEFINE_int32(pyramid_level, 1, "Level of pyramid for floor texture.");
+DEFINE_int32(max_texture_size_per_non_floor_patch, 1024, "Maximum texture size for each wall patch.");
 DEFINE_double(position_error_for_floor, 0.08, "How much error is allowed for a point to be on a floor.");
 
 // The following flags should be rescaled together. They are sensitive.
 DEFINE_int32(max_texture_size_per_floor_patch, 1500, "Maximum texture size for each floor patch.");
 DEFINE_int32(patch_size_for_synthesis, 45, "Patch size for synthesis.");
 DEFINE_int32(num_cg_iterations, 40, "Number of CG iterations.");
+
+DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 
 using namespace Eigen;
 using namespace std;
@@ -60,19 +60,46 @@ int main(int argc, char* argv[]) {
   {
     ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &texture_input.point_clouds);
   }
+
+  IndoorPolygon indoor_polygon;
   {
-    const string filename = file_io.GetFloorplan();
+    const string filename = file_io.GetIndoorPolygon();
     ifstream ifstr;
     ifstr.open(filename.c_str());
-    ifstr >> texture_input.floorplan;
+    ifstr >> indoor_polygon;
     ifstr.close();
   }
   {
-    texture_input.pyramid_level_for_floor = FLAGS_pyramid_level_for_floor;
-    texture_input.max_texture_size_per_floor_patch = FLAGS_max_texture_size_per_floor_patch;
-    texture_input.max_texture_size_per_wall_patch = FLAGS_max_texture_size_per_wall_patch;
-    texture_input.texture_height_per_wall  = FLAGS_texture_height_per_wall;
+    texture_input.pyramid_level            = FLAGS_pyramid_level;
+    texture_input.max_texture_size_per_floor_patch     = FLAGS_max_texture_size_per_floor_patch;
+    texture_input.max_texture_size_per_non_floor_patch = FLAGS_max_texture_size_per_non_floor_patch;
     texture_input.position_error_for_floor = FLAGS_position_error_for_floor;
     texture_input.patch_size_for_synthesis = FLAGS_patch_size_for_synthesis;
     texture_input.num_cg_iterations        = FLAGS_num_cg_iterations;
   }
+  
+  vector<Patch> patches(indoor_polygon.GetNumSegments());
+  for (int p = 0; p < patches.size(); ++p) {
+    SetPatch(texture_input, indoor_polygon.GetSegment(p), &patches[p]);
+  }
+
+  // Texture image.
+  vector<vector<unsigned char> > texture_images;
+  // Texture coordinate.
+  pair<int, Vector2i> iuv(0, Vector2i(0, 0));
+  int max_texture_height = 0;
+
+  for (int p = 0; p < patches.size(); ++p) {
+    PackTexture(patches[p], &indoor_polygon.GetSegment(p), &texture_images, &iuv, &max_texture_height);
+  }
+
+  WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
+  {
+    ofstream ofstr;
+    ofstr.open(file_io.GetIndoorPolygonFinal().c_str());
+    ofstr << indoor_polygon;
+    ofstr.close();
+  }
+
+  return 0;
+}

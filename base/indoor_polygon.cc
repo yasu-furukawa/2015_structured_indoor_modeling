@@ -1,3 +1,5 @@
+#include <fstream>
+#include <iostream>
 #include "indoor_polygon.h"
 
 using namespace Eigen;
@@ -5,21 +7,31 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-Eigen::Vector3d IndoorPolygon::FloorplanToGlobal(const Eigen::Vector3d& floorplan) const {
-  Eigen::Vector4d coord(floorplan[0],
-                        floorplan[1],
-                        floorplan[2],
+IndoorPolygon::IndoorPolygon() {
+}
+
+IndoorPolygon::IndoorPolygon(const std::string& filename) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+  ifstr >> *this;
+  ifstr.close();
+}
+  
+Eigen::Vector3d IndoorPolygon::ManhattanToGlobal(const Eigen::Vector3d& manhattan) const {
+  Eigen::Vector4d coord(manhattan[0],
+                        manhattan[1],
+                        manhattan[2],
                         1.0);
-  coord = floorplan_to_global * coord;
+  coord = manhattan_to_global * coord;
   return Eigen::Vector3d(coord[0], coord[1], coord[2]);
 }
 
-Eigen::Vector3d IndoorPolygon::GlobalToFloorplan(const Eigen::Vector3d& global) const {
+Eigen::Vector3d IndoorPolygon::GlobalToManhattan(const Eigen::Vector3d& global) const {
   Eigen::Vector4d coord(global[0],
                         global[1],
                         global[2],
                         1.0);
-  coord = global_to_floorplan * coord;
+  coord = global_to_manhattan * coord;
   return Eigen::Vector3d(coord[0], coord[1], coord[2]);
 }  
 
@@ -75,7 +87,9 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
     segment.vertices.clear();
     segment.vertices.resize(num_vertices);    
     for (int v = 0; v < num_vertices; ++v) {
-      istr >> segment.vertices[v];
+      istr >> segment.vertices[v][0]
+           >> segment.vertices[v][1]
+           >> segment.vertices[v][2];
     }
   }
 
@@ -83,7 +97,9 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
     segment.triangles.clear();
     segment.triangles.resize(num_triangles);
     for (int t = 0; t < num_triangles; ++t) {
-      istr >> segment.triangles[t];
+      istr >> segment.triangles[t].indices[0]
+           >> segment.triangles[t].indices[1]
+           >> segment.triangles[t].indices[2];
     }
   }
 
@@ -97,7 +113,7 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
     ostr << "floor" << endl;
     break;
   }
-  case Segment::CEILIJNG: {
+  case Segment::CEILING: {
     ostr << "ceiling" << endl;
     break;
   }
@@ -171,20 +187,20 @@ std::istream& operator>>(std::istream& istr, IndoorPolygon& indoor_polygon) {
   istr >> header;
   for (int y = 0; y < 4; ++y) {
     for (int x = 0; x < 4; ++x) {
-      istr >> indoor_polygon.floorplan_to_global(y, x);
+      istr >> indoor_polygon.manhattan_to_global(y, x);
     }
   }
 
   {
-    Matrix3d rotation = indoor_polygon.floorplan_to_global.block(0, 0, 3, 3);
+    Matrix3d rotation = indoor_polygon.manhattan_to_global.block(0, 0, 3, 3);
 
-    indoor_polygon.global_to_floorplan.block(0, 0, 3, 3) = rotation.transpose();
-    indoor_polygon.global_to_floorplan.block(0, 3, 3, 1) =
-      - rotation.transpose() * indoor_polygon.floorplan_to_global.block(0, 3, 3, 1);
-    indoor_polygon.global_to_floorplan(3, 0) = 0.0;
-    indoor_polygon.global_to_floorplan(3, 1) = 0.0;
-    indoor_polygon.global_to_floorplan(3, 2) = 0.0;
-    indoor_polygon.global_to_floorplan(3, 3) = 1.0;
+    indoor_polygon.global_to_manhattan.block(0, 0, 3, 3) = rotation.transpose();
+    indoor_polygon.global_to_manhattan.block(0, 3, 3, 1) =
+      - rotation.transpose() * indoor_polygon.manhattan_to_global.block(0, 3, 3, 1);
+    indoor_polygon.global_to_manhattan(3, 0) = 0.0;
+    indoor_polygon.global_to_manhattan(3, 1) = 0.0;
+    indoor_polygon.global_to_manhattan(3, 2) = 0.0;
+    indoor_polygon.global_to_manhattan(3, 3) = 1.0;
   }
   
   int num_segments;
@@ -203,7 +219,7 @@ std::ostream& operator<<(std::ostream& ostr, const IndoorPolygon& indoor_polygon
   ostr << "INDOOR_POLYGON" << endl;
   for (int y = 0; y < 4; ++y) {
     for (int x = 0; x < 4; ++x) {
-      ostr << indoor_polygon.floorplan_to_global(y, x) << ' ';
+      ostr << indoor_polygon.manhattan_to_global(y, x) << ' ';
     }
     ostr << endl;
   }

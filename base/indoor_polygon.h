@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <string>
 #include <vector>
+#include "geometry.h"
 
 namespace structured_indoor_modeling {
 
@@ -39,17 +40,20 @@ class IndoorPolygon {
   IndoorPolygon();
   IndoorPolygon(const std::string& filename);
 
-  int GetNumSegments() { return segments.size(); }
+  int GetNumSegments() const { return segments.size(); }
   const Segment& GetSegment(const int segment) const { return segments[segment]; }
   Segment& GetSegment(const int segment) { return segments[segment]; }
 
-  Eigen::Vector3d FloorplanToGlobal(const Eigen::Vector3d& floorplan) const;
-  Eigen::Vector3d GlobalToFloorplan(const Eigen::Vector3d& global) const;
+  Eigen::Vector3d ManhattanToGlobal(const Eigen::Vector3d& manhattan) const;
+  Eigen::Vector3d GlobalToManhattan(const Eigen::Vector3d& global) const;
   
  private:
-  Eigen::Matrix4d floorplan_to_global;
-  Eigen::Matrix4d global_to_floorplan;
+  Eigen::Matrix4d manhattan_to_global;
+  Eigen::Matrix4d global_to_manhattan;
   std::vector<Segment> segments;
+
+  friend std::istream& operator>>(std::istream& istr, IndoorPolygon& indoor_polygon);
+  friend std::ostream& operator<<(std::ostream& ostr, const IndoorPolygon& indoor_polygon);
 };
 
 std::istream& operator>>(std::istream& istr, Segment& segment);

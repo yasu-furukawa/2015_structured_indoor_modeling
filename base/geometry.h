@@ -12,7 +12,7 @@ struct Triangle {
   // UV coordinate.
   Eigen::Vector2d uvs[3];
 };
-
+ 
 std::istream& operator>>(std::istream& istr, Triangle& triangle);
 std::ostream& operator<<(std::ostream& ostr, const Triangle& triangle);
  
