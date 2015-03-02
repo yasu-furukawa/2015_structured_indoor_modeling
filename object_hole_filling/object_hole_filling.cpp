@@ -185,7 +185,7 @@ inline double gaussian(double x, double sigma){
 }
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-  int roomid = 1;
+  int roomid = 0;
   while(1){
     string filename = file_io.GetObjectPointClouds(roomid);
     string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -194,6 +194,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
     if(!fin.is_open())
       break;
     fin.close();
+
     PointCloud curob, curwall;
     cout<< "Reading " << filename<<endl;
     curob.Init(filename);
