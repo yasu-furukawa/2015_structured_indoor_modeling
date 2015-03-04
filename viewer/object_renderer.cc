@@ -1,6 +1,7 @@
 #include <iostream>
 #include "object_renderer.h"
 #include "../base/file_io.h"
+#include "../base/floorplan.h"
 #include "../base/point_cloud.h"
 
 using namespace Eigen;
