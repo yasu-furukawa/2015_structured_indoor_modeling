@@ -38,6 +38,7 @@ Eigen::Vector3d IndoorPolygon::GlobalToManhattan(const Eigen::Vector3d& global) 
 std::istream& operator>>(std::istream& istr, Segment& segment) {
   string header;
   istr >> header;
+  cout << header << endl;
   {
     istr >> header;
     if (header == "floor") {

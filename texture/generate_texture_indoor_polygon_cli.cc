@@ -53,14 +53,16 @@ int main(int argc, char* argv[]) {
 
   TextureInput texture_input;
   {
+    /*
     ReadPanoramas(file_io,
                   FLAGS_start_panorama,
                   end_panorama,
                   FLAGS_num_pyramid_levels,
                   &texture_input.panoramas);
+    */
   }
   {
-    ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &texture_input.point_clouds);
+    //ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &texture_input.point_clouds);
   }
 
   {
