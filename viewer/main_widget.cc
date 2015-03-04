@@ -46,6 +46,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   file_io(configuration.data_directory),
   floorplan(file_io.GetFloorplanFinal()),
+  object_renderer(floorplan),
   polygon_renderer(floorplan),
   floorplan_renderer(floorplan),
   panel_renderer(floorplan, viewport),  

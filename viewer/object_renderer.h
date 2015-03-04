@@ -9,12 +9,14 @@
 
 namespace structured_indoor_modeling {
 
+class Floorplan;
+
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
 typedef std::vector<ColoredPoint> ColoredPointCloud;
 
 class ObjectRenderer : protected QGLFunctions {
  public:
-  ObjectRenderer();
+  ObjectRenderer(const Floorplan& floorplan);
   virtual ~ObjectRenderer();
 
   void Init(const std::string data_directory);
@@ -25,7 +27,9 @@ class ObjectRenderer : protected QGLFunctions {
   void RenderObject(const int room, const int object) const;
 
   bool Toggle();
-
+  
+ private:
+  const Floorplan& floorplan;
   // private:
   bool render;
   // For each room, for each object, a colored point cloud.

@@ -8,7 +8,7 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-ObjectRenderer::ObjectRenderer() {
+ObjectRenderer::ObjectRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
   render = false;
 }
 
@@ -24,91 +24,18 @@ bool ObjectRenderer::Toggle() {
 void ObjectRenderer::Init(const string data_directory) {
   FileIO file_io(data_directory);
 
-  colored_point_clouds.resize(1);
-  colored_point_clouds[0].resize(1);
-
-  /*
-  char buffer[1024];
-  sprintf(buffer, "%s/object_cloud.ply", data_directory.c_str());
-  ifstream ifstr;
-  // ifstr.open("object_cloud.ply");
-  ifstr.open(buffer);
-  string header;
-  for (int i = 0; i < 6; ++i)
-    ifstr >> header;
-  int num_points;
-  ifstr >> num_points;
-  for (int i = 0; i < 37; ++i)
-    ifstr >> header;
-
-  colored_point_clouds[0][0].resize(num_points);
-  for (int p = 0; p < num_points; ++p) {
-    double dtmp;
-    for (int i = 0; i < 2; ++i)
-      ifstr >> dtmp;
-    for (int i = 0; i < 3; ++i)
-      ifstr >> colored_point_clouds[0][0][p].first[i];
-    for (int i = 0; i < 3; ++i) {
-      ifstr >> colored_point_clouds[0][0][p].second[i];
-      colored_point_clouds[0][0][p].second[i] /= 255.0;
-    }
-    for (int i = 0; i < 4; ++i)
-      ifstr >> dtmp;
-  }
-  ifstr.close();
-  */
-
-  // char buffer[1024];
-  // sprintf(buffer, "%s/object_cloud2.ply", data_directory.c_str());
-
-  PointCloud point_cloud;
-  point_cloud.Init(file_io.GetObjectPointCloudsWithColor());
-
-
-  /*  
-  ifstream ifstr;
-  // ifstr.open("object_cloud.ply");
-  ifstr.open(buffer);
-  string header;
-  for (int i = 0; i < 6; ++i)
-    ifstr >> header;
-  int num_points;
-  ifstr >> num_points;
-  for (int i = 0; i < 22; ++i)
-    ifstr >> header;
-
-  colored_point_clouds[0][0].resize(num_points);
-  for (int p = 0; p < num_points; ++p) {
-    for (int i = 0; i < 3; ++i)
-      ifstr >> colored_point_clouds[0][0][p].first[i];
-    for (int i = 0; i < 3; ++i) {
-      ifstr >> colored_point_clouds[0][0][p].second[i];
-      colored_point_clouds[0][0][p].second[i] /= 255.0;
-    }
-    double dtmp;
-    ifstr >> dtmp;
-  }
-  ifstr.close();
-  */
-  colored_point_clouds[0][0].resize(point_cloud.GetNumPoints());
-  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-    for (int i = 0; i < 3; ++i)
-      colored_point_clouds[0][0][p].first[i] =
-        point_cloud.GetPoint(p).position[i];
-
-    for (int i = 0; i < 3; ++i)
-      colored_point_clouds[0][0][p].second[i] =
-        point_cloud.GetPoint(p).color[i] / 255.0;
-  }
-
   vertices.clear();
   colors.clear();
-
-  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-    for (int i = 0; i < 3; ++i)
-      vertices.push_back(colored_point_clouds[0][0][p].first[i]);
-    for (int i = 0; i < 3; ++i) {
-      colors.push_back(colored_point_clouds[0][0][p].second[i]);
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    PointCloud point_cloud;
+    point_cloud.Init(file_io.GetRefinedObjectClouds(room));
+    for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
+      const Point& point = point_cloud.GetPoint(p);
+      for (int i = 0; i < 3; ++i)
+        vertices.push_back(point.position[i]);
+      for (int i = 0; i < 3; ++i) {
+        colors.push_back(point.color[i] / 255.0f);
+      }
     }
   }
 }
