@@ -177,7 +177,6 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
 
 void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
-                              const std::vector<int>& room_occupancy,
                               const int room,
                               std::vector<int>* segments) {
   const double kFloorMarginRatio   = 0.1;
@@ -207,6 +206,27 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
   }
 }
 
+
+void IdentifyDetails(const std::vector<Point>& points,
+                     const Floorplan& floorplan,
+                     const IndoorPolygon& indoor_polygon,
+                     const int room,
+                     std::vector<int>* segments) {
+  const double kDetailMarginRatio   = 0.1;
+  const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
+  const double detail_margin = room_height * kDetailMarginRatio;
+
+  // Floor check.
+  for (int p = 0; p < (int)points.size(); ++p) {
+    if (segments->at(p) != kInitial)
+      continue;
+
+    // Do the check.
+    
+    
+  }
+}
+  
 void FilterNoisyPoints(std::vector<Point>* points) {
   const int kNumNeighbors = 20;
 

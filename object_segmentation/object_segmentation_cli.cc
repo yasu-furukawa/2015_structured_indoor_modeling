@@ -7,6 +7,7 @@
 
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
+#include "../base/indoor_polygon.h"
 #include "../base/point_cloud.h"
 #include "object_segmentation.h"
 
@@ -25,6 +26,7 @@ namespace {
 bool ProcessRoom(const FileIO& file_io,
                  const int room,
                  const Floorplan& floorplan,
+                 const IndoorPolygon& indoor_polygon,
                  const std::vector<PointCloud>& point_clouds,
                  const std::vector<int>& room_occupancy) {
   cout << "Room: " << room << endl;
@@ -49,7 +51,8 @@ bool ProcessRoom(const FileIO& file_io,
   
   // For each point, initial segmentation.
   vector<int> segments;
-  IdentifyFloorWallCeiling(points, floorplan, room_occupancy, room, &segments);
+  IdentifyFloorWallCeiling(points, floorplan, room, &segments);
+  IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
   
   // Compute neighbors.
   vector<vector<int> > neighbors;
@@ -110,6 +113,13 @@ int main(int argc, char* argv[]) {
     ifstr >> floorplan;
     ifstr.close();
   }
+  IndoorPolygon indoor_polygon;
+  {
+    ifstream ifstr;
+    ifstr.open(file_io.GetIndoorPolygon().c_str());
+    ifstr >> indoor_polygon;
+    ifstr.close();
+  }
   
   vector<PointCloud> point_clouds(FLAGS_end_panorama - FLAGS_start_panorama);
   cout << "Reading point clouds..." << flush;
@@ -133,6 +143,6 @@ int main(int argc, char* argv[]) {
   
   // Per room processing.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    ProcessRoom(file_io, room, floorplan, point_clouds, room_occupancy);
+    ProcessRoom(file_io, room, floorplan, indoor_polygon, point_clouds, room_occupancy);
   }
 }

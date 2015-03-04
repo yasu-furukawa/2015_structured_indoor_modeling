@@ -10,8 +10,10 @@ const int kInitial = -1;
 const int kFloor = -2;
 const int kWall = -3;
 const int kCeiling = -4;
+const int kDetail = -5;
   
 class Floorplan;
+class IndoorPolygon;
 class PointCloud;
 struct Point;
 
@@ -34,10 +36,15 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
 
 void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
-                              const std::vector<int>& room_occupancy,
                               const int room,
                               std::vector<int>* segments);                          
 
+void IdentifyDetails(const std::vector<Point>& points,
+                     const Floorplan& floorplan,
+                     const IndoorPolygon& indoor_polygon,
+                     const int room,
+                     std::vector<int>* segments);                          
+ 
 void Subsample(const double ratio, std::vector<Point>* points);
  
 void FilterNoisyPoints(std::vector<Point>* points);

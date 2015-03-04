@@ -23,7 +23,7 @@ if(${CMAKE_SYSTEM} MATCHES "Darwin")
    set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
 endif(${CMAKE_SYSTEM} MATCHES "Darwin")
 
-add_executable( object_segmentation_cli object_segmentation_cli.cc object_segmentation.cc ../base/floorplan.cc ../base/geometry.cc ../base/point_cloud.cc ../base/kdtree/KDtree.cc )
+add_executable( object_segmentation_cli object_segmentation_cli.cc object_segmentation.cc ../base/floorplan.cc ../base/indoor_polygon.cc ../base/geometry.cc ../base/point_cloud.cc ../base/kdtree/KDtree.cc )
 
 target_link_libraries( object_segmentation_cli ${OpenCV_LIBS} )
 target_link_libraries( object_segmentation_cli gflags )
