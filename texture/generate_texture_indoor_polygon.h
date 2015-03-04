@@ -35,6 +35,7 @@ struct Patch {
   
 // Input data from cli.cc.
 struct TextureInput {
+  IndoorPolygon indoor_polygon;
   std::vector<std::vector<Panorama> > panoramas;
   std::vector<PointCloud> point_clouds;
 
@@ -57,6 +58,7 @@ void SetPatch(const TextureInput& texture_input,
               Patch* patch);
 
 void PackTexture(const Patch& patch,
+                 const int texture_image_size,
                  Segment* segment,
                  std::vector<std::vector<unsigned char> >* texture_images,
                  std::pair<int, Eigen::Vector2i>* iuv,

@@ -63,12 +63,11 @@ int main(int argc, char* argv[]) {
     ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &texture_input.point_clouds);
   }
 
-  IndoorPolygon indoor_polygon;
   {
     const string filename = file_io.GetIndoorPolygon();
     ifstream ifstr;
     ifstr.open(filename.c_str());
-    ifstr >> indoor_polygon;
+    ifstr >> texture_input.indoor_polygon;
     ifstr.close();
   }
   {
@@ -79,11 +78,12 @@ int main(int argc, char* argv[]) {
     texture_input.patch_size_for_synthesis = FLAGS_patch_size_for_synthesis;
     texture_input.num_cg_iterations        = FLAGS_num_cg_iterations;
   }
-  texture_input.texel_unit = ComputeTexelUnit(indoor_polygon, FLAGS_target_texture_size_for_vertical);
+  texture_input.texel_unit =
+    ComputeTexelUnit(texture_input.indoor_polygon, FLAGS_target_texture_size_for_vertical);
   
-  vector<Patch> patches(indoor_polygon.GetNumSegments());
+  vector<Patch> patches(texture_input.indoor_polygon.GetNumSegments());
   for (int p = 0; p < patches.size(); ++p) {
-    const Segment& segment = indoor_polygon.GetSegment(p);
+    const Segment& segment = texture_input.indoor_polygon.GetSegment(p);
     bool visibility_check = false;
     if (segment.type == Segment::FLOOR) {
       visibility_check = true;
@@ -98,14 +98,19 @@ int main(int argc, char* argv[]) {
   int max_texture_height = 0;
 
   for (int p = 0; p < patches.size(); ++p) {
-    PackTexture(patches[p], &indoor_polygon.GetSegment(p), &texture_images, &iuv, &max_texture_height);
+    PackTexture(patches[p],
+                FLAGS_texture_image_size,
+                &texture_input.indoor_polygon.GetSegment(p),
+                &texture_images,
+                &iuv,
+                &max_texture_height);
   }
 
   WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
   {
     ofstream ofstr;
     ofstr.open(file_io.GetIndoorPolygonFinal().c_str());
-    ofstr << indoor_polygon;
+    ofstr << texture_input.indoor_polygon;
     ofstr.close();
   }
 
