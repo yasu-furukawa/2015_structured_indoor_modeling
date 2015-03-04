@@ -25,6 +25,8 @@ struct Segment {
   };
   
   Type type;
+  // Room number.
+  int floor_info;
   // For type wall (room, wall).
   Eigen::Vector2i type_wall_info;
   // For type door (room0, room1).

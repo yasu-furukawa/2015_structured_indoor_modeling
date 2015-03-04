@@ -42,6 +42,7 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
     istr >> header;
     if (header == "floor") {
       segment.type = Segment::FLOOR;
+      istr >> segment.floor_info;
     } else if (header == "ceiling") {
       segment.type = Segment::CEILING;
       /*
@@ -110,7 +111,7 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
   ostr << "SEGMENT" << endl;
   switch (segment.type) {
   case Segment::FLOOR: {
-    ostr << "floor" << endl;
+    ostr << "floor " << segment.floor_info << endl;
     break;
   }
   case Segment::CEILING: {
