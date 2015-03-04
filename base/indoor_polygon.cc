@@ -98,9 +98,7 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
     segment.triangles.clear();
     segment.triangles.resize(num_triangles);
     for (int t = 0; t < num_triangles; ++t) {
-      istr >> segment.triangles[t].indices[0]
-           >> segment.triangles[t].indices[1]
-           >> segment.triangles[t].indices[2];
+      istr >> segment.triangles[t];
     }
   }
 
