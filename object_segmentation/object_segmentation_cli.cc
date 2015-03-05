@@ -65,7 +65,7 @@ bool ProcessRoom(const FileIO& file_io,
   // For each point, initial segmentation.
   vector<int> segments;
   IdentifyFloorWallCeiling(points, floorplan, room, &segments);
-  // IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
+  IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
   
   // Compute neighbors.
   vector<vector<int> > neighbors;
