@@ -66,10 +66,10 @@ void PreparePatch(const TextureInput& texture_input,
     cerr << "Impossible: " << min_xyz[2] << ' ' << max_xyz[2] << endl;
   }
   const double z = min_xyz[2];
-  patch->vertices[0] = Vector3d(min_xyz[0], min_xyz[1], z);
-  patch->vertices[1] = Vector3d(max_xyz[0], min_xyz[1], z);
-  patch->vertices[2] = Vector3d(max_xyz[0], max_xyz[1], z);
-  patch->vertices[3] = Vector3d(min_xyz[0], max_xyz[1], z);
+  patch->vertices[0] = patch->axes[0] * min_xyz[0] + patch->axes[1] * min_xyz[1] + patch->axes[2] * z;
+  patch->vertices[1] = patch->axes[0] * max_xyz[0] + patch->axes[1] * min_xyz[1] + patch->axes[2] * z;
+  patch->vertices[2] = patch->axes[0] * max_xyz[0] + patch->axes[1] * max_xyz[1] + patch->axes[2] * z;
+  patch->vertices[3] = patch->axes[0] * min_xyz[0] + patch->axes[1] * max_xyz[1] + patch->axes[2] * z;
   
   // Set texture_size.
   int max_size;

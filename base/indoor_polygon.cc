@@ -38,7 +38,6 @@ Eigen::Vector3d IndoorPolygon::GlobalToManhattan(const Eigen::Vector3d& global) 
 std::istream& operator>>(std::istream& istr, Segment& segment) {
   string header;
   istr >> header;
-  cout << header << endl;
   {
     istr >> header;
     if (header == "floor") {
@@ -202,6 +201,12 @@ std::istream& operator>>(std::istream& istr, IndoorPolygon& indoor_polygon) {
     indoor_polygon.global_to_manhattan(3, 2) = 0.0;
     indoor_polygon.global_to_manhattan(3, 3) = 1.0;
   }
+  
+
+  Eigen::Matrix4d a = indoor_polygon.manhattan_to_global;
+  indoor_polygon.manhattan_to_global = indoor_polygon.global_to_manhattan;
+  indoor_polygon.global_to_manhattan = a;
+
   
   int num_segments;
   istr >> num_segments;
