@@ -46,17 +46,13 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
       istr >> segment.floor_info;
     } else if (header == "ceiling") {
       segment.type = Segment::CEILING;
-      /*
-    } else if (header == "wall") {
-      segment.type = Segment::WALL;
-      istr >> segment.type_wall_info[0] >> segment.type_wall_info[1];
-      */
     } else if (header == "room") {
       segment.type = Segment::WALL;
-      istr >> segment.type_wall_info[0] >> header >> segment.type_wall_info[1];
+      istr >> segment.wall_info[0] >> header >> segment.wall_info[1];
     } else if (header == "door") {
       segment.type = Segment::DOOR;
-      istr >> segment.type_door_info[0] >> segment.type_door_info[1];
+      istr >> segment.door_info[0] >> segment.door_info[1]
+           >> segment.door_info[2] >> segment.door_info[3];
     } else {
       cerr << "Invalid segment type: " << header << endl;
       exit (1);
@@ -114,21 +110,17 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
     break;
   }
   case Segment::CEILING: {
-    ostr << "ceiling" << endl;
+    ostr << "ceiling" << segment.ceiling_info << endl;
     break;
   }
-    /*
   case Segment::WALL: {
-    ostr << "wall " << segment.type_wall_info[0] << ' ' << segment.type_wall_info[1] << endl;
-    break;
-  }
-    */
-  case Segment::WALL: {
-    ostr << "room " << segment.type_wall_info[0] << " wall " << segment.type_wall_info[1] << endl;
+    ostr << "room " << segment.wall_info[0] << " wall " << segment.wall_info[1] << endl;
     break;
   }
   case Segment::DOOR: {
-    ostr << "door " << segment.type_door_info[0] << ' ' << segment.type_door_info[1] << endl;
+    ostr << "door "
+         << segment.door_info[0] << ' ' << segment.door_info[1] << ' '
+         << segment.door_info[2] << ' ' << segment.door_info[3] << endl;      
     break;
   }
   default: {

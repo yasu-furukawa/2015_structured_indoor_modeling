@@ -27,10 +27,11 @@ struct Segment {
   Type type;
   // Room number.
   int floor_info;
-  // For type wall (room, wall).
-  Eigen::Vector2i type_wall_info;
-  // For type door (room0, room1).
-  Eigen::Vector2i type_door_info;
+  int ceiling_info;
+  // For wall (room, wall).
+  Eigen::Vector2i wall_info;
+  // For door (room0, wall0, room1, wall1).
+  Eigen::Vector4i door_info;
   
   Normal normal;
   std::vector<Eigen::Vector3d> vertices;
