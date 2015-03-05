@@ -64,8 +64,42 @@ bool ProcessRoom(const FileIO& file_io,
   
   // For each point, initial segmentation.
   vector<int> segments;
+  cerr << "Checking floor/wall/ceiling..." << flush;
   IdentifyFloorWallCeiling(points, floorplan, room, &segments);
+  cerr << "done." << endl
+       << "Checking details..." << flush;
   IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
+  cerr << "done." << endl;
+
+  {
+    int initial = 0;
+    int floor = 0;
+    int wall = 0;
+    int ceiling = 0;
+    int detail = 0;
+    for (int s = 0; s < segments.size(); ++s) {
+      if (segments[s] == kInitial)
+        ++initial;
+      else if (segments[s] == kFloor)
+        ++floor;
+      else if (segments[s] == kWall)
+        ++wall;
+      else if (segments[s] == kCeiling)
+        ++ceiling;
+      else if (segments[s] == kDetail)
+        ++detail;
+      else {
+        cerr << "Impossible: " << segments[s] << endl;
+        exit (1);
+      }
+    }
+
+    cerr << "Initial " << initial
+         << " Floor " << floor
+         << " wall " << wall
+         << " ceiling " << ceiling
+         << " detail " << detail << endl;
+  }
   
   // Compute neighbors.
   vector<vector<int> > neighbors;

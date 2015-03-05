@@ -46,8 +46,10 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   QGLWidget(parent),
   file_io(configuration.data_directory),
   floorplan(file_io.GetFloorplanFinal()),
+  indoor_polygon(file_io.GetIndoorPolygonFinal()),
   object_renderer(floorplan),
   polygon_renderer(floorplan),
+  indoor_polygon_renderer(indoor_polygon),
   floorplan_renderer(floorplan),
   panel_renderer(floorplan, viewport),  
   navigation(configuration,
@@ -60,6 +62,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
     InitPanoramasPanoramaRenderers();
     object_renderer.Init(configuration.data_directory);
     polygon_renderer.Init(configuration.data_directory, this);
+    indoor_polygon_renderer.Init(configuration.data_directory, this);
     floorplan_renderer.Init();
     panel_renderer.Init(configuration.data_directory);
   }
@@ -86,6 +89,8 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   double_click_time.start();
   simple_click_time_offset_by_move = 0.0;
   mouse_down = false;
+
+  polygon_or_indoor_polygon = true;
 }
 
 MainWidget::~MainWidget() {
@@ -199,6 +204,7 @@ void MainWidget::initializeGL() {
 
   object_renderer.InitGL();
   polygon_renderer.InitGL();
+  indoor_polygon_renderer.InitGL();
   floorplan_renderer.InitGL(this);
   for (int p = 0; p < static_cast<int>(panorama_renderers.size()); ++p)
     panorama_renderers[p].InitGL();
@@ -616,9 +622,11 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
       navigation.PanoramaToFloorplan();
     else if (navigation.GetCameraStatus() == kAir)
       navigation.AirToFloorplan();
-  }
-  else if (e->key() == Qt::Key_O) {
+  } else if (e->key() == Qt::Key_O) {
     object_renderer.Toggle();
+    updateGL();
+  } else if (e->key() == Qt::Key_P) {
+    polygon_or_indoor_polygon = !polygon_or_indoor_polygon;
     updateGL();
   }  
 }

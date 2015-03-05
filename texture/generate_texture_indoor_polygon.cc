@@ -256,7 +256,7 @@ void SetIUVInSegment(const Patch& patch,
 
       // May need to change depending on the definition of uv(0, 0).
       triangle.uvs[i] = top_left_uv + Vector2d(uv_in_patch[0] * uv_diff[0],
-                                               (1.0 - uv_in_patch[1]) * uv_diff[1]);
+                                               uv_in_patch[1] * uv_diff[1]);
 
       for (int j = 0; j < 2; ++j)
         triangle.uvs[i][j] = min(1.0, triangle.uvs[i][j]);

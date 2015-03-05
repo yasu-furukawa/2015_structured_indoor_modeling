@@ -370,7 +370,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const dou
   */
 }
 
- void PolygonRenderer::RenderDoors(const double alpha) const {
+void PolygonRenderer::RenderDoors(const double alpha) const {
    glBegin(GL_QUADS);
    glColor4f(alpha, alpha, alpha, 1.0);
    for (int door = 0; door < floorplan.GetNumDoors(); ++door) {

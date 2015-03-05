@@ -8,6 +8,8 @@
 
 namespace structured_indoor_modeling {
 
+class IndoorPolygon;
+  
 class IndoorPolygonRenderer : protected QGLFunctions {
  public:
   IndoorPolygonRenderer(const IndoorPolygon& indoor_polygon);
@@ -23,6 +25,9 @@ class IndoorPolygonRenderer : protected QGLFunctions {
 
   std::vector<QImage> texture_images;
   std::vector<GLint> texture_ids;
+
+  double bottom_z;
+  double top_z;
 };
 
 }  // namespace structured_indoor_modeling
