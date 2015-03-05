@@ -277,11 +277,31 @@ void IdentifyDetails(const std::vector<Point>& points,
   
   // Expand occupancy.
   const int kExpandMargin = 5;
+  {
+    vector<bool> vbtmp;
 
-
-    
-    
+    for (int t = 0; t < kExpandMargin; ++t) {
+      vbtmp = occupancy;
+      for (int z = 1; z < size[2] - 1; ++z) {
+        for (int y = 1; y < size[1] - 1; ++y) {
+          for (int x = 1; x < size[0] - 1; ++x) {
+            const int index = z * (size[0] * size[1]) + y * size[0] + x;
+            if (vbtmp->at(index) ||
+                vbtmp->at(index - 1) ||
+                vbtmp->at(index + 1) ||
+                vbtmp->at(index - size[0]) ||
+                vbtmp->at(index + size[0]) ||
+                vbtmp->at(index - size[0] * size[1]) ||
+                vbtmp->at(index + size[0] * size[1]))
+              occupancy->at(index) = true;
+          }
+        }
+      }
+    }
   }
+
+  ----------------------------------------------------------------------
+    
 }
   
 void FilterNoisyPoints(std::vector<Point>* points) {
