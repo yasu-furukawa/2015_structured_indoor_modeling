@@ -1,6 +1,7 @@
 #include "../base/file_io.h"
 #include "../base/panorama.h"
 #include "generate_texture_indoor_polygon.h"
+#include "synthesize.h"
 
 using namespace Eigen;
 using namespace std;

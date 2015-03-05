@@ -328,6 +328,91 @@ void PoissonBlendSub(const SynthesisData& synthesis_data,
       static_cast<unsigned char>(max(0.0, min(255.0, x[v])));
   }  
 }    
+
+void PoissonBlendSubNew(const SynthesisData& synthesis_data,
+                        const vector<vector<Vector3d> >& laplacians,
+                        const vector<vector<Vector3d> >& values,
+                        const vector<Vector3d>& average_laplacian,
+                        const vector<Vector2i>& indexes,
+                        map<pair<int, int>, int>& inverse_indexes,
+                        const int channel,
+                        cv::Mat* floor_texture) {
+  const int width      = synthesis_data.texture_size[0];
+  const int height     = synthesis_data.texture_size[1];
+
+  SparseMatrix<double> A(indexes.size(), indexes.size());
+  VectorXd b(indexes.size());
+
+  vector<Eigen::Triplet<double> > triplets;
+
+  // Laplacian constraints.
+  int laplacian_count = 0;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      const int index = y * width + x;
+      if (synthesis_data.mask[index])
+        continue;
+
+      const int ref_variable_index = inverse_indexes[pair<int, int>(x, y)];
+      
+      int count = 0;
+      vector<Vector2i> neighbors;
+      if (x != 0)
+        neighbors.push_back(Vector2i(x - 1, y));
+      if (x != width - 1)
+        neighbors.push_back(Vector2i(x + 1, y));
+      if (y != 0)
+        neighbors.push_back(Vector2i(x, y - 1));
+      if (y != height - 1)
+        neighbors.push_back(Vector2i(x, y + 1));
+
+      for (const auto neighbor : neighbors) {
+        const int index = neighbor[1] * width + neighbor[0];
+        if (synthesis_data.mask[index]) {
+          if (inverse_indexes.find(pair<int, int>(neighbor[0], neighbor[1])) ==
+              inverse_indexes.end()) {
+            cout << "w1" << endl;
+            exit (1);
+          }
+          const int variable_index = inverse_indexes[pair<int, int>(neighbor[0], neighbor[1])];
+          triplets.push_back(Triplet<double>(ref_variable_index, variable_index, -1));
+          ++count;
+        }
+      }
+      if (count != 0) {
+        if (inverse_indexes.find(pair<int, int>(x, y)) == inverse_indexes.end()){
+          cout << "w5" << endl;
+          exit (1);
+        }
+        triplets.push_back(Triplet<double>(ref_variable_index, ref_variable_index, count));
+      }
+
+      b[ref_variable_index] = average_laplacian[index][channel];      
+    }
+  }  
+  
+  A.setFromTriplets(triplets.begin(), triplets.end());
+
+  // Data terms.
+  const double kDataWeight = 2.0;
+  for (int i = 0; i < indexes.size(); ++i) {
+    const int x = indexes[i][0];
+    const int y = indexes[i][1];
+    const int index = y * width + x;
+    if (values[index].size() != 1)
+        continue;
+    A.coeffRef(i, i) += kDataWeight;
+    b[i] += kDataWeight * values[index][0][channel];
+  }
+  
+  SimplicialCholesky<SparseMatrix<double> > chol(A);
+  VectorXd x = chol.solve(b);
+
+  for (int v = 0; v < (int)indexes.size(); ++v) {
+    floor_texture->at<cv::Vec3b>(indexes[v][1], indexes[v][0])[channel] = 
+      static_cast<unsigned char>(max(0.0, min(255.0, x[v])));
+  }  
+}    
   
 void PoissonBlend(const SynthesisData& synthesis_data,
                   const vector<vector<Vector3d> >& laplacians,
