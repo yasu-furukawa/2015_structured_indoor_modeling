@@ -11,8 +11,6 @@
 #include "../base/point_cloud.h"
 #include "object_segmentation.h"
 
-DEFINE_int32(start_panorama, 0, "start panorama index");
-DEFINE_int32(end_panorama, 1, "end panorama index");
 DEFINE_double(point_subsampling_ratio, 1.0, "Make the point set smaller.");
 DEFINE_double(centroid_subsampling_ratio, 0.005, "Ratio of centroids in each segment.");
 DEFINE_double(num_initial_clusters, 100, "Initial cluster.");
@@ -23,6 +21,21 @@ using namespace std;
 
 namespace {
 
+int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
+  int panorama = start_panorama;
+  while (1) {
+    const string filename = file_io.GetPanoramaImage(panorama);
+    ifstream ifstr;
+    ifstr.open(filename.c_str());
+    if (!ifstr.is_open()) {
+      ifstr.close();
+      return panorama;
+    }
+    ifstr.close();
+    ++panorama;
+  }
+}
+  
 bool ProcessRoom(const FileIO& file_io,
                  const int room,
                  const Floorplan& floorplan,
@@ -52,7 +65,7 @@ bool ProcessRoom(const FileIO& file_io,
   // For each point, initial segmentation.
   vector<int> segments;
   IdentifyFloorWallCeiling(points, floorplan, room, &segments);
-  IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
+  // IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
   
   // Compute neighbors.
   vector<vector<int> > neighbors;
@@ -120,12 +133,16 @@ int main(int argc, char* argv[]) {
     ifstr >> indoor_polygon;
     ifstr.close();
   }
-  
-  vector<PointCloud> point_clouds(FLAGS_end_panorama - FLAGS_start_panorama);
+
+  const int kStartPanorama = 0;
+  //????
+  // const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
+  const int end_panorama = 5;
+  vector<PointCloud> point_clouds(end_panorama);
   cout << "Reading point clouds..." << flush;
-  for (int p = FLAGS_start_panorama; p < FLAGS_end_panorama; ++p) {
+  for (int p = 0; p < end_panorama; ++p) {
     cout << '.' << flush;
-    const int index = p - FLAGS_start_panorama;
+    const int index = p;
     if (!point_clouds[index].Init(file_io, p)) {
       cerr << "Failed in loading the point cloud." << endl;
       exit (1);
