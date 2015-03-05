@@ -257,6 +257,7 @@ void IdentifyDetails(const std::vector<Point>& points,
   for (int a = 0; a < 3; ++a) {
     size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
   }
+  cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
 
   vector<bool> occupancy(size[0] * size[1] * size[2], false);
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
@@ -277,7 +278,7 @@ void IdentifyDetails(const std::vector<Point>& points,
   }
   
   // Expand occupancy.
-  const int kExpandMargin = 5;
+  const int kExpandMargin = 1;
   {
     vector<bool> vbtmp;
 
@@ -304,6 +305,9 @@ void IdentifyDetails(const std::vector<Point>& points,
 
   //----------------------------------------------------------------------
   for (int p = 0; p < (int)points.size(); ++p) {
+    //?????
+    //if (segments->at(p) != kInitial)
+    //continue;
     Vector3d cell_coord = (points[p].position - min_xyz) / voxel_unit;
     Vector3d cell_coord_int;
     for (int a = 0; a < 3; ++a) {

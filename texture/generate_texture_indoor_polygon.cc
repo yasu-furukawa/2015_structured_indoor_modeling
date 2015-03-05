@@ -263,6 +263,98 @@ void SetIUVInSegment(const Patch& patch,
     }
   }
 }
+
+void ShrinkTexture(const int shrink_pixels, Patch* patch) {
+  vector<bool> valids(patch->texture_size[0] * patch->texture_size[1], false);
+  int index = 0;
+  for (int y = 0; y < patch->texture_size[1]; ++y) {
+    for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+      if (patch->texture[3 * index + 0] != 0 ||
+          patch->texture[3 * index + 1] != 0 ||
+          patch->texture[3 * index + 2] != 0) {
+        valids[index] = true;
+      }
+    }
+  }
+
+  for (int t = 0; t < shrink_pixels; ++t) {
+    vector<bool> valids_org = valids;
+    int index = 0;
+    for (int y = 0; y < patch->texture_size[1]; ++y) {
+      for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+        if (!valids_org[index]) {
+          if ((x != 0                          && valids_org[index - 1]) ||
+              (x != patch->texture_size[0] - 1 && valids_org[index + 1]) ||
+              (y != 0                          && valids_org[index - patch->texture_size[0]]) ||
+              (y != patch->texture_size[1] - 1 && valids_org[index + patch->texture_size[0]])) {
+            valids[index] = true;
+          }
+        }
+      }
+    }
+  }
+
+  index = 0;
+  for (int y = 0; y < patch->texture_size[1]; ++y) {
+    for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+      if (!valids[index]) {
+        patch->texture[3 * index + 0] = 0;
+        patch->texture[3 * index + 1] = 0;
+        patch->texture[3 * index + 2] = 0;
+      }
+    }
+  }
+}
+
+void SynthesizePatch(Patch* patch) {
+  vector<cv::Mat> projected_textures;
+  cv::Mat projected_texture(patch->texture_size[1],
+                            patch->texture_size[0],
+                            CV_8UC3);
+  {
+    int index = 0;
+    for (int y = 0; y < patch->texture_size[1]; ++y)
+      for (int x = 0; x < patch->texture_size[0]; ++x, ++index)
+        projected_texture.at<cv::Vec3b>(y, x) = cv::Vec3b(patch->texture[3 * index + 0],
+                                                          patch->texture[3 * index + 1],
+                                                          patch->texture[3 * index + 2]);
+  }
+  
+  projected_textures.push_back(projected_texture);
+  SynthesisData synthesis_data(projected_textures);
+
+  synthesis_data.num_cg_iterations = 50;
+  synthesis_data.texture_size = patch->texture_size;
+  synthesis_data.patch_size = min(80, min(patch->texture_size[0], patch->texture_size[1]));
+  synthesis_data.margin = synthesis_data.patch_size / 4;
+  synthesis_data.mask.resize(patch->texture_size[0] * patch->texture_size[1], true);
+
+  vector<cv::Mat> patches;
+  vector<Eigen::Vector2i> patch_positions;
+  CollectCandidatePatches(synthesis_data, &patches, &patch_positions);
+  if (patches.empty())
+    return;
+  
+  cv::Mat synthesized_texture(patch->texture_size[1],
+                              patch->texture_size[0],
+                              CV_8UC3,
+                              cv::Scalar(0));
+  const bool kVerticalConstraint = true;
+  SynthesizePoisson(synthesis_data, patches, patch_positions, kVerticalConstraint,
+                    &synthesized_texture);
+  cv::imshow("result", synthesized_texture);
+
+  {
+    int index = 0;
+    for (int y = 0; y < patch->texture_size[1]; ++y) {
+      for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+        patch->texture[3 * index + 0] = synthesized_texture.at<cv::Vec3b>(y, x)[0];
+        patch->texture[3 * index + 1] = synthesized_texture.at<cv::Vec3b>(y, x)[1];
+        patch->texture[3 * index + 2] = synthesized_texture.at<cv::Vec3b>(y, x)[2];
+      }
+    }
+  }
+}
   
 }  // namespace
 
@@ -333,6 +425,21 @@ void SetPatch(const TextureInput& texture_input,
     GrabTexture(texture_input.indoor_polygon,
                 texture_input.panoramas[best_panorama],
                 patch);
+
+    const int kShrinkPixels = 6;
+    ShrinkTexture(kShrinkPixels, &patch);
+
+    bool hole = false;
+    for (int i = 0; i < patch.texture.size(); i+=3) {
+      if (patch.texture[i] == 0 &&
+          patch.texture[i + 1] == 0 &&
+          patch.texture[i + 2] == 0) {
+        hole = true;
+        break;
+      }
+    }
+    if (hole)
+      SynthesizePatch(&patch);    
   }  
 }
 
