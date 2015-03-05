@@ -428,19 +428,19 @@ void SetPatch(const TextureInput& texture_input,
                 patch);
 
     const int kShrinkPixels = 6;
-    ShrinkTexture(kShrinkPixels, &patch);
+    ShrinkTexture(kShrinkPixels, patch);
 
     bool hole = false;
-    for (int i = 0; i < patch.texture.size(); i+=3) {
-      if (patch.texture[i] == 0 &&
-          patch.texture[i + 1] == 0 &&
-          patch.texture[i + 2] == 0) {
+    for (int i = 0; i < patch->texture.size(); i+=3) {
+      if (patch->texture[i] == 0 &&
+          patch->texture[i + 1] == 0 &&
+          patch->texture[i + 2] == 0) {
         hole = true;
         break;
       }
     }
     if (hole)
-      SynthesizePatch(&patch);    
+      SynthesizePatch(patch);    
   }  
 }
 

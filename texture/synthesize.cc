@@ -448,8 +448,8 @@ void PoissonBlend(const SynthesisData& synthesis_data,
   // For each channel.
   const int kNumChannels = 3;
   for (int c = 0; c < kNumChannels; ++c) {
-    PoissonBlendSub(synthesis_data, laplacians, values, average_laplacian,
-                    indexes, inverse_indexes, c, floor_texture);
+    PoissonBlendSubNew(synthesis_data, laplacians, values, average_laplacian,
+                       indexes, inverse_indexes, c, floor_texture);
 
   }
   cerr << " all done." << endl;
