@@ -346,11 +346,10 @@ void PoissonBlendSubNew(const SynthesisData& synthesis_data,
   vector<Eigen::Triplet<double> > triplets;
 
   // Laplacian constraints.
-  int laplacian_count = 0;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       const int index = y * width + x;
-      if (synthesis_data.mask[index])
+      if (!synthesis_data.mask[index])
         continue;
 
       const int ref_variable_index = inverse_indexes[pair<int, int>(x, y)];
