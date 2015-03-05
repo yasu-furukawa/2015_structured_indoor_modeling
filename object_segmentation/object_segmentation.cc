@@ -6,6 +6,7 @@
 #include <queue>
 
 #include "../base/floorplan.h"
+#include "../base/indoor_polygon.h"
 #include "../base/point_cloud.h"
 #include "../base/kdtree/KDtree.h"
 #include "object_segmentation.h"
@@ -51,6 +52,15 @@ namespace {
              std::map<int, Eigen::Vector3i>* color_table);
 
   Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs);
+
+  void FillOccupancy(const Eigen::Vector3d& v0,
+                     const Eigen::Vector3d& v1,
+                     const Eigen::Vector3d& v2,
+                     const Eigen::Vector3d& min_xyz,
+                     const double voxel_unit,
+                     const Eigen::Vector3i& size,
+                     std::vector<bool>* occupancy);
+            
 }  // namespace  
 
 void SaveData(const int id,
@@ -216,14 +226,93 @@ void IdentifyDetails(const std::vector<Point>& points,
   const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
   const double detail_margin = room_height * kDetailMarginRatio;
 
-  // Floor check.
-  for (int p = 0; p < (int)points.size(); ++p) {
-    if (segments->at(p) != kInitial)
-      continue;
+  const double voxel_unit = room_height / 128;
+  Vector3d min_xyz, max_xyz;
+  
+  bool first = false;
+  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+    const Segment& segment = indoor_polygon.GetSegment(s);
+    if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
+        (segment.type == Segment::CEILING && segment.ceiling_info == room) ||
+        (segment.type == Segment::WALL    && segment.wall_info[0] == room)) {
+      for (const auto& vertex : segment.vertices) {
+        if (first) {
+          for (int a = 0; a < 3; ++a) {
+            min_xyz[a] = max_xyz[a] = vertex[a];
+          }
+          first = false;
+        } else {
+          for (int a = 0; a < 3; ++a) {
+            min_xyz[a] = min(min_xyz[a], vertex[a]);
+            max_xyz[a] = max(max_xyz[a], vertex[a]);
+          }
+        }
+      }
+    }
+  }
+    
+  // Allocate a voxel inside a room.
+  Vector3d length = max_xyz - min_xyz;
+  Vector3i size;
+  for (int a = 0; a < 3; ++a) {
+    size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
+  }
 
-    // Do the check.
-    
-    
+  vector<bool> occupancy(size[0] * size[1] * size[2], false);
+  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+    const Segment& segment = indoor_polygon.GetSegment(s);
+    if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
+        (segment.type == Segment::CEILING && segment.ceiling_info == room) ||
+        (segment.type == Segment::WALL    && segment.wall_info[0] == room)) {
+      for (const auto& triangle : segment.triangles) {
+        FillOccupancy(segment.vertices[triangle.indices[0]],
+                      segment.vertices[triangle.indices[1]],
+                      segment.vertices[triangle.indices[2]],
+                      min_xyz,
+                      voxel_unit,
+                      size,
+                      &occupancy);
+      }
+    }
+  }
+  
+  // Expand occupancy.
+  const int kExpandMargin = 5;
+  {
+    vector<bool> vbtmp;
+
+    for (int t = 0; t < kExpandMargin; ++t) {
+      vbtmp = occupancy;
+      for (int z = 1; z < size[2] - 1; ++z) {
+        for (int y = 1; y < size[1] - 1; ++y) {
+          for (int x = 1; x < size[0] - 1; ++x) {
+            const int index = z * (size[0] * size[1]) + y * size[0] + x;
+            if (vbtmp[index] ||
+                vbtmp[index - 1] ||
+                vbtmp[index + 1] ||
+                vbtmp[index - size[0]] ||
+                vbtmp[index + size[0]] ||
+                vbtmp[index - size[0] * size[1]] ||
+                vbtmp[index + size[0] * size[1]]) {
+              occupancy[index] = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------
+  for (int p = 0; p < (int)points.size(); ++p) {
+    Vector3d cell_coord = (points[p].position - min_xyz) / voxel_unit;
+    Vector3d cell_coord_int;
+    for (int a = 0; a < 3; ++a) {
+      cell_coord_int[a] = max(0, min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+    }
+    const int index =
+      cell_coord_int[2] * (size[0] * size[1]) + cell_coord_int[1] * size[0] + cell_coord_int[0];
+    if (occupancy[index])
+      segments->at(p) = kDetail;
   }
 }
   
@@ -944,6 +1033,40 @@ Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs) {
   const Vector3d final_diff = lhs.normal.dot(diff_along_rhs_normal) * lhs.normal;
   return lhs.position - final_diff;
 }
+
+void FillOccupancy(const Eigen::Vector3d& v0,
+                   const Eigen::Vector3d& v1,
+                   const Eigen::Vector3d& v2,
+                   const Eigen::Vector3d& min_xyz,
+                   const double voxel_unit,
+                   const Eigen::Vector3i& size,
+                   std::vector<bool>* occupancy) {
+  const int kScale = 2;
+  const int samples01 = max(2, kScale * static_cast<int>((v1 - v0).norm() / voxel_unit));
+  const int samples02 = max(2, kScale * static_cast<int>((v2 - v0).norm() / voxel_unit));
+
+  const int along_sample = max(samples01, samples02);
+
+  for (int s = 0; s <= along_sample; ++s) {
+    Vector3d v01 = v0 + (v1 - v0) * s / along_sample;
+    Vector3d v02 = v0 + (v2 - v0) * s / along_sample;
+
+    const int perp_sample = max(2, kScale * static_cast<int>((v02 - v01).norm() / voxel_unit));
+    for (int t = 0; t <= perp_sample; ++t) {
+      Vector3d v = v01 + (v02 - v01) * t / perp_sample;
+
+      Vector3d cell_coord = (v - min_xyz) / voxel_unit;
+      Vector3d cell_coord_int;
+      for (int a = 0; a < 3; ++a) {
+        cell_coord_int[a] = max(0, min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+      }
+
+      const int index =
+        cell_coord_int[2] * (size[0] * size[1]) + cell_coord_int[1] * size[0] + cell_coord_int[0];
+      occupancy->at(index) = true;
+    }
+  }
+}
   
 }  // namespace
 
@@ -959,7 +1082,8 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
     case kInitial:
     case kFloor:
     case kWall:
-    case kCeiling: {
+    case kCeiling:
+    case kDetail: {
       break;
     }
     default: {
@@ -1005,14 +1129,17 @@ void WriteOtherPointsWithColor(const std::vector<Point>& points,
       point.object_id = 0;
       break;
     }
-      /*
     case kCeiling: {
       point.color = Vector3f(255, 0, 0);
       break;
     }
-      */
     case kInitial: {
       point.color = Vector3f(255, 255, 255);
+      point.object_id = 0;
+      break;
+    }
+    case kDetail: {
+      point.color = Vector3f(0, 255, 255);
       point.object_id = 0;
       break;
     }
