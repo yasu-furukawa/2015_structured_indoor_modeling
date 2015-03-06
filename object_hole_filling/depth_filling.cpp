@@ -47,8 +47,11 @@ namespace structured_indoor_modeling{
 	depthheight = panorama.DepthHeight();
 	depthmap.clear();
 	depthmap.resize(depthwidth * depthheight);
+	mask.resize(depthmap.size());
 	for(auto &v :depthmap)
-	    v = -1.0;
+	  v = -1.0;
+	for(auto &&v :mask)
+	  v = true;
 	//project the point cloud to the panorama and get the depth
 	max_depth = -1e100;
 	min_depth = 1e100;
@@ -71,87 +74,100 @@ namespace structured_indoor_modeling{
 	 }
      }
 
-    inline bool DepthFilling::insideDepth(int x,int y){
-	return x>=0 && x<depthwidth && y>=0 && y<depthheight;
+  void DepthFilling::setMask(int id, bool maskv){
+    if(depthmap.size() == 0 || id >= mask.size())
+      return;
+    mask[id] = maskv;
+  }
+
+  void DepthFilling::setMask(int x,int y,bool maskv){
+    setMask(y*depthwidth + x,maskv);
+  }
+
+  void DepthFilling::setMask(vector<bool>maskv){
+    if(maskv.size() != depthmap.size())
+      return;
+    mask = maskv;
+  }
+
+  void DepthFilling::fill_hole(const Panorama& panorama){
+    printf("Performing depth impainting...\n");
+    int invalidnum= 0;
+    
+    //invalidcoord: size of invalidnum
+    //invalidindx: size of depthnum
+    
+    vector <int> invalidcoord;
+    vector <int> invalidindex(depthmap.size());
+    
+    for(int i=0;i<depthmap.size();i++){
+      Vector2d depth_pixel((double)(i%depthwidth), (double)(i/depthwidth));
+      Vector2d color_pixel = panorama.DepthToRGB(depth_pixel);
+      if(panorama.GetRGB(color_pixel) == Vector3f(0,0,0))
+	continue;
+      if(depthmap[i] < 0 && mask[i]){
+	invalidnum ++;
+	invalidcoord.push_back(i);
+	invalidindex[i] = invalidnum - 1;
+      }
+    }
+    cout<<"Invalid depth num:"<<invalidnum<<endl;
+    
+    //construct matrix A and B
+    vector< vector<double> > A(invalidnum);
+    vector <double> B(invalidnum);
+    for(int i=0;i<invalidnum;i++){
+      A[i].resize(invalidnum);
+      for(int j=0;j<invalidnum;j++){
+	A[i][j] = 0.0;
+      }
+      B[i] = 0.0;
     }
     
-     void DepthFilling::fill_hole(const Panorama& panorama){
-	 printf("Performing depth impainting...\n");
-	 int invalidnum= 0;
-
-	 //invalidcoord: size of invalidnum
-	 //invalidindx: size of depthnum
-	 
-	 vector <int> invalidcoord;
-	 vector <int> invalidindex(depthmap.size());
-	 
-	 for(int i=0;i<depthmap.size();i++){
-	     Vector2d depth_pixel((double)(i%depthwidth), (double)(i/depthwidth));
-	     Vector2d color_pixel = panorama.DepthToRGB(depth_pixel);
-	     if(panorama.GetRGB(color_pixel) == Vector3f(0,0,0))
-		 continue;
-	     if(depthmap[i] < 0){
-		 invalidnum ++;
-		 invalidcoord.push_back(i);
-		 invalidindex[i] = invalidnum - 1;
-	     }
-	 }
-	 cout<<"Invalid depth num:"<<invalidnum<<endl;
-	 //construct matrix A and B
-	 vector< vector<double> > A(invalidnum);
-	 vector <double> B(invalidnum);
-	 for(int i=0;i<invalidnum;i++){
-	     A[i].resize(invalidnum);
-	     for(int j=0;j<invalidnum;j++){
-		 A[i][j] = 0.0;
-	     }
-	     B[i] = 0.0;
-	 }
-	 
-	 for(int i=0;i<invalidnum;i++){
-	     //(x,y) is the coordinate of invalid pixel
-	     int x = invalidcoord[i] % depthwidth;
-	     int y = invalidcoord[i] / depthwidth;
-	     int count = 0;
-	     if(insideDepth(x-1,y)){
-		 count++;
-		 if(depthmap[y*depthwidth + x-1] <0 )
-		     A[i][invalidindex[y*depthwidth+x-1]] = -1;
-		 else
-		     B[i] += depthmap[y*depthwidth+x-1];
-	     }
-	     if(insideDepth(x+1,y)){
-		 count++;
-		 if(depthmap[y*depthwidth + x+1] <0 )
-		     A[i][invalidindex[y*depthwidth+x+1]] = -1;
-		 else
-		     B[i] += depthmap[y*depthwidth+x+1];
-	     }
-	     if(insideDepth(x,y-1)){
-		 count++;
-		 if(depthmap[(y-1)*depthwidth + x] <0 )
-		     A[i][invalidindex[(y-1)*depthwidth+x]] = -1;
-		 else
-		     B[i] += depthmap[(y-1)*depthwidth+x];
-	     }
-	     if(insideDepth(x,y+1)){
-		 count++;
-		 if(depthmap[(y+1)*depthwidth + x] <0 )
-		     A[i][invalidindex[(y+1)*depthwidth+x]] = -1;
-		 else
-		     B[i] += depthmap[(y+1)*depthwidth+x];
-	     }
-	     A[i][i] = (double)count;
-	 }
-
-	 //solve the linear problem with Jacobi iterative method
-	 vector <double> solution = JacobiMethod(A,B);
-
-	 //copy the result to original depthmap
-	 for(int i=0;i<invalidnum;i++){
-	     depthmap[invalidcoord[i]] = solution[i];
-	 }
-     }
+    for(int i=0;i<invalidnum;i++){
+      //(x,y) is the coordinate of invalid pixel
+      int x = invalidcoord[i] % depthwidth;
+      int y = invalidcoord[i] / depthwidth;
+      int count = 0;
+      if(insideDepth(x-1,y)){
+	count++;
+	if(depthmap[y*depthwidth + x-1] <0 )
+	  A[i][invalidindex[y*depthwidth+x-1]] = -1;
+	else
+	  B[i] += depthmap[y*depthwidth+x-1];
+      }
+      if(insideDepth(x+1,y)){
+	count++;
+	if(depthmap[y*depthwidth + x+1] <0 )
+	  A[i][invalidindex[y*depthwidth+x+1]] = -1;
+	else
+	  B[i] += depthmap[y*depthwidth+x+1];
+      }
+      if(insideDepth(x,y-1)){
+	count++;
+	if(depthmap[(y-1)*depthwidth + x] <0 )
+	  A[i][invalidindex[(y-1)*depthwidth+x]] = -1;
+	else
+	  B[i] += depthmap[(y-1)*depthwidth+x];
+      }
+      if(insideDepth(x,y+1)){
+	count++;
+	if(depthmap[(y+1)*depthwidth + x] <0 )
+	  A[i][invalidindex[(y+1)*depthwidth+x]] = -1;
+	else
+	  B[i] += depthmap[(y+1)*depthwidth+x];
+      }
+      A[i][i] = (double)count;
+    }
+    
+    //solve the linear problem with Jacobi iterative method
+    vector <double> solution = JacobiMethod(A,B);
+    
+    //copy the result to original depthmap
+    for(int i=0;i<invalidnum;i++){
+      depthmap[invalidcoord[i]] = solution[i];
+    }
+  }
 
     void DepthFilling::SaveDepthmap(string path){
 	Mat depthimage(depthheight,depthwidth, CV_8UC3);

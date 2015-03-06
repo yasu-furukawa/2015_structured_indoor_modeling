@@ -289,7 +289,7 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 }
 
 
-void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, const DepthFilling &depth, float smoothweight, int numlabels, vector <int>& superpixelLabel){
+void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int>& superpixelLabel, DepthFilling &objectdepth){
 
   int superpixelnum = superpixelConfidence[0].size();
 

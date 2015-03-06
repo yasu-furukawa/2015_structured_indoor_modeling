@@ -15,9 +15,10 @@ LINK_DIRECTORIES( /usr/local/lib )
 
 #add_definitions(${PCL_DEFINITIONS})
 
-if(UNIX)
-set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
-endif(UNIX)
+if(${CMAKE_SYSTEM} MATCHES "Linux")
+  include_directories("/usr/include/eigen3")
+  set(CMAKE_CXX_FLAGS "-Wno-c++11-extensions -std=c++11")
+endif(${CMAKE_SYSTEM} MATCHES "Linux")
 
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
    set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
@@ -27,6 +28,11 @@ add_executable( object_segmentation_cli object_segmentation_cli.cc object_segmen
 
 target_link_libraries( object_segmentation_cli ${OpenCV_LIBS} )
 target_link_libraries( object_segmentation_cli gflags )
+
+if(${CMAKE_SYSTEM} MATCHES "Linux")
+  target_link_libraries(object_segmentation_cli pthread)
+endif(${CMAKE_SYSTEM} MATCHES "Linux")
+
 #target_link_libraries( object_segmentation_cli ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
 
 

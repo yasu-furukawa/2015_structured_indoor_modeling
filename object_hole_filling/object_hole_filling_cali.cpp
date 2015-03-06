@@ -170,8 +170,9 @@ int main(int argc, char **argv){
 
 
 	    vector <int> superpixelLabel;
+	    DepthFilling objectDepth;
 	    cout<<"Optimizing..."<<endl;
-	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB,depth, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel);
+	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel, objectDepth);
 
 #if 1
 	    //save optimize result
@@ -197,7 +198,7 @@ int main(int argc, char **argv){
 	    //back project
 	    cout<<"Back projecting..."<<endl;
 	    BackProjectObject(panorama,depth, superpixelLabel, labelgroup, resultCloud[roomid]);
-	    }
+	}
     }
 
     /////////////////////////////    
