@@ -48,7 +48,7 @@ void PreparePatch(const TextureInput& texture_input,
     break;
   }
   }
-  patch->axes[0] = patch->axes[1].cross(patch->axes[2]);
+  patch->axes[0] = patch->axes[1].cross(patch->axes[2]);  
 
   // Set vertices.
   Vector3d min_xyz, max_xyz;
@@ -115,7 +115,8 @@ int FindBestPanorama(const TextureInput& texture_input,
           score -= kHolePenalty;
         }
 
-        const double dot = patch.axes[2].dot(diff.normalized());
+        const double dot =
+          indoor_polygon.ManhattanToGlobal(patch.axes[2]).dot(diff.normalized());
         score += kNormalScale * dot;
 
         const Vector2d depth_pixel = panoramas[p][kFirstLevel].RGBToDepth(pixel);
