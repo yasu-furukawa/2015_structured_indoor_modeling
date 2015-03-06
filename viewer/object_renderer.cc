@@ -30,6 +30,7 @@ void ObjectRenderer::Init(const string data_directory) {
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     PointCloud point_cloud;
     point_cloud.Init(file_io.GetRefinedObjectClouds(room));
+
     for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
       const Point& point = point_cloud.GetPoint(p);
       for (int i = 0; i < 3; ++i)
@@ -64,7 +65,6 @@ void ObjectRenderer::InitGL() {
 void ObjectRenderer::RenderAll(const double alpha) {
   if (!render)
     return;
-
   const bool kBlend = false;
   
   glEnableClientState(GL_VERTEX_ARRAY);

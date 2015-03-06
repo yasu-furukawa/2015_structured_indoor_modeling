@@ -60,14 +60,12 @@ bool PointCloud::Init(const std::string& filename) {
   depth_height = 0;
   boundingbox[0] = 1e100;  boundingbox[1] = -1e100; boundingbox[2] = 1e100; boundingbox[3] = -1e100;
   boundingbox[4] = 1e100; boundingbox[5] = -1e100;
-
   
   points.clear();
   points.resize(num_points);
 
   const int kInvalidObjectId = -1;
 
-  
   // To handle different point format.
   for (auto& point : points) {
     ifstr >> point.depth_position[0] >> point.depth_position[1]
@@ -206,7 +204,7 @@ void PointCloud::AddPoints(const vector<Point>& new_points){
     center = center * (double)orilength;
     int oriobjectnum = num_objects;
     points.insert(points.end(), new_points.begin(), new_points.end());
-    for(int i=orilength;i<points.size();i++){
+    for(int i=orilength;i<(int)points.size();i++){
 	points[i].object_id += oriobjectnum;
 	center += points[i].position;
 	num_objects = std::max(num_objects, points[i].object_id);

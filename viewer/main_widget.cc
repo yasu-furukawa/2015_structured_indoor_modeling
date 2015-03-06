@@ -57,6 +57,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
              panoramas,
              panorama_to_room,
              room_to_panorama) {
+
   // Renderer initialization.
   {
     InitPanoramasPanoramaRenderers();
