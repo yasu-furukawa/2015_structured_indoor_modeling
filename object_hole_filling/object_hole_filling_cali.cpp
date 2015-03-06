@@ -77,7 +77,6 @@ int main(int argc, char **argv){
 	sprintf(buffer,"depth/panorama%03d.depth",id);
 	if(!depth.ReadDepthFromFile(string(buffer))){
 	    depth.Init(curpc, panorama);
-	    depth.SaveDepthmap(string(temppath));
 	    depth.fill_hole(panorama);
 	    depth.SaveDepthFile(string(buffer));
 	}
