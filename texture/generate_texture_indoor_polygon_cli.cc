@@ -20,7 +20,7 @@ DEFINE_int32(start_panorama, 0, "First panorama id.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 DEFINE_int32(pyramid_level, 1, "Level of pyramid for floor texture.");
 DEFINE_int32(max_texture_size_per_non_floor_patch, 1024, "Maximum texture size for each wall patch.");
-DEFINE_int32(target_texture_size_for_vertical, 400, "How many texture pixels between floor and ceiling.");
+DEFINE_int32(target_texture_size_for_vertical, 200, "How many texture pixels between floor and ceiling.");
 
 DEFINE_double(position_error_for_floor, 0.08, "How much error is allowed for a point to be on a floor.");
 
