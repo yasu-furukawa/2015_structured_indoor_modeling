@@ -357,6 +357,40 @@ void SynthesizePatch(Patch* patch) {
     }
   }
 }
+
+void ComputeProjectedTextures(const TextureInput& texture_input,
+                              const Patch& patch,
+                              std::vector<cv::Mat>* projected_textures) {
+  const int level = texture_input.pyramid_level;
+  
+  for (int p = 0; p < texture_input.panoramas.size(); ++p) {
+    const Panorama& panorama = texture_input.panoramas[p][level];
+
+    // For speed up.
+
+    const int kSkip = 1;
+    for (int q = 0; q < texture_input.point_clouds[p].GetNumPoints(); q += kSkip) {
+      const auto& point = texture_input.point_clouds[p].GetPoint(q);
+      const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
+      const int x = static_cast<int>(round(depth_pixel[0]));
+      const int y = static_cast<int>(round(depth_pixel[1]));
+      
+      if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
+        if (IsOnFloor(texture_input.floorplan, floor_patch, floor_heights, ceiling_heights, point,
+                       texture_input.position_error_for_floor)) {
+          floor_mask[y * depth_width + x] = true;
+        }
+      }
+    }
+    
+
+
+    
+
+  }
+
+
+}
   
 }  // namespace
 
@@ -409,6 +443,53 @@ double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
   }
   return (ceiling_z - floor_z) / target_texture_size_for_vertical;
 }
+
+void ComputePanoramaDepths(TextureInput* texture_input) {
+  const int level = texture_input->pyramid_level;
+  
+  texture_input->panorama_depths.clear();
+  texture_input->panorama_depths.resize(texture_input->panoramas.size());
+
+  for (int p = 0; p < (int)texture_input->panoramas.size(); ++p) {
+    const Panorama& panorama = texture_input->panoramas[p][level];
+    const int depth_width  = panorama.DepthWidth();
+    const int depth_height = panorama.DepthHeight();
+
+    const double kInvalid = -1.0;
+    texture_input->panorama_depths[p].resize(depth_width * depth_height, kInvalid);
+
+    const int kSkip = 1;
+    for (int q = 0; q < texture_input->point_clouds[p].GetNumPoints(); q += kSkip) {
+      const auto& point = texture_input->point_clouds[p].GetPoint(q);
+      const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
+      const int x = static_cast<int>(round(depth_pixel[0]));
+      const int y = static_cast<int>(round(depth_pixel[1]));
+      
+      if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
+        const distance = (panorama.GetCenter() - point.position).norm();
+        const int index = y * depth_width + x;
+        if (texture_input->panorama_depths[p][index] == kInvalid ||
+            distance < texture_input->panorama_depths[p][index]) {
+          texture_input->panorama_depths[p][index] = distance;
+        }
+      }
+    }
+
+    // Laplacian smoothing.
+    SmoothField(depth_width, depth_height, kInvalid, texture_input->panorama_depths[p]);
+    
+
+    
+  }
+}
+
+void SmoothField(const int width, const int height, const double hole,
+                 std::vector<double>* field) {
+  
+
+
+
+}  
   
 void SetPatch(const TextureInput& texture_input,
               const Segment& segment,
@@ -420,6 +501,10 @@ void SetPatch(const TextureInput& texture_input,
   //????
   if (0) {
     // Project from all the panoramas, and blend.
+    vector<cv::Mat> projected_textures;
+    ComputeProjectedTextures(texture_input, *patch, &projected_textures);
+
+    
     
   } else {
     // Pick the best one and inpaint.
