@@ -1,3 +1,4 @@
+#include <Eigen/Sparse>
 #include "../base/file_io.h"
 #include "../base/panorama.h"
 #include "generate_texture_indoor_polygon.h"
@@ -485,7 +486,8 @@ void ComputePanoramaDepths(TextureInput* texture_input) {
 
 void SmoothField(const int width, const int height, const double hole,
                  std::vector<double>* field) {
-  
+  SparseMatrix<double> A(width * height, width * height);
+  VectorXd b;
 
 
 
