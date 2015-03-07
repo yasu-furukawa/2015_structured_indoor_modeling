@@ -49,10 +49,13 @@ struct TextureInput {
   int num_cg_iterations;
 
   double texel_unit;
+  double visibility_margin;
 };
 
 double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
                         const int target_texture_size_for_vertical);
+
+double ComputeVisibilityMargin(const IndoorPolygon& indoor_polygon);
 
 void ComputePanoramaDepths(TextureInput* texture_input);
 

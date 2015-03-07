@@ -439,7 +439,7 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
                               const Patch& patch,
                               std::vector<cv::Mat>* projected_textures) {
   const int level = texture_input.pyramid_level;
-  const double threshold = texture_input.texel_unit * 40;
+  const double threshold = texture_input.visibility_margin;
   
   for (int p = 0; p < texture_input.panoramas.size(); ++p) {
     const Panorama& panorama = texture_input.panoramas[p][level];
@@ -547,6 +547,31 @@ double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
   return (ceiling_z - floor_z) / target_texture_size_for_vertical;
 }
 
+double ComputeVisibilityMargin(const IndoorPolygon& indoor_polygon) {
+  // Collect z coordinates.
+  vector<double> z_values;
+  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+    const Segment& segment = indoor_polygon.GetSegment(s);
+    for (const auto& vertex : segment.vertices) {
+      z_values.push_back(vertex[2]);
+    }
+  }
+
+  // Take 3 and 97 percentiles.
+  vector<double>::iterator floor_z_ite =
+    z_values.begin() + z_values.size() * 3 / 100;
+  vector<double>::iterator ceiling_z_ite =
+    z_values.begin() + z_values.size() * 97 / 100;
+
+  nth_element(z_values.begin(), floor_z_ite, z_values.end());
+  const double floor_z = *floor_z_ite;
+  
+  nth_element(z_values.begin(), ceiling_z_ite, z_values.end());
+  const double ceiling_z = *ceiling_z_ite;
+
+  return (ceiling_z - floor_z) / 15;
+}
+  
 void ComputePanoramaDepths(TextureInput* texture_input) {
   const int level = texture_input->pyramid_level;
   

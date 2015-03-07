@@ -80,7 +80,8 @@ int main(int argc, char* argv[]) {
   }
   texture_input.texel_unit =
     ComputeTexelUnit(texture_input.indoor_polygon, FLAGS_target_texture_size_for_vertical);
-
+  texture_input.visibility_margin = 
+    ComputeVisibilityMargin(texture_input.indoor_polygon);
   // Mask for each panorama.
   ComputePanoramaDepths(&texture_input);
   
