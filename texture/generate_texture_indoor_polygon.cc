@@ -489,7 +489,32 @@ void SmoothField(const int width, const int height, const double hole,
   SparseMatrix<double> A(width * height, width * height);
   VectorXd b;
 
+  vector<Eigen::Triplet<double> > triplets;
+  
+  int index = 0;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x, ++index) {
+      int count = 0;
+      if (x != 0) {
+        triplets.push_back(Eigen::Triplet<double>(index, index - 1, -1));
+        ++count;
+      }
+      if (x != width - 1) {
+        triplets.push_back(Eigen::Triplet<double>(index, index + 1, -1));
+        ++count;
+      }
+      if (y != 0) {
+        triplets.push_back(Eigen::Triplet<double>(index, index - width, -1));
+        ++count;
+      }
+      if (y != height - 1) {
+        triplets.push_back(Eigen::Triplet<double>(index, index + width, -1));
+        ++count;
+      }
 
+      triplets.push_back(Eigen::Triplet<double>(index, index, count));
+    }
+  }
 
 }  
   
