@@ -334,22 +334,6 @@ void ShrinkTexture(const int shrink_pixels, Patch* patch) {
   }
   */
 
-  /*
-  {
-    ofstream ofstr;
-    ofstr.open("before.pgm");
-    ofstr << "P2" << endl
-	  << patch->texture_size[0] << ' ' << patch->texture_size[1] << endl
-	  << 255 << endl;
-    for (const auto& value : valids) {
-      if (value)
-	ofstr << "255 ";
-      else
-	ofstr << "0 ";
-    }
-    ofstr.close();
-  }
-  */
   {    
     const int kKernelWidth = 5;
     const int kTime = 3;
@@ -359,27 +343,7 @@ void ShrinkTexture(const int shrink_pixels, Patch* patch) {
                            kKernelWidth,
                            &valids);
   }
-  /*
-  {
-    ofstream ofstr;
-    ofstr.open("after.pgm");
-    ofstr << "P2" << endl
-	  << patch->texture_size[0] << ' ' << patch->texture_size[1] << endl
-	  << 255 << endl;
-    for (const auto& value : valids) {
-      if (value)
-	ofstr << "255 ";
-      else
-	ofstr << "0 ";
-    }
-    ofstr.close();
-    cout << "goinput" << endl;
-    int c;
-    cin >> c;
-  }
-  */
 
-  
   index = 0;
   for (int y = 0; y < patch->texture_size[1]; ++y) {
     for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
@@ -443,7 +407,8 @@ void ShrinkTexture(const int width,
       }
     }
   }
-  
+
+  /*  
   for (int t = 0; t < margin; ++t) {
     vector<bool> valids_org = valids;
     int index = 0;
@@ -459,6 +424,14 @@ void ShrinkTexture(const int width,
         }
       }
     }
+  }
+  */
+
+  {    
+    const int kKernelWidth = 5;
+    const int kTime = 3;
+    for (int t = 0; t < kTime; ++t)
+      image_process::Erode(width, height, kKernelWidth, &valids);
   }
 
   index = 0;
@@ -511,8 +484,8 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
       }
     }
 
-    const int kShrinkMargin = 5;
-    ShrinkTexture(patch.texture_size[0], patch.texture_size[1], kShrinkMargin,
+    const int kShrinkPixels = 6;
+    ShrinkTexture(patch.texture_size[0], patch.texture_size[1], kShrinkPixels,
                   &projected_texture);
 
     bool non_hole_exist = false;
