@@ -334,6 +334,22 @@ void ShrinkTexture(const int shrink_pixels, Patch* patch) {
   }
   */
 
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("before.pgm");
+    ofstr << "P2" << endl
+	  << patch->texture_size[0] << ' ' << patch->texture_size[1] << endl
+	  << 255 << endl;
+    for (const auto& value : valids) {
+      if (value)
+	ofstr << "255 ";
+      else
+	ofstr << "0 ";
+    }
+    ofstr.close();
+  }
+  */
   {    
     const int kKernelWidth = 5;
     const int kTime = 3;
@@ -343,6 +359,26 @@ void ShrinkTexture(const int shrink_pixels, Patch* patch) {
                            kKernelWidth,
                            &valids);
   }
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("after.pgm");
+    ofstr << "P2" << endl
+	  << patch->texture_size[0] << ' ' << patch->texture_size[1] << endl
+	  << 255 << endl;
+    for (const auto& value : valids) {
+      if (value)
+	ofstr << "255 ";
+      else
+	ofstr << "0 ";
+    }
+    ofstr.close();
+    cout << "goinput" << endl;
+    int c;
+    cin >> c;
+  }
+  */
+
   
   index = 0;
   for (int y = 0; y < patch->texture_size[1]; ++y) {
@@ -569,7 +605,7 @@ double ComputeVisibilityMargin(const IndoorPolygon& indoor_polygon) {
   nth_element(z_values.begin(), ceiling_z_ite, z_values.end());
   const double ceiling_z = *ceiling_z_ite;
 
-  return (ceiling_z - floor_z) / 15;
+  return (ceiling_z - floor_z) / 10;
 }
   
 void ComputePanoramaDepths(TextureInput* texture_input) {
