@@ -487,7 +487,7 @@ void ComputePanoramaDepths(TextureInput* texture_input) {
 void SmoothField(const int width, const int height, const double hole,
                  std::vector<double>* field) {
   SparseMatrix<double> A(width * height, width * height);
-  VectorXd b;
+  VectorXd b(width * height);
 
   vector<Eigen::Triplet<double> > triplets;
   
@@ -512,7 +512,9 @@ void SmoothField(const int width, const int height, const double hole,
         ++count;
       }
 
-      triplets.push_back(Eigen::Triplet<double>(index, index, count));
+      if (field->at(index) == hole) {
+        triplets.push_back(Eigen::Triplet<double>(index, index, count));
+        
     }
   }
 
