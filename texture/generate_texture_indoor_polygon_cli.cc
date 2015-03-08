@@ -86,8 +86,7 @@ int main(int argc, char* argv[]) {
   ComputePanoramaDepths(&texture_input);
   
   vector<Patch> patches(texture_input.indoor_polygon.GetNumSegments());
-  // for (int p = 0; p < patches.size(); ++p) {
-  for (int p = 18; p < patches.size(); ++p) {
+  for (int p = 0; p < patches.size(); ++p) {
     cout << p << " segment" << endl;
     const Segment& segment = texture_input.indoor_polygon.GetSegment(p);
     bool visibility_check = false;
