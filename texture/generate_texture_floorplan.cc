@@ -957,8 +957,9 @@ void SynthesizePatch(Patch* patch) {
 
   synthesis_data.num_cg_iterations = 50;
   synthesis_data.texture_size = patch->texture_size;
-  synthesis_data.patch_size = min(80, min(patch->texture_size[0], patch->texture_size[1]));
-  synthesis_data.margin = synthesis_data.patch_size / 4;
+  synthesis_data.patch_size =
+    min(80, min(patch->texture_size[0], patch->texture_size[1]));
+  synthesis_data.margin = max(1, synthesis_data.patch_size / 4);
   synthesis_data.mask.resize(patch->texture_size[0] * patch->texture_size[1], true);
 
   vector<cv::Mat> patches;
