@@ -378,24 +378,37 @@ void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
       break;
     }
     cerr << "No patches! Cut patch size by half." << endl;
-    synthesis_data.patch_size /= 2;
+    if (t != kTimes - 1)
+      synthesis_data.patch_size /= 2;
   }
-  
-  cv::Mat synthesized_texture(patch->texture_size[1],
-                              patch->texture_size[0],
-                              CV_8UC3,
-                              cv::Scalar(0));
-  SynthesizePoisson(synthesis_data, patches, patch_positions, vertical_constraint,
-                    &synthesized_texture);
-  cv::imshow("result", synthesized_texture);
 
-  {
+  if (patches.empty()) {
+    cerr << "Do not find any texture. Gave up. Paint light gray." << endl;
+    const cv::Vec3b kLightGray(200, 200, 200);
     int index = 0;
     for (int y = 0; y < patch->texture_size[1]; ++y) {
       for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
-        patch->texture[3 * index + 0] = synthesized_texture.at<cv::Vec3b>(y, x)[0];
-        patch->texture[3 * index + 1] = synthesized_texture.at<cv::Vec3b>(y, x)[1];
-        patch->texture[3 * index + 2] = synthesized_texture.at<cv::Vec3b>(y, x)[2];
+        for (int i = 0; i < 3; ++i)
+          patch->texture[3 * index + i] = kLightGray[i];
+      }
+    }
+  } else {
+    cv::Mat synthesized_texture(patch->texture_size[1],
+                                patch->texture_size[0],
+                                CV_8UC3,
+                                cv::Scalar(0));
+    SynthesizePoisson(synthesis_data, patches, patch_positions, vertical_constraint,
+                      &synthesized_texture);
+    cv::imshow("result", synthesized_texture);
+    
+    {
+      int index = 0;
+      for (int y = 0; y < patch->texture_size[1]; ++y) {
+        for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
+          patch->texture[3 * index + 0] = synthesized_texture.at<cv::Vec3b>(y, x)[0];
+          patch->texture[3 * index + 1] = synthesized_texture.at<cv::Vec3b>(y, x)[1];
+          patch->texture[3 * index + 2] = synthesized_texture.at<cv::Vec3b>(y, x)[2];
+        }
       }
     }
   }

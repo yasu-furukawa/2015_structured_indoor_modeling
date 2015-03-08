@@ -914,7 +914,8 @@ void GenerateFloorTexture(const int room,
     }
     
     cerr << "No patches! Cut patch size by half." << endl;
-    synthesis_data.patch_size /= 2;
+    if (t != kTimes - 1)
+      synthesis_data.patch_size /= 2;
   }
   if (patches.empty()) {
     cerr << "Do not find any texture. Gave up. Paint light gray." << endl;
