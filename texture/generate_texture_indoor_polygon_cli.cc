@@ -92,8 +92,8 @@ int main(int argc, char* argv[]) {
       visibility_check = true;
       texture_input.visibility_margin = default_visibility_margin / 2;
     } else {
-      visibility_check = true;
-      texture_input.visibility_margin = default_visibility_margin / 2;
+      visibility_check = false;
+      texture_input.visibility_margin = default_visibility_margin;
     }
     SetPatch(texture_input, segment, visibility_check, &patches[p]);
   }

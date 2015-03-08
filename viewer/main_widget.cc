@@ -582,7 +582,7 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 }
 
 void MainWidget::keyPressEvent(QKeyEvent* e) {
-  const double kRotationDegrees = 90.0 * M_PI / 180.0;
+  const double kRotationDegrees = 45.0 * M_PI / 180.0;
   if (e->key() == Qt::Key_Up) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.MoveForwardPanorama();

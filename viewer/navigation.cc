@@ -378,7 +378,7 @@ void Navigation::Tick() {
     break;
   }
   case kAirTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.04;
     camera_air.progress += kStepSize;
     if (camera_air.progress >= 1.0) {
       camera_status = kAir;
