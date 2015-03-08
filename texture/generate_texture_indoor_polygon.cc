@@ -378,8 +378,9 @@ void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
       break;
     }
     cerr << "No patches! Cut patch size by half." << endl;
-    if (t != kTimes - 1)
-      synthesis_data.patch_size /= 2;
+    if (t != kTimes - 1) {
+      synthesis_data.patch_size = max(5, synthesis_data.patch_size / 2);
+    }
   }
 
   if (patches.empty()) {
