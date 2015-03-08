@@ -369,9 +369,17 @@ void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
 
   vector<cv::Mat> patches;
   vector<Eigen::Vector2i> patch_positions;
-  CollectCandidatePatches(synthesis_data, &patches, &patch_positions);
-  if (patches.empty())
-    return;
+  const int kTimes = 3;
+  for (int t = 0; t < kTimes; ++t) {
+    patches.clear();
+    patch_positions.clear();
+    CollectCandidatePatches(synthesis_data, &patches, &patch_positions);
+    if (!patches.empty()) {
+      break;
+    }
+    cerr << "No patches! Cut patch size by half." << endl;
+    synthesis_data.patch_size /= 2;
+  }
   
   cv::Mat synthesized_texture(patch->texture_size[1],
                               patch->texture_size[0],
@@ -498,7 +506,8 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
           break;
         }
       }
-    }                  
+    }
+
     if (non_hole_exist)
       projected_textures->push_back(projected_texture);
   }
