@@ -92,7 +92,6 @@ int main(int argc, char* argv[]) {
     if (segment.type == Segment::FLOOR) {
       visibility_check = true;
     }
-    cout << p << " first segment." << endl;
     SetPatch(texture_input, segment, visibility_check, &patches[p]);
   }
 
