@@ -80,17 +80,20 @@ int main(int argc, char* argv[]) {
   }
   texture_input.texel_unit =
     ComputeTexelUnit(texture_input.indoor_polygon, FLAGS_target_texture_size_for_vertical);
-  texture_input.visibility_margin = 
-    ComputeVisibilityMargin(texture_input.indoor_polygon);
-  // Mask for each panorama.
+  const double default_visibility_margin = ComputeVisibilityMargin(texture_input.indoor_polygon);
+  // Depth for each panorama.
   ComputePanoramaDepths(&texture_input);
   
   vector<Patch> patches(texture_input.indoor_polygon.GetNumSegments());
   for (int p = 0; p < patches.size(); ++p) {
     const Segment& segment = texture_input.indoor_polygon.GetSegment(p);
-    bool visibility_check = false;
+    bool visibility_check;
     if (segment.type == Segment::FLOOR) {
       visibility_check = true;
+      texture_input.visibility_margin = default_visibility_margin / 2;
+    } else {
+      visibility_check = true;
+      texture_input.visibility_margin = default_visibility_margin / 2;
     }
     SetPatch(texture_input, segment, visibility_check, &patches[p]);
   }
