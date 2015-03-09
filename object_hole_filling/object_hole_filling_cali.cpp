@@ -82,12 +82,12 @@ int main(int argc, char **argv){
 	}
 	sprintf(buffer,"depth/panoramaDepth%03d.png",id);
 	depth.SaveDepthmap(string(buffer));
-
+	
+	
 	int imgwidth = panorama.Width();
 	int imgheight = panorama.Height();
 	int numlabels(0);
 	vector<int> labels(imgwidth*imgheight);
-    
 
 	sprintf(buffer,"superpixel/SLIC%03d",id);
 	ifstream labelin(buffer, ios::binary);

@@ -17,14 +17,14 @@ namespace structured_indoor_modeling{
   class DepthFilling{
   public:
     DepthFilling(){}
-    void Init(const PointCloud &point_cloud, const Panorama &panorama);
+    void Init(const PointCloud &point_cloud, const Panorama &panorama, bool maskv = true);
+    void Init(const PointCloud &point_cloud, const Panorama &panorama, int object_id, bool maskv = true);
     void setMask(int id, bool maskv);
     void setMask(int x, int y, bool maskv);
-    void setMask(std::vector <bool> maskv);
     void fill_hole(const Panorama& panorama);
 
     inline bool insideDepth(int x,int y){
-      return x>=0 && x<depthwidth && y>=0 && y<depthheight && mask[y*depthwidth + x];
+	return x>=0 && x<depthwidth && y>=0 && y<depthheight && (mask[y*depthwidth + x] == 1);
     }
     
     void SaveDepthmap(std::string path);
@@ -35,7 +35,7 @@ namespace structured_indoor_modeling{
     const std::vector<double>& GetDepthmap() const{return depthmap;}
   private:
     std::vector <double> depthmap;
-    std::vector <bool> mask;
+    std::vector <char> mask;    //using vector<bool> is not a good choice...
     int depthwidth;
     int depthheight;
     double max_depth;
