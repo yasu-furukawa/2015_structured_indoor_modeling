@@ -2,7 +2,10 @@
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
 #include "../base/file_io.h"
+#include <numeric>
 #include <fstream>
+
+#define MAX_DEPTH_DIFF 800
 
 using namespace std;
 using namespace Eigen;
@@ -270,24 +273,47 @@ namespace structured_indoor_modeling{
 	    return -1;
 	int xl = floor(x); int xh = ceil(x);
 	int yl = floor(y); int yh = ceil(y);
-	
-	double weight0 = ((double)xh - x) * ((double)yh - y);
-	double weight1 = (x - (double)xl) * ((double)yh - y);
-	double weight2 = (x - (double)xl) * (y - (double)yl);
-	double weight3 = ((double)xh - x) * (y - (double)yl);
-	if(GetDepth(xl,yl) < 0)
-	    weight0 = 0;
-	if(GetDepth(xh,yl) < 0)
-	    weight1 = 0;
-	if(GetDepth(xh,yh) < 0)
-	    weight2 = 0;
-	if(GetDepth(xl,yh) < 0)
-	    weight3 = 0;
 
-	double sumweight = weight0+weight1+weight2+weight3;
+	double mind = 1e100, maxd = -1e100;
+
+	vector<double> depth(4);
+	depth[0] = GetDepth(xl,yl);
+	mind = depth[0]<mind?depth[0]:mind;
+	maxd = depth[0]>maxd?depth[0]:maxd;
+
+	depth[1] = GetDepth(xh,yl);
+	mind = depth[1]<mind?depth[1]:mind;
+	maxd = depth[1]>maxd?depth[1]:maxd;
+
+	depth[2] = GetDepth(xh,yh);
+	mind = depth[2]<mind?depth[2]:mind;
+	maxd = depth[2]>maxd?depth[2]:maxd;
+
+	depth[3] = GetDepth(xl,yh);
+	mind = depth[3]<mind?depth[3]:mind;
+	maxd = depth[3]>maxd?depth[3]:maxd;
+
+	vector<double> weight(4);
+	
+	weight[0] = ((double)xh - x) * ((double)yh - y);
+	weight[1] = (x - (double)xl) * ((double)yh - y);
+	weight[2] = (x - (double)xl) * (y - (double)yl);
+	weight[3] = ((double)xh - x) * (y - (double)yl);
+
+	for(int i=0;i<4;i++){
+	    if(depth[i] < 0)
+		weight[i] = 0.0;
+	}
+	
+	if(abs(maxd - mind) > MAX_DEPTH_DIFF){
+	    int maxind = max_element(weight.begin(),weight.end()) - weight.begin();
+	    return depth[maxind];
+	}
+	
+	double sumweight = std::accumulate(weight.begin(),weight.end(),0.0);
 	if(sumweight == 0)
 	    return -1;
-	double res = weight0 * GetDepth(xl,yl) + weight1 * GetDepth(xh,yl) + weight2 * GetDepth(xh,yh) + weight3 * GetDepth(xl,yh) / sumweight;
+	double res = weight[0]*depth[0] + weight[1]*depth[1] + weight[2]*depth[2] + weight[3]*depth[3] / sumweight;
 	return res;
     }
 }//namespace

@@ -4,7 +4,6 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 
-
 namespace structured_indoor_modeling{
 
   class FileIO;
