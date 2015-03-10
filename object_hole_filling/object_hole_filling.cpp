@@ -378,7 +378,7 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 }
 
 
-void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &objectcloud){
+void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &resultcloud, int roomid){
 
     int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
 
@@ -394,7 +394,7 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, cons
     vector <DepthFilling> objectdepth(backgroundlabel);
     for(int objectid=0; objectid<backgroundlabel; objectid++){
 
-	objectdepth[objectid].Init(objectcloud, panorama, objectid, false);
+	objectdepth[objectid].Init(objectcloud, panorama, objectgroup[objectid], false);
 
 	//mask for current object
 	for(int spix=0; spix<segmentation.size(); spix++){
@@ -407,10 +407,10 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, cons
 		objectdepth[segmentation[spix]].setMask((int)depthpixel[0],(int)depthpixel[1], true);
 	    }
 	}
-    
-	char buffer[100];
-	sprintf(buffer,"depthmask_object%03d.png",objectid);
-	objectdepth[objectid].SaveDepthmap(string(buffer));
+	objectdepth[objectid].fill_hole(panorama);
+ 	// char buffer[100];
+	// sprintf(buffer,"depthmask_room%03d_object%03d.png",roomid,objectid);
+	// objectdepth[objectid].SaveDepthmap(string(buffer));
     }
 
   
@@ -424,7 +424,7 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, cons
 		float temp = curcolor[2];
 		curcolor[2] = curcolor[0];
 		curcolor[0] = temp;
-		double depthv = depth.GetDepth(depthloc[0],depthloc[1]);
+		double depthv = objectdepth[segmentation[superpixelid]].GetDepth(depthloc[0],depthloc[1]);
 		if(curcolor.norm() == 0 || depthv < 0)
 		    continue;
 
@@ -441,5 +441,5 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth, cons
 	    }
 	}
     }
-    objectcloud.AddPoints(pointtoadd);
+    resultcloud.AddPoints(pointtoadd);
 }

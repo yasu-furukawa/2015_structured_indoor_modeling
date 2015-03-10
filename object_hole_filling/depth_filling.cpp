@@ -75,9 +75,9 @@ namespace structured_indoor_modeling{
 	}
     }
 
-    void DepthFilling::Init(const PointCloud& point_cloud, const Panorama &panorama, int object_id, bool maskv){
+    void DepthFilling::Init(const PointCloud& point_cloud, const Panorama &panorama,const vector<int>&objectgroup, bool maskv){
 	if(!point_cloud.HasObjectId()){
-	    cerr<<"This object cloud doesn't not contain object id.\n"<<endl;
+	    cerr<<"This object cloud doesn't contain object id.\n"<<endl;
 	    exit(-1);
 	}
 	depthwidth = panorama.DepthWidth();
@@ -87,15 +87,14 @@ namespace structured_indoor_modeling{
 	mask.resize(depthmap.size());
 	for(auto &v :depthmap)
 	    v = -1.0;
-	for(auto &&v :mask)
+	for(auto &v :mask)
 	    v = maskv ? 1 : 0;
 	//project the point cloud to the panorama and get the depth
 	max_depth = -1e100;
 	min_depth = 1e100;
-	for(int point=0;point<point_cloud.GetNumPoints();++point){
-	    if(point_cloud.GetPoint(point).object_id != object_id)
-		continue;
-	    Vector3d globalposition = point_cloud.GetPoint(point).position;
+
+	for(auto ptid: objectgroup){
+	    Vector3d globalposition = point_cloud.GetPoint(ptid).position;
 	    Vector2d pixel = panorama.Project(globalposition);
 	    Vector2d depth_pixel = panorama.RGBToDepth(pixel);
 	    Vector3d localp = panorama.GlobalToLocal(globalposition);
@@ -105,13 +104,11 @@ namespace structured_indoor_modeling{
 		continue;
 	    double depth = sqrt(localp[0]*localp[0] + localp[1]*localp[1] + localp[2]*localp[2]);
 	    depthmap[depthy*depthwidth + depthx] = depth;
-
 	    if(depth < min_depth)
 		min_depth = depth;
 	    if(depth > max_depth)
 		max_depth = depth;
 	}
-    
     }
 
     void DepthFilling::setMask(int id, bool maskv){
@@ -206,8 +203,11 @@ namespace structured_indoor_modeling{
     void DepthFilling::SaveDepthmap(string path){
 	Mat depthimage(depthheight,depthwidth, CV_8UC3);
 	for(int i=0;i<depthmap.size();i++){
-	    if(depthmap[i] < 0 || mask[i] == 0){
-		depthimage.at<Vec3b>(i/depthwidth, i%depthwidth) = Vec3b(0,0,255);
+	    if(depthmap[i] < 0){
+		if(mask[i] == 1)
+		    depthimage.at<Vec3b>(i/depthwidth, i%depthwidth) = Vec3b(255,0,0);
+		else
+		    depthimage.at<Vec3b>(i/depthwidth, i%depthwidth) = Vec3b(0,0,255);
 		continue;
 	    }
 	    int curv = (int)(depthmap[i] - min_depth) / (max_depth - min_depth) * 255;

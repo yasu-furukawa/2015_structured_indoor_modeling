@@ -45,6 +45,8 @@ int main(int argc, char **argv){
 
     //////////////////////////////////////
     //read and group object point cloud
+    //objectgroup: room->object->points
+    //objectvolume: room->object volume
     vector <PointCloud> objectcloud;
     vector <PointCloud> backgroundCloud;
     vector <vector <vector<int> > >objectgroup;
@@ -197,7 +199,7 @@ int main(int argc, char **argv){
 
 	    //back project
 	    cout<<"Back projecting..."<<endl;
-	    BackProjectObject(panorama,depth, superpixelLabel, labelgroup, resultCloud[roomid]);
+	    BackProjectObject(panorama,depth, objectcloud[roomid], objectgroup[roomid], superpixelLabel, labelgroup, resultCloud[roomid], roomid);
 	}
     }
 
