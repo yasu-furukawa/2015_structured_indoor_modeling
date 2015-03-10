@@ -1,6 +1,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
+#include <assert.h>
 #include "file_io.h"
 #include "point_cloud.h"
 
@@ -198,12 +199,13 @@ void PointCloud::AddPoints(const PointCloud& point_cloud){
     num_objects += point_cloud.GetNumObjects();
 }
 
-//add an array of Point to the point cloud. Update each member variable
+//add an array of Point to the point cloud. Update each member variable, a little faster than calling update()......
 void PointCloud::AddPoints(const vector<Point>& new_points){
     int orilength = points.size();
     center = center * (double)orilength;
     int oriobjectnum = num_objects;
     points.insert(points.end(), new_points.begin(), new_points.end());
+
     for(int i=orilength;i<(int)points.size();i++){
 	points[i].object_id += oriobjectnum;
 	center += points[i].position;
@@ -220,6 +222,35 @@ void PointCloud::AddPoints(const vector<Point>& new_points){
     center = center / (double)points.size();
 }
 
+void PointCloud::RemovePoint(int ind, bool isupdate){
+    assert(ind < points.size());
+    points.erase(points.begin()+ind);
+    if(isupdate)
+	update();
+}
+
+//update point cloud center, depth_width, depth_height, boundingbox. Note that num_object is not changed, to avoid confusing
+void PointCloud::update(){
+    depth_width = 0;
+    depth_height = 0;
+    boundingbox[0] = 1e100;  boundingbox[1] = -1e100; boundingbox[2] = 1e100; boundingbox[3] = -1e100;
+    boundingbox[4] = 1e100; boundingbox[5] = -1e100;
+  
+    // To handle different point format.
+    for (const auto& point : points) {
+	center += point.position;
+	boundingbox[0] = min(point.position[0],boundingbox[0]);
+	boundingbox[1] = max(point.position[0],boundingbox[0]);
+	boundingbox[2] = min(point.position[1],boundingbox[1]);
+	boundingbox[3] = max(point.position[1],boundingbox[1]);
+	boundingbox[4] = min(point.position[2],boundingbox[2]);
+	boundingbox[5] = max(point.position[2],boundingbox[2]);
+    
+	depth_width = max(point.depth_position[0] + 1, depth_width);
+	depth_height = max(point.depth_position[1] + 1, depth_height);
+    }
+    center /= (double)points.size();
+}
     
 double PointCloud::GetBoundingboxVolume(){
   if(boundingbox.size() == 0)

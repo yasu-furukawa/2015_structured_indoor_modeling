@@ -83,7 +83,12 @@ class PointCloud {
   void AddPoints(const PointCloud& point_cloud);
   void AddPoints(const std::vector<Point>& new_points);
 
-
+  //remove a point from point cloud. Note that this method will not modify any member variables such as num_objects, center. To update these variables, call update()
+  //set isupdate=true to automatically update member variables
+  //The purpose of not always automatically update member variables is that this is not always required
+  void RemovePoint(int ind, bool isupdate=true);
+  void update();
+  
  private:
   std::vector<Point> points;
   Eigen::Vector3d center;

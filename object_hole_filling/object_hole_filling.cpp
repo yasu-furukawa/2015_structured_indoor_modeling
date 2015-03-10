@@ -422,7 +422,7 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 		Vector2d depthloc = panorama.RGBToDepth(pixloc);
 		Vector3f curcolor = panorama.GetRGB(pixloc);
 		float temp = curcolor[2];
-		curcolor[2] = curcolor[0];
+ 		curcolor[2] = curcolor[0];
 		curcolor[0] = temp;
 		double depthv = objectdepth[segmentation[superpixelid]].GetDepth(depthloc[0],depthloc[1]);
 		if(curcolor.norm() == 0 || depthv < 0)
@@ -443,3 +443,21 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
     }
     resultcloud.AddPoints(pointtoadd);
 }
+
+//Merge algorithm
+//Given a point, remove all points that are inside the ball around the point.
+void mergeVertices(PointCloud &pc, double radius){
+    Mat featurepoints(pc.size(),3,CV_64F);
+    Mat query(1,3,CV_64F);
+    
+    //build index
+    for(int i=0;i<pc.GetNumPoints();i++){
+	structured_indoor_modeling Point curpt = pc.GetPoint(i);
+	featurepoints.at<double>(i,0) = curpt.position[0];
+	featurepoints.at<double>(i,1) = curpt.position[1];
+	featurepoints.at<double>(i,2) = curpt.position[2];
+    }
+    flann::DKTreeIndexParams indexParams(4);
+    flann::Index kdtree(featurepoints,indexParams);
+}
+
