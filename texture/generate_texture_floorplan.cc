@@ -891,10 +891,11 @@ void GenerateFloorTexture(const int room,
                           const cv::Mat& room_segments,
                           const Patch& floor_patch,
                           cv::Mat* floor_texture) {
+  const int kMinPatchSize = 6;
   SynthesisData synthesis_data(projected_textures);
   synthesis_data.num_cg_iterations = texture_input.num_cg_iterations;
   synthesis_data.texture_size = floor_patch.texture_size;
-  synthesis_data.patch_size   = texture_input.patch_size_for_synthesis;
+  synthesis_data.patch_size   = max(kMinPatchSize, texture_input.patch_size_for_synthesis);
   synthesis_data.margin       = synthesis_data.patch_size / 6;
   synthesis_data.mask.resize(floor_patch.texture_size[0] * floor_patch.texture_size[1], false);
   int index = 0;
@@ -914,8 +915,10 @@ void GenerateFloorTexture(const int room,
     }
     
     cerr << "No patches! Cut patch size by half." << endl;
-    if (t != kTimes - 1)
-      synthesis_data.patch_size = max(5, synthesis_data.patch_size / 2);
+    if (t != kTimes - 1) {
+      synthesis_data.patch_size = max(kMinPatchSize, synthesis_data.patch_size / 2);
+      synthesis_data.margin     = max(1, synthesis_data.patch_size / 6);
+    }
   }
   if (patches.empty()) {
     cerr << "Do not find any texture. Gave up. Paint light gray." << endl;
@@ -957,8 +960,9 @@ void SynthesizePatch(Patch* patch) {
 
   synthesis_data.num_cg_iterations = 50;
   synthesis_data.texture_size = patch->texture_size;
-  synthesis_data.patch_size = min(80, min(patch->texture_size[0], patch->texture_size[1]));
-  synthesis_data.margin = synthesis_data.patch_size / 4;
+  synthesis_data.patch_size =
+    min(80, min(patch->texture_size[0], patch->texture_size[1]));
+  synthesis_data.margin = max(1, synthesis_data.patch_size / 4);
   synthesis_data.mask.resize(patch->texture_size[0] * patch->texture_size[1], true);
 
   vector<cv::Mat> patches;

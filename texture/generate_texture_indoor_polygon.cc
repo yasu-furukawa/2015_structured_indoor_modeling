@@ -360,10 +360,11 @@ void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
                      const bool vertical_constraint,
                      Patch* patch) {
   SynthesisData synthesis_data(projected_textures);
-
+  // This must be more than 4 for margin.
+  const int kMinPatchSize = 4;
   synthesis_data.num_cg_iterations = 50;
   synthesis_data.texture_size = patch->texture_size;
-  synthesis_data.patch_size = min(80, min(patch->texture_size[0], patch->texture_size[1]));
+  synthesis_data.patch_size = max(kMinPatchSize, min(80, min(patch->texture_size[0], patch->texture_size[1])));
   synthesis_data.margin = synthesis_data.patch_size / 4;
   synthesis_data.mask.resize(patch->texture_size[0] * patch->texture_size[1], true);
 
@@ -379,13 +380,13 @@ void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
     }
     cerr << "No patches! Cut patch size by half." << endl;
     if (t != kTimes - 1) {
-      synthesis_data.patch_size = max(5, synthesis_data.patch_size / 2);
+      synthesis_data.patch_size = max(kMinPatchSize, synthesis_data.patch_size / 2);
+      synthesis_data.margin = synthesis_data.patch_size / 4;
     }
   }
-
   if (patches.empty()) {
     cerr << "Do not find any texture. Gave up. Paint light gray." << endl;
-    const cv::Vec3b kLightGray(200, 200, 200);
+    const cv::Vec3b kLightGray(100, 100, 100);
     int index = 0;
     for (int y = 0; y < patch->texture_size[1]; ++y) {
       for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
@@ -705,7 +706,7 @@ void SetPatch(const TextureInput& texture_input,
 
     if (projected_textures.empty()) {
       cerr << "Do not find any texture. Gave up. Paint light gray." << endl;
-      const Vector3i kLightGray(200, 200, 200);
+      const Vector3i kLightGray(100, 100, 100);
       int index = 0;
       for (int y = 0; y < patch->texture_size[1]; ++y) {
         for (int x = 0; x < patch->texture_size[0]; ++x, ++index) {
