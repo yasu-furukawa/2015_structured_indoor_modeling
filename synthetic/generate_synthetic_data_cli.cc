@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <limits>
 #include <string>
 #include <gflags/gflags.h>
 
@@ -14,11 +15,16 @@ DEFINE_int32(width, 512, "Width of a depth panorama.");
 DEFINE_int32(phi_range, 150.0 * M_PI / 180.0, "phi range.");
 
 struct Point {
-  Vector2d uv;
+  Vector2i uv;
   Vector3d position;
   Vector3i color;
   Vector3d normal;
   int intensity;
+};
+
+struct DepthPixel {
+  double depth;
+  Vector3d normal;
 };
 
 struct Camera {
@@ -37,9 +43,7 @@ struct Mesh {
 Eigen::Vector2d Project(const Camera& camera,
                         const Eigen::Vector3d& global) {  
   const Vector3d local = global - camera.center;
-  const double phi_per_pixel =
-    camera.phi_range / camera.height;
-
+  const double phi_per_pixel = camera.phi_range / camera.height;
   // x coordinate.
   double theta = -atan2(local.y(), local.x());
   if (theta < 0.0)
@@ -60,6 +64,21 @@ Eigen::Vector2d Project(const Camera& camera,
                        pixel_offset_from_center));
 
   return uv;
+}
+
+Eigen::Vector3d Unproject(const Camera& camera,
+                          const Eigen::Vector2d& pixel,
+                          const double distance) {
+  const double phi_per_pixel = camera.phi_range / camera.height;
+  const double theta = -2.0 * M_PI * pixel[0] / camera.width;
+  const double phi   = (camera.height / 2.0 - pixel[1]) * phi_per_pixel;
+
+  Vector3d local;
+  local[2] = distance * sin(phi);
+  local[0] = distance * cos(phi) * cos(theta);
+  local[1] = distance * cos(phi) * sin(theta);
+
+  return local + camera.center;
 }
 
 void ReadCameras(const string& filename,
@@ -120,9 +139,137 @@ void ReadMesh(const string& filename, Mesh * mesh) {
   ifstr.close();
 }
 
+void WritePly(const string& filename, const vector<Point>& points) {
+  ofstream ofstr;
+  ofstr.open(filename.c_str());
+  ofstr << "ply" << endl
+        << "format ascii 1.0" << endl
+        << "comment created by MATLAB plywrite" << endl
+        << "element vertex " << (int)points.size() << endl
+        << "property int height" << endl
+        << "property int width" << endl
+        << "property float x" << endl
+        << "property float y" << endl
+        << "property float z" << endl
+        << "property uchar red" << endl
+        << "property uchar green" << endl
+        << "property uchar blue" << endl
+        << "property float nx" << endl
+        << "property float ny" << endl
+        << "property float nz" << endl
+        << "property uchar intensity" << endl
+        << "end_header" << endl;
+  for (const auto& point : points) {
+    ofstr << point.uv[0] << ' ' << point.uv[1] << ' '
+          << point.position[0] << ' ' << point.position[1] << ' ' << point.position[2] << ' '
+          << point.color[0] << ' ' << point.color[1] << ' ' << point.color[2] << ' '
+          << point.normal[0] << ' ' << point.normal[1] << ' ' << point.normal[2] << ' '
+          << point.intensity << endl;
+  }
+  ofstr.close();
+}
+
+double ComputeUnit(const Camera& camera,
+                   const Vector3d& point) {
+  const Vector2d uv = Project(camera, point);
+  const double distance = (camera.center - point).norm();
+  const Vector2d right(uv[0] + 1.0, uv[1]);
+  const Vector3d right_point = Unproject(camera, right, distance);
+  
+  return (point - right_point).norm();  
+}
+
+void AddPointsFromDepths(const Camera& camera,
+                         const vector<DepthPixel>& depths,
+                         const double invalid_depth,
+                         vector<Point>* points) {
+  int index = 0;
+  for (int y = 0; y < camera.height; ++y) {
+    for (int x = 0; x < camera.width; ++x, ++index) {
+      Point point;
+      point.uv = Vector2i(x + 1, y + 1);
+      if (depths[index].depth == invalid_depth) {
+        point.position = Vector3d(0, 0, 0);
+        point.color = Vector3i(0, 0, 0);
+        point.normal = Vector3d(0, 0, 0);
+        point.intensity = 0;
+      } else {
+        point.position = Unproject(camera, Vector2d(x, y), depths[index].depth);
+        point.color = Vector3i(255, 255, 255);
+        point.normal = depths[index].normal;
+        point.intensity = 255;
+      }
+      points->push_back(point);
+    }
+  }
+}
+
+void Rasterize(const Camera& camera,
+               const vector<Mesh>& meshes,
+               vector<Point>* points) {
+  const double kInvalidDepth = numeric_limits<double>::max();
+  DepthPixel invalid_depth_pixel;
+  invalid_depth_pixel.depth = kInvalidDepth;
+  invalid_depth_pixel.normal = Vector3d(0, 0, 0);
+  
+  vector<DepthPixel> depths(camera.width * camera.height,
+                            invalid_depth_pixel);
+
+  // Rasterize.
+  for (const auto& mesh : meshes) {
+    for (const auto& triangle : mesh.triangles) {
+      const Vector3d vs[3] = { mesh.vertices[triangle[0]],
+                               mesh.vertices[triangle[1]],
+                               mesh.vertices[triangle[2]] };
+      const Vector3d center = (vs[0] + vs[1] + vs[2]) / 3.0;
+      const double unit = min(min(ComputeUnit(camera, vs[0]),
+                                  ComputeUnit(camera, vs[1])),
+                              min(ComputeUnit(camera, vs[2]),
+                                  ComputeUnit(camera, center)));
+
+      Vector3d normal = (vs[1] - vs[0]).cross(vs[2] - vs[0]);
+      normal.normalize();
+      
+      const double kSampleScale = 2.0;
+      const int sample01 = max(2, static_cast<int>(round((vs[1] - vs[0]).norm() / unit * kSampleScale)));
+      const int sample02 = max(2, static_cast<int>(round((vs[2] - vs[0]).norm() / unit * kSampleScale)));
+      const int sample_s = max(sample01, sample02);
+
+      for (int s = 0; s <= sample_s; ++s) {
+        const Vector3d v01 = vs[0] + (vs[1] - vs[0]) * s / sample_s;
+        const Vector3d v02 = vs[0] + (vs[2] - vs[0]) * s / sample_s;
+        const int sample_t = max(2, static_cast<int>(round((v02 - v01).norm() / unit * kSampleScale)));
+        for (int t = 0; t <= sample_t; ++t) {
+          const Vector3d point = v01 + (v02 - v01) * t / sample_t;
+          const double distance = (point - camera.center).norm();
+
+          Vector2d uv = Project(camera, point);
+          const int u = static_cast<int>(round(uv[0]));
+          const int v = static_cast<int>(round(uv[1]));
+          const int index = v * camera.width + u;
+          if (distance < depths[index].depth) {
+            depths[index].depth = distance;
+            depths[index].normal = normal;
+          }
+        }
+      }
+    }
+  }
+
+  for (int x = 0; x < camera.width; ++x) {
+    const int index0 = 0 * camera.width + x;
+    const int index1 = (camera.height - 1) * camera.width + x;
+    depths[index0].depth = kInvalidDepth;
+    depths[index1].depth = kInvalidDepth;
+  }
+
+  // From depths to points.
+  AddPointsFromDepths(camera, depths, kInvalidDepth, points);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
-    cerr << "Usage: " << argv[1] << " data_directory" << endl;
+    cerr << "Usage: " << argv[0] << " data_directory" << endl;
     exit (1);
   }
 
@@ -155,8 +302,22 @@ int main(int argc, char* argv[]) {
 
   // Start dumping out.
   for (int c = 0; c < cameras.size(); ++c) {
+    vector<Point> points;
+    // Add center.
+    Point center;
+    center.uv = Vector2i(0, 0);
+    center.position = cameras[c].center;
+    center.color = Vector3i(0, 0, 0);
+    center.normal = Vector3d(0, 0, 0);
+    center.intensity = 0;
+    points.push_back(center);
+    // Rasterize.
+    Rasterize(cameras[c], meshes, &points);
 
-  
+    char buffer[1024];
+    sprintf(buffer, "%s/transformed_all/%03d.ply", argv[1], c);
+    WritePly(buffer, points);
+  }
   
   return 0;
 }
