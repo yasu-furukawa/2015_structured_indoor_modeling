@@ -20,6 +20,7 @@ PointCloud::PointCloud() {
     depth_width = 0;
     depth_height = 0;
     num_objects = 0;
+    valid_points_num = 0;
     has_object_id = true;
     center[0] = 0; center[1] = 0; center[2] = 0;
 }
@@ -64,7 +65,12 @@ bool PointCloud::Init(const std::string& filename) {
   
   points.clear();
   points.resize(num_points);
-
+  
+  mask.resize(num_points);
+  for(auto &maskv: mask)
+       maskv = 1;
+  valid_points_num = num_points;
+  
   const int kInvalidObjectId = -1;
 
   // To handle different point format.
@@ -121,7 +127,7 @@ void PointCloud::Write(const std::string& filename) {
 
   ofstr << "ply" << endl
         << "format ascii 1.0" << endl
-        << "element vertex " << (int)points.size() << endl
+        << "element vertex " << valid_points_num << endl
         << "property int height" << endl
         << "property int width" << endl
         << "property float x" << endl
@@ -137,7 +143,10 @@ void PointCloud::Write(const std::string& filename) {
 	<< "property uchar object_id" << endl
 	<< "end_header" << endl;
   
-  for (const auto& point : points) {
+  for (int i=0; i<points.size(); i++) {
+       if(mask[i] == 0)
+	    continue;
+       structured_indoor_modeling::Point point = points[i];
     ofstr << point.depth_position[0] + kDepthPositionOffset << ' '
           << point.depth_position[1] + kDepthPositionOffset << ' '
           << point.position[0] << ' '
@@ -195,13 +204,23 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 }
 
 void PointCloud::AddPoints(const PointCloud& point_cloud){
+     for(int i=0;i<point_cloud.GetNumPoints();i++)
+	  mask.push_back(point_cloud.GetMask(i));
+
     points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
     num_objects += point_cloud.GetNumObjects();
+    valid_points_num += point_cloud.GetValidPointsNum();
+    update();
 }
 
 //add an array of Point to the point cloud. Update each member variable, a little faster than calling update()......
 void PointCloud::AddPoints(const vector<Point>& new_points){
     int orilength = points.size();
+    
+    for(int i=0;i<new_points.size();i++)
+	 mask.push_back(1);
+    valid_points_num += new_points.size();
+    
     center = center * (double)orilength;
     int oriobjectnum = num_objects;
     points.insert(points.end(), new_points.begin(), new_points.end());
@@ -223,10 +242,28 @@ void PointCloud::AddPoints(const vector<Point>& new_points){
 }
 
 void PointCloud::RemovePoint(int ind, bool isupdate){
-    assert(ind < points.size());
-    points.erase(points.begin()+ind);
+    assert(ind>=0 && ind < points.size());
+    if(mask[ind] == 0)
+	 return;
+    mask[ind] = 0;
+    valid_points_num --;
     if(isupdate)
 	update();
+}
+
+void PointCloud::SetAllColor(int r,int g,int b){
+     for(auto &v: points){
+	  v.color[0] = (float)r;
+	  v.color[1] = (float)g;
+	  v.color[2] = (float)b;
+     }
+}
+
+void PointCloud::SetColor(int ind, int r,int g,int b){
+     assert(ind < points.size());
+     points[ind].color[0] = float(r);
+     points[ind].color[1] = float(g);
+     points[ind].color[2] = float(b);
 }
 
 //update point cloud center, depth_width, depth_height, boundingbox. Note that num_object is not changed, to avoid confusing
@@ -237,19 +274,22 @@ void PointCloud::update(){
     boundingbox[4] = 1e100; boundingbox[5] = -1e100;
   
     // To handle different point format.
-    for (const auto& point : points) {
-	center += point.position;
-	boundingbox[0] = min(point.position[0],boundingbox[0]);
-	boundingbox[1] = max(point.position[0],boundingbox[0]);
-	boundingbox[2] = min(point.position[1],boundingbox[1]);
-	boundingbox[3] = max(point.position[1],boundingbox[1]);
-	boundingbox[4] = min(point.position[2],boundingbox[2]);
-	boundingbox[5] = max(point.position[2],boundingbox[2]);
-    
-	depth_width = max(point.depth_position[0] + 1, depth_width);
-	depth_height = max(point.depth_position[1] + 1, depth_height);
+    for (int i=0; i<points.size(); i++) {
+	 if(mask[i] == 0)
+	      continue;
+	 structured_indoor_modeling::Point point = points[i];
+	 center += point.position;
+	 boundingbox[0] = min(point.position[0],boundingbox[0]);
+	 boundingbox[1] = max(point.position[0],boundingbox[0]);
+	 boundingbox[2] = min(point.position[1],boundingbox[1]);
+	 boundingbox[3] = max(point.position[1],boundingbox[1]);
+	 boundingbox[4] = min(point.position[2],boundingbox[2]);
+	 boundingbox[5] = max(point.position[2],boundingbox[2]);
+	 
+	 depth_width = max(point.depth_position[0] + 1, depth_width);
+	 depth_height = max(point.depth_position[1] + 1, depth_height);
     }
-    center /= (double)points.size();
+    center /= (double)valid_points_num;
 }
     
 double PointCloud::GetBoundingboxVolume(){

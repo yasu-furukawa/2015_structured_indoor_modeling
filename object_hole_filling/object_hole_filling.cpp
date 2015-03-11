@@ -211,6 +211,9 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+
+	if(roomid > 1)
+	     break;
     }
     
 }
@@ -447,17 +450,50 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 //Merge algorithm
 //Given a point, remove all points that are inside the ball around the point.
 void mergeVertices(PointCloud &pc, double radius){
-    Mat featurepoints(pc.size(),3,CV_64F);
-    Mat query(1,3,CV_64F);
+
+     if(pc.GetNumPoints() == 0 )
+	  return;
+
+     int unit = pc.GetNumPoints() / 100;
+     for(int curcenter=0;curcenter<pc.GetNumPoints();curcenter++){
+	  if(pc.GetMask(curcenter) == 0)
+	       continue;
+	  
+	  if(curcenter % unit == 0)
+	       cout<<curcenter / unit<<' ';
+	  Mat featurepoints(pc.GetValidPointsNum(),3,CV_32F);
+	  Mat query(1,3,CV_32F);
     
-    //build index
-    for(int i=0;i<pc.GetNumPoints();i++){
-	structured_indoor_modeling Point curpt = pc.GetPoint(i);
-	featurepoints.at<double>(i,0) = curpt.position[0];
-	featurepoints.at<double>(i,1) = curpt.position[1];
-	featurepoints.at<double>(i,2) = curpt.position[2];
-    }
-    flann::DKTreeIndexParams indexParams(4);
-    flann::Index kdtree(featurepoints,indexParams);
+	  //build index
+	  int count=0;
+	  for(int i=0;i<pc.GetNumPoints();i++){
+	       if(pc.GetMask(i) == 0)
+		    continue;
+	       structured_indoor_modeling::Point curpt = pc.GetPoint(i);
+	       featurepoints.at<float>(count,0) = (float)curpt.position[0];
+	       featurepoints.at<float>(count,1) = (float)curpt.position[1];
+	       featurepoints.at<float>(count,2) = (float)curpt.position[2];
+	       count++;
+	  }
+
+	  flann::KDTreeIndexParams indexParams(5);
+	  flann::Index searchtree(featurepoints,indexParams);
+
+	  query.at<float>(0,0) = (float)pc.GetPoint(curcenter).position[0];
+	  query.at<float>(0,1) = (float)pc.GetPoint(curcenter).position[1];
+	  query.at<float>(0,2) = (float)pc.GetPoint(curcenter).position[2];
+
+	  Mat searchres(1,pc.GetNumPoints(),CV_32S,Scalar::all(-1));
+	  Mat dists(1,pc.GetNumPoints(),CV_32F);
+
+	  searchtree.radiusSearch(query,searchres,dists,radius,pc.GetNumPoints(),flann::SearchParams(32));
+	  for(int i=0;i<pc.GetNumPoints(); i++){
+	       int curind = searchres.at<int>(0,i);
+	       if(curind < 0)
+		    break;
+	       pc.RemovePoint(curind,false);
+	  }
+     }
+     cout<<endl;
 }
 

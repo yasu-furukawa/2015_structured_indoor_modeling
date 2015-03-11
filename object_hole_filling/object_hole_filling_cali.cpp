@@ -13,6 +13,7 @@
 #include "object_hole_filling.h"
 #include "depth_filling.h"
 #include <algorithm>
+#include "time.h"
 
 using namespace std;
 using namespace cv;
@@ -205,10 +206,19 @@ int main(int argc, char **argv){
 
     /////////////////////////////    
     cout<<endl<<"All done! Saving result..."<<endl;
+
     for(int roomid=0; roomid<resultCloud.size(); roomid++){
-	string savepath = file_io.GetRefinedObjectClouds(roomid);
-	cout<<"Saving "<<savepath<<endl;
-	resultCloud[roomid].Write(savepath);
+	 cout<<"Merging close points..."<<endl;
+	 cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+	 clock_t start,end;
+	 start = clock();
+	 mergeVertices(resultCloud[roomid], 500);
+	 end = clock();
+	 cout<<"done. Time: "<<end - start<<endl;
+	 cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+	 string savepath = file_io.GetRefinedObjectClouds(roomid);
+	 cout<<"Saving "<<savepath<<endl;
+	 resultCloud[roomid].Write(savepath);
     }
 
     return 0;

@@ -65,21 +65,29 @@ class PointCloud {
   void Transform(const Eigen::Matrix4d& transformation);
 
   // Accessors.
-  int GetNumPoints() const { return points.size(); }
-  int GetDepthWidth() const { return depth_width; }
-  int GetDepthHeight() const { return depth_height; }
-  std::vector<double> GetBoundingbox(){ return boundingbox;}
-  double GetBoundingboxVolume();
-  int GetNumObjects() const { return num_objects; }
-  Eigen::Vector3d GetCenter(){ return center;}
-  const Point& GetPoint(const int p) const { return points[p]; }
-  Point& GetPoint(const int p) { return points[p]; }
-  bool HasObjectId() const { return has_object_id; }
+  inline int GetNumPoints() const { return points.size(); }
 
+  //get number of point whose mask == 1
+  inline int GetValidPointsNum()const {return valid_points_num;}
+  
+  inline char GetMask(int ind) const {return mask[ind];}
+  inline int GetDepthWidth() const { return depth_width; }
+  inline int GetDepthHeight() const { return depth_height; }
+  inline std::vector<double> GetBoundingbox() const { return boundingbox;}
+  inline int GetNumObjects() const { return num_objects; }
+  inline Eigen::Vector3d GetCenter() const { return center;}
+  inline const Point& GetPoint(const int p) const { return points[p]; }
+  inline Point& GetPoint(const int p) { return points[p]; }
+  inline bool HasObjectId() const { return has_object_id; }
+  double GetBoundingboxVolume();  
   // Setters.
   void SetPoints(const std::vector<Point>& new_points) {
     points = new_points;
   }
+  
+  void SetAllColor(int r,int g,int b);
+  void SetColor(int ind, int r, int g,int b);
+
   void AddPoints(const PointCloud& point_cloud);
   void AddPoints(const std::vector<Point>& new_points);
 
@@ -91,11 +99,16 @@ class PointCloud {
   
  private:
   std::vector<Point> points;
+
+  //Since deleting element on vector is inefficient, we set up this mask array.
+  std::vector<char> mask;
+  
   Eigen::Vector3d center;
   int depth_width;
   int depth_height;
   bool has_object_id;
   int num_objects;
+  int valid_points_num;
   std::vector <double> boundingbox; //xmin,xmax,ymin,ymax,zmin,zmax
 
   static const int kDepthPositionOffset;
