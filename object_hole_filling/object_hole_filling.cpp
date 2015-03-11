@@ -455,29 +455,30 @@ void mergeVertices(PointCloud &pc, double radius){
 	  return;
 
      int unit = pc.GetNumPoints() / 100;
+     flann::KDTreeIndexParams indexParams(5);
+
+     Mat featurepoints(pc.GetValidPointsNum(),3,CV_32F);
+     Mat query(1,3,CV_32F);
+    
+     //build index
+     int count=0;
+     for(int i=0;i<pc.GetNumPoints();i++){
+	  if(pc.GetMask(i) == 0)
+	       continue;
+	  structured_indoor_modeling::Point curpt = pc.GetPoint(i);
+	  featurepoints.at<float>(count,0) = (float)curpt.position[0];
+	  featurepoints.at<float>(count,1) = (float)curpt.position[1];
+	  featurepoints.at<float>(count,2) = (float)curpt.position[2];
+	  count++;
+     }
+     flann::Index searchtree(featurepoints,indexParams);
+     
      for(int curcenter=0;curcenter<pc.GetNumPoints();curcenter++){
 	  if(pc.GetMask(curcenter) == 0)
 	       continue;
 	  
 	  if(curcenter % unit == 0)
 	       cout<<curcenter / unit<<' ';
-	  Mat featurepoints(pc.GetValidPointsNum(),3,CV_32F);
-	  Mat query(1,3,CV_32F);
-    
-	  //build index
-	  int count=0;
-	  for(int i=0;i<pc.GetNumPoints();i++){
-	       if(pc.GetMask(i) == 0)
-		    continue;
-	       structured_indoor_modeling::Point curpt = pc.GetPoint(i);
-	       featurepoints.at<float>(count,0) = (float)curpt.position[0];
-	       featurepoints.at<float>(count,1) = (float)curpt.position[1];
-	       featurepoints.at<float>(count,2) = (float)curpt.position[2];
-	       count++;
-	  }
-
-	  flann::KDTreeIndexParams indexParams(5);
-	  flann::Index searchtree(featurepoints,indexParams);
 
 	  query.at<float>(0,0) = (float)pc.GetPoint(curcenter).position[0];
 	  query.at<float>(0,1) = (float)pc.GetPoint(curcenter).position[1];
@@ -491,6 +492,8 @@ void mergeVertices(PointCloud &pc, double radius){
 	       int curind = searchres.at<int>(0,i);
 	       if(curind < 0)
 		    break;
+	       if(curind == curcenter)
+		    continue;
 	       pc.RemovePoint(curind,false);
 	  }
      }
