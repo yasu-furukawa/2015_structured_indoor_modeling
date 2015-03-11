@@ -49,10 +49,10 @@ struct Point {
   int object_id;
   Point(){object_id = 0;}
 };
+
 class PointCloud {
  public:
   PointCloud();
-  void InitializeMembers();
   
   // Read the corresponding point cloud in the local coordinate frame.
   bool Init(const FileIO& file_io, const int panorama);
@@ -69,11 +69,6 @@ class PointCloud {
   // Accessors.
   inline int GetNumPoints() const { return points.size(); }
 
-  // yasu To be consistent GetValidNumPoints seem to make sense. But not critical.
-  //get number of point whose mask == 1
-  int GetValidPointsNum() const;
-  
-  inline char GetMask(int ind) const {return mask[ind];}
   inline int GetDepthWidth() const { return depth_width; }
   inline int GetDepthHeight() const { return depth_height; }
   // yasu This should return const reference to speed-up.
@@ -83,11 +78,11 @@ class PointCloud {
   inline const Eigen::Vector3d& GetCenter() const { return center; }
   inline const Point& GetPoint(const int p) const { return points[p]; }
   inline Point& GetPoint(const int p) { return points[p]; }
-  inline bool HasObjectId() const { return has_object_id; }
   double GetBoundingboxVolume();  
   // Setters.
   void SetPoints(const std::vector<Point>& new_points) {
     points = new_points;
+    Update();
   }
   
   void SetAllColor(int r,int g,int b);
@@ -96,25 +91,20 @@ class PointCloud {
   void AddPoints(const PointCloud& point_cloud);
   void AddPoints(const std::vector<Point>& new_points);
 
-  //remove a point from point cloud. Note that this method will not modify any member variables such as num_objects, center. To update these variables, call update()
-  //set isupdate=true to automatically update member variables
-  //The purpose of not always automatically update member variables is that this is not always required
-  void RemovePoint(int ind, bool isupdate=true);
-  void update();
+  void RemovePoints(const std::vector<int>& indexes);
   
  private:
+  void InitializeMembers();
+  void Update();
+
   std::vector<Point> points;
 
   //Since deleting element on vector is inefficient, we set up this mask array.
   // yasu This should be vector<bool>.
-  std::vector<char> mask;
-  
   Eigen::Vector3d center;
   int depth_width;
   int depth_height;
-  bool has_object_id;
   int num_objects;
-
   // yasu This should be bounding_box.
   std::vector <double> boundingbox; //xmin,xmax,ymin,ymax,zmin,zmax
 
@@ -126,13 +116,3 @@ typedef std::vector<PointCloud> PointClouds;
 }  // namespace structured_indoor_modeling
 
 #endif  // BASE_POINT_CLOUD_H_
-
-
-
-
-
-
-
-
-
-

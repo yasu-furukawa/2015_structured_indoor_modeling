@@ -30,7 +30,6 @@ void PointCloud::InitializeMembers() {
   depth_width = 0;
   depth_height = 0;
   num_objects = 0;
-  has_object_id = false;
   center[0] = 0;
   center[1] = 0;
   center[2] = 0;
@@ -59,6 +58,7 @@ bool PointCloud::Init(const std::string& filename) {
     ifstr >> stmp;
 
   ifstr >> stmp;
+  bool has_object_id = false;
   if(stmp == "property") {
     has_object_id = true;
     for(int i = 0; i < 3; ++i)
@@ -67,10 +67,6 @@ bool PointCloud::Init(const std::string& filename) {
     
   points.clear();
   points.resize(num_points);
-  
-  mask.resize(num_points);
-  for(auto &maskv: mask)
-       maskv = 1;
   
   const int kInvalidObjectId = -1;
 
@@ -132,7 +128,7 @@ void PointCloud::Write(const std::string& filename) {
 
   ofstr << "ply" << endl
         << "format ascii 1.0" << endl
-        << "element vertex " << GetValidPointsNum() << endl
+        << "element vertex " << (int)points.size() << endl
         << "property int height" << endl
         << "property int width" << endl
         << "property float x" << endl
@@ -147,12 +143,8 @@ void PointCloud::Write(const std::string& filename) {
         << "property uchar intensity" << endl
 	<< "property uchar object_id" << endl
 	<< "end_header" << endl;
-  
-  for (int i=0; i<points.size(); i++) {
-    if(mask[i] == 0)
-      continue;
-    // yasu Changed to const reference to avoid unnecessary copy.
-    const structured_indoor_modeling::Point& point = points[i];
+
+  for (const auto& point : points) {
     ofstr << point.depth_position[0] + kDepthPositionOffset << ' '
           << point.depth_position[1] + kDepthPositionOffset << ' '
           << point.position[0] << ' '
@@ -210,13 +202,7 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 }
 
 void PointCloud::AddPoints(const PointCloud& point_cloud){
-  // yasu Should avoid code duplication as much as possible. Should simply call the function below.
-  vector<Point> valid_points;
-  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-    if (point_cloud.GetMask(p))
-      valid_points.push_back(point_cloud.GetPoint(p));
-  }
-  AddPoints(valid_points);
+  AddPoints(point_cloud.points);
 
   /*
   // yasu This code has a bug. Object id must be shifted like the following code.
@@ -234,57 +220,38 @@ void PointCloud::AddPoints(const PointCloud& point_cloud){
 }
 
 //add an array of Point to the point cloud. Update each member variable, a little faster than calling update()......
-void PointCloud::AddPoints(const vector<Point>& new_points){
-  // yasu Changed to "const int" from int. You should always use const when possible.
-  const int orilength = points.size();
-    
-  for(int i=0;i<new_points.size();i++)
-    mask.push_back(1);
-  
-  center = center * (double)orilength;
-  // yasu Use "const int" instead of int.
-  const int oriobjectnum = num_objects;
+void PointCloud::AddPoints(const vector<Point>& new_points) {
   points.insert(points.end(), new_points.begin(), new_points.end());
-
-  // yasu There was a bug in the code. num_objects = max(num_objects, points[i].object_id).
-  // +1 is missing. Added +1.
-  for(int i=orilength;i<(int)points.size();i++){
-    points[i].object_id += oriobjectnum;
-    center += points[i].position;
-    num_objects = std::max(num_objects, points[i].object_id + 1);
-    depth_width = std::max(depth_width,points[i].depth_position[0]);
-    depth_height = std::max(depth_height,points[i].depth_position[1]);
-    boundingbox[0] = std::min(boundingbox[0],points[i].position[0]);
-    boundingbox[1] = std::max(boundingbox[1],points[i].position[0]);
-    boundingbox[2] = std::min(boundingbox[2],points[i].position[1]);
-    boundingbox[3] = std::max(boundingbox[3],points[i].position[1]);
-    boundingbox[4] = std::min(boundingbox[4],points[i].position[2]);
-    boundingbox[5] = std::max(boundingbox[5],points[i].position[2]);
-  }
-  center = center / (double)points.size();
-
-  // yasu I added update() here.
+  Update();
 }
 
-void PointCloud::RemovePoint(int ind, bool isupdate){
-    assert(ind>=0 && ind < points.size());
-    if(mask[ind] == 0)
-	 return;
-    mask[ind] = 0;
-    if(isupdate)
-	update();
+void PointCloud::RemovePoints(const std::vector<int>& indexes) {
+  vector<bool> keep(points.size(), true);
+  for (const auto& index : indexes) {
+    assert(0 <= index && index < (int)points.size());
+    keep[index] = false;
+  }
+  
+  vector<Point> new_points;
+  for (int p = 0; p < (int)points.size(); ++p) {
+    if (keep[p])
+      new_points.push_back(points[p]);
+  }
+
+  new_points.swap(points);
+  Update();
 }
 
   // yasu Should the input type be float instead of int?
 void PointCloud::SetAllColor(int r,int g,int b){
-     for(auto &v: points){
-	  v.color[0] = (float)r;
-	  v.color[1] = (float)g;
-	  v.color[2] = (float)b;
-     }
+  for(auto &v: points){
+    v.color[0] = (float)r;
+    v.color[1] = (float)g;
+    v.color[2] = (float)b;
+  }
 }
 
-  // yasu Should the input type (rgb) be float instead of int?
+// yasu Should the input type (rgb) be float instead of int?
 void PointCloud::SetColor(int ind, int r,int g,int b){
      assert(ind >= 0 && ind < points.size());
      points[ind].color[0] = float(r);
@@ -305,32 +272,27 @@ void PointCloud::SetColor(int ind, int r,int g,int b){
 // 
 // Update point cloud center, depth_width, depth_height, boundingbox. 
 // Note that num_object is not changed, to avoid confusing.
-void PointCloud::update(){
-  depth_width = 0;
-  depth_height = 0;
-  boundingbox[0] = 1e100;  boundingbox[1] = -1e100; boundingbox[2] = 1e100; boundingbox[3] = -1e100;
-  boundingbox[4] = 1e100; boundingbox[5] = -1e100;
+void PointCloud::Update(){
+  InitializeMembers();
   
   // To handle different point format.
-  for (int i=0; i<points.size(); i++) {
-    if(mask[i] == 0)
-      continue;
-    structured_indoor_modeling::Point point = points[i];
+  for (const auto& point : points) {
     center += point.position;
+
+    depth_width = max(point.depth_position[0] + 1, depth_width);
+    depth_height = max(point.depth_position[1] + 1, depth_height);
+
+    num_objects = max(num_objects, point.object_id + 1);
+    
     boundingbox[0] = min(point.position[0],boundingbox[0]);
     boundingbox[1] = max(point.position[0],boundingbox[0]);
     boundingbox[2] = min(point.position[1],boundingbox[1]);
     boundingbox[3] = max(point.position[1],boundingbox[1]);
     boundingbox[4] = min(point.position[2],boundingbox[2]);
     boundingbox[5] = max(point.position[2],boundingbox[2]);
-    
-    depth_width = max(point.depth_position[0] + 1, depth_width);
-    depth_height = max(point.depth_position[1] + 1, depth_height);
   }
-  // yasu There was no divide-by-zero check.
-  const int valid_points_num = GetValidPointsNum();
-  if (valid_points_num != 0)
-    center /= (double)valid_points_num;
+  if (!points.empty())
+    center /= (int)points.size();
 }
    
 double PointCloud::GetBoundingboxVolume(){
@@ -349,15 +311,6 @@ void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
     normal4 = transformation * normal4;
     point.normal = Vector3d(normal4[0], normal4[1], normal4[2]);
   }
-}
-
-int PointCloud::GetValidPointsNum() const {
-  int count = 0;
-  for (const auto& value : mask) {
-    if (value)
-      ++count;
-  }
-  return count;
 }
 
 }  // namespace structured_indoor_modeling
