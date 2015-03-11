@@ -212,8 +212,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
 
-	if(roomid > 1)
-	     break;
     }
     
 }
