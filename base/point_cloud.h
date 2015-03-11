@@ -52,6 +52,8 @@ struct Point {
 class PointCloud {
  public:
   PointCloud();
+  void InitializeMembers();
+  
   // Read the corresponding point cloud in the local coordinate frame.
   bool Init(const FileIO& file_io, const int panorama);
   // Read the point cloud with the given filename.
@@ -67,15 +69,18 @@ class PointCloud {
   // Accessors.
   inline int GetNumPoints() const { return points.size(); }
 
+  // yasu To be consistent GetValidNumPoints seem to make sense. But not critical.
   //get number of point whose mask == 1
-  inline int GetValidPointsNum()const {return valid_points_num;}
+  int GetValidPointsNum() const;
   
   inline char GetMask(int ind) const {return mask[ind];}
   inline int GetDepthWidth() const { return depth_width; }
   inline int GetDepthHeight() const { return depth_height; }
-  inline std::vector<double> GetBoundingbox() const { return boundingbox;}
+  // yasu This should return const reference to speed-up.
+  inline const std::vector<double>& GetBoundingbox() const { return boundingbox; }
   inline int GetNumObjects() const { return num_objects; }
-  inline Eigen::Vector3d GetCenter() const { return center;}
+  // yasu This should return const reference to speed-up.
+  inline const Eigen::Vector3d& GetCenter() const { return center; }
   inline const Point& GetPoint(const int p) const { return points[p]; }
   inline Point& GetPoint(const int p) { return points[p]; }
   inline bool HasObjectId() const { return has_object_id; }
@@ -101,6 +106,7 @@ class PointCloud {
   std::vector<Point> points;
 
   //Since deleting element on vector is inefficient, we set up this mask array.
+  // yasu This should be vector<bool>.
   std::vector<char> mask;
   
   Eigen::Vector3d center;
@@ -108,7 +114,8 @@ class PointCloud {
   int depth_height;
   bool has_object_id;
   int num_objects;
-  int valid_points_num;
+
+  // yasu This should be bounding_box.
   std::vector <double> boundingbox; //xmin,xmax,ymin,ymax,zmin,zmax
 
   static const int kDepthPositionOffset;
