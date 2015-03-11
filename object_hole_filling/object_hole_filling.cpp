@@ -449,11 +449,21 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 
 //Merge algorithm
 //Given a point, remove all points that are inside the ball around the point.
-void mergeVertices(PointCloud &pc, double radius){
+void mergeVertices(PointCloud &pc, int resolution){
 
      if(pc.GetNumPoints() == 0 )
 	  return;
 
+     //automatically compute radius
+     vector<double>boundingbox  = pc.GetBoundingbox();
+     vector<double>diff(3);
+     diff[0] = abs(boundingbox[1]-boundingbox[0]);
+     diff[1] = abs(boundingbox[3]-boundingbox[2]);
+     diff[2] = abs(boundingbox[5]-boundingbox[4]);
+     double maxdiff = *max_element(diff.begin(),diff.end());
+     double radius = maxdiff / static_cast<double>(resolution) / 2.0;   //two vertices per pixel
+     cout<<"radius: "<<radius<<endl;
+     
      int unit = pc.GetNumPoints() / 100;
      flann::KDTreeIndexParams indexParams(5);
 
