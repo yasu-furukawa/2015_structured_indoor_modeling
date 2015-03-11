@@ -60,7 +60,9 @@ namespace {
                      const double voxel_unit,
                      const Eigen::Vector3i& size,
                      std::vector<bool>* occupancy);
-            
+
+void ReportSegments(const std::vector<int>& segments);
+  
 }  // namespace  
 
 void SaveData(const int id,
@@ -1071,7 +1073,7 @@ void FillOccupancy(const Eigen::Vector3d& v0,
     }
   }
 }
-  
+
 }  // namespace
 
 void WriteObjectPointsWithColor(const std::vector<Point>& points,

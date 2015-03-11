@@ -35,7 +35,39 @@ int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
     ++panorama;
   }
 }
+
+
+void ReportSegments(const std::vector<int>& segments) {
+  int object = 0;
+  int initial = 0;
+  int floor = 0;
+  int wall = 0;
+  int ceiling = 0;
+  int detail = 0;
+  for (int s = 0; s < segments.size(); ++s) {
+    if (segments[s] == kInitial)
+      ++initial;
+    else if (segments[s] == kFloor)
+      ++floor;
+    else if (segments[s] == kWall)
+      ++wall;
+    else if (segments[s] == kCeiling)
+      ++ceiling;
+    else if (segments[s] == kDetail)
+      ++detail;
+    else {
+      ++object;
+    }
+  }
   
+  cerr << "Object " << object
+       << " Initial " << initial
+       << " Floor " << floor
+       << " wall " << wall
+       << " ceiling " << ceiling
+       << " detail " << detail << endl;
+}
+    
 bool ProcessRoom(const FileIO& file_io,
                  const int room,
                  const Floorplan& floorplan,
@@ -71,35 +103,7 @@ bool ProcessRoom(const FileIO& file_io,
   IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
   cerr << "done." << endl;
 
-  {
-    int initial = 0;
-    int floor = 0;
-    int wall = 0;
-    int ceiling = 0;
-    int detail = 0;
-    for (int s = 0; s < segments.size(); ++s) {
-      if (segments[s] == kInitial)
-        ++initial;
-      else if (segments[s] == kFloor)
-        ++floor;
-      else if (segments[s] == kWall)
-        ++wall;
-      else if (segments[s] == kCeiling)
-        ++ceiling;
-      else if (segments[s] == kDetail)
-        ++detail;
-      else {
-        cerr << "Impossible: " << segments[s] << endl;
-        exit (1);
-      }
-    }
-
-    cerr << "Initial " << initial
-         << " Floor " << floor
-         << " wall " << wall
-         << " ceiling " << ceiling
-         << " detail " << detail << endl;
-  }
+  ReportSegments(segments);
   
   // Compute neighbors.
   vector<vector<int> > neighbors;
@@ -107,13 +111,23 @@ bool ProcessRoom(const FileIO& file_io,
   cout << "SetNeighbors..." << flush;
   SetNeighbors(points, kNumNeighbors, &neighbors);
   cout << "done." << endl;
-  
+
+  ReportSegments(segments);
+
+  cout << "SegmentObjects..." << flush;
   SegmentObjects(points, FLAGS_centroid_subsampling_ratio, FLAGS_num_initial_clusters, neighbors,
                  &segments);
+  cout << "done." << endl;
   
+  ReportSegments(segments);
+  
+  cout << "SmoothObjects..." << flush;
   const int kSmoothTime = 5;
   for (int t = 0; t < kSmoothTime; ++t)
     SmoothObjects(neighbors, &points);
+  cout << "done." << endl;
+
+  ReportSegments(segments);
   
   // This may not be necessary.
   //DensifyObjects(neighbors, &points, &segments);
