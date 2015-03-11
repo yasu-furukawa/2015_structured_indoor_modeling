@@ -140,11 +140,13 @@ bool ProcessRoom(const FileIO& file_io,
     WriteObjectPointsWithColor(points, segments, file_io.GetObjectPointClouds(room),
                                floorplan.GetFloorplanToGlobal(),
                                &color_table);
+    cout << "done." << endl;
   }
   {
     printf("%s\n", file_io.GetFloorWallPointClouds(room).c_str());
     WriteOtherPointsWithColor(points, segments, file_io.GetFloorWallPointClouds(room),
                               floorplan.GetFloorplanToGlobal());
+    cout << "done." << endl;
   }
   return true;
 }

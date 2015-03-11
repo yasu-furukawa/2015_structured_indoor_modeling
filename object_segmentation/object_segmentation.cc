@@ -1081,6 +1081,11 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::string& filename,
                                 const Eigen::Matrix3d& rotation,
                                 map<int, Vector3i>* color_table) {  
+  if (points.size() != segments.size()) {
+    cerr << "Size do not match: " << (int)points.size() << ' ' << (int)segments.size() << endl;
+    exit (1);
+  }
+
   vector<Point> object_points;
   for (int p = 0; p < points.size(); ++p) {
     Point point = points[p];
@@ -1108,6 +1113,8 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
     }
     }
   }
+
+  cout << "object _" << (int)object_points.size() << endl;
 
   //number of object, should be the largest element of vector segments
   int num_object = *max_element(segments.begin(), segments.end());

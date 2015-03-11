@@ -30,7 +30,7 @@ bool PointCloud::Init(const FileIO& file_io, const int panorama) {
 }
 
 bool PointCloud::Init(const std::string& filename) {
-  num_objects = 1;
+  num_objects = 0;
   
   ifstream ifstr;
   ifstr.open(filename.c_str());
@@ -102,6 +102,7 @@ bool PointCloud::Init(const std::string& filename) {
     depth_height = max(point.depth_position[1] + 1, depth_height);
   }
 
+  // yasu No divide-by-zero check.
   center /= (double)num_points;
   
   ifstr.close();
@@ -204,6 +205,8 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 }
 
 void PointCloud::AddPoints(const PointCloud& point_cloud){
+  // This code has a bug. Object id must be shifted.
+
      for(int i=0;i<point_cloud.GetNumPoints();i++)
 	  mask.push_back(point_cloud.GetMask(i));
 
@@ -289,6 +292,7 @@ void PointCloud::update(){
 	 depth_width = max(point.depth_position[0] + 1, depth_width);
 	 depth_height = max(point.depth_position[1] + 1, depth_height);
     }
+    // yasu No divide-by-zero check.
     center /= (double)valid_points_num;
 }
     
