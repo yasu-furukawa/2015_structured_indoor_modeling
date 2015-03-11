@@ -35,8 +35,10 @@ class ObjectRenderer : protected QGLFunctions {
   // For each room, for each object, a colored point cloud.
   std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
 
-  std::vector<float> vertices;
-  std::vector<float> colors;
+  std::vector<std::vector<std::vector<float> > > vertices;
+  std::vector<std::vector<std::vector<float> > > colors;
+  // std::vector<float> vertices;
+  // std::vector<float> colors;
 };
 
 }  // namespace structured_indoor_modeling 

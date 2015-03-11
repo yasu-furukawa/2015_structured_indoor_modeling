@@ -23,8 +23,9 @@ bool ObjectRenderer::Toggle() {
 }
 
 void ObjectRenderer::Init(const string data_directory) {
+  /*
   FileIO file_io(data_directory);
-
+  
   vertices.clear();
   colors.clear();
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -37,6 +38,31 @@ void ObjectRenderer::Init(const string data_directory) {
         vertices.push_back(point.position[i]);
       for (int i = 0; i < 3; ++i) {
         colors.push_back(point.color[i] / 255.0f);
+      }
+    }
+  }
+  */
+
+  FileIO file_io(data_directory);
+
+  vertices.clear();
+  colors.clear();
+
+  vertices.resize(floorplan.GetNumRooms());
+  colors.resize(floorplan.GetNumRooms());
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    PointCloud point_cloud;
+    point_cloud.Init(file_io.GetRefinedObjectClouds(room));
+
+    vertices[room].resize(point_cloud.GetNumObjects());
+    colors[room].resize(point_cloud.GetNumObjects());
+    
+    for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
+      const Point& point = point_cloud.GetPoint(p);
+      for (int i = 0; i < 3; ++i)
+        vertices[room][point.object_id].push_back(point.position[i]);
+      for (int i = 0; i < 3; ++i) {
+        colors[room][point.object_id].push_back(point.color[i] / 255.0f);
       }
     }
   }
@@ -62,11 +88,12 @@ void ObjectRenderer::InitGL() {
   */
 }
   
-void ObjectRenderer::RenderAll(const double alpha) {
+void ObjectRenderer::RenderAll(const double /* alpha */) {
   if (!render)
     return;
-  const bool kBlend = false;
-  
+
+  const bool kBlend = true; // ??? false
+
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
   if (kBlend) {
@@ -75,17 +102,21 @@ void ObjectRenderer::RenderAll(const double alpha) {
   }
   glEnable(GL_POINT_SMOOTH);
 
-  glColorPointer(3, GL_FLOAT, 0, &colors[0]);
-  glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
+  for (int room = 0; room < (int)vertices.size(); ++room) {
+    for (int object = 0; object < (int)vertices[room].size(); ++object) {
+      glColorPointer(3, GL_FLOAT, 0, &colors[room][object][0]);
+      glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);
 
-  if (kBlend) {
-    glBlendColor(0, 0, 0, 0.5);
-    //glBlendColor(0, 0, 0, 1.0);
-    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+      if (kBlend) {
+        glBlendColor(0, 0, 0, 0.5);
+        //glBlendColor(0, 0, 0, 1.0);
+        glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+      }
+      glPointSize(1.0);
+      
+      glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
+    }
   }
-  glPointSize(1.0);
-
-  glDrawArrays(GL_POINTS, 0, ((int)vertices.size()) / 3);
 	
   glDisable(GL_POINT_SMOOTH);
   if (kBlend) {
