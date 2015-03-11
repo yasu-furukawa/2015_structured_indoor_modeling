@@ -299,6 +299,9 @@ void PointCloud::SetColor(int ind, int r,int g,int b){
 // read the comment carefully and compare against the header file.
 // Ideally, one should be able to understand the functionality of a
 // function easily without reading the code or a comment carefully.
+//
+// To be simple, this class should update all the variables in my opinion.
+//
 // 
 // Update point cloud center, depth_width, depth_height, boundingbox. 
 // Note that num_object is not changed, to avoid confusing.
