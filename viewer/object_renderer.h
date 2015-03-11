@@ -37,6 +37,9 @@ class ObjectRenderer : protected QGLFunctions {
 
   std::vector<std::vector<std::vector<float> > > vertices;
   std::vector<std::vector<std::vector<float> > > colors;
+
+  std::vector<std::vector<std::vector<float> > > vertices_org;
+  std::vector<std::vector<std::vector<float> > > colors_org;
   // std::vector<float> vertices;
   // std::vector<float> colors;
 };

@@ -66,6 +66,9 @@ void ObjectRenderer::Init(const string data_directory) {
       }
     }
   }
+
+  vertices_org = vertices;
+  colors_org = colors;
 }
 
 void ObjectRenderer::InitGL() {
@@ -92,7 +95,7 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
   if (!render)
     return;
 
-  const bool kBlend = true; // ??? false
+  const bool kBlend = false; // ??? false
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
@@ -102,14 +105,35 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
   }
   glEnable(GL_POINT_SMOOTH);
 
+  /*
+  static int count = 0;
+  ++count;
+  const int kCycle = 40;
+  count %= kCycle;
+  */
+  
   for (int room = 0; room < (int)vertices.size(); ++room) {
     for (int object = 0; object < (int)vertices[room].size(); ++object) {
+
+      /*
+      {
+        double scale = 1.0;
+        if (count < 20)
+          scale = sin(2 * M_PI * count / kCycle) * 0.5 + 1.0;
+
+        for (int i = 0; i < (int)colors[room][object].size(); ++i) {
+          colors[room][object][i] = min(1.0, scale * colors_org[room][object][i]);
+        }
+      }
+      */
+      
       glColorPointer(3, GL_FLOAT, 0, &colors[room][object][0]);
       glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);
 
       if (kBlend) {
         glBlendColor(0, 0, 0, 0.5);
         //glBlendColor(0, 0, 0, 1.0);
+        // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
         glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
       }
       glPointSize(1.0);
@@ -117,6 +141,7 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
       glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
     }
   }
+  
 	
   glDisable(GL_POINT_SMOOTH);
   if (kBlend) {
@@ -125,6 +150,7 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
   }
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
+
   
 
 
