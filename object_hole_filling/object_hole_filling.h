@@ -17,6 +17,9 @@ void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuff
 //convert a SLIC image to a Mat
 void ImagebufferToMat(const std::vector<unsigned int>&imagebuffer,const int imgwidth, const int imgheight, cv::Mat &image);
 
+void RGB2HSV(double r,double g, double b, double &h, double &s, double &v);
+
+void HSV2RGB(double h, double s, double v, double r, double &g, double &b);
 //this funtion will read the object cloud and floor_wall cloud. It'll treat floor_wall as another object
 void ReadObjectCloud(const structured_indoor_modeling::FileIO& file_io, std::vector< structured_indoor_modeling::PointCloud>&objectCloud, std::vector< std::vector< std::vector<int> > >&objectgroup, std::vector< std::vector<double> >&objectVolume);
 
@@ -39,7 +42,6 @@ void MRFOptimizeLabels_multiLayer(const std::vector< std::vector<double> >&super
 void BackProjectObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling &depth, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, structured_indoor_modeling::PointCloud &resultcloud, int roomid);
 
 void mergeVertices(structured_indoor_modeling::PointCloud &pc, int resolution);
-
 
 
 

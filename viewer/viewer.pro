@@ -57,8 +57,7 @@ qtHaveModule(opengl) {
         INCLUDEPATH += '/usr/include'
         INCLUDEPATH += '/usr/include/eigen3'
         INCLUDEPATH += '/usr/local/include'
-        LIBS += '/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc'
-        LIBS += '/usr/lib/x86_64-linux-gnu -lGLU'
+        LIBS += -L/usr/lib/x86_64-linux-gnu/ -lGLU -lopencv_core -lopencv_highgui -lopencv_imgproc
     }
 
     macx{

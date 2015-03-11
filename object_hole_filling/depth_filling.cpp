@@ -79,10 +79,6 @@ namespace structured_indoor_modeling{
     }
 
     void DepthFilling::Init(const PointCloud& point_cloud, const Panorama &panorama,const vector<int>&objectgroup, bool maskv){
-	if(!point_cloud.HasObjectId()){
-	    cerr<<"This object cloud doesn't contain object id.\n"<<endl;
-	    exit(-1);
-	}
 	depthwidth = panorama.DepthWidth();
 	depthheight = panorama.DepthHeight();
 	depthmap.clear();

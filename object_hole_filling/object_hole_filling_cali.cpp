@@ -209,13 +209,13 @@ int main(int argc, char **argv){
 
     for(int roomid=0; roomid<resultCloud.size(); roomid++){
 	 cout<<"Merging close points..."<<endl;
-	 cout<<"Before merging: "<<resultCloud[roomid].GetValidPointsNum()<<endl;
+	 cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
 	 clock_t start,end;
 	 start = clock();
 	 mergeVertices(resultCloud[roomid], 1024);
 	 end = clock();
 	 cout<<"done. Time: "<<end - start<<endl;
-	 cout<<"After merging: "<<resultCloud[roomid].GetValidPointsNum()<<endl;
+	 cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
 	 string savepath = file_io.GetRefinedObjectClouds(roomid);
 	 cout<<"Saving "<<savepath<<endl;
 	 resultCloud[roomid].Write(savepath);

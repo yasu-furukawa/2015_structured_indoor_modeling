@@ -68,11 +68,10 @@ class PointCloud {
 
   // Accessors.
   inline int GetNumPoints() const { return points.size(); }
-
   inline int GetDepthWidth() const { return depth_width; }
   inline int GetDepthHeight() const { return depth_height; }
   // yasu This should return const reference to speed-up.
-  inline const std::vector<double>& GetBoundingbox() const { return boundingbox; }
+  inline const std::vector<double>& GetBoundingbox() const { return bounding_box; }
   inline int GetNumObjects() const { return num_objects; }
   // yasu This should return const reference to speed-up.
   inline const Eigen::Vector3d& GetCenter() const { return center; }
@@ -85,8 +84,8 @@ class PointCloud {
     Update();
   }
   
-  void SetAllColor(int r,int g,int b);
-  void SetColor(int ind, int r, int g,int b);
+  void SetAllColor(float r,float g,float b);
+  void SetColor(int ind, float r, float g,float b);
 
   void AddPoints(const PointCloud& point_cloud);
   void AddPoints(const std::vector<Point>& new_points);
@@ -105,8 +104,7 @@ class PointCloud {
   int depth_width;
   int depth_height;
   int num_objects;
-  // yasu This should be bounding_box.
-  std::vector <double> boundingbox; //xmin,xmax,ymin,ymax,zmin,zmax
+  std::vector <double> bounding_box; //xmin,xmax,ymin,ymax,zmin,zmax
 
   static const int kDepthPositionOffset;
 };

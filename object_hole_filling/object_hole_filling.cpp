@@ -51,6 +51,68 @@ void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth
     }
 }
 
+void RGB2HSV(double r,double g,double b, double &h, double &s, double &v){
+    double min = r, max = r;
+    min = std::min(g,min); min = std::min(b,min);
+    max = std::max(g,max); max = std::max(b,max);
+
+    v = max;
+    int delta = max-min;
+    if(max !=0)
+	s = delta / (float)max;
+    else{
+	s = 0;
+	h = -1;
+	return;
+    }
+    if(r == max)
+	h = (g-b) / delta;
+    else if(g == max)
+	h = 2+(b-r)/delta;
+    else
+	h = 4+(r-g)/delta;
+    h *= 60;
+    if(h<0)
+	h += 360;
+}
+
+void HSV2RGB(double h, double s, double v, double &r, double &g, double &b){
+    int i;
+    double f,p,q,t;
+    if(s==0){
+	r = v;
+	g = v;
+	b = v;
+	return;
+    }
+    h /= 60;
+    i = floor(h);
+    f = h - i;
+    p = v*(1-s);
+    q = v*(1-s*f);
+    t = v*(1-s*(1-f));
+
+    switch(i){
+    case 0:
+	r = v; g = t; b = p;
+	break;
+    case 1:
+	r = q; g = v; b = p;
+	break;
+    case 2:
+	r = p; g = v; b = t;
+	break;
+    case 3:
+	r = p; g = q; b = v;
+	break;
+    case 4:
+	r = t; g = p; b = v;
+	break;
+    default:
+	r = v; g = p; b = q;
+	break;
+    }
+}
 
 void labelTolabelgroup(const vector<int>& labels, const Panorama &panorama, vector< vector<int> >&labelgroup, vector< Vector3d >& averageRGB, int numgroup){
     int width = panorama.Width();
@@ -211,7 +273,8 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-
+	if(roomid > 1)
+	    break;
     }
     
 }
@@ -459,20 +522,18 @@ void mergeVertices(PointCloud &pc, int resolution){
      diff[1] = abs(boundingbox[3]-boundingbox[2]);
      diff[2] = abs(boundingbox[5]-boundingbox[4]);
      double maxdiff = *max_element(diff.begin(),diff.end());
-     double radius = maxdiff / static_cast<double>(resolution) / 2.0;   //two vertices per pixel
+     double radius = maxdiff / static_cast<double>(resolution);   //two vertices per pixel
      cout<<"radius: "<<radius<<endl;
      
      int unit = pc.GetNumPoints() / 100;
      flann::KDTreeIndexParams indexParams(5);
 
-     Mat featurepoints(pc.GetValidPointsNum(),3,CV_32F);
+     Mat featurepoints(pc.GetNumPoints(),3,CV_32F);
      Mat query(1,3,CV_32F);
     
      //build index
      int count=0;
      for(int i=0;i<pc.GetNumPoints();i++){
-	  if(pc.GetMask(i) == 0)
-	       continue;
 	  structured_indoor_modeling::Point curpt = pc.GetPoint(i);
 	  featurepoints.at<float>(count,0) = (float)curpt.position[0];
 	  featurepoints.at<float>(count,1) = (float)curpt.position[1];
@@ -480,9 +541,14 @@ void mergeVertices(PointCloud &pc, int resolution){
 	  count++;
      }
      flann::Index searchtree(featurepoints,indexParams);
+
+     vector<bool>mask(pc.GetNumPoints());
+     vector<int>points_to_remove;
+     for(int i=0;i<mask.size();i++)
+	 mask[i] = true;
      
      for(int curcenter=0;curcenter<pc.GetNumPoints();curcenter++){
-	  if(pc.GetMask(curcenter) == 0)
+	  if(!mask[curcenter])
 	       continue;
 	  
 	  if(curcenter % unit == 0)
@@ -495,16 +561,20 @@ void mergeVertices(PointCloud &pc, int resolution){
 	  Mat searchres(1,pc.GetNumPoints(),CV_32S,Scalar::all(-1));
 	  Mat dists(1,pc.GetNumPoints(),CV_32F);
 
-	  searchtree.radiusSearch(query,searchres,dists,radius,pc.GetNumPoints(),flann::SearchParams(32));
+	  searchtree.radiusSearch(query,searchres,dists,radius,pc.GetNumPoints(),flann::SearchParams(16));
 	  for(int i=0;i<pc.GetNumPoints(); i++){
 	       int curind = searchres.at<int>(0,i);
 	       if(curind < 0)
 		    break;
 	       if(curind == curcenter)
 		    continue;
-	       pc.RemovePoint(curind,false);
+	       mask[curind] = false;
+	       points_to_remove.push_back(curind);
 	  }
      }
+
+     pc.RemovePoints(points_to_remove);
+
      cout<<endl;
 }
 

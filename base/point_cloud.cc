@@ -18,14 +18,14 @@ PointCloud::PointCloud() {
 }
 
 void PointCloud::InitializeMembers() {
-  boundingbox.resize(6);
+  bounding_box.resize(6);
   center.resize(3);
-  boundingbox[0] = numeric_limits<double>::max();
-  boundingbox[2] = numeric_limits<double>::max();
-  boundingbox[4] = numeric_limits<double>::max();
-  boundingbox[1] = -numeric_limits<double>::max();
-  boundingbox[3] = -numeric_limits<double>::max();
-  boundingbox[5] = -numeric_limits<double>::max();
+  bounding_box[0] = numeric_limits<double>::max();
+  bounding_box[2] = numeric_limits<double>::max();
+  bounding_box[4] = numeric_limits<double>::max();
+  bounding_box[1] = -numeric_limits<double>::max();
+  bounding_box[3] = -numeric_limits<double>::max();
+  bounding_box[5] = -numeric_limits<double>::max();
 
   depth_width = 0;
   depth_height = 0;
@@ -88,12 +88,12 @@ bool PointCloud::Init(const std::string& filename) {
     point.depth_position[0] -= kDepthPositionOffset;
     point.depth_position[1] -= kDepthPositionOffset;
 
-    boundingbox[0] = min(point.position[0],boundingbox[0]);
-    boundingbox[1] = max(point.position[0],boundingbox[0]);
-    boundingbox[2] = min(point.position[1],boundingbox[1]);
-    boundingbox[3] = max(point.position[1],boundingbox[1]);
-    boundingbox[4] = min(point.position[2],boundingbox[2]);
-    boundingbox[5] = max(point.position[2],boundingbox[2]);
+    bounding_box[0] = min(point.position[0],bounding_box[0]);
+    bounding_box[1] = max(point.position[0],bounding_box[0]);
+    bounding_box[2] = min(point.position[1],bounding_box[1]);
+    bounding_box[3] = max(point.position[1],bounding_box[1]);
+    bounding_box[4] = min(point.position[2],bounding_box[2]);
+    bounding_box[5] = max(point.position[2],bounding_box[2]);
     
     depth_width = max(point.depth_position[0] + 1, depth_width);
     depth_height = max(point.depth_position[1] + 1, depth_height);
@@ -105,10 +105,6 @@ bool PointCloud::Init(const std::string& filename) {
   
   ifstr.close();
 
-  // yasu There was a small bug here. When there exist no points,
-  // num_objects became 1 with the previous code. Now, if no points exists, num_objects will be 0.
-  //
-  // Setting num_objects.
   if (has_object_id) {
     for (const auto& point : points) {
       num_objects = max(num_objects, point.object_id + 1);
@@ -203,20 +199,6 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 
 void PointCloud::AddPoints(const PointCloud& point_cloud){
   AddPoints(point_cloud.points);
-
-  /*
-  // yasu This code has a bug. Object id must be shifted like the following code.
-
-  for(int i=0;i<point_cloud.GetNumPoints();i++)
-    mask.push_back(point_cloud.GetMask(i));
-  
-  points.insert(points.end(), point_cloud.points.begin(), point_cloud.points.end());
-  num_objects += point_cloud.GetNumObjects();
-
-  // yasu I found very strange that "update" is called here, but not called inside AddPoints below.
-  // Smells like a bug.
-  update();
-  */
 }
 
 //add an array of Point to the point cloud. Update each member variable, a little faster than calling update()......
@@ -243,20 +225,20 @@ void PointCloud::RemovePoints(const std::vector<int>& indexes) {
 }
 
   // yasu Should the input type be float instead of int?
-void PointCloud::SetAllColor(int r,int g,int b){
+void PointCloud::SetAllColor(float r,float g,float b){
   for(auto &v: points){
-    v.color[0] = (float)r;
-    v.color[1] = (float)g;
-    v.color[2] = (float)b;
+    v.color[0] = r;
+    v.color[1] = g;
+    v.color[2] = b;
   }
 }
 
 // yasu Should the input type (rgb) be float instead of int?
-void PointCloud::SetColor(int ind, int r,int g,int b){
+void PointCloud::SetColor(int ind, float r,float g,float b){
      assert(ind >= 0 && ind < points.size());
-     points[ind].color[0] = float(r);
-     points[ind].color[1] = float(g);
-     points[ind].color[2] = float(b);
+     points[ind].color[0] = r;
+     points[ind].color[1] = g;
+     points[ind].color[2] = b;
 }
 
 // yasu To follow the convention in the class, this name should be
@@ -270,7 +252,7 @@ void PointCloud::SetColor(int ind, int r,int g,int b){
 // To be simple, this class should update all the variables in my opinion.
 //
 // 
-// Update point cloud center, depth_width, depth_height, boundingbox. 
+// Update point cloud center, depth_width, depth_height, bounding_box. 
 // Note that num_object is not changed, to avoid confusing.
 void PointCloud::Update(){
   InitializeMembers();
@@ -284,21 +266,21 @@ void PointCloud::Update(){
 
     num_objects = max(num_objects, point.object_id + 1);
     
-    boundingbox[0] = min(point.position[0],boundingbox[0]);
-    boundingbox[1] = max(point.position[0],boundingbox[0]);
-    boundingbox[2] = min(point.position[1],boundingbox[1]);
-    boundingbox[3] = max(point.position[1],boundingbox[1]);
-    boundingbox[4] = min(point.position[2],boundingbox[2]);
-    boundingbox[5] = max(point.position[2],boundingbox[2]);
+    bounding_box[0] = min(point.position[0],bounding_box[0]);
+    bounding_box[1] = max(point.position[0],bounding_box[0]);
+    bounding_box[2] = min(point.position[1],bounding_box[1]);
+    bounding_box[3] = max(point.position[1],bounding_box[1]);
+    bounding_box[4] = min(point.position[2],bounding_box[2]);
+    bounding_box[5] = max(point.position[2],bounding_box[2]);
   }
   if (!points.empty())
     center /= (int)points.size();
 }
    
 double PointCloud::GetBoundingboxVolume(){
-  if(boundingbox.size() == 0)
+  if(bounding_box.size() == 0)
     return 0;
-  return (boundingbox[1]-boundingbox[0])*(boundingbox[3]-boundingbox[2])*(boundingbox[5]-boundingbox[4]);
+  return (bounding_box[1]-bounding_box[0])*(bounding_box[3]-bounding_box[2])*(bounding_box[5]-bounding_box[4]);
 }
   
 void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
