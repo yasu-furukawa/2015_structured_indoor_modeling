@@ -12,7 +12,7 @@ using namespace Eigen;
 using namespace std;
 
 DEFINE_int32(width, 512, "Width of a depth panorama.");
-DEFINE_int32(phi_range, 150.0 * M_PI / 180.0, "phi range.");
+DEFINE_int32(phi_range, 170.0 * M_PI / 180.0, "phi range.");
 
 struct Point {
   Vector2i uv;
@@ -115,7 +115,10 @@ void ReadMesh(const string& filename, Mesh * mesh) {
   int num_of_vertices, num_of_faces;
   ifstr >> num_of_vertices;
   for (int i = 0; i < 11; ++i)
-    ifstr >> num_of_faces;
+    ifstr >> stmp;
+  ifstr >> num_of_faces;
+  for (int i = 0; i < 6; ++i)
+    ifstr >> stmp;
 
   mesh->vertices.resize(num_of_vertices);
   mesh->triangles.resize(num_of_faces);
@@ -217,7 +220,12 @@ void Rasterize(const Camera& camera,
 
   // Rasterize.
   for (const auto& mesh : meshes) {
+    int count = 0;
     for (const auto& triangle : mesh.triangles) {
+      ++count;
+      if (count % (mesh.triangles.size() / 10) == 0)
+        cerr << '.' << flush;
+      
       const Vector3d vs[3] = { mesh.vertices[triangle[0]],
                                mesh.vertices[triangle[1]],
                                mesh.vertices[triangle[2]] };
@@ -227,14 +235,13 @@ void Rasterize(const Camera& camera,
                               min(ComputeUnit(camera, vs[2]),
                                   ComputeUnit(camera, center)));
 
-      Vector3d normal = (vs[1] - vs[0]).cross(vs[2] - vs[0]);
+      Vector3d normal = - (vs[1] - vs[0]).cross(vs[2] - vs[0]);
       normal.normalize();
       
       const double kSampleScale = 2.0;
       const int sample01 = max(2, static_cast<int>(round((vs[1] - vs[0]).norm() / unit * kSampleScale)));
       const int sample02 = max(2, static_cast<int>(round((vs[2] - vs[0]).norm() / unit * kSampleScale)));
       const int sample_s = max(sample01, sample02);
-
       for (int s = 0; s <= sample_s; ++s) {
         const Vector3d v01 = vs[0] + (vs[1] - vs[0]) * s / sample_s;
         const Vector3d v02 = vs[0] + (vs[2] - vs[0]) * s / sample_s;
@@ -242,10 +249,10 @@ void Rasterize(const Camera& camera,
         for (int t = 0; t <= sample_t; ++t) {
           const Vector3d point = v01 + (v02 - v01) * t / sample_t;
           const double distance = (point - camera.center).norm();
-
           Vector2d uv = Project(camera, point);
-          const int u = static_cast<int>(round(uv[0]));
+          const int u = static_cast<int>(round(uv[0])) % camera.width;
           const int v = static_cast<int>(round(uv[1]));
+
           const int index = v * camera.width + u;
           if (distance < depths[index].depth) {
             depths[index].depth = distance;
@@ -254,8 +261,8 @@ void Rasterize(const Camera& camera,
         }
       }
     }
+    cerr << endl;
   }
-
   for (int x = 0; x < camera.width; ++x) {
     const int index0 = 0 * camera.width + x;
     const int index1 = (camera.height - 1) * camera.width + x;
@@ -302,6 +309,7 @@ int main(int argc, char* argv[]) {
 
   // Start dumping out.
   for (int c = 0; c < cameras.size(); ++c) {
+    cerr << "Camera: " << c << '/' << cameras.size() << endl;
     vector<Point> points;
     // Add center.
     Point center;
