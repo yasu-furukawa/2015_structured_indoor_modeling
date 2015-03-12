@@ -95,12 +95,13 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
   if (!render)
     return;
 
-  const bool kBlend = false; // ??? false
+  const bool kBlend = true; // ??? false
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
   if (kBlend) {
-    glDisable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
+    glDepthMask(false);
     glEnable(GL_BLEND);
   }
   glEnable(GL_POINT_SMOOTH);
@@ -146,7 +147,8 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
   glDisable(GL_POINT_SMOOTH);
   if (kBlend) {
     glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
+    glDepthMask(true);
+    // glEnable(GL_DEPTH_TEST);
   }
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);

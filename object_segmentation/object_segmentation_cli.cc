@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
   const int kStartPanorama = 0;
   //????
   // const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
-  const int end_panorama = 1;
+  const int end_panorama = 5;
   vector<PointCloud> point_clouds(end_panorama);
   cout << "Reading point clouds..." << flush;
   for (int p = 0; p < end_panorama; ++p) {

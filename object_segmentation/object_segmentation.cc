@@ -307,9 +307,8 @@ void IdentifyDetails(const std::vector<Point>& points,
 
   //----------------------------------------------------------------------
   for (int p = 0; p < (int)points.size(); ++p) {
-    //?????
-    //if (segments->at(p) != kInitial)
-    //continue;
+    if (segments->at(p) != kInitial)
+      continue;
     Vector3d cell_coord = (points[p].position - min_xyz) / voxel_unit;
     Vector3d cell_coord_int;
     for (int a = 0; a < 3; ++a) {
@@ -1113,8 +1112,6 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
     }
     }
   }
-
-  cout << "object _" << (int)object_points.size() << endl;
 
   //number of object, should be the largest element of vector segments
   int num_object = *max_element(segments.begin(), segments.end());
