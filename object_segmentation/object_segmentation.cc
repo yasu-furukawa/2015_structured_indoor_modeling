@@ -391,6 +391,7 @@ void SegmentObjects(const std::vector<Point>& points,
   InitializeCentroids(points, num_initial_clusters, segments);
   // WriteObjectPointsWithColor(points, *segments, "1_init.ply");
 
+  /*
   {
     ofstream ofstr;
     ofstr.open("test.obj");
@@ -403,7 +404,8 @@ void SegmentObjects(const std::vector<Point>& points,
       }
     ofstr.close();
   }
-
+*/
+    
   AssignFromCentroids(points, neighbors, segments);
   map<int, Vector3i> color_table;
   // WriteObjectPointsWithColor(points, *segments, "2_seed.ply", &color_table);
