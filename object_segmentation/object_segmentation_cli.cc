@@ -150,6 +150,24 @@ bool ProcessRoom(const FileIO& file_io,
   }
   return true;
 }
+
+Vector3d GetCenter(const FileIO& file_io, const int panorama) {
+  ifstream ifstr;
+  ifstr.open(file_io.GetLocalToGlobalTransformation(panorama).c_str());
+  
+  char ctmp;
+  ifstr >> ctmp;
+  Vector3d center;
+  for (int i = 0; i < 3; ++i) {
+    double dtmp;
+    for (int x = 0; x < 3; ++x)
+      ifstr >> dtmp;
+    ifstr >> center[i];
+  }
+  ifstr.close();
+
+  return center;
+}
   
 }  // namespace
 
@@ -199,6 +217,9 @@ int main(int argc, char* argv[]) {
     point_clouds[index].ToGlobal(file_io, p);
     const Matrix3d global_to_floorplan = floorplan.GetFloorplanToGlobal().transpose();
     point_clouds[index].Rotate(global_to_floorplan);
+
+    const Vector3d global_center = GetCenter(file_io, p);
+    RemoveWindowAndMirror(floorplan, global_to_floorplan * global_center, &point_clouds[index]);
   }
   cout << "done." << endl;
   

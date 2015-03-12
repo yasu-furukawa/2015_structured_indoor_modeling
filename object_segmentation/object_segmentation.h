@@ -64,7 +64,11 @@ void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
  
 void SetNeighbors(const std::vector<Point>& points,
                   const int num_neighbors,
-                  std::vector<std::vector<int> >* neighbors); 
+                  std::vector<std::vector<int> >* neighbors);
+
+void RemoveWindowAndMirror(const Floorplan& floorplan,
+                           const Eigen::Vector3d& center,
+                           PointCloud* point_cloud);
 
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,

@@ -78,8 +78,7 @@ bool PointCloud::Init(const std::string& filename) {
           >> point.normal[0] >> point.normal[1] >> point.normal[2]
           >> point.intensity;
 
-    center += point.position;
-    if(has_object_id){
+    if (has_object_id){
       ifstr >> point.object_id;
     } else {
       point.object_id = kInvalidObjectId;
@@ -87,29 +86,11 @@ bool PointCloud::Init(const std::string& filename) {
     
     point.depth_position[0] -= kDepthPositionOffset;
     point.depth_position[1] -= kDepthPositionOffset;
-
-    bounding_box[0] = min(point.position[0],bounding_box[0]);
-    bounding_box[1] = max(point.position[0],bounding_box[0]);
-    bounding_box[2] = min(point.position[1],bounding_box[1]);
-    bounding_box[3] = max(point.position[1],bounding_box[1]);
-    bounding_box[4] = min(point.position[2],bounding_box[2]);
-    bounding_box[5] = max(point.position[2],bounding_box[2]);
-    
-    depth_width = max(point.depth_position[0] + 1, depth_width);
-    depth_height = max(point.depth_position[1] + 1, depth_height);
   }
 
-  // yasu No divide-by-zero check.
-  if (num_points != 0)
-    center /= (double)num_points;
-  
   ifstr.close();
 
-  if (has_object_id) {
-    for (const auto& point : points) {
-      num_objects = max(num_objects, point.object_id + 1);
-    }
-  }
+  Update();
 
   return true;
 }

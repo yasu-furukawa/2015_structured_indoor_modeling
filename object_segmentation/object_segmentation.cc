@@ -27,7 +27,8 @@ namespace {
   
   double PointDistance(const Point& lhs, const Point& rhs);
 
-  void InitializeCentroids(const int num_initial_clusters,
+  void InitializeCentroids(const std::vector<Point>& points,
+                           const int num_initial_clusters,
                            std::vector<int>* segments);
   
   void ComputeDistances(const std::vector<Point>& points,
@@ -387,8 +388,21 @@ void SegmentObjects(const std::vector<Point>& points,
                     const std::vector<std::vector<int> >& neighbors,
                     std::vector<int>* segments) {
   // WritePointsWithColor(points, *segments, "0_first.ply");
-  InitializeCentroids(num_initial_clusters, segments);
-  // WritePointsWithColor(points, *segments, "1_init.ply");
+  InitializeCentroids(points, num_initial_clusters, segments);
+  // WriteObjectPointsWithColor(points, *segments, "1_init.ply");
+
+  {
+    ofstream ofstr;
+    ofstr.open("test.obj");
+    for (int i = 0; i < segments->size(); ++i)
+      if (segments->at(i) >= 0) {
+        ofstr << "v "
+             << points[i].position[0] << ' '
+             << points[i].position[1] << ' '
+             << points[i].position[2] << endl;
+      }
+    ofstr.close();
+  }
 
   AssignFromCentroids(points, neighbors, segments);
   map<int, Vector3i> color_table;
@@ -579,7 +593,8 @@ double PointDistance(const Point& lhs, const Point& rhs) {
     (lhs_normal_diff.norm() + rhs_normal_diff.norm());
 }
 
-void InitializeCentroids(const int num_initial_clusters,
+void InitializeCentroids(const std::vector<Point>& points,
+                         const int num_initial_clusters,
                          std::vector<int>* segments) {
   // Randomly initialize seeds.
   vector<int> seeds;
@@ -587,13 +602,61 @@ void InitializeCentroids(const int num_initial_clusters,
     for (int p = 0; p < segments->size(); ++p)
       if (segments->at(p) == kInitial)
         seeds.push_back(p);
+
     random_shuffle(seeds.begin(), seeds.end());
     seeds.resize(num_initial_clusters);
   }
-
   for (int c = 0; c < (int)seeds.size(); ++c) {
     segments->at(seeds[c]) = c;
   }
+
+    /*
+  // Randomly initialize seeds.
+  vector<int> seeds;
+  {
+    vector<int> candidates;
+    for (int p = 0; p < segments->size(); ++p)
+      if (segments->at(p) == kInitial)
+        candidates.push_back(p);
+
+    // Pick the first one at random.
+    random_shuffle(candidates.begin(), candidates.end());
+    if (candidates.empty())
+      return;
+
+    vector<bool> chosen(candidates.size(), false);
+
+    const int kFirstIndex = 0;
+    chosen[kFirstIndex] = true;
+    seeds.push_back(candidates[kFirstIndex]);
+    for (int s = 1; s < num_initial_clusters; ++s) {
+      // Pick the farthest point.
+      int best_index = -1;
+      double max_distance = 0.0;
+      for (int i = 0; i < (int)candidates.size(); ++i) {
+        if (chosen[i])
+          continue;
+        const int candidate = candidates[i];
+        double sum_distance = 0.0;
+        for (const auto& seed : seeds) {
+          sum_distance += (points[seed].position - points[candidate].position).norm();
+        }
+        if (max_distance < sum_distance) {
+          max_distance = sum_distance;
+          best_index = i;
+        }
+      }
+      if (best_index != -1) {
+        chosen[best_index] = true;
+        seeds.push_back(candidates[best_index]);
+      }
+    }
+  }
+  
+  for (int c = 0; c < (int)seeds.size(); ++c) {
+    segments->at(seeds[c]) = c;
+  }
+  */
 }
   
 const double kUnreachable = -1.0;
@@ -1075,6 +1138,15 @@ void FillOccupancy(const Eigen::Vector3d& v0,
 
 }  // namespace
 
+void RemoveWindowAndMirror(const Floorplan& floorplan,
+                           const Eigen::Vector3d& center,
+                           PointCloud* point_cloud) {
+  /*
+  vector<int> reomove_indexes;
+  point_cloud->RemovePoints(remove_indexes);
+  */
+}
+  
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,
                                 const std::string& filename,
