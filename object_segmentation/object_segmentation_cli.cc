@@ -202,6 +202,10 @@ int main(int argc, char* argv[]) {
     ifstr.close();
   }
 
+  // Make a 2D image with room occupancy information.
+  vector<int> room_occupancy;
+  SetRoomOccupancy(floorplan, &room_occupancy);
+  
   const int kStartPanorama = 0;
   const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
   vector<PointCloud> point_clouds(end_panorama);
@@ -219,14 +223,13 @@ int main(int argc, char* argv[]) {
     point_clouds[index].Rotate(global_to_floorplan);
 
     const Vector3d global_center = GetCenter(file_io, p);
-    RemoveWindowAndMirror(floorplan, global_to_floorplan * global_center, &point_clouds[index]);
+    RemoveWindowAndMirror(floorplan,
+                          room_occupancy,
+                          global_to_floorplan * global_center,
+                          &point_clouds[index]);
   }
   cout << "done." << endl;
-  
-  // Make a 2D image with room occupancy information.
-  vector<int> room_occupancy;
-  SetRoomOccupancy(floorplan, &room_occupancy);
-  
+    
   // Per room processing.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     ProcessRoom(file_io, room, floorplan, indoor_polygon, point_clouds, room_occupancy);

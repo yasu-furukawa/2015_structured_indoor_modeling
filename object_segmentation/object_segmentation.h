@@ -67,6 +67,7 @@ void SetNeighbors(const std::vector<Point>& points,
                   std::vector<std::vector<int> >* neighbors);
 
 void RemoveWindowAndMirror(const Floorplan& floorplan,
+                           const std::vector<int>& room_occupancy,
                            const Eigen::Vector3d& center,
                            PointCloud* point_cloud);
 

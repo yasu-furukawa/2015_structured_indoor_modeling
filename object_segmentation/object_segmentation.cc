@@ -404,7 +404,7 @@ void SegmentObjects(const std::vector<Point>& points,
       }
     ofstr.close();
   }
-*/
+  */
     
   AssignFromCentroids(points, neighbors, segments);
   map<int, Vector3i> color_table;
@@ -599,6 +599,7 @@ void InitializeCentroids(const std::vector<Point>& points,
                          const int num_initial_clusters,
                          std::vector<int>* segments) {
   // Randomly initialize seeds.
+  /*
   vector<int> seeds;
   {
     for (int p = 0; p < segments->size(); ++p)
@@ -611,8 +612,8 @@ void InitializeCentroids(const std::vector<Point>& points,
   for (int c = 0; c < (int)seeds.size(); ++c) {
     segments->at(seeds[c]) = c;
   }
+  */
 
-    /*
   // Randomly initialize seeds.
   vector<int> seeds;
   {
@@ -635,13 +636,14 @@ void InitializeCentroids(const std::vector<Point>& points,
       // Pick the farthest point.
       int best_index = -1;
       double max_distance = 0.0;
-      for (int i = 0; i < (int)candidates.size(); ++i) {
+      const int kSkip = 3;
+      for (int i = 0; i < (int)candidates.size(); i += kSkip) {
         if (chosen[i])
           continue;
         const int candidate = candidates[i];
-        double sum_distance = 0.0;
+        double sum_distance = numeric_limits<double>::max();
         for (const auto& seed : seeds) {
-          sum_distance += (points[seed].position - points[candidate].position).norm();
+          sum_distance = min(sum_distance, (points[seed].position - points[candidate].position).norm());
         }
         if (max_distance < sum_distance) {
           max_distance = sum_distance;
@@ -658,7 +660,6 @@ void InitializeCentroids(const std::vector<Point>& points,
   for (int c = 0; c < (int)seeds.size(); ++c) {
     segments->at(seeds[c]) = c;
   }
-  */
 }
   
 const double kUnreachable = -1.0;
@@ -948,7 +949,8 @@ bool Merge(const std::vector<Point>& points,
   cerr << "Average inter distance: " << average_inter_distance << endl;
 
   // Merge test.
-  const double kMergeRatio = 2.0;
+  //????
+  const double kMergeRatio = 1.5; // 2.0;
   set<pair<int, int> > merged;
 
   pair<int, int> best_pair;
@@ -1141,12 +1143,31 @@ void FillOccupancy(const Eigen::Vector3d& v0,
 }  // namespace
 
 void RemoveWindowAndMirror(const Floorplan& floorplan,
+                           const vector<int>& room_occupancy,
                            const Eigen::Vector3d& center,
                            PointCloud* point_cloud) {
-  /*
+  const Vector2d center_grid = floorplan.LocalToGrid(Vector2d(center[0], center[1]));
+  
   vector<int> reomove_indexes;
+
+  const int width  = floorplan.GetGridSize()[0];
+  const int height = floorplan.GetGridSize()[1];
+
+  for (int p = 0; p < point_cloud->GetNumPoints(); ++p) {
+    const Point& point = point_cloud->GetPoint(p);
+    const Vector2d grid = floorplan.LocalToGrid(Vector2d(point.position[0], point.position[1]));
+
+    // If grid<->center_grid crosses a room boundary or not.
+    const int sample = static_cast<int>(round((grid - center_grid).norm() * 2));
+
+    for (int s = 0; s < sample; ++s) {
+      
+
+    }
+
+
+  }
   point_cloud->RemovePoints(remove_indexes);
-  */
 }
   
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
