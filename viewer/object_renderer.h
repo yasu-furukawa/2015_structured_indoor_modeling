@@ -22,7 +22,7 @@ class ObjectRenderer : protected QGLFunctions {
   void Init(const std::string data_directory);
   void InitGL();
 
-  void RenderAll(const double alpha);
+  void RenderAll(const double position);
 
   bool Toggle();
   

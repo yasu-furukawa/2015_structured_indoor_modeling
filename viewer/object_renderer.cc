@@ -54,7 +54,7 @@ void ObjectRenderer::InitGL() {
   initializeGLFunctions();
 }
   
-void ObjectRenderer::RenderAll(const double /* alpha */) {
+void ObjectRenderer::RenderAll(const double position) {
   if (!render)
     return;
 
@@ -69,27 +69,25 @@ void ObjectRenderer::RenderAll(const double /* alpha */) {
   }
   glEnable(GL_POINT_SMOOTH);
 
-  /*
-  static int count = 0;
-  ++count;
-  const int kCycle = 40;
-  count %= kCycle;
-  */
+  const double kDurationPerObject = 0.4;
   
   for (int room = 0; room < (int)vertices.size(); ++room) {
+    const double offset = (1.0 - kDurationPerObject) / max(1, (int)vertices[room].size() - 1);
     for (int object = 0; object < (int)vertices[room].size(); ++object) {
-
-      /*
+      // [object * offset, object * offset + kDurationPerObject].
+      double scale;
       {
-        double scale = 1.0;
-        if (count < 20)
-          scale = sin(2 * M_PI * count / kCycle) * 0.5 + 1.0;
-
-        for (int i = 0; i < (int)colors[room][object].size(); ++i) {
-          colors[room][object][i] = min(1.0, scale * colors_org[room][object][i]);
-        }
+        const double start = object * offset;
+        const double end = start + kDurationPerObject;
+        if (position <= start || end <= position)
+          scale = 1.0;
+        else
+          scale = sin(M_PI * (position - start) / kDurationPerObject) * 0.5 + 1.0;
       }
-      */
+      
+      for (int i = 0; i < (int)colors[room][object].size(); ++i) {
+        colors[room][object][i] = min(1.0, scale * colors_org[room][object][i]);
+      }
       
       glColorPointer(3, GL_FLOAT, 0, &colors[room][object][0]);
       glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);

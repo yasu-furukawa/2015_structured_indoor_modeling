@@ -100,6 +100,7 @@ private:
 
     QTime simple_click_time;
     QTime double_click_time;
+    QTime object_animation_time;
     bool mouse_down;
 
     void FreeResources();
@@ -170,6 +171,9 @@ private:
     void RenderAirToFloorplanTransition(const bool flip = false);
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
 
+    double ObjectAnimationPosition() const;
+    bool ObjectAnimation() const;
+    
     void ClearDisplay();
     void ClearDisplayWithWhite();
 };

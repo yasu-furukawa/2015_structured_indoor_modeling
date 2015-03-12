@@ -196,10 +196,10 @@ void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode
   glPopAttrib();  
 }
 
-void MainWidget::RenderObjects(const double alpha) {
+void MainWidget::RenderObjects(const double /* alpha */) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
-  
-  object_renderer.RenderAll(alpha);
+
+  object_renderer.RenderAll(ObjectAnimationPosition());
 
   glPopAttrib();
 

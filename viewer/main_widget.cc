@@ -88,6 +88,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   simple_click_time.start();
   double_click_time.start();
+  object_animation_time.start();
   simple_click_time_offset_by_move = 0.0;
   mouse_down = false;
 
@@ -706,19 +707,21 @@ void MainWidget::timerEvent(QTimerEvent *) {
   case kPanorama: {
     if (RightAfterSimpleClick(kRenderMargin)) {
       updateGL();
-      break;
     }
+    break;
   }
-  case kAir:
+  case kAir: {
+    if (RightAfterSimpleClick(kRenderMargin) || ObjectAnimation()) {
+      updateGL();
+    }
+    break;
+  }
+  case kFloorplan: {
     if (RightAfterSimpleClick(kRenderMargin)) {
       updateGL();
-      break;
     }
-  case kFloorplan:
-    if (RightAfterSimpleClick(kRenderMargin)) {
-      updateGL();
-      break;
-    }
+    break;
+  }
   }
 }  
 
@@ -759,6 +762,27 @@ double MainWidget::AnimationLinear() {
                              simple_click_time_offset_by_move / 1000.0,
                              kFadeInSeconds,
                              kFadeOutSeconds);
+}
+
+double MainWidget::ObjectAnimationPosition() const {
+  if (!ObjectAnimation())
+    return 0.0;
+
+  const int kInterval = 6000;  
+  const int kDuration = 1000;
+  const int msec = object_animation_time.elapsed();
+  return (msec % kInterval) / (double)kDuration;
+}
+  
+bool MainWidget::ObjectAnimation() const {
+  // Once in 6 seconds.
+  const int kInterval = 6000;
+  const int kDuration = 1000;
+  const int msec = object_animation_time.elapsed();
+  if (msec % kInterval < kDuration)
+    return true;
+  else
+    return false;
 }
   
 }  // namespace structured_indoor_modeling
