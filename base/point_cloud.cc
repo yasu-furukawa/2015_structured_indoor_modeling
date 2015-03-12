@@ -235,7 +235,7 @@ void PointCloud::SetAllColor(float r,float g,float b){
 
 // yasu Should the input type (rgb) be float instead of int?
 void PointCloud::SetColor(int ind, float r,float g,float b){
-     assert(ind >= 0 && ind < points.size());
+     assert(ind >= 0 && ind < (int)points.size());
      points[ind].color[0] = r;
      points[ind].color[1] = g;
      points[ind].color[2] = b;

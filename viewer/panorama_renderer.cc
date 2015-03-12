@@ -124,7 +124,7 @@ void PanoramaRenderer::InitGL() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
   
-void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_range) {
+void PanoramaRenderer::InitDepthMesh(const string& /* filename */, const double /* phi_range */) {
   /*
   ifstream ifstr;
   ifstr.open(filename.c_str());

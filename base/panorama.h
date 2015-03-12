@@ -42,6 +42,8 @@
   panorama.Init(file_io, kPanoramaID);
  */
 
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <vector>

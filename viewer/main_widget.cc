@@ -91,7 +91,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   simple_click_time_offset_by_move = 0.0;
   mouse_down = false;
 
-  polygon_or_indoor_polygon = true;
+  polygon_or_indoor_polygon = false;
 }
 
 MainWidget::~MainWidget() {

@@ -23,8 +23,6 @@ class ObjectRenderer : protected QGLFunctions {
   void InitGL();
 
   void RenderAll(const double alpha);
-  void RenderRoom(const int room) const;
-  void RenderObject(const int room, const int object) const;
 
   bool Toggle();
   
@@ -40,8 +38,6 @@ class ObjectRenderer : protected QGLFunctions {
 
   std::vector<std::vector<std::vector<float> > > vertices_org;
   std::vector<std::vector<std::vector<float> > > colors_org;
-  // std::vector<float> vertices;
-  // std::vector<float> colors;
 };
 
 }  // namespace structured_indoor_modeling 

@@ -406,7 +406,7 @@ void FloorplanRenderer::RenderRoomFill(const int room,
 
 void FloorplanRenderer::RenderSolidColor(const int room,
                                          const PaintStyle& paint_style,
-                                         const double unit,
+                                         const double /* unit */,
                                          const double alpha) const {
   glDisable(GL_BLEND);
   glBegin(GL_TRIANGLES);
@@ -430,7 +430,7 @@ void FloorplanRenderer::RenderSolidColor(const int room,
 void FloorplanRenderer::RenderVerticalStripe(const int room,
                                              const PaintStyle& paint_style,
                                              const double unit,
-                                             const double alpha) const {
+                                             const double /* alpha */) const {
   Vector2d x_range, y_range;
   ComputeRanges(floorplan, room, &x_range, &y_range);
 
@@ -461,7 +461,7 @@ void FloorplanRenderer::RenderVerticalStripe(const int room,
 void FloorplanRenderer::RenderWaterDrop(const int room,
                                         const PaintStyle& paint_style,
                                         const double unit,
-                                        const double alpha) const {
+                                        const double /* alpha */) const {
   Vector2d x_range, y_range;
   ComputeRanges(floorplan, room, &x_range, &y_range);
   
@@ -514,7 +514,7 @@ void FloorplanRenderer::RenderTile(const int room,
 }
   
 void FloorplanRenderer::RenderTexture(const int room,
-                                      const PaintStyle& paint_style,
+                                      const PaintStyle& /* paint_style */,
                                       const double unit,
                                       const double alpha,
                                       const GLint texture_id,
@@ -605,8 +605,8 @@ void FloorplanRenderer::RenderTexture(const int room,
 void FloorplanRenderer::RenderRoomStroke(const int room,
                                          const PaintStyle& paint_style,
                                          const double alpha,
-                                         const bool emphasize,
-                                         const double height_adjustment) const {
+                                         const bool /* emphasize */,
+                                         const double /* height_adjustment */) const {
   Vector3d z_axis(0, 0, 1);
   z_axis = floorplan.GetFloorplanToGlobal() * z_axis;
   double radius = paint_style.stroke_width * floorplan.GetGridUnit();
