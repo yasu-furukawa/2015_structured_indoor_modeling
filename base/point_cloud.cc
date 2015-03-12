@@ -248,11 +248,11 @@ void PointCloud::Update(){
     num_objects = max(num_objects, point.object_id + 1);
     
     bounding_box[0] = min(point.position[0],bounding_box[0]);
-    bounding_box[1] = max(point.position[0],bounding_box[0]);
-    bounding_box[2] = min(point.position[1],bounding_box[1]);
-    bounding_box[3] = max(point.position[1],bounding_box[1]);
-    bounding_box[4] = min(point.position[2],bounding_box[2]);
-    bounding_box[5] = max(point.position[2],bounding_box[2]);
+    bounding_box[1] = max(point.position[0],bounding_box[1]);
+    bounding_box[2] = min(point.position[1],bounding_box[2]);
+    bounding_box[3] = max(point.position[1],bounding_box[3]);
+    bounding_box[4] = min(point.position[2],bounding_box[4]);
+    bounding_box[5] = max(point.position[2],bounding_box[5]);
   }
   if (!points.empty())
     center /= (int)points.size();
@@ -274,6 +274,7 @@ void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
     normal4 = transformation * normal4;
     point.normal = Vector3d(normal4[0], normal4[1], normal4[2]);
   }
+  Update();
 }
 
 }  // namespace structured_indoor_modeling

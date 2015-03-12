@@ -26,6 +26,14 @@ void ReadObjectCloud(const structured_indoor_modeling::FileIO& file_io, std::vec
 //convert pixel label to label group
 void labelTolabelgroup(const std::vector<int>& labels,const structured_indoor_modeling::Panorama &panorama, std::vector< std::vector<int> >&labelgroup,std::vector< Eigen::Vector3d >&averageRGB, int numgroup);
 
+inline double gaussianFunc(double x, double sigma){
+    return std::exp(-1*(x*x/(2*sigma*sigma)));
+}
+
+inline double sigmaFunc(double x, double offset, double maxv, double scale){
+    return maxv/(1+std::exp(scale * (x - offset)));
+}
+
 bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);
 
 int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup, std::vector<double>&objectVolume);    //objectVolume: volume of the boundingbox of each object
