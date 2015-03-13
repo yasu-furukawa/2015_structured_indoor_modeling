@@ -68,8 +68,9 @@ void RasterizeMesh(const Panorama& panorama,
       continue;
     }
     normal.normalize();
-      
-    const double kSampleScale = 6.0; // 2.0;
+
+    // ??? 6.0 is too much and slow, but things work.
+    const double kSampleScale = 12.0;
     const int sample01 = max(2, static_cast<int>(round((vs[1] - vs[0]).norm() / unit * kSampleScale)));
     const int sample02 = max(2, static_cast<int>(round((vs[2] - vs[0]).norm() / unit * kSampleScale)));
     const int sample_s = max(sample01, sample02);
@@ -77,6 +78,7 @@ void RasterizeMesh(const Panorama& panorama,
       const Vector3d v01 = vs[0] + (vs[1] - vs[0]) * s / sample_s;
       const Vector3d v02 = vs[0] + (vs[2] - vs[0]) * s / sample_s;
       const int sample_t = max(2, static_cast<int>(round((v02 - v01).norm() / unit * kSampleScale)));
+
       for (int t = 0; t <= sample_t; ++t) {
         const Vector3d point = v01 + (v02 - v01) * t / sample_t;
         const double distance = (point - panorama.GetCenter()).norm();
@@ -98,6 +100,7 @@ void RasterizeMesh(const Panorama& panorama,
           }
         }
       }
+
     }
   }
 }
@@ -254,8 +257,43 @@ void RasterizeFloorplan(const Floorplan& floorplan,
 void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
                             const vector<Panorama>& panoramas,
                             std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+  cout << "RasterizeIndoorPolygon." << endl;
+  for (int p = 0; p < panoramas.size(); ++p) {
+    cout << "Panorama " << p << '/' << panoramas.size() << endl;
+    const Panorama& panorama = panoramas[p];
+    vector<RasterizedGeometry>& rasterized_geometry = rasterized_geometries->at(p);
+    for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+      const Segment& segment = indoor_polygon.GetSegment(s);
+      Mesh mesh;
+      switch (segment.type) {
+      case Segment::FLOOR: {
+        mesh.geometry_type = kIndoorPolygonFloor;
+        break;
+      }
+      case Segment::CEILING: {
+        mesh.geometry_type = kIndoorPolygonCeiling;
+        break;
+      }
+      case Segment::WALL: {
+        mesh.geometry_type = kIndoorPolygonWall;
+        break;
+      }
+      case Segment::DOOR: {
+        mesh.geometry_type = kIndoorPolygonDoor;
+        break;
+      }
+      }
 
-
+      for (int v = 0; v < segment.vertices.size(); ++v) {
+        mesh.vertices.push_back(indoor_polygon.ManhattanToGlobal(segment.vertices[v]));
+      }
+      for (const auto& triangle : segment.triangles) {
+        mesh.faces.push_back(triangle.indices);
+      }
+      
+      RasterizeMesh(panorama, mesh, &rasterized_geometry);
+    }
+  }
 }
 
 void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,

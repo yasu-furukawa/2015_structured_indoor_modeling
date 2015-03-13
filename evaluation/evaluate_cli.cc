@@ -69,10 +69,64 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::vector<RasterizedGeometry> > rasterized_geometries;
   //----------------------------------------------------------------------
+  /*
   {
     // Floorplan only.
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
+    {
+      for (int p = 0; p < rasterized_geometries.size(); ++p) {
+        const Panorama& panorama = panoramas[p];
+        const int width  = panorama.DepthWidth();
+        const int height = panorama.DepthHeight();
+        bool first = true;
+        double max_depth, min_depth;
+        for (int i = 0; i < rasterized_geometries[p].size(); ++i) {
+          if (rasterized_geometries[p][i].depth != kInitial.depth) {
+            if (first) {
+              max_depth = min_depth = rasterized_geometries[p][i].depth;
+              first = false;
+            } else {
+              max_depth = max(max_depth, rasterized_geometries[p][i].depth);
+              min_depth = min(min_depth, rasterized_geometries[p][i].depth);
+            }
+          }
+        }
+
+        ofstream ofstr;
+        char buffer[1024];
+        sprintf(buffer, "floorplan_%03d.ppm", p);
+        ofstr.open(buffer);
+        ofstr << "P3" << endl
+              << width << ' ' << height << endl
+              << 255 << endl;
+        for (int i = 0; i < rasterized_geometries[p].size(); ++i) {
+          if (rasterized_geometries[p][i].depth == kInitial.depth) {
+            ofstr << "255 0 0 ";
+          } else {
+            const int itmp = (int)(255 * (rasterized_geometries[p][i].depth - min_depth) / (max_depth - min_depth));
+            ofstr << itmp << ' ' << itmp << ' ' << itmp << ' ';
+          }
+        }
+        ofstr.close();
+      }
+    }
+    
+    ReportErrors(input_point_clouds,
+                 rasterized_geometries,
+                 panoramas,
+                 kInitial);
+  }
+  */
+  
+  // Indoor polygon only.
+  {
+    Initialize(panoramas, kInitial, &rasterized_geometries);
+    RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
+    ReportErrors(input_point_clouds,
+                 rasterized_geometries,
+                 panoramas,
+                 kInitial);
 
     {
       for (int p = 0; p < rasterized_geometries.size(); ++p) {
@@ -95,7 +149,7 @@ int main(int argc, char* argv[]) {
 
         ofstream ofstr;
         char buffer[1024];
-        sprintf(buffer, "%03d.ppm", p);
+        sprintf(buffer, "indoor_polygon_%03d.ppm", p);
         ofstr.open(buffer);
         ofstr << "P3" << endl
               << width << ' ' << height << endl
@@ -112,21 +166,6 @@ int main(int argc, char* argv[]) {
       }
     }
     
-    ReportErrors(input_point_clouds,
-                 rasterized_geometries,
-                 panoramas,
-                 kInitial);
-  }
-  /*
-  // Indoor polygon only.
-  {
-    Initialize(panoramas, kInitial, &rasterized_geometries);
-    RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
-    ReportErrors(input_point_clouds,
-                 rasterized_geometries,
-                 panoramas,
-                 kInitial);
-    
     // Plus objects.
     RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
 
@@ -135,6 +174,6 @@ int main(int argc, char* argv[]) {
                  panoramas,
                  kInitial);
   }
-  */
+  
   return 0;
 }
