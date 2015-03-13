@@ -78,6 +78,7 @@ class PointCloud {
   inline const Eigen::Vector3d& GetCenter() const { return center; }
   inline const Point& GetPoint(const int p) const { return points[p]; }
   inline Point& GetPoint(const int p) { return points[p]; }
+  inline bool isempty() const {return (int)points.size() == 0;}
   double GetBoundingboxVolume();  
   // Setters.
   void SetPoints(const std::vector<Point>& new_points) {

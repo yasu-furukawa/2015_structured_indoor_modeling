@@ -1,4 +1,5 @@
 #include "object_hole_filling.h"
+#include "SLIC.h"
 #include <numeric>
 #include <iostream>
 #include <iterator>
@@ -12,6 +13,74 @@ using namespace structured_indoor_modeling;
 
 #define PI 3.1415927
 
+Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255), Vec3b(128,0,0), Vec3b(0,128,0), Vec3b(0,0,128), Vec3b(128,128,0), Vec3b(128,0,128), Vec3b(0,128,128), Vec3b(255,128,128),Vec3b(128,255,128),Vec3b(128,128,255)};
+
+void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, vector<DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid){
+    cout<<"Init panorama..."<<endl;
+
+    char buffer[100];
+    
+    panorama.resize(endid - startid + 1);
+    labels.resize(endid - startid + 1);
+    depth.resize(endid - startid + 1);
+    numlabels.resize(endid - startid + 1);
+    
+    for(int id=startid; id<endid; id++){
+	int curid = id - startid;
+	cout<<"Panorama "<<id<<endl;
+	panorama[curid].Init(file_io, id);
+	
+	PointCloud curpc;
+	cout<<"reading pnaorama  point cloud..."<<endl;
+	curpc.Init(file_io, id);
+	curpc.ToGlobal(file_io, id);
+    
+	//Get depthmap
+	cout<<"Processing depth map..."<<endl;
+	sprintf(buffer,"depth/panorama%03d.depth",id);
+	if(!depth[curid].ReadDepthFromFile(string(buffer))){
+	    depth[curid].Init(curpc, panorama[curid]);
+	    depth[curid].fill_hole(panorama[curid]);
+	    depth[curid].SaveDepthFile(string(buffer));
+	}
+	sprintf(buffer,"depth/panoramaDepth%03d.png",id);
+	depth[curid].SaveDepthmap(string(buffer));
+	
+	imgwidth = panorama[curid].Width();
+	imgheight = panorama[curid].Height();
+	
+	labels[curid].resize(imgwidth*imgheight);
+
+	sprintf(buffer,"superpixel/SLIC%03d",id);
+	ifstream labelin(buffer, ios::binary);
+	if(!labelin.is_open()){
+	    cout<<"Performing SLICO Superpixel..."<<endl;
+	    Mat pan = panorama[curid].GetRGBImage().clone();
+	    SLIC slic;
+	    vector<unsigned int>imagebuffer;
+	    MatToImagebuffer(pan, imagebuffer);
+	    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
+	    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
+	    
+	    sprintf(buffer,"superpixel/SLIC%03d",id);
+	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",string(buffer));
+	    cout<<"numlabels: "<<numlabels[curid]<<endl;
+	    Mat out;
+	    ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
+	    sprintf(buffer,"superpixel/SLIC%03d.png",id); 
+	    imwrite(buffer,out);
+	    waitKey(10);
+	}else{
+	    cout <<"Reading superpixel from file"<<endl;
+	    labelin.read((char*)&numlabels[curid], sizeof(int));
+	    for(int i=0;i<labels.size();i++){
+		labelin.read((char*)&labels[curid][i], sizeof(int));
+	    }
+	    labelin.close();
+	}
+	cout<<endl;
+    }
+}
 
 
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
@@ -49,6 +118,59 @@ void ImagebufferToMat(const vector <unsigned int>&imagebuffer,const int imgwidth
 	    image.at<Vec3b>(y,x) = curpix;
 	}
     }
+}
+
+void saveConfidence(const vector< vector<double> >&superpixelConfidence, const vector<int>&labels, const int imgwidth, const int imgheight, const int id, const int roomid){
+    cout<<"saving mask..."<<endl;
+    //save the mask
+    double minc = 1e100;
+    double maxc = -1e100;
+    char buffer[100];
+
+    for(int i=0;i<superpixelConfidence.size();i++){
+	for(int j=0;j<superpixelConfidence[i].size();j++){
+	    minc = min(superpixelConfidence[i][j], minc);
+	    maxc = max(superpixelConfidence[i][j], maxc);
+	}
+    }
+    Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
+    for(int groupid = 0;groupid<superpixelConfidence.size();groupid++){
+	int colorid = groupid % 15;
+	for(int i=0;i<imgwidth*imgheight;++i){
+	    int x = i % imgwidth;
+	    int y = i / imgwidth;
+	    double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
+	    double r = (double)colortable[colorid][0] * curconfidence * 4;
+	    double g = (double)colortable[colorid][1] * curconfidence * 4;
+	    double b = (double)colortable[colorid][2] * curconfidence * 4;
+	    Vec3b curpix((uchar)r, (uchar)g, (uchar)b);
+	    outmask.at<Vec3b>(y,x) += curpix;
+	}
+    }
+    sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d.jpg",id, roomid);
+    imwrite(buffer, outmask);
+    waitKey(10);
+}
+
+void saveOptimizeResult(const Panorama &panorama, const vector<int>&superpixelLabel, const vector <int> &labels, const int id, const int roomid){
+    //save optimize result
+    const int imgwidth = panorama.Width();
+    const int imgheight = panorama.Height();
+    char buffer[100];
+    
+    Mat optimizeout = panorama.GetRGBImage().clone();
+    for(int y=0;y<imgheight;y++){
+	for(int x=0;x<imgwidth;x++){
+	    int curlabel = superpixelLabel[labels[y*imgwidth + x]];
+	    int colorid = curlabel;
+	    Vec3b curpix;
+	    curpix = colortable[colorid % 15] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
+	    optimizeout.at<Vec3b>(y,x) = curpix;
+	}
+    }
+    sprintf(buffer,"object_project/optimize_pan%03d_room%03d.png",id,roomid);
+    imwrite(buffer,optimizeout);
+    waitKey(10);
 }
 
 void RGB2HSV(double r,double g,double b, double &h, double &s, double &v){
@@ -182,12 +304,20 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
 
 
 void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <double> &superpixelConfidence, int superpixelnum){
+    
     superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
+
+    
     for(int i=0;i<superpixelConfidence.size();++i)
 	superpixelConfidence[i] = 0;
+
+
+    if(point_cloud.isempty())
+	return;
     int imgwidth = panorama.Width();
     int imgheight = panorama.Height();
+
 
     for(int ptid = 0; ptid<objectgroup.size(); ptid+=2){
 	Vector3d curpt = point_cloud.GetPoint(objectgroup[ptid]).position;
@@ -248,7 +378,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
 
-	ifstream fin(filename.c_str());
+	ifstream fin(filename_wall.c_str());
 	if(!fin.is_open())
 	    break;
 	fin.close();
@@ -348,7 +478,7 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 }
 
 
-void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int>& superpixelLabel, DepthFilling &objectdepth){
+void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfidence, const map<pair<int,int>,int> &pairmap, const vector< Vector3d > &averageRGB, float smoothweight, int numlabels, vector <int>& superpixelLabel){
 
     int superpixelnum = superpixelConfidence[0].size();
 
