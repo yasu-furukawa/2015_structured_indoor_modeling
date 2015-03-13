@@ -28,6 +28,9 @@ void LoadData(const int id,
 void SetRoomOccupancy(const Floorplan& floorplan,
                       std::vector<int>* room_occupancy);
 
+void SetDoorOccupancy(const Floorplan& floorplan,
+                      std::vector<int>* room_occupancy_with_doors);
+ 
 void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
                          const Floorplan& floorplan,
                          const std::vector<int>& room_occupancy,
@@ -67,7 +70,7 @@ void SetNeighbors(const std::vector<Point>& points,
                   std::vector<std::vector<int> >* neighbors);
 
 void RemoveWindowAndMirror(const Floorplan& floorplan,
-                           const std::vector<int>& room_occupancy,
+                           const std::vector<int>& room_occupancy_with_doors,
                            const Eigen::Vector3d& center,
                            PointCloud* point_cloud);
 

@@ -170,8 +170,87 @@ void SetRoomOccupancy(const Floorplan& floorplan,
       }
     }
   }
+
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("room.ppm");
+    ofstr << "P3" << endl
+          << grid_size[0] << ' ' << grid_size[1] << endl
+          << 255 << endl;
+
+    int index = 0;
+    for (int y = 0; y < grid_size[1]; ++y) {
+      for (int x = 0; x < grid_size[0]; ++x, ++index) {
+        if (room_occupancy->at(index) < 0)
+          ofstr << "255 255 255 " << endl;
+        else
+          ofstr << "0 0 0 " << endl;
+      }
+    }
+    ofstr.close();
+  }
+  */
 }
 
+void SetDoorOccupancy(const Floorplan& floorplan,
+                      std::vector<int>* room_occupancy_with_doors) {
+  const Eigen::Matrix3d global_to_floorplan = floorplan.GetFloorplanToGlobal().transpose();
+
+  const int kDoor = 1000;
+  const int width  = floorplan.GetGridSize()[0];
+  const int height = floorplan.GetGridSize()[1];
+  
+  for (int d = 0; d < floorplan.GetNumDoors(); ++d) {
+    Vector3d local0 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 0);
+    const Vector2d v0 = floorplan.LocalToGrid(Vector2d(local0[0], local0[1]));
+
+    Vector3d local1 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 1);
+    const Vector2d v1 = floorplan.LocalToGrid(Vector2d(local1[0], local1[1]));
+
+    Vector3d local2 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 2);
+    const Vector2d v2 = floorplan.LocalToGrid(Vector2d(local2[0], local2[1]));
+
+    const int sample1 = (v1 - v0).norm() * 2;
+    const int sample2 = (v2 - v0).norm() * 2;
+
+    for (int s1 = 0; s1 <= sample1; ++s1) {
+      for (int s2 = 0; s2 <= sample2; ++s2) {
+        Vector2d position = v0 + (v1 - v0) * s1 / sample1 + (v2 - v0) * s2 / sample2;
+        
+        
+        const int x0 = max(0, min(width - 2, static_cast<int>(floor(position[0]))));
+        const int y0 = max(0, min(height - 2, static_cast<int>(floor(position[1]))));
+        const int x1 = x0 + 1;
+        const int y1 = y0 + 1;
+        room_occupancy_with_doors->at(y0 * width + x0) = kDoor;
+        room_occupancy_with_doors->at(y0 * width + x1) = kDoor;
+        room_occupancy_with_doors->at(y1 * width + x0) = kDoor;
+        room_occupancy_with_doors->at(y1 * width + x1) = kDoor;
+      }
+    }
+  }
+
+  {
+    ofstream ofstr;
+    ofstr.open("room_door.ppm");
+    ofstr << "P3" << endl
+          << width << ' ' << height << endl
+          << 255 << endl;
+
+    int index = 0;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x, ++index) {
+        if (room_occupancy_with_doors->at(index) < 0)
+          ofstr << "255 255 255 " << endl;
+        else
+          ofstr << "0 0 0 " << endl;
+      }
+    }
+    ofstr.close();
+  }
+}
+  
 void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
                          const Floorplan& floorplan,
                          const std::vector<int>& room_occupancy,
@@ -1143,12 +1222,12 @@ void FillOccupancy(const Eigen::Vector3d& v0,
 }  // namespace
 
 void RemoveWindowAndMirror(const Floorplan& floorplan,
-                           const vector<int>& room_occupancy,
+                           const vector<int>& room_occupancy_with_doors,
                            const Eigen::Vector3d& center,
                            PointCloud* point_cloud) {
   const Vector2d center_grid = floorplan.LocalToGrid(Vector2d(center[0], center[1]));
   
-  vector<int> reomove_indexes;
+  vector<int> remove_indexes;
 
   const int width  = floorplan.GetGridSize()[0];
   const int height = floorplan.GetGridSize()[1];
@@ -1157,16 +1236,58 @@ void RemoveWindowAndMirror(const Floorplan& floorplan,
     const Point& point = point_cloud->GetPoint(p);
     const Vector2d grid = floorplan.LocalToGrid(Vector2d(point.position[0], point.position[1]));
 
-    // If grid<->center_grid crosses a room boundary or not.
-    const int sample = static_cast<int>(round((grid - center_grid).norm() * 2));
+    // If [ center_grid -> grid ] crosses a room boundary or not.
+    const int sample = static_cast<int>(round((grid - center_grid).norm() / 2));
 
+    // room_occupancy must be [ room ... | non-room ... | room ... ]
+    int block_counts[3] = {0, 0, 0};
+    int block = 0;
     for (int s = 0; s < sample; ++s) {
-      
+      const Vector2d current = (grid - center_grid) * s / sample + center_grid;
+      const int x = max(0, min(width - 1, static_cast<int>(round(current[0]))));
+      const int y = max(0, min(height - 1, static_cast<int>(round(current[1]))));
 
+      const int occupancy = room_occupancy_with_doors[y * width + x];
+      
+      if (block == 0) {
+        if (occupancy < 0) {
+          block = 1;
+        }
+      } else if (block == 1) {
+        if (occupancy >= 0) {
+          block = 2;
+        }
+      } else if (block == 2) {
+        if (occupancy < 0)
+          break;
+      }
+      
+      ++block_counts[block];
     }
 
-
+    // Remove condition.
+    if (block_counts[0] >= 2 && block_counts[1] >= 2 && block_counts[2] >= 2)
+      remove_indexes.push_back(p);
   }
+
+  /*
+  {
+  static int c = 0;
+    ofstream ofstr;
+    char buffer[1024];
+    sprintf(buffer, "remove_%03d.obj", c++);
+    ofstr.open(buffer);
+
+    for (const auto& value : remove_indexes) {
+      ofstr << "v "
+            << point_cloud->GetPoint(value).position[0] << ' '
+            << point_cloud->GetPoint(value).position[1] << ' '
+            << point_cloud->GetPoint(value).position[2] << endl;
+    }
+
+    ofstr.close();
+  }
+  */  
   point_cloud->RemovePoints(remove_indexes);
 }
   

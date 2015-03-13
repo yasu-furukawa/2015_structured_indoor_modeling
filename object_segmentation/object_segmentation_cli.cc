@@ -205,6 +205,8 @@ int main(int argc, char* argv[]) {
   // Make a 2D image with room occupancy information.
   vector<int> room_occupancy;
   SetRoomOccupancy(floorplan, &room_occupancy);
+  vector<int> room_occupancy_with_doors = room_occupancy;
+  SetDoorOccupancy(floorplan, &room_occupancy_with_doors);
   
   const int kStartPanorama = 0;
   const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
@@ -223,8 +225,9 @@ int main(int argc, char* argv[]) {
     point_clouds[index].Rotate(global_to_floorplan);
 
     const Vector3d global_center = GetCenter(file_io, p);
+
     RemoveWindowAndMirror(floorplan,
-                          room_occupancy,
+                          room_occupancy_with_doors,
                           global_to_floorplan * global_center,
                           &point_clouds[index]);
   }
