@@ -189,7 +189,7 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
     int imgwidth = panorama.Width();
     int imgheight = panorama.Height();
 
-    for(int ptid = 0; ptid<objectgroup.size(); ++ptid){
+    for(int ptid = 0; ptid<objectgroup.size(); ptid+=2){
 	Vector3d curpt = point_cloud.GetPoint(objectgroup[ptid]).position;
 	Vector3d panCenter = panorama.GetCenter();
 	Vector3d offset = curpt - panCenter;
@@ -241,10 +241,6 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 }
 
 
-inline double gaussian(double x, double sigma){
-    //  return 1.0/(sigma*std::sqrt(2*PI)) * std::exp(-1*(x*x/(2*sigma*sigma)));
-    return std::exp(-1*(x*x/(2*sigma*sigma)));
-}
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
     int roomid = 0;
@@ -273,22 +269,20 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	if(roomid > 1)
-	    break;
     }
     
 }
 
 
-double diffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
-    return gaussian(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
+inline double unaryDiffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
+    return gaussianFunc(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
 }
 
-
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
+    const double offset = 80;
+    const double maxv = 1.0;
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
-    //    cout<<gaussian(colordiff.norm(),20)<<endl;
-    return max(gaussian(colordiff.norm(),80),0.1);
+    return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.1);
 }
 
 double depthDiffFunc(int pix1,int pix2, const DepthFilling &depth, const pair<int,int> &pair){
@@ -303,8 +297,8 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 
     //model
     for(int i=0;i<superpixelnum;i++){
-	data[2*i] = (MRF::CostVal)(gaussian(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
-	data[2*i+1] = (MRF::CostVal)(gaussian((float)superpixelConfidence[i], 1) * 1000);  //assign 1
+	data[2*i] = (MRF::CostVal)(gaussianFunc(1.0/((float)superpixelConfidence[i] + 0.001), 1) * 1000) ;    //assign 0
+	data[2*i+1] = (MRF::CostVal)(gaussianFunc((float)superpixelConfidence[i], 1) * 1000);  //assign 1
     }
     smooth[0] = 0; smooth[3] = 0;
     smooth[1] = 1; smooth[2] = 1;
@@ -321,7 +315,7 @@ void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<i
 
     for(auto mapiter:pairmap){
 	pair<int,int> curpair = mapiter.first;
-	//    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(diffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
+	//    MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(unaryDiffFunc(curpair.first,curpair.second,superpixelConfidence) * 1000);
 	MRF::CostVal weight = (MRF::CostVal)mapiter.second * (MRF::CostVal)(colorDiffFunc(curpair.first,curpair.second,averageRGB) * 500);
 	//    cout<<colorDiffFunc(curpair.first,curpair.second,averageRGB)<<endl;
 	mrf->setNeighbors(curpair.first,curpair.second, weight);
@@ -363,7 +357,11 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 
     for(int i=0;i<superpixelnum;i++){
 	for(int label=0;label<numlabels;label++){
-	    data[numlabels * i + label] = (MRF::CostVal)( gaussian((float)superpixelConfidence[label][i],1) * 1000);
+	    if(averageRGB[i].norm() < 0.001 && label < numlabels - 1){
+		data[numlabels * i + label] = 10000;
+		continue;
+	    }
+	    data[numlabels * i + label] = (MRF::CostVal)( gaussianFunc((float)superpixelConfidence[label][i],1) * 1000);
 	}
     }
 
@@ -444,15 +442,15 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 
 void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &resultcloud, int roomid){
 
-    int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
+    const int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
+    const int imgwidth = panorama.Width();
+    const int imgheight = panorama.Height();
+    const int depthwidth = panorama.DepthWidth();
+    const int depthheight = panorama.DepthHeight();
+    const vector <double> bounding_box  = objectcloud.GetBoundingbox();
+    const double max_z = bounding_box[4] + (bounding_box[5] - bounding_box[4]) * 0.8; //remove ceil points
 
-    cout<<"background label: "<<backgroundlabel<<endl;
     vector<structured_indoor_modeling::Point>pointtoadd;
-    
-    int imgwidth = panorama.Width();
-    int imgheight = panorama.Height();
-    int depthwidth = panorama.DepthWidth();
-    int depthheight = panorama.DepthHeight();
 
     //get depth map for each object
     vector <DepthFilling> objectdepth(backgroundlabel);
@@ -493,7 +491,9 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 		    continue;
 
 		Vector3d worldcoord = panorama.Unproject(pixloc, depthv);
-		//Vector3d worldcoord = panorama.Unproject(pixloc,panorama.GetDepth(depthloc));
+		if(worldcoord[2] >= max_z)
+		    continue;
+		
 		structured_indoor_modeling::Point curpt;
 		curpt.position = worldcoord;
 		curpt.color = curcolor;
