@@ -50,6 +50,10 @@ void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
 void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,
                                 const vector<Panorama>& panoramas,
                                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
+
+void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
+                  const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
+                  const vector<Panorama>& panoramas);
  
 }  // namespace structured_indoor_modeling
   

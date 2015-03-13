@@ -68,10 +68,11 @@ int main(int argc, char* argv[]) {
   // Accuracy and completeness.
   const RasterizedGeometry kInitial(numeric_limits<double>::max(), Vector3d(0, 0, 0), kHole);
 
+  std::vector<std::vector<RasterizedGeometry> > rasterized_geometries;
   //----------------------------------------------------------------------
   {
     // Floorplan only.
-    Initialize(panoramas, kInitial, rasterized_geometries);
+    Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
     ReportErrors(input_point_clouds,
                  rasterized_geometries,
@@ -79,7 +80,7 @@ int main(int argc, char* argv[]) {
   }
   // Indoor polygon only.
   {
-    Initialize(panoramas, kInitial, rasterized_geometries);
+    Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     ReportErrors(input_point_clouds,
                  rasterized_geometries,
