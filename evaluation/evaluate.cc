@@ -92,7 +92,6 @@ void RasterizeMesh(const Panorama& panorama,
         }
       }
     }
-    cerr << endl;
   }
 }
   
@@ -114,6 +113,7 @@ void ReadInputPointClouds(const FileIO& file_io, std::vector<PointCloud>* input_
       }
       input_point_clouds->at(p).ToGlobal(file_io, p);
     }
+    cout << "done" << endl;
   }
 }
 
@@ -122,9 +122,12 @@ void ReadObjectPointClouds(const FileIO& file_io,
                            std::vector<PointCloud>* object_point_clouds) {
   object_point_clouds->clear();
   object_point_clouds->resize(num_rooms);
+  cout << "Reading object clouds..." << flush;
   for (int room = 0; room < num_rooms; ++room) {
+    cout << '.' << flush;
     object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
   }
+  cout << "done" << endl;
 }
 
 void ReadPanoramas(const FileIO& file_io,
@@ -173,10 +176,13 @@ void Initialize(const vector<Panorama>& panoramas,
 void RasterizeFloorplan(const Floorplan& floorplan,
                         const vector<Panorama>& panoramas,
                         std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+  cout << "RasterizeFloorplan." << endl;
   for (int p = 0; p < panoramas.size(); ++p) {
+    cout << "Panorama " << p << '/' << panoramas.size() << flush;
     const Panorama& panorama = panoramas[p];
     vector<RasterizedGeometry>& rasterized_geometry = rasterized_geometries->at(p);
 
+    cout << " floor" << flush;
     // Floor.
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       const FloorCeilingTriangulation& triangulation = floorplan.GetFloorTriangulation(room);
@@ -190,6 +196,7 @@ void RasterizeFloorplan(const Floorplan& floorplan,
       }
       RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
     }
+    cout << " ceiling" << flush;
     // Ceiling.
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       const FloorCeilingTriangulation& triangulation = floorplan.GetCeilingTriangulation(room);
@@ -203,6 +210,7 @@ void RasterizeFloorplan(const Floorplan& floorplan,
       }
       RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
     }
+    cout << " walls" << flush;
     // Walls.
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
@@ -218,6 +226,7 @@ void RasterizeFloorplan(const Floorplan& floorplan,
         RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
       }
     }
+    cout << " doors" << flush;
     // Doors.
     for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
       Mesh mesh;
@@ -231,6 +240,7 @@ void RasterizeFloorplan(const Floorplan& floorplan,
       }
       RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
     }
+    cout << " done." << endl;
   }
 }
 

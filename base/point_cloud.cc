@@ -18,7 +18,6 @@ PointCloud::PointCloud() {
 }
 
 void PointCloud::InitializeMembers() {
-  points.clear();
   center.resize(3);
   center[0] = 0;
   center[1] = 0;
@@ -69,7 +68,7 @@ bool PointCloud::Init(const std::string& filename) {
     
   points.clear();
   points.resize(num_points);
-  
+
   const int kInvalidObjectId = -1;
 
   // To handle different point format.
