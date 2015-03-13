@@ -38,6 +38,18 @@ Eigen::Vector3d GetLaserCenter(const FileIO& file_io, const int panorama);
 void Initialize(const vector<Panorama>& panoramas,
                 const RasterizedGeometry& initial_value,
                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
+
+void RasterizeFloorplan(const Floorplan& floorplan,
+                        const vector<Panorama>& panoramas,
+                        std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
+
+void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
+                            const vector<Panorama>& panoramas,
+                            std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
+
+void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,
+                                const vector<Panorama>& panoramas,
+                                std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
  
 }  // namespace structured_indoor_modeling
   

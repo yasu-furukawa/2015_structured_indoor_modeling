@@ -66,24 +66,32 @@ int main(int argc, char* argv[]) {
   ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
 
   // Accuracy and completeness.
-  //
-  // Rasterize from the floorplan data, input_point_clouds
   const RasterizedGeometry kInitial(numeric_limits<double>::max(), Vector3d(0, 0, 0), kHole);
 
-  
-  Initialize(panoramas, kInitial, rasterized_geometries);
-  
-  for (int p = 0; p < (int)input_point_clouds.size(); ++p) {
-    const int width  = panoramas[p].DepthWidth();
-    const int height = panoramas[p].DepthHeight();
-
-
-    // Report errors in different configurations.
-    {
-    
-      RasterizeFloorplan(floorplan, rasterized_geometry
-  
+  //----------------------------------------------------------------------
+  {
+    // Floorplan only.
+    Initialize(panoramas, kInitial, rasterized_geometries);
+    RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
+    ReportErrors(input_point_clouds,
+                 rasterized_geometries,
+                 panoramas);
   }
+  // Indoor polygon only.
+  {
+    Initialize(panoramas, kInitial, rasterized_geometries);
+    RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
+    ReportErrors(input_point_clouds,
+                 rasterized_geometries,
+                 panoramas);
+    
+    // Plus objects.
+    RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
 
+    ReportErrors(input_point_clouds,
+                 rasterized_geometries,
+                 panoramas);
+  }
+  
   return 0;
 }
