@@ -63,7 +63,7 @@ void RasterizeMesh(const Panorama& panorama,
                             min(ComputeUnit(panorama, vs[2]),
                                 ComputeUnit(panorama, center)));
 
-    Vector3d normal = - (vs[1] - vs[0]).cross(vs[2] - vs[0]);
+    Vector3d normal = (vs[1] - vs[0]).cross(vs[2] - vs[0]);
     if (normal.norm() == 0) {
       continue;
     }
@@ -305,14 +305,14 @@ void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
 
       // No rasterized geometry. Very unlikely...
       if (rasterized_geometry[index].depth == initial_value.depth) {
-        cerr << "Rendering hole. This should rarely happen." << endl;
+        // cerr << "Rendering hole. This should rarely happen." << endl;
         continue;
       }
       
       const double depth_error = 
         fabs(rasterized_geometry[index].depth - (panorama.GetCenter() - point.position).norm()) / depth_unit;
       const double normal_error =
-        acos(rasterized_geometry[index].normal.dot(point.normal)) * 180.0 / M_PI;
+        acos(min(1.0, max(-1.0, rasterized_geometry[index].normal.dot(point.normal)))) * 180.0 / M_PI;
 
       errors[p][rasterized_geometry[index].geometry_type].first[0] += depth_error;
       errors[p][rasterized_geometry[index].geometry_type].first[1] += normal_error;
