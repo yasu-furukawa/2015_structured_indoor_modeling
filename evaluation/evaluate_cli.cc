@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <vector>
 
 #include <gflags/gflags.h>
@@ -14,8 +15,10 @@
 DEFINE_string(floorplan_file, "", "Floorplan filename.");
 DEFINE_string(indoor_polygon_file, "", "Indoor_polygon filename.");
 
-using namespace structured_indoor_modeling;
+using namespace Eigen;
 using namespace std;
+using namespace structured_indoor_modeling;
+
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -65,10 +68,20 @@ int main(int argc, char* argv[]) {
   // Accuracy and completeness.
   //
   // Rasterize from the floorplan data, input_point_clouds
-  for (int p = 0; p < (int)input_point_clouds.size(); ++p) {
-    
+  const RasterizedGeometry kInitial(numeric_limits<double>::max(), Vector3d(0, 0, 0), kHole);
 
   
+  Initialize(panoramas, kInitial, rasterized_geometries);
+  
+  for (int p = 0; p < (int)input_point_clouds.size(); ++p) {
+    const int width  = panoramas[p].DepthWidth();
+    const int height = panoramas[p].DepthHeight();
+
+
+    // Report errors in different configurations.
+    {
+    
+      RasterizeFloorplan(floorplan, rasterized_geometry
   
   }
 
