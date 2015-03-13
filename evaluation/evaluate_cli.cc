@@ -62,8 +62,12 @@ int main(int argc, char* argv[]) {
   }  
 
   vector<PointCloud> input_point_clouds, object_point_clouds;
+  cerr << "Reading input point clouds." << flush;
   ReadInputPointClouds(file_io, &input_point_clouds);
+  cerr << "done." << endl
+       << "Reading object point clouds... " << flush;
   ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
+  cerr << "done." << endl;
 
   // Accuracy and completeness.
   const RasterizedGeometry kInitial(numeric_limits<double>::max(), Vector3d(0, 0, 0), kHole);
@@ -76,7 +80,8 @@ int main(int argc, char* argv[]) {
     RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
     ReportErrors(input_point_clouds,
                  rasterized_geometries,
-                 panoramas);
+                 panoramas,
+                 kInitial);
   }
   // Indoor polygon only.
   {
@@ -84,14 +89,16 @@ int main(int argc, char* argv[]) {
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     ReportErrors(input_point_clouds,
                  rasterized_geometries,
-                 panoramas);
+                 panoramas,
+                 kInitial);
     
     // Plus objects.
     RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
 
     ReportErrors(input_point_clouds,
                  rasterized_geometries,
-                 panoramas);
+                 panoramas,
+                 kInitial);
   }
   
   return 0;

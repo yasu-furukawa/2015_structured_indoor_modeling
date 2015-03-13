@@ -4,16 +4,25 @@
 namespace structured_indoor_modeling {
 
 enum GeometryType {
-  kFloorplan,
-  kIndoorPolygon,
+  kFloorplanFloor,
+  kFloorplanCeiling,
+  kFloorplanWall,
+  kFloorplanDoor,
+
+  kIndoorPolygonFloor,
+  kIndoorPolygonCeiling,
+  kIndoorPolygonWall,
+  kIndoorPolygonDoor,
+  
   kObject,
+
   kHole
 };
   
 struct RasterizedGeometry {
-  RasterizeGeometry(const double depth,
-                    const Eigen::Vector3d& normal,
-                    const GeometryType& geometry_type)
+  RasterizedGeometry(const double depth,
+                     const Eigen::Vector3d& normal,
+                     const GeometryType& geometry_type)
   : depth(depth), normal(normal), geometry_type(geometry_type) {
   }
   double depth;
@@ -22,6 +31,8 @@ struct RasterizedGeometry {
 };  
 
 class FileIO;
+class Floorplan;
+class IndoorPolygon;
 class Panorama;
 class PointCloud;
 
@@ -35,25 +46,27 @@ void ReadPanoramas(const FileIO& file_io,
 
 Eigen::Vector3d GetLaserCenter(const FileIO& file_io, const int panorama);
 
-void Initialize(const vector<Panorama>& panoramas,
+void Initialize(const std::vector<Panorama>& panoramas,
                 const RasterizedGeometry& initial_value,
                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
 void RasterizeFloorplan(const Floorplan& floorplan,
-                        const vector<Panorama>& panoramas,
+                        const std::vector<Panorama>& panoramas,
                         std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
 void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
-                            const vector<Panorama>& panoramas,
+                            const std::vector<Panorama>& panoramas,
                             std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
 void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,
-                                const vector<Panorama>& panoramas,
+                                const std::vector<Panorama>& panoramas,
                                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
 void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
                   const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
-                  const vector<Panorama>& panoramas);
+                  const std::vector<Panorama>& panoramas,
+                  const RasterizedGeometry& initial_value);
+
  
 }  // namespace structured_indoor_modeling
   
