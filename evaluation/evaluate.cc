@@ -86,5 +86,21 @@ Vector3d GetLaserCenter(const FileIO& file_io, const int panorama) {
 
   return center;
 }
+
+void Initialize(const vector<Panorama>& panoramas,
+                const RasterizedGeometry& initial_value,
+                std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+  rasterized_geometries->clear();
+  rasterized_geometries->resize(panoramas.size());
+
+  for (int p = 0; p < (int)panoramas.size(); ++p) {
+
+    
+    rasterized_geometries->at(p).resize(
+  
+  vector<vector<RasterizedGeometry> > rasterized_geometries(panoramas.size());
+
+
+}
   
 }  // namespace structured_indoor_modeling
