@@ -6,6 +6,7 @@
 
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
+#include "../base/panorama.h"
 #include "../base/point_cloud.h"
 #include "evaluate.h"
 
@@ -36,22 +37,24 @@ int main(int argc, char* argv[]) {
     floorplan_file = buffer;
   }
     
-  Floorplan floorplan;
-  {
-    ifstream ifstr;
-    ifstr.open(floorplan_file.c_str());
-    ifstr >> floorplan;
-    ifstr.close();
-  }
+  Floorplan floorplan(floorplan_file);
+
+  vector<Panorama> panoramas;
+  ReadPanoramas(file_io, &panoramas);
 
   vector<PointCloud> input_point_clouds, object_point_clouds;
   ReadInputPointClouds(file_io, &input_point_clouds);
   ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
 
   // Accuracy and completeness.
-  
-  
+  //
+  // Rasterize from the floorplan data, input_point_clouds
+  for (int p = 0; p < (int)input_point_clouds.size(); ++p) {
+    
 
+  
+  
+  }
 
   return 0;
 }

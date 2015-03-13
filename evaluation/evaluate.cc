@@ -2,6 +2,7 @@
 #include <iostream>
 #include "evaluate.h"
 #include "../base/file_io.h"
+#include "../base/panorama.h"
 #include "../base/point_cloud.h"
 
 using namespace std;
@@ -55,5 +56,16 @@ void ReadObjectPointClouds(const FileIO& file_io,
     object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
   }
 }
- 
+
+void ReadPanoramas(const FileIO& file_io,
+                   vector<Panorama>* panoramas) {
+  const int kStartPanorama = 0;
+  const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
+  panoramas->clear();
+  panoramas->resize(end_panorama);
+  for (int p = kStartPanorama; p < end_panorama; ++p) {
+    panoramas->at(p).Init(file_io, p);
+  }
+}
+  
 }  // namespace structured_indoor_modeling
