@@ -69,7 +69,7 @@ void RasterizeMesh(const Panorama& panorama,
     }
     normal.normalize();
       
-    const double kSampleScale = 2.0;
+    const double kSampleScale = 6.0; // 2.0;
     const int sample01 = max(2, static_cast<int>(round((vs[1] - vs[0]).norm() / unit * kSampleScale)));
     const int sample02 = max(2, static_cast<int>(round((vs[2] - vs[0]).norm() / unit * kSampleScale)));
     const int sample_s = max(sample01, sample02);
@@ -81,14 +81,21 @@ void RasterizeMesh(const Panorama& panorama,
         const Vector3d point = v01 + (v02 - v01) * t / sample_t;
         const double distance = (point - panorama.GetCenter()).norm();
         Vector2d uv = panorama.ProjectToDepth(point);
-        const int u = static_cast<int>(round(uv[0])) % width;
-        const int v = static_cast<int>(round(uv[1]));
+        const int u0 = static_cast<int>(floor(uv[0])) % width;
+        const int v0 = static_cast<int>(floor(uv[1]));
 
-        const int index = v * width + u;
-        if (distance < rasterized_geometry->at(index).depth) {
-          rasterized_geometry->at(index).depth = distance;
-          rasterized_geometry->at(index).normal = normal;
-          rasterized_geometry->at(index).geometry_type = mesh.geometry_type;
+        for (int j = 0; j < 2; ++j) {
+          const int vtmp = min(height - 1, (v0 + j));
+          for (int i = 0; i < 2; ++i) {
+            const int utmp = (u0 + i) % width;
+
+            const int index = vtmp * width + utmp;
+            if (distance < rasterized_geometry->at(index).depth) {
+              rasterized_geometry->at(index).depth = distance;
+              rasterized_geometry->at(index).normal = normal;
+              rasterized_geometry->at(index).geometry_type = mesh.geometry_type;
+            }
+          }
         }
       }
     }
@@ -217,9 +224,9 @@ void RasterizeFloorplan(const Floorplan& floorplan,
         Mesh mesh;
         mesh.geometry_type = kFloorplanWall;
         
-        for (int v = 0; v < floorplan.GetNumWallVertices(room, wall); ++v)
+        for (int v = 0; v < floorplan.GetNumWallVertices(room, wall); ++v) {
           mesh.vertices.push_back(floorplan.GetWallVertexGlobal(room, wall, v));
-
+        }
         for (int t = 0; t < floorplan.GetNumWallTriangles(room, wall); ++t) {
           mesh.faces.push_back(floorplan.GetWallTriangle(room, wall, t).indices);
         }
