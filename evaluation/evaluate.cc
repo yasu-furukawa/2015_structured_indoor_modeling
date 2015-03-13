@@ -94,11 +94,29 @@ void Initialize(const vector<Panorama>& panoramas,
   rasterized_geometries->resize(panoramas.size());
 
   for (int p = 0; p < (int)panoramas.size(); ++p) {
+    const int width  = panoramas[p].DepthWidth();
+    const int height = panoramas[p].DepthHeight();
 
-    
-    rasterized_geometries->at(p).resize(
-  
-  vector<vector<RasterizedGeometry> > rasterized_geometries(panoramas.size());
+    rasterized_geometries->at(p).resize(width * height, initial_value);
+  }
+}
+
+void RasterizeFloorplan(const Floorplan& floorplan,
+                        const vector<Panorama>& panoramas,
+                        std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+
+}
+
+void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
+                            const vector<Panorama>& panoramas,
+                            std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+
+
+}
+
+void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,
+                                const vector<Panorama>& panoramas,
+                                std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
 
 
 }
