@@ -12,7 +12,7 @@ using namespace Eigen;
 using namespace std;
 
 DEFINE_int32(width, 512, "Width of a depth panorama.");
-DEFINE_int32(phi_range, 175.0 * M_PI / 180.0, "phi range.");
+DEFINE_int32(phi_range, 170.0 * M_PI / 180.0, "phi range.");
 
 struct Point {
   Vector2i uv;
@@ -236,6 +236,9 @@ void Rasterize(const Camera& camera,
                                   ComputeUnit(camera, center)));
 
       Vector3d normal = - (vs[1] - vs[0]).cross(vs[2] - vs[0]);
+      if (normal.norm() == 0) {
+        continue;
+      }
       normal.normalize();
       
       const double kSampleScale = 2.0;
