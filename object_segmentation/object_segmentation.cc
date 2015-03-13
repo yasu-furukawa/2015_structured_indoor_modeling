@@ -208,7 +208,7 @@ void SetDoorOccupancy(const Floorplan& floorplan,
     Vector3d local1 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 1);
     const Vector2d v1 = floorplan.LocalToGrid(Vector2d(local1[0], local1[1]));
 
-    Vector3d local2 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 2);
+    Vector3d local2 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 5);
     const Vector2d v2 = floorplan.LocalToGrid(Vector2d(local2[0], local2[1]));
 
     const int sample1 = (v1 - v0).norm() * 2;
@@ -230,7 +230,7 @@ void SetDoorOccupancy(const Floorplan& floorplan,
       }
     }
   }
-
+  /*
   {
     ofstream ofstr;
     ofstr.open("room_door.ppm");
@@ -249,6 +249,7 @@ void SetDoorOccupancy(const Floorplan& floorplan,
     }
     ofstr.close();
   }
+  */
 }
   
 void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
@@ -1266,11 +1267,11 @@ void RemoveWindowAndMirror(const Floorplan& floorplan,
     }
 
     // Remove condition.
-    if (block_counts[0] >= 2 && block_counts[1] >= 2 && block_counts[2] >= 2)
+    if (block_counts[0] >= 2 && block_counts[1] >= 2) //  && block_counts[2] >= 2)
       remove_indexes.push_back(p);
   }
 
-  /*
+
   {
   static int c = 0;
     ofstream ofstr;
@@ -1287,7 +1288,7 @@ void RemoveWindowAndMirror(const Floorplan& floorplan,
 
     ofstr.close();
   }
-  */  
+
   point_cloud->RemovePoints(remove_indexes);
 }
   
