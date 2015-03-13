@@ -7,6 +7,7 @@
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
 #include "../base/point_cloud.h"
+#include "evaluate.h"
 
 DEFINE_string(floorplan_file, "", "Floorplan filename.");
 
@@ -43,23 +44,12 @@ int main(int argc, char* argv[]) {
     ifstr.close();
   }
 
-  vector<PointCloud> point_clouds(end_panorama);
-  {
-    cout << "Reading point clouds..." << flush;
-    for (int p = 0; p < end_panorama; ++p) {
-      cout << '.' << flush;
-      const int index = p;
-      if (!point_clouds[index].Init(file_io, p)) {
-        cerr << "Failed in loading the point cloud." << endl;
-        exit (1);
-      }
-      // Make the 3D coordinates into the floorplan coordinate system.
-      point_clouds[index].ToGlobal(file_io, p);
-      const Matrix3d global_to_floorplan = floorplan.GetFloorplanToGlobal().transpose();
-      point_clouds[index].Rotate(global_to_floorplan);
-    }
-  }
-  // Evaluate.
+  vector<PointCloud> input_point_clouds, object_point_clouds;
+  ReadInputPointClouds(file_io, &input_point_clouds);
+  ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
+
+  // Accuracy and completeness.
+  
   
 
 

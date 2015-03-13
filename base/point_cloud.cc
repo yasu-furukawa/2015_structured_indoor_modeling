@@ -18,8 +18,13 @@ PointCloud::PointCloud() {
 }
 
 void PointCloud::InitializeMembers() {
-  bounding_box.resize(6);
+  points.clear();
   center.resize(3);
+  center[0] = 0;
+  center[1] = 0;
+  center[2] = 0;
+
+  bounding_box.resize(6);
   bounding_box[0] = numeric_limits<double>::max();
   bounding_box[2] = numeric_limits<double>::max();
   bounding_box[4] = numeric_limits<double>::max();
@@ -30,9 +35,6 @@ void PointCloud::InitializeMembers() {
   depth_width = 0;
   depth_height = 0;
   num_objects = 0;
-  center[0] = 0;
-  center[1] = 0;
-  center[2] = 0;
 }
 
 bool PointCloud::Init(const FileIO& file_io, const int panorama) {

@@ -33,6 +33,7 @@
 #ifndef BASE_POINT_CLOUD_H_
 #define BASE_POINT_CLOUD_H_
 
+#include <Eigen/Dense>
 #include <vector>
 
 namespace structured_indoor_modeling {
