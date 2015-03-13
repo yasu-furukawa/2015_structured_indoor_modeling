@@ -97,9 +97,16 @@ public:
 
   // void ReleaseMemory();
 
+  // This function needs to be used very carefully. Adjust the center
+  // of the panorama at the specified location (e.g., laser scanning
+  // center), so that Project and Unproject can be used in the laser
+  // scanning coordinate.
+  void AdjustCenter(const Eigen::Vector3d& new_center);
+
 private:
   void InitDepthImage(const FileIO& file_io, const int panorama);
   void InitCameraParameters(const FileIO& file_io, const int panorama);
+  void SetGlobalToLocalFromLocalToGlobal();
 
   Eigen::Matrix4d global_to_local;
   Eigen::Matrix4d local_to_global;

@@ -5,6 +5,7 @@
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
 
+using namespace Eigen;
 using namespace std;
 
 namespace structured_indoor_modeling {
@@ -66,6 +67,24 @@ void ReadPanoramas(const FileIO& file_io,
   for (int p = kStartPanorama; p < end_panorama; ++p) {
     panoramas->at(p).Init(file_io, p);
   }
+}
+
+Vector3d GetLaserCenter(const FileIO& file_io, const int panorama) {
+  ifstream ifstr;
+  ifstr.open(file_io.GetLocalToGlobalTransformation(panorama).c_str());
+  
+  char ctmp;
+  ifstr >> ctmp;
+  Vector3d center;
+  for (int i = 0; i < 3; ++i) {
+    double dtmp;
+    for (int x = 0; x < 3; ++x)
+      ifstr >> dtmp;
+    ifstr >> center[i];
+  }
+  ifstr.close();
+
+  return center;
 }
   
 }  // namespace structured_indoor_modeling

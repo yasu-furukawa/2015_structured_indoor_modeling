@@ -274,6 +274,18 @@ void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
   phi_per_pixel = phi_range / height;
 }
 
+void Panorama::AdjustCenter(const Eigen::Vector3d& new_center) {
+  const Vector3d translation = center - new_center;
+  Matrix4d adjustment;
+  adjustment.setIdentity();
+  for (int i = 0; i < 3; ++i)
+    adjustment(i, 3) = translation[i];
+  
+  global_to_local = global_to_local * adjustment;
+  
+  SetGlobalToLocalFromLocalToGlobal();
+}
+  
   /*
 void Panorama::ReleaseMemory() {
   rgb_image.release();
@@ -328,6 +340,14 @@ void Panorama::InitCameraParameters(const FileIO& file_io,
   for (int y = 0; y < 3; ++y)
     center(y) = local_to_global(y, 3);
 
+  SetGlobalToLocalFromLocalToGlobal();
+    
+  ifstr >> phi_range;
+  
+  ifstr.close();
+}
+
+void Panorama::SetGlobalToLocalFromLocalToGlobal() {
   const Matrix3d rotation = local_to_global.block(0, 0, 3, 3);
   global_to_local.block(0, 0, 3, 3) = rotation.transpose();
   global_to_local.block(0, 3, 3, 1) =
@@ -336,10 +356,6 @@ void Panorama::InitCameraParameters(const FileIO& file_io,
   global_to_local(3, 1) = 0.0;
   global_to_local(3, 2) = 0.0;
   global_to_local(3, 3) = 1.0;
-    
-  ifstr >> phi_range;
-  
-  ifstr.close();
 }  
 
 void Panorama::MakeOnlyBackgroundBlack() {

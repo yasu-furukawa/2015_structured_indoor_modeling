@@ -1,3 +1,4 @@
+#include <Eigen/Dense>
 #include <vector>
 
 namespace structured_indoor_modeling {
@@ -14,5 +15,7 @@ void ReadObjectPointClouds(const FileIO& file_io,
 void ReadPanoramas(const FileIO& file_io,
                    std::vector<Panorama>* panoramas);
 
+Eigen::Vector3d GetLaserCenter(const FileIO& file_io, const int panorama);
+ 
 }  // namespace structured_indoor_modeling
   
