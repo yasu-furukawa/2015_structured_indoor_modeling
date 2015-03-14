@@ -21,7 +21,7 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv){
     vector <vector <int> >labels;
     vector <int> numlabels;
     vector <vector<int> >superpixelLabel(endid - startid + 1); //label of superpixel for each panorama
-    vector <vector< vector<double> > >superpixelConfidence(endid - startid + 1);
+
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
 
     cout<<"Init..."<<endl;
@@ -68,14 +68,17 @@ int main(int argc, char **argv){
 
     cout<<endl<<endl;
     //////////////////////////////////////
-    for (int panid=startid; panid<endid; panid++) {
+    for (int panid=startid; panid<=endid; panid++) {
 	cout<<"==========================="<<endl<<"Panorama "<<panid<<endl;
 	int curid = panid - startid;
+
 	vector <Vector3d> averageRGB;
 	labelTolabelgroup(labels[curid], panorama[curid], labelgroup[curid], averageRGB, numlabels[curid]);
 	cout<<"Getting pairwise structure..."<<endl;
 	map<pair<int,int>,int> pairmap;
 	pairSuperpixel(labels[curid], imgwidth, imgheight, pairmap);
+
+
     
 	////////////////////////////////////////////////////
 	//get the superpixel confidence for each object and background
@@ -84,19 +87,20 @@ int main(int argc, char **argv){
 	    cout<<"room "<<roomid<<endl;
 	    cout<<"Get superpixel confidence"<<endl;
 
+	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-		getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid].GetDepthmap(), labels[curid], labelgroup[curid], superpixelConfidence[curid][groupid], numlabels[curid]);
+		getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid].GetDepthmap(), labels[curid], labelgroup[curid], superpixelConfidence[groupid], numlabels[curid]);
 
 	    }
 
-#if 1
-	    saveConfidence(superpixelConfidence[curid], labels[curid], imgwidth, imgheight, panid, roomid);
+#if 0
+	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
 #endif
 	    
 	    DepthFilling objectDepth;
 	    cout<<"Optimizing..."<<endl;
 	    cout<<"numlabel:"<<objectgroup[roomid].size()<<endl;
-	    MRFOptimizeLabels_multiLayer(superpixelConfidence[curid], pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel[curid]);
+	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel[curid]);
 
 #if 1
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);

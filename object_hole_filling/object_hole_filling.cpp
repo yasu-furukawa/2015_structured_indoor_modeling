@@ -25,7 +25,7 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
     depth.resize(endid - startid + 1);
     numlabels.resize(endid - startid + 1);
     
-    for(int id=startid; id<endid; id++){
+    for(int id=startid; id<=endid; id++){
 	int curid = id - startid;
 	cout<<"Panorama "<<id<<endl;
 	panorama[curid].Init(file_io, id);
@@ -73,7 +73,7 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	}else{
 	    cout <<"Reading superpixel from file"<<endl;
 	    labelin.read((char*)&numlabels[curid], sizeof(int));
-	    for(int i=0;i<labels.size();i++){
+	    for(int i=0;i<labels[curid].size();i++){
 		labelin.read((char*)&labels[curid][i], sizeof(int));
 	    }
 	    labelin.close();
@@ -304,10 +304,9 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
 
 
 void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <double> &superpixelConfidence, int superpixelnum){
-    
-    superpixelConfidence.clear();
+     if(superpixelConfidence.size() > 0)
+	  superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
-
     
     for(int i=0;i<superpixelConfidence.size();++i)
 	superpixelConfidence[i] = 0;
@@ -318,8 +317,7 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
     int imgwidth = panorama.Width();
     int imgheight = panorama.Height();
 
-
-    for(int ptid = 0; ptid<objectgroup.size(); ptid+=2){
+    for(int ptid = 0; ptid<objectgroup.size(); ptid++){
 	Vector3d curpt = point_cloud.GetPoint(objectgroup[ptid]).position;
 	Vector3d panCenter = panorama.GetCenter();
 	Vector3d offset = curpt - panCenter;
@@ -331,8 +329,10 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
 	if(curdepth > depthv)
 	    continue;
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
-	superpixelConfidence[superpixellabel] += 1;
+	superpixelConfidence[superpixellabel] += 1.0;
     }
+//    for(const auto&v:superpixelConfidence)
+//	 cout<<v<<endl;
     // for(int i=0;i<superpixelConfidence.size();++i){
     // 	if(superpixelConfidence[i] < (int) labelgroup[i].size() * 0.4)
     // 	    superpixelConfidence[i] = 0;
@@ -373,7 +373,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-    int roomid = 0;
+    int roomid = 3;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -399,13 +399,15 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+	break;
     }
-    
 }
 
 
-inline double unaryDiffFunc(int pix1,int pix2, const vector<int>&superpixelConfidence){
-    return gaussianFunc(1.0 / (abs((double)superpixelConfidence[pix1] - (double)superpixelConfidence[pix2]) + 0.001), 1);
+double unaryDiffFunc(double confidence){
+     const double offset = 0.5;
+     const double maxv = 1.0;
+     return max(sigmaFunc(confidence, offset, maxv, 1.0), 0.1);
 }
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
@@ -415,10 +417,6 @@ double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.1);
 }
 
-double depthDiffFunc(int pix1,int pix2, const DepthFilling &depth, const pair<int,int> &pair){
-    double res = 0.0;
-    return res;
-}
 
 void MRFOptimizeLabels(const vector<int>&superpixelConfidence,  const map<pair<int,int>,int> &pairmap, const vector<Vector3d>&averageRGB, float smoothnessweight, vector <int> &superpixelLabel){
     int superpixelnum = superpixelConfidence.size();
@@ -491,7 +489,8 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 		data[numlabels * i + label] = 10000;
 		continue;
 	    }
-	    data[numlabels * i + label] = (MRF::CostVal)( gaussianFunc((float)superpixelConfidence[label][i],1) * 1000);
+	    //	    data[numlabels * i + label] = (MRF::CostVal)( gaussianFunc((float)superpixelConfidence[label][i],1) * 1000);
+	    data[numlabels * i + label] = (MRF::CostVal)(unaryDiffFunc(superpixelConfidence[label][i]) * 1000);
 	}
     }
 
