@@ -138,6 +138,11 @@ class FileIO {
     sprintf(buffer, "%s/object/object_refined_room%03d.ply",data_directory.c_str(),room);
     return buffer;
   }
+
+  std::string GetEvaluationDirectory() const {
+    sprintf(buffer, "%s/evaluation",data_directory.c_str());
+    return buffer;
+  }
   
  private:
   const std::string data_directory;

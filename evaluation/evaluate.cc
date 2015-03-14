@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <map>
 #include "evaluate.h"
 #include "../base/file_io.h"
@@ -17,6 +18,10 @@ struct Mesh {
   std::vector<Vector3d> vertices;
   std::vector<Vector3i> faces;
   GeometryType geometry_type;
+};
+
+struct Triple {
+  Eigen::Vector3d points[3];
 };
   
 namespace {
@@ -45,10 +50,129 @@ double ComputeUnit(const Panorama& panorama,
   const Vector3d right_point = panorama.Unproject(right, distance);
   return (point - right_point).norm();  
 }
+
+void PaintPoint(const Panorama& panorama,
+                const Eigen::Vector3d& point,
+                const Eigen::Vector3d& normal,
+                const GeometryType& geometry_type,
+                std::vector<RasterizedGeometry>* rasterized_geometry) {
+  const int width  = panorama.DepthWidth();
+  const int height = panorama.DepthHeight();
+
+  const double distance = (point - panorama.GetCenter()).norm();
+  Vector2d uv = panorama.ProjectToDepth(point);
+  const int u = static_cast<int>(round(uv[0])) % width;
+  const int v = min(height - 1, static_cast<int>(round(uv[1])));
+
+  const int index = v * width + u;
+  if (distance < rasterized_geometry->at(index).depth) {
+    rasterized_geometry->at(index).depth = distance;
+    rasterized_geometry->at(index).normal = normal;
+    rasterized_geometry->at(index).geometry_type = geometry_type;
+  }
+}
+
+double UVDistance(const Eigen::Vector2d& lhs, const Eigen::Vector2d& rhs, const int width) {
+  double u_diff = fabs(lhs[0] - rhs[0]);
+  double v_diff = fabs(lhs[1] - rhs[1]);
   
+  if (u_diff > width / 2)
+    u_diff = width - u_diff;
+
+  const double distance = sqrt(u_diff * u_diff + v_diff * v_diff);
+  // cout << distance << ' ' << flush;
+  return distance;
+}
+
 void RasterizeMesh(const Panorama& panorama,
                    const Mesh& mesh,
                    std::vector<RasterizedGeometry>* rasterized_geometry) {
+  const int width = panorama.DepthWidth();
+  const int height = panorama.DepthHeight();
+
+  const double kSmallestSize = 1.0;
+  
+  for (int f = 0; f < mesh.faces.size(); ++f) {
+    cout << f << ' ' << mesh.faces.size() << endl;
+    const Vector3i& triangle = mesh.faces[f];
+    const Vector3d vs[3] = { mesh.vertices[triangle[0]],
+                             mesh.vertices[triangle[1]],
+                             mesh.vertices[triangle[2]] };
+
+    Vector3d normal = (vs[1] - vs[0]).cross(vs[2] - vs[0]);
+    if (normal.norm() == 0) {
+      continue;
+    }
+    normal.normalize();
+
+    const Vector3d center = (vs[0] + vs[1] + vs[2]) / 3.0;
+    PaintPoint(panorama, center, normal, mesh.geometry_type, rasterized_geometry);
+
+    list<Triple> queue;
+    {
+      Triple initial_triple;
+      for (int i = 0; i < 3; ++i)
+        initial_triple.points[i] = vs[i];
+      queue.push_back(initial_triple);
+    }
+
+    while (!queue.empty()) {
+      cout << '.' << flush;
+      const Triple& triple = queue.front();
+      queue.pop_front();
+
+      const Vector2d uv0 = panorama.ProjectToDepth(triple.points[0]);
+      const Vector2d uv1 = panorama.ProjectToDepth(triple.points[1]);
+      const Vector2d uv2 = panorama.ProjectToDepth(triple.points[2]);
+      if (UVDistance(uv0, uv1, width) < kSmallestSize &&
+          UVDistance(uv1, uv2, width) < kSmallestSize &&
+          UVDistance(uv2, uv0, width) < kSmallestSize)
+        continue;
+
+      // Recurse.
+      const Vector3d edge01 = (triple.points[0] + triple.points[1]) / 2.0;
+      const Vector3d edge12 = (triple.points[1] + triple.points[2]) / 2.0;
+      const Vector3d edge20 = (triple.points[2] + triple.points[0]) / 2.0;
+
+      PaintPoint(panorama, (triple.points[0] + edge01 + edge20) / 3.0, normal, mesh.geometry_type,
+                 rasterized_geometry);
+      PaintPoint(panorama, (triple.points[1] + edge12 + edge01) / 3.0, normal, mesh.geometry_type,
+                 rasterized_geometry);
+      PaintPoint(panorama, (triple.points[2] + edge20 + edge12) / 3.0, normal, mesh.geometry_type,
+                 rasterized_geometry);
+
+      {
+        Triple triple0;
+        triple0.points[0] = triple.points[0];
+        triple0.points[1] = edge01;
+        triple0.points[2] = edge20;
+        queue.push_back(triple0);
+      }
+      {
+        Triple triple1;
+        triple1.points[0] = triple.points[1];
+        triple1.points[1] = edge12;
+        triple1.points[2] = edge01;
+        queue.push_back(triple1);
+      }
+      {
+        Triple triple2;
+        triple2.points[0] = triple.points[2];
+        triple2.points[1] = edge20;
+        triple2.points[2] = edge12;
+        queue.push_back(triple2);
+      }
+      {
+        Triple triple3;
+        triple3.points[0] = edge01;
+        triple3.points[1] = edge12;
+        triple3.points[2] = edge20;
+        queue.push_back(triple3);
+      }
+    }
+  }
+  
+  /*
   const int width = panorama.DepthWidth();
   const int height = panorama.DepthHeight();
   
@@ -103,6 +227,7 @@ void RasterizeMesh(const Panorama& panorama,
 
     }
   }
+  */  
 }
   
 }  // namespace  
