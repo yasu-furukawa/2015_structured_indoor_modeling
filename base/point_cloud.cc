@@ -141,6 +141,18 @@ void PointCloud::Write(const std::string& filename) {
   ofstr.close();
 }
 
+void PointCloud::WriteObject(const string& filename, const int objectid){
+    vector<Point>object_points;
+    for(const auto&pt: points){
+	if(pt.object_id == objectid)
+	    object_points.push_back(pt);
+    }
+    
+    PointCloud objectcloud;
+    objectcloud.AddPoints(object_points);
+    objectcloud.Write(filename);
+}
+
 void PointCloud::Rotate(const Eigen::Matrix3d& rotation) {
   Matrix4d transformation;
   for (int y = 0; y < 3; ++y) {

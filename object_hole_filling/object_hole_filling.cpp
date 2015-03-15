@@ -12,8 +12,10 @@ using namespace Eigen;
 using namespace structured_indoor_modeling;
 
 #define PI 3.1415927
+#define COLORTABLE_LENGTH 7
+//Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255), Vec3b(128,0,0), Vec3b(0,128,0), Vec3b(0,0,128), Vec3b(128,128,0), Vec3b(128,0,128), Vec3b(0,128,128), Vec3b(255,128,128),Vec3b(128,255,128),Vec3b(128,128,255),Vec3b(128,128,128)};
 
-Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255), Vec3b(128,0,0), Vec3b(0,128,0), Vec3b(0,0,128), Vec3b(128,128,0), Vec3b(128,0,128), Vec3b(0,128,128), Vec3b(255,128,128),Vec3b(128,255,128),Vec3b(128,128,255)};
+Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255),Vec3b(255,255,255)};
 
 void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, vector<DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid){
     cout<<"Init panorama..."<<endl;
@@ -135,7 +137,7 @@ void saveConfidence(const vector< vector<double> >&superpixelConfidence, const v
     }
     Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
     for(int groupid = 0;groupid<superpixelConfidence.size();groupid++){
-	int colorid = groupid % 15;
+	int colorid = groupid % COLORTABLE_LENGTH;
 	for(int i=0;i<imgwidth*imgheight;++i){
 	    int x = i % imgwidth;
 	    int y = i / imgwidth;
@@ -162,9 +164,9 @@ void saveOptimizeResult(const Panorama &panorama, const vector<int>&superpixelLa
     for(int y=0;y<imgheight;y++){
 	for(int x=0;x<imgwidth;x++){
 	    int curlabel = superpixelLabel[labels[y*imgwidth + x]];
-	    int colorid = curlabel;
+	    int colorid = curlabel % COLORTABLE_LENGTH;
 	    Vec3b curpix;
-	    curpix = colortable[colorid % 15] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
+	    curpix = colortable[colorid] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
 	    optimizeout.at<Vec3b>(y,x) = curpix;
 	}
     }
@@ -311,7 +313,6 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
     for(int i=0;i<superpixelConfidence.size();++i)
 	superpixelConfidence[i] = 0;
 
-
     if(point_cloud.isempty())
 	return;
     int imgwidth = panorama.Width();
@@ -367,7 +368,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 0;
+     int roomid = 3;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -393,6 +394,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+	break;
     }
 }
 

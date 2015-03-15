@@ -21,7 +21,7 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.00,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 
@@ -62,8 +62,10 @@ int main(int argc, char **argv){
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
     for(int i=0;i<objectcloud.size();i++){
-	 sprintf(buffer,"object_project/object_temp%03d.ply",i);
-	 objectcloud[i].Write(string(buffer));
+    	for(int obid=0; obid<objectcloud[i].GetNumObjects(); obid++){
+    	    sprintf(buffer,"object_project/room_temp%03d_object%03d.ply",i, obid);
+    	    objectcloud[i].WriteObject(string(buffer), obid);
+    	}
     }
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
