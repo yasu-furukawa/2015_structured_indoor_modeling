@@ -93,7 +93,6 @@ void RasterizeMesh(const Panorama& panorama,
   const double kSmallestSize = 1.0;
   
   for (int f = 0; f < mesh.faces.size(); ++f) {
-    cout << f << ' ' << mesh.faces.size() << endl;
     const Vector3i& triangle = mesh.faces[f];
     const Vector3d vs[3] = { mesh.vertices[triangle[0]],
                              mesh.vertices[triangle[1]],
@@ -117,13 +116,16 @@ void RasterizeMesh(const Panorama& panorama,
     }
 
     while (!queue.empty()) {
-      cout << '.' << flush;
-      const Triple& triple = queue.front();
+      const Triple triple = queue.front();
       queue.pop_front();
 
       const Vector2d uv0 = panorama.ProjectToDepth(triple.points[0]);
       const Vector2d uv1 = panorama.ProjectToDepth(triple.points[1]);
       const Vector2d uv2 = panorama.ProjectToDepth(triple.points[2]);
+      if ((uv0[1] < 0.5 && uv1[1] < 0.5 && uv2[1] < 0.5) ||
+          (uv0[1] > height - 1.5 && uv1[1] > height - 1.5 && uv2[1] > height - 1.5))
+        continue;
+
       if (UVDistance(uv0, uv1, width) < kSmallestSize &&
           UVDistance(uv1, uv2, width) < kSmallestSize &&
           UVDistance(uv2, uv0, width) < kSmallestSize)
@@ -140,34 +142,33 @@ void RasterizeMesh(const Panorama& panorama,
                  rasterized_geometry);
       PaintPoint(panorama, (triple.points[2] + edge20 + edge12) / 3.0, normal, mesh.geometry_type,
                  rasterized_geometry);
-
       {
         Triple triple0;
         triple0.points[0] = triple.points[0];
         triple0.points[1] = edge01;
         triple0.points[2] = edge20;
-        queue.push_back(triple0);
+        queue.push_front(triple0);
       }
       {
         Triple triple1;
         triple1.points[0] = triple.points[1];
         triple1.points[1] = edge12;
         triple1.points[2] = edge01;
-        queue.push_back(triple1);
+        queue.push_front(triple1);
       }
       {
         Triple triple2;
         triple2.points[0] = triple.points[2];
         triple2.points[1] = edge20;
         triple2.points[2] = edge12;
-        queue.push_back(triple2);
+        queue.push_front(triple2);
       }
       {
         Triple triple3;
         triple3.points[0] = edge01;
         triple3.points[1] = edge12;
         triple3.points[2] = edge20;
-        queue.push_back(triple3);
+        queue.push_front(triple3);
       }
     }
   }
