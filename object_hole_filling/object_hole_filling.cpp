@@ -331,12 +331,6 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
 	superpixelConfidence[superpixellabel] += 1.0;
     }
-//    for(const auto&v:superpixelConfidence)
-//	 cout<<v<<endl;
-    // for(int i=0;i<superpixelConfidence.size();++i){
-    // 	if(superpixelConfidence[i] < (int) labelgroup[i].size() * 0.4)
-    // 	    superpixelConfidence[i] = 0;
-    // }
 }
 
 void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<int,int>, int> &pairmap){
@@ -373,7 +367,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-    int roomid = 3;
+     int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -399,7 +393,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	break;
     }
 }
 

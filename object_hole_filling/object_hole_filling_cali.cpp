@@ -61,8 +61,10 @@ int main(int argc, char **argv){
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, depth, imgwidth, imgheight, startid, endid);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
-    cout<<"object cloud num: "<<objectcloud.size()<<endl;
-
+    for(int i=0;i<objectcloud.size();i++){
+	 sprintf(buffer,"object_project/object_temp%03d.ply",i);
+	 objectcloud[i].Write(string(buffer));
+    }
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
 
@@ -93,7 +95,7 @@ int main(int argc, char **argv){
 
 	    }
 
-#if 0
+#if 1
 	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
 #endif
 	    

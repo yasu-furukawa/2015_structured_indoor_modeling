@@ -180,12 +180,16 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 }
 
 void PointCloud::AddPoints(const PointCloud& point_cloud){
-  AddPoints(point_cloud.points);
+     AddPoints(point_cloud.points);
 }
 
-//add an array of Point to the point cloud. Update each member variable, a little faster than calling update()......
+
 void PointCloud::AddPoints(const vector<Point>& new_points) {
+     int orinum = points.size();
   points.insert(points.end(), new_points.begin(), new_points.end());
+  for(int i=orinum;i<points.size();i++){
+       points[i].object_id += num_objects;
+  }
   Update();
 }
 
