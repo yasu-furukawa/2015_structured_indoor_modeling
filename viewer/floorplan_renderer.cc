@@ -27,12 +27,12 @@ namespace structured_indoor_modeling {
 namespace {
 
 // =======
-  const PaintStyle kDefaultStyle(PaintStyle::VerticalStripe,
+  const PaintStyle kCorridorStyle(PaintStyle::VerticalStripe,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
 
-  const PaintStyle kCorridorStyle(PaintStyle::SolidColor,
+  const PaintStyle kDefaultStyle(PaintStyle::SolidColor,
                                  Vector3f(240/255.0, 230/255.0, 140/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
@@ -520,7 +520,7 @@ void FloorplanRenderer::RenderTile(const int room,
                                    const PaintStyle& paint_style,
                                    const double unit,
                                    const double alpha) const {
-  const double kTileTextureScale = 5;
+  const double kTileTextureScale = 4;
   RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
 }
   
