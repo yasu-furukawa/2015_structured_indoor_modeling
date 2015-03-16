@@ -42,18 +42,29 @@ namespace {
                               Vector3f(1/255.0, 1/255.0, 1/255.0),
                               2);
   
+  /*
   const PaintStyle kKitchenStyle(PaintStyle::Kitchen,
                                  Vector3f(216/255.0, 191/255.0, 216/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
-
+  */
+  const PaintStyle kKitchenStyle(PaintStyle::SolidColor,
+                                 Vector3f(255/255.0, 229/255.0, 204/255.0),
+                                 Vector3f(1/255.0, 1/255.0, 1/255.0),
+                                 2);
+  
   const PaintStyle kDiningStyle(PaintStyle::Kitchen,
                                 Vector3f(1, 1, 1),
                                 Vector3f(1/255.0, 1/255.0, 1/255.0),
                                 2);
-
+  /*
   const PaintStyle kBedStyle(PaintStyle::Sheep,
                              Vector3f(1, 1, 1),
+                             Vector3f(1/255.0, 1/255.0, 1/255.0),
+                             2);
+  */
+  const PaintStyle kBedStyle(PaintStyle::SolidColor,
+                             Vector3f(204/255.0, 229/255.0, 255/255.0),
                              Vector3f(1/255.0, 1/255.0, 1/255.0),
                              2);
   
@@ -171,7 +182,7 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
     #ifdef _WIN32
     tile_image.load("../viewer/texture/kitchen.jpg");
     #else
-    tile_image.load("texture/tile.png");
+    tile_image.load("texture/tile2.png");
     #endif
 
     if (tile_image.isNull()) {
@@ -434,7 +445,7 @@ void FloorplanRenderer::RenderVerticalStripe(const int room,
   Vector2d x_range, y_range;
   ComputeRanges(floorplan, room, &x_range, &y_range);
 
-  const double spacing = unit * 3;
+  const double spacing = unit * 2;
   glLineWidth(2.0);
   glBegin(GL_LINES);
   for (double x = x_range[0]; x < x_range[1]; x += spacing) {
