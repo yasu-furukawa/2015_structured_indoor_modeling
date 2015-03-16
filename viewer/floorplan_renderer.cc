@@ -180,13 +180,13 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
   }
   {
     #ifdef _WIN32
-    tile_image.load("../viewer/texture/kitchen.jpg");
+    tile_image.load("../viewer/texture/tile3.jpg");
     #else
-    tile_image.load("texture/tile2.png");
+    tile_image.load("texture/tile3.jpg");
     #endif
 
     if (tile_image.isNull()) {
-      cout << "texture/tile.jpg cannot be loaded." << endl
+      cout << "texture/tile3.jpg cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
       exit (1);
     }
@@ -520,7 +520,7 @@ void FloorplanRenderer::RenderTile(const int room,
                                    const PaintStyle& paint_style,
                                    const double unit,
                                    const double alpha) const {
-  const double kTileTextureScale = 10;
+  const double kTileTextureScale = 5;
   RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
 }
   
@@ -553,7 +553,6 @@ void FloorplanRenderer::RenderTexture(const int room,
   const double margin = spacing / 2.0;
   
   glBindTexture(GL_TEXTURE_2D, texture_id);
-  
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
