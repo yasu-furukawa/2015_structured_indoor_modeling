@@ -194,7 +194,7 @@ void RasterizeMesh(const Panorama& panorama,
     }
     normal.normalize();
 
-    // ??? 6.0 is too much and slow, but things work.
+    // 6.0 is too much and slow, but things work.
     const double kSampleScale = 12.0;
     const int sample01 = max(2, static_cast<int>(round((vs[1] - vs[0]).norm() / unit * kSampleScale)));
     const int sample02 = max(2, static_cast<int>(round((vs[2] - vs[0]).norm() / unit * kSampleScale)));
@@ -432,12 +432,8 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
 void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
                   const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
                   const vector<Panorama>& panoramas,
-                  const RasterizedGeometry& initial_value) {
-  double depth_unit = 0.0;
-  for (int p = 0; p < panoramas.size(); ++p)
-    depth_unit += panoramas[p].GetAverageDistance();
-  depth_unit /= panoramas.size();
-  
+                  const RasterizedGeometry& initial_value,
+                  const double depth_unit) {
   vector<map<GeometryType, pair<Vector2d, int> > > errors(panoramas.size());
   const pair<Vector2d, int> kInitial(Vector2d(0, 0), 0);
   vector<GeometryType> all_geometry_types;
