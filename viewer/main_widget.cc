@@ -50,7 +50,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   object_renderer(floorplan),
   polygon_renderer(floorplan),
   indoor_polygon_renderer(indoor_polygon),
-  floorplan_renderer(floorplan),
+  floorplan_renderer(floorplan, indoor_polygon),
   panel_renderer(floorplan, viewport),  
   navigation(configuration,
              floorplan,
