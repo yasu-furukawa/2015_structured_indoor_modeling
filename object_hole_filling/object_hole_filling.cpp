@@ -13,6 +13,7 @@ using namespace structured_indoor_modeling;
 
 #define PI 3.1415927
 #define COLORTABLE_LENGTH 7
+#define ERODE_THRES 0
 //Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255), Vec3b(128,0,0), Vec3b(0,128,0), Vec3b(0,0,128), Vec3b(128,128,0), Vec3b(128,0,128), Vec3b(0,128,128), Vec3b(255,128,128),Vec3b(128,255,128),Vec3b(128,128,255),Vec3b(128,128,128)};
 
 Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255),Vec3b(255,255,255)};
@@ -135,23 +136,30 @@ void saveConfidence(const vector< vector<double> >&superpixelConfidence, const v
 	    maxc = max(superpixelConfidence[i][j], maxc);
 	}
     }
-    Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
+
+
     for(int groupid = 0;groupid<superpixelConfidence.size();groupid++){
-	int colorid = groupid % COLORTABLE_LENGTH;
+	 Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
+	 int colorid = groupid % COLORTABLE_LENGTH;
 	for(int i=0;i<imgwidth*imgheight;++i){
 	    int x = i % imgwidth;
 	    int y = i / imgwidth;
-	    double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
-	    double r = (double)colortable[colorid][0] * curconfidence * 4;
-	    double g = (double)colortable[colorid][1] * curconfidence * 4;
-	    double b = (double)colortable[colorid][2] * curconfidence * 4;
+///	    double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
+	    double curconfidence = (double)superpixelConfidence[groupid][labels[i]];
+	    // double r = (double)colortable[colorid][0] * curconfidence * 4;
+	    // double g = (double)colortable[colorid][1] * curconfidence * 4;
+	    // double b = (double)colortable[colorid][2] * curconfidence * 4;
+	    double r = (double)curconfidence * 4;
+	    double g = (double)curconfidence * 4;
+	    double b = (double)curconfidence * 4;
 	    Vec3b curpix((uchar)r, (uchar)g, (uchar)b);
 	    outmask.at<Vec3b>(y,x) += curpix;
 	}
+	sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d_group%03d.jpg",id, roomid, groupid);
+	imwrite(buffer, outmask);
+	waitKey(10);
+
     }
-    sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d.jpg",id, roomid);
-    imwrite(buffer, outmask);
-    waitKey(10);
 }
 
 void saveOptimizeResult(const Panorama &panorama, const vector<int>&superpixelLabel, const vector <int> &labels, const int id, const int roomid){
@@ -305,7 +313,7 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
 
 
 
-void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<double> &depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup,  vector <double> &superpixelConfidence, int superpixelnum){
+void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const DepthFilling& depthmap, const vector<int> &superpixel,const vector< vector<int> >&labelgroup, const map<pair<int,int>,int>&pairmap,  vector <double> &superpixelConfidence, const int superpixelnum, const int erodeiter){
      if(superpixelConfidence.size() > 0)
 	  superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
@@ -324,13 +332,27 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
 	Vector3d offset = curpt - panCenter;
 	Vector2d RGBpixel = panorama.Project(curpt);
 	Vector2d depth_pixel = panorama.RGBToDepth(RGBpixel);
-	double depthv = depthmap[(int)depth_pixel[1] * panorama.DepthWidth() + (int)depth_pixel[0]];
+	double depthv = depthmap.GetDepth(depth_pixel[0],depth_pixel[1]);
 	double curdepth = offset.norm();
 	//visibility test
 	if(curdepth > depthv)
 	    continue;
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
 	superpixelConfidence[superpixellabel] += 1.0;
+    }
+    //perform erosion, to avoid conflicts on the border
+    for(int iter=0; iter<erodeiter; iter++){
+	 for(const auto& curmap: pairmap){
+	      pair<int,int> curpair = curmap.first;
+	      if(curpair.first > ERODE_THRES && superpixelConfidence[curpair.second] < ERODE_THRES){
+		   superpixelConfidence[curpair.first] = 0;
+	      }
+	      if(curpair.second > ERODE_THRES && superpixelConfidence[curpair.first] < ERODE_THRES){
+		   superpixelConfidence[curpair.second] = 0;
+	      }
+						
+	 }
+	 
     }
 }
 
@@ -368,7 +390,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 3;
+     int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -384,7 +406,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	cout<< "Reading " << filename_wall<<endl;
 	curwall.Init(filename_wall);
 	for(int i=0;i<curwall.GetNumPoints();i++){
-	    curwall.GetPoint(i).object_id = curob.GetNumObjects();
+	    curwall.GetPoint(i).object_id = 0 ;
 	}
 	curob.AddPoints(curwall);
 
@@ -394,13 +416,12 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	break;
     }
 }
 
 
 double unaryDiffFunc(double confidence){
-     const double offset = 0.5;
+     const double offset = 3.0;
      const double maxv = 1.0;
      return max(sigmaFunc(confidence, offset, maxv, 1.0), 0.1);
 }
