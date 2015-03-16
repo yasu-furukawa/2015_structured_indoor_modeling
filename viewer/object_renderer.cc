@@ -2,6 +2,7 @@
 #include "object_renderer.h"
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
+#include "../base/indoor_polygon.h"
 #include "../base/point_cloud.h"
 
 using namespace Eigen;
@@ -50,6 +51,8 @@ void ObjectRenderer::Init(const string data_directory) {
 
   vertices_org = vertices;
   colors_org = colors;
+
+  ComputeBoundingBoxes();
 }
 
 void ObjectRenderer::InitGL() {
@@ -117,9 +120,61 @@ void ObjectRenderer::RenderAll(const double position) {
   glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-void ObjectRenderer::RenderIcons(const double alpha) {
+void ObjectRenderer::ComputeBoundingBoxes() {
+  const int num_rooms = vertices.size();
+  bounding_boxes.resize(num_rooms);
+  for (int room = 0; room < num_rooms; ++room) {
+    const int num_objects = vertices[room].size();
+    bounding_boxes[room].resize(num_objects);
+    for (int object = 0; object < num_objects; ++object) {
 
+      Vector3d min_xyz, max_xyz;
+      for (int p = 0; p < (int)vertices[room][object].size(); p += 3) {
+        const Vector3d point(vertices[room][object][p + 0],
+                             vertices[room][object][p + 1],
+                             vertices[room][object][p + 2]);
+        
+        const Vector3d manhattan = indoor_polygon.GlobalToManhattan(point);
+        if (p == 0) {
+          min_xyz = max_xyz = manhattan;
+        } else {
+          for (int a = 0; a < 3; ++a) {
+            min_xyz[a] = min(min_xyz[a], manhattan[a]);
+            max_xyz[a] = max(max_xyz[a], manhattan[a]);
+          }
+        }
+      }
+      const double average_z = (min_xyz[2] + max_xyz[2]) / 2.0;
+      BoundingBox& bounding_box = bounding_boxes[room][object];
+      bounding_box.corners[0] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(min_xyz[0], min_xyz[1], average_z));
+      bounding_box.corners[1] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(max_xyz[0], min_xyz[1], average_z));
+      bounding_box.corners[2] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(max_xyz[0], max_xyz[1], average_z));
+      bounding_box.corners[3] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(min_xyz[0], max_xyz[1], average_z));
+    }
+  }
+}
+  
+void ObjectRenderer::RenderIcons(const double /* alpha */) {
+  glEnable(GL_BLEND);
+  
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBegin(GL_QUADS);
+  glColor4f(0.8f, 1.0f, 0.8f, 0.5f);
+  for (int room = 0; room < (int)bounding_boxes.size(); ++room) {
+    for (const auto& bounding_box : bounding_boxes[room]) {
+      for (int i = 0; i < 4; ++i)
+        glVertex3d(bounding_box.corners[i][0],
+                   bounding_box.corners[i][1],
+                   bounding_box.corners[i][2]);
+    }
+  }
+  glEnd();
 
+  glDisable(GL_BLEND);
 }
   
 }  // namespace structured_indoor_modeling

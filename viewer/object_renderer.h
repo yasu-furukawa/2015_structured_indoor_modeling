@@ -15,7 +15,11 @@ class IndoorPolygon;
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
 typedef std::vector<ColoredPoint> ColoredPointCloud;
 
-class ObjectRenderer : protected QGLFunctions {
+struct BoundingBox {
+  Eigen::Vector3d corners[4];
+};
+
+ class ObjectRenderer : protected QGLFunctions {
  public:
   ObjectRenderer(const Floorplan& floorplan, const IndoorPolygon& indoor_polygon);
   virtual ~ObjectRenderer();
@@ -30,18 +34,24 @@ class ObjectRenderer : protected QGLFunctions {
   bool Toggle();
   
  private:
+  void ComputeBoundingBoxes();
+  
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   // private:
   bool render;
   // For each room, for each object, a colored point cloud.
-  std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
+  // std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
 
   std::vector<std::vector<std::vector<float> > > vertices;
   std::vector<std::vector<std::vector<float> > > colors;
 
   std::vector<std::vector<std::vector<float> > > vertices_org;
   std::vector<std::vector<std::vector<float> > > colors_org;
+
+  // Bounding boxes for each object.
+  std::vector<std::vector<BoundingBox> > bounding_boxes;
+  
 };
 
 }  // namespace structured_indoor_modeling 
