@@ -43,7 +43,11 @@ void MainWidget::RenderFloorplan(const double alpha,
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
+  // Outlines.
   floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize, height_adjustment);
+
+  // Bounding boxes for objects.
+  object_renderer.RenderIcons(alpha);  
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);

@@ -47,7 +47,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   file_io(configuration.data_directory),
   floorplan(file_io.GetFloorplanFinal()),
   indoor_polygon(file_io.GetIndoorPolygonFinal()),
-  object_renderer(floorplan),
+  object_renderer(floorplan, indoor_polygon),
   polygon_renderer(floorplan),
   indoor_polygon_renderer(indoor_polygon),
   floorplan_renderer(floorplan, indoor_polygon),

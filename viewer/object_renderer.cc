@@ -9,7 +9,9 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-ObjectRenderer::ObjectRenderer(const Floorplan& floorplan) : floorplan(floorplan) {
+ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
+                               const IndoorPolygon& indoor_polygon)
+  : floorplan(floorplan), indoor_polygon(indoor_polygon) {
   render = true;
 }
 
@@ -115,5 +117,10 @@ void ObjectRenderer::RenderAll(const double position) {
   glDisableClientState(GL_VERTEX_ARRAY);
 }
 
+void ObjectRenderer::RenderIcons(const double alpha) {
+
+
+}
+  
 }  // namespace structured_indoor_modeling
   
