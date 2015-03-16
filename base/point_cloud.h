@@ -61,6 +61,7 @@ class PointCloud {
   bool Init(const std::string& filename);
   // Writer.
   void Write(const std::string& filename);
+  void WriteObject(const std::string& filename, const int objectid);
 
   // Transformations.
   void ToGlobal(const FileIO& file_io, const int panorama);

@@ -21,7 +21,7 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.08,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 
@@ -61,8 +61,14 @@ int main(int argc, char **argv){
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, depth, imgwidth, imgheight, startid, endid);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
-    cout<<"object cloud num: "<<objectcloud.size()<<endl;
 
+	 
+    // for(int i=0;i<objectcloud.size();i++){
+    // 	for(int obid=0; obid<objectcloud[i].GetNumObjects(); obid++){
+    // 	    sprintf(buffer,"object_project/room_temp%03d_object%03d.ply",i, obid);
+    // 	    objectcloud[i].WriteObject(string(buffer), obid);
+    // 	}
+    // }
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
 
@@ -89,7 +95,7 @@ int main(int argc, char **argv){
 
 	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-		getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid].GetDepthmap(), labels[curid], labelgroup[curid], superpixelConfidence[groupid], numlabels[curid]);
+		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
 
 	    }
 

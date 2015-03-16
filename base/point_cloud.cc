@@ -141,6 +141,18 @@ void PointCloud::Write(const std::string& filename) {
   ofstr.close();
 }
 
+void PointCloud::WriteObject(const string& filename, const int objectid){
+    vector<Point>object_points;
+    for(const auto&pt: points){
+	if(pt.object_id == objectid)
+	    object_points.push_back(pt);
+    }
+    
+    PointCloud objectcloud;
+    objectcloud.AddPoints(object_points);
+    objectcloud.Write(filename);
+}
+
 void PointCloud::Rotate(const Eigen::Matrix3d& rotation) {
   Matrix4d transformation;
   for (int y = 0; y < 3; ++y) {
@@ -180,12 +192,16 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
 }
 
 void PointCloud::AddPoints(const PointCloud& point_cloud){
-  AddPoints(point_cloud.points);
+     AddPoints(point_cloud.points);
 }
 
-//add an array of Point to the point cloud. Update each member variable, a little faster than calling update()......
+
 void PointCloud::AddPoints(const vector<Point>& new_points) {
+     int orinum = points.size();
   points.insert(points.end(), new_points.begin(), new_points.end());
+  for(int i=orinum;i<points.size();i++){
+       points[i].object_id += num_objects;
+  }
   Update();
 }
 
