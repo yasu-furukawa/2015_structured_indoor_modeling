@@ -585,7 +585,7 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 }
 
 
-void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &resultcloud, int roomid){
+void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &resultcloud, const int roomid){
 
     const int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
     const int imgwidth = panorama.Width();
