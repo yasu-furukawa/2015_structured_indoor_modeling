@@ -80,7 +80,9 @@ class PointCloud {
   inline const Point& GetPoint(const int p) const { return points[p]; }
   inline Point& GetPoint(const int p) { return points[p]; }
   inline bool isempty() const {return (int)points.size() == 0;}
-  double GetBoundingboxVolume();  
+  void GetObjectIndice(int objectid, std::vector<int>&indices) ;
+  double GetBoundingboxVolume();
+  double GetObjectBoundingboxVolume(const int objectid);
   // Setters.
   void SetPoints(const std::vector<Point>& new_points) {
     points = new_points;
@@ -94,15 +96,11 @@ class PointCloud {
   void AddPoints(const std::vector<Point>& new_points);
 
   void RemovePoints(const std::vector<int>& indexes);
-  
+  void Update();  
  private:
   void InitializeMembers();
-  void Update();
-
   std::vector<Point> points;
 
-  //Since deleting element on vector is inefficient, we set up this mask array.
-  // yasu This should be vector<bool>.
   Eigen::Vector3d center;
   int depth_width;
   int depth_height;

@@ -112,6 +112,9 @@ int main(int argc, char **argv){
     	 // end = clock();
     	 // cout<<"done. Time: "<<end - start<<endl;
     	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+	cout<<"Cleaning room "<<roomid<<"..."<<endl;
+	cleanObjects(resultCloud[roomid], 1e5);
+	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
     	 string savepath = file_io.GetRefinedObjectClouds(roomid);
     	 cout<<"Saving "<<savepath<<endl;
     	 resultCloud[roomid].Write(savepath);

@@ -390,7 +390,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 0;
+     int roomid = 5;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -416,6 +416,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+	break;
     }
 }
 
@@ -599,8 +600,8 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 
     //get depth map for each object
     vector <DepthFilling> objectdepth(backgroundlabel);
+    
     for(int objectid=0; objectid<backgroundlabel; objectid++){
-
 	objectdepth[objectid].Init(objectcloud, panorama, objectgroup[objectid], false);
 
 	//mask for current object
@@ -615,11 +616,7 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 	    }
 	}
 	objectdepth[objectid].fill_hole(panorama);
- 	// char buffer[100];
-	// sprintf(buffer,"depthmask_room%03d_object%03d.png",roomid,objectid);
-	// objectdepth[objectid].SaveDepthmap(string(buffer));
     }
-
   
     for(int superpixelid=0; superpixelid<segmentation.size(); superpixelid++){
 	if(segmentation[superpixelid] < backgroundlabel){   //object
@@ -652,6 +649,40 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
     }
     resultcloud.AddPoints(pointtoadd);
 }
+
+//remove small objects, re-assign object id
+void cleanObjects(PointCloud &pc, const double min_volume){
+    //clean small objects
+    for(int objid = 0; objid < pc.GetNumObjects(); objid++){
+	double curvolume = pc.GetObjectBoundingboxVolume(objid);
+	if(curvolume >= min_volume)
+	    continue;
+	vector<int>points_to_remove;
+	pc.GetObjectIndice(objid, points_to_remove);
+	pc.RemovePoints(points_to_remove);
+    }
+    //reassign object_id
+    vector<int>objectid;
+    vector<bool>hash(pc.GetNumObjects());
+    for(int i=0; i<hash.size(); i++)
+	hash[i] = false;
+    for(int ptid=0; ptid<pc.GetNumPoints(); ptid++){
+	int curid = pc.GetPoint(ptid).object_id;
+	if(!hash[curid]){
+	    hash[curid] = true;
+	    objectid.push_back(curid);
+	}
+    }
+    
+    for(int ptid=0; ptid<pc.GetNumPoints(); ptid++){
+	for(int i=0;i<objectid.size(); i++){
+	    if(pc.GetPoint(ptid).object_id == objectid[i])
+		pc.GetPoint(ptid).object_id = i;
+	}
+    }
+    pc.Update();
+}
+
 
 //Merge algorithm
 //Given a point, remove all points that are inside the ball around the point.
