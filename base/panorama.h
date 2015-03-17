@@ -131,8 +131,10 @@ private:
 };
 
 //----------------------------------------------------------------------
-int GetEndPanorama(const FileIO& file_io, const int start_panorama);
 void ReadPanoramas(const FileIO& file_io, std::vector<Panorama>* panoramas);
+void ReadPanoramaPyramids(const FileIO& file_io,
+                          const int num_levels,
+                          std::vector<std::vector<Panorama> >* panorama_pyramids);
  
 }  // namespace structured_indoor_modeling
 

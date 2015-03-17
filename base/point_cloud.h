@@ -112,6 +112,13 @@ class PointCloud {
 
 typedef std::vector<PointCloud> PointClouds;
 
+//----------------------------------------------------------------------
+void ReadPointClouds(const FileIO& file_io, std::vector<PointCloud>* point_clouds);
+
+void ReadObjectPointClouds(const FileIO& file_io,
+                           const int num_rooms,
+                           std::vector<PointCloud>* object_point_clouds);
+ 
 }  // namespace structured_indoor_modeling
 
 #endif  // BASE_POINT_CLOUD_H_

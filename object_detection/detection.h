@@ -37,16 +37,16 @@ struct Detection {
   // Left and right u values. us[0] could be smaller than us[1].
   Eigen::Vector2d us;
   // Top and bottom v values. vs[0] is always saller than vs[1].
-  Eigen::Vector2d us;
+  Eigen::Vector2d vs;
 
   // Output of the object detector. Name and the detection score.
-  string name;
+  std::string name;
   double score;
 };
 
-istream& operator >>(istream& istr, Detection& detection);
-ostream& operator <<(ostream& ostr, const Detection& detection);
-istream& operator >>(istream& istr, vector<Detection>& detections);
-ostream& operator <<(ostream& ostr, const vector<Detection>& detections);
+std::istream& operator >>(std::istream& istr, Detection& detection);
+std::ostream& operator <<(std::ostream& ostr, const Detection& detection);
+std::istream& operator >>(std::istream& istr, std::vector<Detection>& detections);
+std::ostream& operator <<(std::ostream& ostr, const std::vector<Detection>& detections);
 
 }  // namespace structured_indoor_modeling

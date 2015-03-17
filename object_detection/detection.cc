@@ -2,6 +2,9 @@
 #include <iostream>
 #include "detection.h"
 
+using namespace Eigen;
+using namespace std;
+
 namespace structured_indoor_modeling {
 
 istream& operator >>(istream& istr, Detection& detection) {

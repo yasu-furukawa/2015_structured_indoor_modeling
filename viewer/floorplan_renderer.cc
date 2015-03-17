@@ -646,14 +646,14 @@ void FloorplanRenderer::RenderFloorplanOutline(const int room,
 void FloorplanRenderer::RenderIndoorPolygonOutline(const double alpha) const {
   Vector3d z_axis(0, 0, 1);
   z_axis = floorplan.GetFloorplanToGlobal() * z_axis;
-  const double kStrokeWidth = 1;
-  double radius = kStrokeWidth * floorplan.GetGridUnit();
-  Vector3d color(0.4f, 0.4f, 0.4f);
+  // const double kStrokeWidth = 1;
+  // double radius = kStrokeWidth * floorplan.GetGridUnit();
+  Vector3d kColor(0.4f, 0.4f, 0.4f);
   // paint_style.stroke_color...
 
 
   glBegin(GL_LINES);
-  glColor4f(color[0], color[1], color[2], alpha);
+  glColor4f(kColor[0], kColor[1], kColor[2], alpha);
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
     const Segment& segment = indoor_polygon.GetSegment(s);
     if (segment.type != Segment::WALL)

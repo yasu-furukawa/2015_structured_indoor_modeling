@@ -242,7 +242,7 @@ int main(int argc, char* argv[]) {
   }  
 
   vector<PointCloud> input_point_clouds, object_point_clouds;
-  ReadInputPointClouds(file_io, &input_point_clouds);
+  ReadPointClouds(file_io, &input_point_clouds);
   ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
 
   // Accuracy and completeness.

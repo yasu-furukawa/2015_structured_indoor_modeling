@@ -21,22 +21,6 @@ using namespace std;
 
 namespace {
 
-int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
-  int panorama = start_panorama;
-  while (1) {
-    const string filename = file_io.GetPanoramaImage(panorama);
-    ifstream ifstr;
-    ifstr.open(filename.c_str());
-    if (!ifstr.is_open()) {
-      ifstr.close();
-      return panorama;
-    }
-    ifstr.close();
-    ++panorama;
-  }
-}
-
-
 void ReportSegments(const std::vector<int>& segments) {
   int object = 0;
   int initial = 0;
@@ -208,11 +192,10 @@ int main(int argc, char* argv[]) {
   vector<int> room_occupancy_with_doors = room_occupancy;
   SetDoorOccupancy(floorplan, &room_occupancy_with_doors);
   
-  const int kStartPanorama = 0;
-  const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
-  vector<PointCloud> point_clouds(end_panorama);
+  const int num_panoramas = GetNumPanoramas(file_io);
+  vector<PointCloud> point_clouds(num_panoramas);
   cout << "Reading point clouds..." << flush;
-  for (int p = 0; p < end_panorama; ++p) {
+  for (int p = 0; p < num_panoramas; ++p) {
     cout << '.' << flush;
     const int index = p;
     if (!point_clouds[index].Init(file_io, p)) {
