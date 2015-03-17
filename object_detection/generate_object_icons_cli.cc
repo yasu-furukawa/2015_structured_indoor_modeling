@@ -11,6 +11,7 @@
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
 #include "detection.h"
+#include "generate_object_icons.h"
 
 using namespace Eigen;
 using namespace std;
@@ -35,6 +36,7 @@ int main(int argc, char* argv[]) {
   }
 
   vector<Detection> detections;
+  /*
   {
     ifstream ifstr;
     ifstr.open(file_io.GetObjectDetections().c_str());
@@ -45,19 +47,23 @@ int main(int argc, char* argv[]) {
     ifstr >> detections;
     ifstr.close();
   }
-
+  */
+  
   vector<PointCloud> object_point_clouds;
   {
     Floorplan floorplan(file_io.GetFloorplan());
     ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
   }
   
-  // Find the corresponding object point cloud, and compute the icon information for the viewer.
-
-  // For each detection, find the most relevant object point cloud if any.
-  ///  vector<ObjectPointCloud>
-
+  // Compute an object id map for each panorama.
+  vector<vector<ObjectId> > object_ids;
+  {
+    RasterizeObjectIds(panoramas, object_point_clouds, &object_ids);
+  }
   
+  // For each detection, find the most relevant object id.
+  vector<ObjectId> associated_object_ids;
+  AssociateObjectId(panoramas, detections, object_ids, &associated_object_ids);
 
   /*
   vecor<PointCloud> input_point_clouds, object_point_clouds;
