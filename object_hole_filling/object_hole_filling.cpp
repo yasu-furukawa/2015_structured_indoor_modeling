@@ -647,7 +647,7 @@ void BackProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 	    }
 	}
     }
-    resultcloud.AddPoints(pointtoadd);
+    resultcloud.AddPoints(pointtoadd, true);
 }
 
 //remove small objects, re-assign object id

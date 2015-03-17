@@ -112,8 +112,18 @@ int main(int argc, char **argv){
     	 // end = clock();
     	 // cout<<"done. Time: "<<end - start<<endl;
     	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
-	cout<<"Cleaning room "<<roomid<<"..."<<endl;
-	cleanObjects(resultCloud[roomid], 1e5);
+
+	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
+	    PointCloud curob;
+	    vector<structured_indoor_modeling::Point>obpts;
+	    resultCloud[roomid].GetObjectPoints(i, obpts);
+	    curob.AddPoints(obpts);
+	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
+	    cout<<"Writing "<<buffer<<endl;
+	    curob.Write(string(buffer));
+	}
+//	cout<<"Cleaning room "<<roomid<<"..."<<endl;
+//	cleanObjects(resultCloud[roomid], 1e5);
 	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
     	 string savepath = file_io.GetRefinedObjectClouds(roomid);
     	 cout<<"Saving "<<savepath<<endl;

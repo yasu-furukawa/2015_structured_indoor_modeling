@@ -196,11 +196,13 @@ void PointCloud::AddPoints(const PointCloud& point_cloud){
 }
 
 
-void PointCloud::AddPoints(const vector<Point>& new_points) {
+void PointCloud::AddPoints(const vector<Point>& new_points, bool mergeid) {
      int orinum = points.size();
   points.insert(points.end(), new_points.begin(), new_points.end());
-  for(int i = orinum; i< (int)points.size(); i++){
-       points[i].object_id += num_objects;
+  if(!mergeid){
+      for(int i = orinum; i< (int)points.size(); i++){
+	  points[i].object_id += num_objects;
+      }
   }
   Update();
 }
@@ -227,6 +229,36 @@ void PointCloud::GetObjectIndice(int objectid, vector<int>&indices) {
 	Point curpt = GetPoint(i);
 	if(curpt.object_id == objectid)
 	    indices.push_back(i);
+    }
+}
+
+void PointCloud::GetObjectPoints(int objectid, vector<Point>&object_points){
+    object_points.clear();
+    for(const auto& pt: points){
+	if(pt.object_id == objectid)
+	    object_points.push_back(pt);
+    }
+}
+
+void PointCloud::GetObjectBoundingbox(int objectid, vector<double>&bbox){
+    bbox.clear();
+    bbox.resize(6);
+    bbox[0] = numeric_limits<double>::max();
+    bbox[1] = numeric_limits<double>::min();
+    bbox[2] = numeric_limits<double>::max();
+    bbox[3] = numeric_limits<double>::min();
+    bbox[4] = numeric_limits<double>::max();
+    bbox[5] = numeric_limits<double>::min();
+    for(int ptid=0; ptid<GetNumPoints(); ptid++){
+	Point curpt = GetPoint(ptid);
+	if(curpt.object_id == objectid){
+	    bbox[0] = std::min(bbox[0], curpt.position[0]);
+	    bbox[1] = std::max(bbox[1], curpt.position[0]);
+	    bbox[2] = std::min(bbox[2], curpt.position[1]);
+	    bbox[3] = std::max(bbox[3], curpt.position[1]);
+	    bbox[4] = std::min(bbox[4], curpt.position[2]);
+	    bbox[5] = std::max(bbox[5], curpt.position[2]);
+	}
     }
 }
     
@@ -287,26 +319,11 @@ double PointCloud::GetBoundingboxVolume(){
 }
 
 double PointCloud::GetObjectBoundingboxVolume(const int objectid){
-    double xmin = numeric_limits<double>::max();
-    double xmax = numeric_limits<double>::min();
-    double ymin = numeric_limits<double>::max();
-    double ymax = numeric_limits<double>::min();
-    double zmin = numeric_limits<double>::max();
-    double zmax = numeric_limits<double>::min();
-    for(int ptid=0; ptid<GetNumPoints(); ptid++){
-	Point curpt = GetPoint(ptid);
-	if(curpt.object_id == objectid){
-	    xmin = std::min(xmin, curpt.position[0]);
-	    xmax = std::max(xmax, curpt.position[0]);
-	    ymin = std::min(ymin, curpt.position[1]);
-	    ymax = std::max(ymax, curpt.position[1]);
-	    zmin = std::min(zmin, curpt.position[2]);
-	    zmax = std::max(zmax, curpt.position[2]);
-	}
-    }
-    if(xmax < xmin || ymax < ymin || zmax < zmin)
+    vector<double>bbox;
+    GetObjectBoundingbox(objectid, bbox);
+    if(bbox[1] < bbox[0] || bbox[3] > bbox[2] || bbox[5] < bbox[4])
 	return 0;
-    return (xmax - xmin) * (ymax - ymin) * (zmax - zmin);
+    return (bbox[1]-bbox[0]) * (bbox[3] - bbox[2]) * (bbox[5] - bbox[4]);
 }
   
 void PointCloud::Transform(const Eigen::Matrix4d& transformation) {

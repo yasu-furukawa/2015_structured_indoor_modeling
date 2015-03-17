@@ -81,6 +81,8 @@ class PointCloud {
   inline Point& GetPoint(const int p) { return points[p]; }
   inline bool isempty() const {return (int)points.size() == 0;}
   void GetObjectIndice(int objectid, std::vector<int>&indices) ;
+  void GetObjectPoints(int objectid, std::vector<structured_indoor_modeling::Point>& object_points);
+  void GetObjectBoundingbox(int objectid, std::vector<double>&bbox);
   double GetBoundingboxVolume();
   double GetObjectBoundingboxVolume(const int objectid);
   // Setters.
@@ -93,7 +95,7 @@ class PointCloud {
   void SetColor(int ind, float r, float g,float b);
 
   void AddPoints(const PointCloud& point_cloud);
-  void AddPoints(const std::vector<Point>& new_points);
+  void AddPoints(const std::vector<Point>& new_points, bool mergeid = false);
 
   void RemovePoints(const std::vector<int>& indexes);
   void Update();  
