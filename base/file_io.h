@@ -69,10 +69,19 @@ class FileIO {
     return buffer;
   }
   std::string GetDepthPanorama(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/panorama/%03d_raw.depth", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetDepthVisualization(const int panorama) const {
+    sprintf(buffer, "%s/panorama/%03d_raw_depth.png", data_directory.c_str(), panorama);
+    return buffer;
+  }
+  
+  std::string GetSmoothDepthPanorama(const int panorama) const {
+    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    return buffer;
+  }
+  std::string GetSmoothDepthVisualization(const int panorama) const {
     sprintf(buffer, "%s/panorama/%03d_depth.png", data_directory.c_str(), panorama);
     return buffer;
   }

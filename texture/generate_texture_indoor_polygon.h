@@ -39,8 +39,6 @@ struct TextureInput {
   std::vector<std::vector<Panorama> > panoramas;
   std::vector<PointCloud> point_clouds;
 
-  std::vector<std::vector<double> > panorama_depths;
-
   int pyramid_level;
   int max_texture_size_per_floor_patch;
   int max_texture_size_per_non_floor_patch;
@@ -57,11 +55,6 @@ double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
 
 double ComputeVisibilityMargin(const IndoorPolygon& indoor_polygon);
 
-void ComputePanoramaDepths(TextureInput* texture_input);
-
- void SmoothField(const int width, const int height, const double hole,
-                  std::vector<double>* field);
- 
 void SetPatch(const TextureInput& texture_input,
               const Segment& segment,
               const bool visibility_check,

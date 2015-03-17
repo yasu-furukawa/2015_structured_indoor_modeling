@@ -103,7 +103,8 @@ void PanoramaRenderer::Init(const FileIO& file_io,
     exit (1);
   }
 
-  InitDepthMesh(file_io.GetDepthPanorama(panorama_id), panorama->GetPhiRange());
+  InitDepthMesh(file_io.GetSmoothDepthPanorama(panorama_id),
+                panorama->GetPhiRange());
 }
 
 void PanoramaRenderer::InitGL() {

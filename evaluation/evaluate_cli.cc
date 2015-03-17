@@ -69,7 +69,7 @@ void WriteDepthErrormap(const PointCloud& input_point_cloud,
   const int width  = panorama.DepthWidth();
   const int height = panorama.DepthHeight();
   Panorama small_panorama = panorama;
-  small_panorama.ResizeRGB(Vector2i(width, height));
+  small_panorama.Resize(Vector2i(width, height));
   const double kInvalid = -1.0;
   vector<double> depth_errors(width * height, kInvalid);
   vector<double> normal_errors(width * height, kInvalid);

@@ -57,6 +57,7 @@ public:
   Panorama();
   bool Init(const FileIO& file_io, const int panorama);
   bool InitWithoutLoadingImages(const FileIO& file_io, const int panorama);
+  bool InitWithoutDepths(const FileIO& file_io, const int panorama);
 
   Eigen::Vector2d Project(const Eigen::Vector3d& global) const;
   Eigen::Vector3d Unproject(const Eigen::Vector2d& pixel,
@@ -93,7 +94,7 @@ public:
   bool IsInsideDepth(const Eigen::Vector2d& depth_pixel) const;
 
   // Shrink only and suggested for integer shrink ratio (e.g., making a width half or 1/3).
-  void ResizeRGB(const Eigen::Vector2i& size);
+  void Resize(const Eigen::Vector2i& size);
 
   // void ReleaseMemory();
 

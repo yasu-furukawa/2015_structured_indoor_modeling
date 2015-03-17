@@ -75,8 +75,6 @@ int main(int argc, char* argv[]) {
   texture_input.texel_unit =
     ComputeTexelUnit(texture_input.indoor_polygon, FLAGS_target_texture_size_for_vertical);
   const double default_visibility_margin = ComputeVisibilityMargin(texture_input.indoor_polygon);
-  // Depth for each panorama.
-  ComputePanoramaDepths(&texture_input);
   
   vector<Patch> patches(texture_input.indoor_polygon.GetNumSegments());
   for (int p = 0; p < patches.size(); ++p) {
