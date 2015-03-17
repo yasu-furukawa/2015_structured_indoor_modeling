@@ -287,7 +287,7 @@ void Panorama::Resize(const Eigen::Vector2i& size) {
     cv::resize(rgb_image, new_rgb_image, cv::Size(new_width, new_height));
     rgb_image = new_rgb_image;
   }
-  
+
   // Resize depth.
   {
     const double kInvalid = -1.0;
@@ -304,7 +304,7 @@ void Panorama::Resize(const Eigen::Vector2i& size) {
         int denom = 0;
         for (int j = start_y; j < end_y; ++j) {
           for (int i = start_x; i < end_x; ++i) {
-            const double depth = depth_image[j * width + i];
+            const double depth = depth_image[j * depth_width + i];
             if (depth != kInvalid) {
               sum_depth += depth;
               ++denom;
