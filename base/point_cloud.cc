@@ -73,7 +73,7 @@ bool PointCloud::Init(const std::string& filename) {
 
   // To handle different point format.
   for (auto& point : points) {
-    ifstr >> point.depth_position[0] >> point.depth_position[1]
+    ifstr >> point.depth_position[1] >> point.depth_position[0]
           >> point.position[0] >> point.position[1] >> point.position[2]
           >> point.color[0] >> point.color[1] >> point.color[2]
           >> point.normal[0] >> point.normal[1] >> point.normal[2]
@@ -123,8 +123,8 @@ void PointCloud::Write(const std::string& filename) {
 	<< "end_header" << endl;
 
   for (const auto& point : points) {
-    ofstr << point.depth_position[0] + kDepthPositionOffset << ' '
-          << point.depth_position[1] + kDepthPositionOffset << ' '
+    ofstr << point.depth_position[1] + kDepthPositionOffset << ' '
+          << point.depth_position[0] + kDepthPositionOffset << ' '
           << point.position[0] << ' '
           << point.position[1] << ' '
           << point.position[2] << ' '
@@ -259,8 +259,8 @@ void PointCloud::Update(){
   for (const auto& point : points) {
     center += point.position;
 
-    depth_width = max(point.depth_position[0] + 1, depth_width);
-    depth_height = max(point.depth_position[1] + 1, depth_height);
+    depth_width = max(point.depth_position[1] + 1, depth_width);
+    depth_height = max(point.depth_position[0] + 1, depth_height);
 
     num_objects = max(num_objects, point.object_id + 1);
     

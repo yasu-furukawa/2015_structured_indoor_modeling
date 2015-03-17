@@ -457,9 +457,25 @@ void ReadPanoramas(const FileIO& file_io,
   const int num_panoramas = GetNumPanoramas(file_io);
   panoramas->clear();
   panoramas->resize(num_panoramas);
+  cerr << "ReadPanoramas:" << flush;
   for (int p = 0; p < num_panoramas; ++p) {
+    cerr << '.' << flush;
     panoramas->at(p).Init(file_io, p);
   }
+  cerr << endl;
+}
+
+void ReadPanoramasWithoutDepths(const FileIO& file_io,
+                                vector<Panorama>* panoramas) {
+  const int num_panoramas = GetNumPanoramas(file_io);
+  panoramas->clear();
+  panoramas->resize(num_panoramas);
+  cerr << "ReadPanoramasWithoutDepths:" << flush;
+  for (int p = 0; p < num_panoramas; ++p) {
+    cerr << '.' << flush;
+    panoramas->at(p).InitWithoutDepths(file_io, p);
+  }
+  cerr << endl;
 }
 
 void ReadPanoramaPyramids(const FileIO& file_io,

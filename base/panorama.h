@@ -133,6 +133,8 @@ private:
 
 //----------------------------------------------------------------------
 void ReadPanoramas(const FileIO& file_io, std::vector<Panorama>* panoramas);
+void ReadPanoramasWithoutDepths(const FileIO& file_io,
+                                std::vector<Panorama>* panoramas);
 void ReadPanoramaPyramids(const FileIO& file_io,
                           const int num_levels,
                           std::vector<std::vector<Panorama> >* panorama_pyramids);
