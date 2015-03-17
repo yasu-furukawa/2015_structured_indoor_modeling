@@ -196,11 +196,13 @@ void PointCloud::AddPoints(const PointCloud& point_cloud){
 }
 
 
-void PointCloud::AddPoints(const vector<Point>& new_points) {
+void PointCloud::AddPoints(const vector<Point>& new_points, bool mergeid) {
      int orinum = points.size();
   points.insert(points.end(), new_points.begin(), new_points.end());
-  for(int i = orinum; i< (int)points.size(); i++){
-       points[i].object_id += num_objects;
+  if(!mergeid){
+      for(int i = orinum; i< (int)points.size(); i++){
+	  points[i].object_id += num_objects;
+      }
   }
   Update();
 }
@@ -222,7 +224,44 @@ void PointCloud::RemovePoints(const std::vector<int>& indexes) {
   Update();
 }
 
-  // yasu Should the input type be float instead of int?
+void PointCloud::GetObjectIndice(int objectid, vector<int>&indices) {
+    for(int i=0; i<GetNumPoints(); i++){
+	Point curpt = GetPoint(i);
+	if(curpt.object_id == objectid)
+	    indices.push_back(i);
+    }
+}
+
+void PointCloud::GetObjectPoints(int objectid, vector<Point>&object_points){
+    object_points.clear();
+    for(const auto& pt: points){
+	if(pt.object_id == objectid)
+	    object_points.push_back(pt);
+    }
+}
+
+void PointCloud::GetObjectBoundingbox(int objectid, vector<double>&bbox){
+    bbox.clear();
+    bbox.resize(6);
+    bbox[0] = numeric_limits<double>::max();
+    bbox[1] = numeric_limits<double>::min();
+    bbox[2] = numeric_limits<double>::max();
+    bbox[3] = numeric_limits<double>::min();
+    bbox[4] = numeric_limits<double>::max();
+    bbox[5] = numeric_limits<double>::min();
+    for(int ptid=0; ptid<GetNumPoints(); ptid++){
+	Point curpt = GetPoint(ptid);
+	if(curpt.object_id == objectid){
+	    bbox[0] = std::min(bbox[0], curpt.position[0]);
+	    bbox[1] = std::max(bbox[1], curpt.position[0]);
+	    bbox[2] = std::min(bbox[2], curpt.position[1]);
+	    bbox[3] = std::max(bbox[3], curpt.position[1]);
+	    bbox[4] = std::min(bbox[4], curpt.position[2]);
+	    bbox[5] = std::max(bbox[5], curpt.position[2]);
+	}
+    }
+}
+    
 void PointCloud::SetAllColor(float r,float g,float b){
   for(auto &v: points){
     v.color[0] = r;
@@ -231,7 +270,6 @@ void PointCloud::SetAllColor(float r,float g,float b){
   }
 }
 
-// yasu Should the input type (rgb) be float instead of int?
 void PointCloud::SetColor(int ind, float r,float g,float b){
      assert(ind >= 0 && ind < (int)points.size());
      points[ind].color[0] = r;
@@ -255,7 +293,6 @@ void PointCloud::SetColor(int ind, float r,float g,float b){
 void PointCloud::Update(){
   InitializeMembers();
   
-  // To handle different point format.
   for (const auto& point : points) {
     center += point.position;
 
@@ -279,6 +316,14 @@ double PointCloud::GetBoundingboxVolume(){
   if(bounding_box.size() == 0)
     return 0;
   return (bounding_box[1]-bounding_box[0])*(bounding_box[3]-bounding_box[2])*(bounding_box[5]-bounding_box[4]);
+}
+
+double PointCloud::GetObjectBoundingboxVolume(const int objectid){
+    vector<double>bbox;
+    GetObjectBoundingbox(objectid, bbox);
+    if(bbox[1] < bbox[0] || bbox[3] > bbox[2] || bbox[5] < bbox[4])
+	return 0;
+    return (bbox[1]-bbox[0]) * (bbox[3] - bbox[2]) * (bbox[5] - bbox[4]);
 }
   
 void PointCloud::Transform(const Eigen::Matrix4d& transformation) {

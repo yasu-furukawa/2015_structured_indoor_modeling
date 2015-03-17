@@ -58,6 +58,8 @@ void BackProjectObject(const structured_indoor_modeling::Panorama &panorama, con
 
 //void BackProjectObject(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector
 
+void cleanObjects(structured_indoor_modeling::PointCloud &pc, const double min_volume);
+
 void mergeVertices(structured_indoor_modeling::PointCloud &pc, int resolution);
 
 
