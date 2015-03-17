@@ -33,6 +33,10 @@ namespace structured_indoor_modeling {
 // 
 //
 struct Detection {
+  //----------------------------------------------------------------------
+  // Input of the pipeline (or output of the RCNN).
+  //----------------------------------------------------------------------
+
   int panorama;
   // Left and right u values. us[0] could be smaller than us[1].
   Eigen::Vector2d us;

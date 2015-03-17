@@ -77,7 +77,7 @@ void SaveData(const int id,
 
   ofstr << (int)points.size() << endl;
   for (const auto& point : points) {
-    ofstr << point.depth_position[0] << ' ' << point.depth_position[1] << ' '
+    ofstr << point.depth_position[1] << ' ' << point.depth_position[0] << ' '
           << point.position[0] << ' ' << point.position[1] << ' ' << point.position[2] << ' '
           << point.color[0] << ' ' << point.color[1] << ' ' << point.color[2] << ' '
           << point.normal[0] << ' ' << point.normal[1] << ' ' << point.normal[2] << ' '
@@ -108,7 +108,7 @@ void LoadData(const int id,
   ifstr >> num_points;
   points->resize(num_points);
   for (int p = 0; p < num_points; ++p) {
-    ifstr >> points->at(p).depth_position[0] >> points->at(p).depth_position[1] 
+    ifstr >> points->at(p).depth_position[1] >> points->at(p).depth_position[0] 
           >> points->at(p).position[0] >> points->at(p).position[1] >> points->at(p).position[2] 
           >> points->at(p).color[0]    >> points->at(p).color[1]    >> points->at(p).color[2] 
           >> points->at(p).normal[0]   >> points->at(p).normal[1]   >> points->at(p).normal[2] 

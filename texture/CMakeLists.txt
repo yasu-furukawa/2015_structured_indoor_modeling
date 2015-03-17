@@ -20,18 +20,18 @@ if (WIN32)
 	link_directories("C:\\gflags-2.1.1\\lib")	
 endif (WIN32)
 
-add_executable( generate_texture_floorplan_cli generate_texture.cc generate_texture_floorplan_cli.cc generate_texture_floorplan.cc synthesize.cc ../base/floorplan.cc ../base/geometry.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
+add_executable( generate_texture_floorplan_cli generate_texture.cc generate_texture_floorplan_cli.cc generate_texture_floorplan.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
 target_link_libraries( generate_texture_floorplan_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( generate_texture_floorplan_cli gflags )
 
-add_executable( generate_texture_indoor_polygon_cli generate_texture.cc generate_texture_indoor_polygon_cli.cc generate_texture_indoor_polygon.cc synthesize.cc ../base/indoor_polygon.cc ../base/geometry.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
+add_executable( generate_texture_indoor_polygon_cli generate_texture.cc generate_texture_indoor_polygon_cli.cc generate_texture_indoor_polygon.cc synthesize.cc ../base/indoor_polygon.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc )
 target_link_libraries( generate_texture_indoor_polygon_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( generate_texture_indoor_polygon_cli gflags )
 
-add_executable( color_point_cloud_cli color_point_cloud_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/geometry.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc ../base/kdtree/KDtree.cc )
+add_executable( color_point_cloud_cli color_point_cloud_cli.cc generate_texture.cc synthesize.cc ../base/floorplan.cc ../base/panorama.cc ../base/point_cloud.cc ../base/imageProcess/morphological_operation.cc ../base/kdtree/KDtree.cc )
 target_link_libraries( color_point_cloud_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( color_point_cloud_cli gflags )
 
-add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc ../base/floorplan.cc ../base/geometry.cc ../base/panorama.cc )
+add_executable( generate_thumbnail_cli generate_thumbnail_cli.cc ../base/floorplan.cc ../base/panorama.cc )
 target_link_libraries( generate_thumbnail_cli ${OpenCV_LIBS} )
 target_link_libraries( generate_thumbnail_cli gflags )

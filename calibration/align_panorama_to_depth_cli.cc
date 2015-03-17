@@ -1125,7 +1125,7 @@ void WriteDepth(const FileIO& file_io, const int p, const vector<double>& params
     char buffer[1024];
     ofstream ofstr;
     ofstr.precision(5);
-    ofstr.open(file_io.GetDepthPanorama(p));
+    ofstr.open(file_io.GetSmoothDepthPanorama(p));
     ofstr << "Depth" << endl
           << color_width << ' ' << color_height << endl
           << min_distance << ' ' << max_distance << endl;
@@ -1149,7 +1149,7 @@ void WriteDepth(const FileIO& file_io, const int p, const vector<double>& params
         }
       }
     }
-    imwrite(file_io.GetDepthVisualization(p), depth_image);
+    imwrite(file_io.GetSmoothDepthVisualization(p), depth_image);
   }
 }
 

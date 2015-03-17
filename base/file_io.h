@@ -69,10 +69,19 @@ class FileIO {
     return buffer;
   }
   std::string GetDepthPanorama(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/panorama/%03d_raw.depth", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetDepthVisualization(const int panorama) const {
+    sprintf(buffer, "%s/panorama/%03d_raw_depth.png", data_directory.c_str(), panorama);
+    return buffer;
+  }
+  
+  std::string GetSmoothDepthPanorama(const int panorama) const {
+    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    return buffer;
+  }
+  std::string GetSmoothDepthVisualization(const int panorama) const {
     sprintf(buffer, "%s/panorama/%03d_depth.png", data_directory.c_str(), panorama);
     return buffer;
   }
@@ -137,12 +146,21 @@ class FileIO {
     return buffer;
   }
   std::string GetRefinedObjectClouds(const int room) const{
-    sprintf(buffer, "%s/object/object_refined_room%03d.ply",data_directory.c_str(),room);
+    sprintf(buffer, "%s/object/object_refined_room%03d.ply", data_directory.c_str(),room);
     return buffer;
   }
 
   std::string GetEvaluationDirectory() const {
-    sprintf(buffer, "%s/evaluation",data_directory.c_str());
+    sprintf(buffer, "%s/evaluation", data_directory.c_str());
+    return buffer;
+  }
+
+  std::string GetObjectDetections() const {
+    sprintf(buffer, "%s/object/detections.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetObjectDetectionsFinal() const {
+    sprintf(buffer, "%s/object/detections_final.txt", data_directory.c_str());
     return buffer;
   }
   

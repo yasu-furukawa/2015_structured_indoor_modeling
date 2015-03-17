@@ -19,6 +19,6 @@ if (WIN32)
 	link_directories("C:\\gflags-2.1.1\\lib")	
 endif (WIN32)
 
-add_executable( evaluate_cli evaluate_cli.cc evaluate.cc ../base/floorplan.cc ../base/indoor_polygon.cc ../base/geometry.cc ../base/panorama.cc ../base/point_cloud.cc )
+add_executable( evaluate_cli evaluate_cli.cc evaluate.cc ../base/floorplan.cc ../base/indoor_polygon.cc ../base/panorama.cc ../base/point_cloud.cc )
 target_link_libraries( evaluate_cli ${OpenCV_LIBS} )
 target_link_libraries( evaluate_cli gflags )

@@ -496,7 +496,7 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
         const int depth_x = min(depth_width - 1, static_cast<int>(round(depth_pixel[0])));
         const int depth_y = min(depth_height - 1, static_cast<int>(round(depth_pixel[1])));
         const double depthmap_distance =
-          texture_input.panorama_depths[p][depth_y * depth_width + depth_x];
+          panorama.GetDepth(Vector2d(depth_x, depth_y));
         const double distance = (global - panorama.GetCenter()).norm();
 
         if (distance < depthmap_distance + threshold) {
@@ -604,92 +604,6 @@ double ComputeVisibilityMargin(const IndoorPolygon& indoor_polygon) {
 
   return (ceiling_z - floor_z) / 10;
 }
-  
-void ComputePanoramaDepths(TextureInput* texture_input) {
-  const int level = texture_input->pyramid_level;
-  
-  texture_input->panorama_depths.clear();
-  texture_input->panorama_depths.resize(texture_input->panoramas.size());
-
-  for (int p = 0; p < (int)texture_input->panoramas.size(); ++p) {
-    const Panorama& panorama = texture_input->panoramas[p][level];
-    const int depth_width  = panorama.DepthWidth();
-    const int depth_height = panorama.DepthHeight();
-
-    const double kInvalid = -1.0;
-    texture_input->panorama_depths[p].resize(depth_width * depth_height, kInvalid);
-
-    const int kSkip = 1;
-    for (int q = 0; q < texture_input->point_clouds[p].GetNumPoints(); q += kSkip) {
-      const auto& point = texture_input->point_clouds[p].GetPoint(q);
-      const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
-      const int x = static_cast<int>(round(depth_pixel[0]));
-      const int y = static_cast<int>(round(depth_pixel[1]));
-      
-      if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
-        const double distance = (panorama.GetCenter() - point.position).norm();
-        const int index = y * depth_width + x;
-        if (texture_input->panorama_depths[p][index] == kInvalid ||
-            distance < texture_input->panorama_depths[p][index]) {
-          texture_input->panorama_depths[p][index] = distance;
-        }
-      }
-    }
-
-    // WriteDepthImage(depth_width, depth_height, kInvalid, texture_input->panorama_depths[p], "before.ppm");
-    // Laplacian smoothing.
-    SmoothField(depth_width, depth_height, kInvalid, &texture_input->panorama_depths[p]);
-    // WriteDepthImage(depth_width, depth_height, kInvalid, texture_input->panorama_depths[p], "after.ppm");
-  }
-}
-
-void SmoothField(const int width, const int height, const double hole,
-                 std::vector<double>* field) {
-  const double kDataWeight = 4.0;
-  SparseMatrix<double> A(width * height, width * height);
-  VectorXd b(width * height);
-
-  vector<Eigen::Triplet<double> > triplets;
-  
-  int index = 0;
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x, ++index) {
-      int count = 0;
-      if (x != 0) {
-        triplets.push_back(Eigen::Triplet<double>(index, index - 1, -1));
-        ++count;
-      }
-      if (x != width - 1) {
-        triplets.push_back(Eigen::Triplet<double>(index, index + 1, -1));
-        ++count;
-      }
-      if (y != 0) {
-        triplets.push_back(Eigen::Triplet<double>(index, index - width, -1));
-        ++count;
-      }
-      if (y != height - 1) {
-        triplets.push_back(Eigen::Triplet<double>(index, index + width, -1));
-        ++count;
-      }
-
-      if (field->at(index) == hole) {
-        triplets.push_back(Eigen::Triplet<double>(index, index, count));
-        b[index] = 0;
-      } else {
-        triplets.push_back(Eigen::Triplet<double>(index, index, kDataWeight + count));
-        b[index] = kDataWeight * field->at(index);
-      }
-    }
-  }
-  A.setFromTriplets(triplets.begin(), triplets.end());
-  
-  SimplicialCholesky<SparseMatrix<double> > chol(A);
-  VectorXd x = chol.solve(b);
-
-  for (int i = 0; i < (int)field->size(); ++i) {
-    field->at(i) = x[i];
-  }
-}  
   
 void SetPatch(const TextureInput& texture_input,
               const Segment& segment,

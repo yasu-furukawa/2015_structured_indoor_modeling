@@ -41,7 +41,7 @@ void Init(const string& data_directory, const int start_panorama, Input *input) 
     if (!panorama.Init(file_io, p))
       break;
     
-    panorama.ResizeRGB(Vector2i(input->panorama_width, input->panorama_height));
+    panorama.Resize(Vector2i(input->panorama_width, input->panorama_height));
 
     input->panoramas.push_back(panorama);
   }
