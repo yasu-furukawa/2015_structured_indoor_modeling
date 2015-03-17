@@ -54,7 +54,9 @@ void MRFOptimizeLabels(const std::vector<int>&superpixelConfidence,  const std::
 
 void MRFOptimizeLabels_multiLayer(const std::vector< std::vector<double> >&superpixelConfidence, const std::map<std::pair<int,int>,int> &pairmap, const std::vector< Eigen::Vector3d> &averageRGB,  float smoothweight, int numlabels, std::vector <int> &superpixelLabel);
 
-void BackProjectObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling &depth, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, structured_indoor_modeling::PointCloud &resultcloud, int roomid);
+void BackProjectObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling &depth, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, structured_indoor_modeling::PointCloud &resultcloud, const int roomid);
+
+//void BackProjectObject(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector
 
 void mergeVertices(structured_indoor_modeling::PointCloud &pc, int resolution);
 

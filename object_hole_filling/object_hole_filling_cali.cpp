@@ -21,7 +21,7 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.08,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 
@@ -53,22 +53,13 @@ int main(int argc, char **argv){
     vector <vector <int> >labels;
     vector <int> numlabels;
     vector <vector<int> >superpixelLabel(endid - startid + 1); //label of superpixel for each panorama
-
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, depth, imgwidth, imgheight, startid, endid);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
-
-
 	 
-    // for(int i=0;i<objectcloud.size();i++){
-    // 	for(int obid=0; obid<objectcloud[i].GetNumObjects(); obid++){
-    // 	    sprintf(buffer,"object_project/room_temp%03d_object%03d.ply",i, obid);
-    // 	    objectcloud[i].WriteObject(string(buffer), obid);
-    // 	}
-    // }
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
 
@@ -83,8 +74,6 @@ int main(int argc, char **argv){
 	cout<<"Getting pairwise structure..."<<endl;
 	map<pair<int,int>,int> pairmap;
 	pairSuperpixel(labels[curid], imgwidth, imgheight, pairmap);
-
-
     
 	////////////////////////////////////////////////////
 	//get the superpixel confidence for each object and background
@@ -96,44 +85,37 @@ int main(int argc, char **argv){
 	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
 		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
-
 	    }
-
 #if 0
 	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
 #endif
-	    
 	    DepthFilling objectDepth;
 	    cout<<"Optimizing..."<<endl;
 	    cout<<"numlabel:"<<objectgroup[roomid].size()<<endl;
 	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel[curid]);
-
 #if 1
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
 #endif
-
-	    //back project
-//	    cout<<"Back projecting..."<<endl;
-//	    BackProjectObject(panorama,depth, objectcloud[roomid], objectgroup[roomid], superpixelLabel, labelgroup, resultCloud[roomid], roomid);
+	    BackProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], resultCloud[roomid], roomid);
 	}
     }
 
     /////////////////////////////    
-    // cout<<endl<<"All done! Saving result..."<<endl;
+    cout<<endl<<"All done! Saving result..."<<endl;
 
-    // for(int roomid=0; roomid<resultCloud.size(); roomid++){
-    // 	 // cout<<"Merging close points..."<<endl;
-    // 	 // cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
-    // 	 // clock_t start,end;
-    // 	 // start = clock();
-    // 	 // mergeVertices(resultCloud[roomid], 1024);
-    // 	 // end = clock();
-    // 	 // cout<<"done. Time: "<<end - start<<endl;
-    // 	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
-    // 	 string savepath = file_io.GetRefinedObjectClouds(roomid);
-    // 	 cout<<"Saving "<<savepath<<endl;
-    // 	 resultCloud[roomid].Write(savepath);
-    // }
+    for(int roomid=0; roomid<resultCloud.size(); roomid++){
+    	 // cout<<"Merging close points..."<<endl;
+    	 // cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+    	 // clock_t start,end;
+    	 // start = clock();
+    	 // mergeVertices(resultCloud[roomid], 1024);
+    	 // end = clock();
+    	 // cout<<"done. Time: "<<end - start<<endl;
+    	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+    	 string savepath = file_io.GetRefinedObjectClouds(roomid);
+    	 cout<<"Saving "<<savepath<<endl;
+    	 resultCloud[roomid].Write(savepath);
+    }
 
     return 0;
 }
