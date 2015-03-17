@@ -146,12 +146,21 @@ class FileIO {
     return buffer;
   }
   std::string GetRefinedObjectClouds(const int room) const{
-    sprintf(buffer, "%s/object/object_refined_room%03d.ply",data_directory.c_str(),room);
+    sprintf(buffer, "%s/object/object_refined_room%03d.ply", data_directory.c_str(),room);
     return buffer;
   }
 
   std::string GetEvaluationDirectory() const {
-    sprintf(buffer, "%s/evaluation",data_directory.c_str());
+    sprintf(buffer, "%s/evaluation", data_directory.c_str());
+    return buffer;
+  }
+
+  std::string GetObjectDetections() const {
+    sprintf(buffer, "%s/object/detections.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetObjectDetectionsFinal() const {
+    sprintf(buffer, "%s/object/detections_final.txt", data_directory.c_str());
     return buffer;
   }
   

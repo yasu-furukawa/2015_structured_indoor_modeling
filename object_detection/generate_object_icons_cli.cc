@@ -6,7 +6,7 @@
 #include <gflags/gflags.h>
 
 #include "../base/file_io.h"
-// #include "../base/floorplan.h"
+#include "../base/floorplan.h"
 // #include "../base/indoor_polygon.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
@@ -30,7 +30,34 @@ int main(int argc, char* argv[]) {
   FileIO file_io(argv[1]);
   
   vector<Panorama> panoramas;
-  ReadPanoramas(file_io, &panoramas);
+  {
+    ReadPanoramas(file_io, &panoramas);
+  }
+
+  vector<Detection> detections;
+  {
+    ifstream ifstr;
+    ifstr.open(file_io.GetObjectDetections().c_str());
+    if (!ifstr.is_open()) {
+      cerr << "File cannot be opened: " << file_io.GetObjectDetections() << endl;
+      return 1;
+    }
+    ifstr >> detections;
+    ifstr.close();
+  }
+
+  vector<PointCloud> object_point_clouds;
+  {
+    Floorplan floorplan(file_io.GetFloorplan());
+    ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
+  }
+  
+  // Find the corresponding object point cloud, and compute the icon information for the viewer.
+
+  // For each detection, find the most relevant object point cloud if any.
+  ///  vector<ObjectPointCloud>
+
+  
 
   /*
   vecor<PointCloud> input_point_clouds, object_point_clouds;

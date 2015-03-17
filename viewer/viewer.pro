@@ -28,7 +28,6 @@ qtHaveModule(opengl) {
        indoor_polygon_renderer.cc \
        ../base/floorplan.cc \
        ../base/indoor_polygon.cc \
-       ../base/geometry.cc \
        ../base/panorama.cc \
        ../base/point_cloud.cc
 
