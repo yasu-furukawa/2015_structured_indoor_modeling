@@ -191,8 +191,8 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Transform(local_to_global);
 }
 
-void PointCloud::AddPoints(const PointCloud& point_cloud){
-     AddPoints(point_cloud.points);
+void PointCloud::AddPoints(const PointCloud& point_cloud, bool mergeid){
+    AddPoints(point_cloud.points, mergeid);
 }
 
 

@@ -54,11 +54,14 @@ int main(int argc, char **argv){
     vector <int> numlabels;
     vector <vector<int> >superpixelLabel(endid - startid + 1); //label of superpixel for each panorama
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
+    vector < vector<list<PointCloud> > > objectlist; //room->object->object part
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, depth, imgwidth, imgheight, startid, endid);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
+
+    objectlist.resize(objectcloud.size());
 	 
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
@@ -96,7 +99,7 @@ int main(int argc, char **argv){
 #if 1
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
 #endif
-	    BackProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], resultCloud[roomid], roomid);
+//	    backProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid]);
 	}
     }
 
