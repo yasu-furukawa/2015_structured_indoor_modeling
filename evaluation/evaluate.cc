@@ -218,26 +218,6 @@ void RasterizeMesh(const Panorama& panorama,
   
 }  // namespace  
 
-void ReadInputPointClouds(const FileIO& file_io, std::vector<PointCloud>* input_point_clouds) {
-  const int kStartPanorama = 0;
-  const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
-
-  input_point_clouds->clear();
-  input_point_clouds->resize(end_panorama);
-  {
-    cout << "Reading point clouds..." << flush;
-    for (int p = kStartPanorama; p < end_panorama; ++p) {
-      cout << '.' << flush;
-      if (!input_point_clouds->at(p).Init(file_io, p)) {
-        cerr << "Failed in loading the point cloud." << endl;
-        exit (1);
-      }
-      input_point_clouds->at(p).ToGlobal(file_io, p);
-    }
-    cout << "done" << endl;
-  }
-}
-
 void ReadObjectPointClouds(const FileIO& file_io,
                            const int num_rooms,
                            std::vector<PointCloud>* object_point_clouds) {

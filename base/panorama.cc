@@ -393,30 +393,38 @@ void Panorama::MakeOnlyBackgroundBlack() {
 
 //----------------------------------------------------------------------
 // Utility functions.  
-int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
-  int panorama = start_panorama;
-  while (1) {
-    const string filename = file_io.GetPanoramaImage(panorama);
-    ifstream ifstr;
-    ifstr.open(filename.c_str());
-    if (!ifstr.is_open()) {
-      ifstr.close();
-      return panorama;
-    }
-    ifstr.close();
-    ++panorama;
-  }
-}
-  
 void ReadPanoramas(const FileIO& file_io,
                    vector<Panorama>* panoramas) {
-  const int kStartPanorama = 0;
-  const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
+  const int num_panoramas = GetNumPanoramas(file_io);
   panoramas->clear();
-  panoramas->resize(end_panorama);
-  for (int p = kStartPanorama; p < end_panorama; ++p) {
+  panoramas->resize(num_panoramas);
+  for (int p = 0; p < num_panoramas; ++p) {
     panoramas->at(p).Init(file_io, p);
   }
+}
+
+void ReadPanoramaPyramids(const FileIO& file_io,
+                          const int num_levels,
+                          std::vector<std::vector<Panorama> >* panorama_pyramids) {
+  const int num_panoramas = GetNumPanoramas(file_io);
+
+  panorama_pyramids->clear();
+  panorama_pyramids->resize(num_panoramas);
+  cout << "Reading panorama_pyramids" << flush;
+  for (int p = 0; p < num_panoramas; ++p) {
+    cout << '.' << flush;
+    panorama_pyramids->at(p).resize(num_levels);
+    for (int level = 0; level < num_levels; ++level) {
+      panorama_pyramids->at(p)[level].Init(file_io, p);
+      panorama_pyramids->at(p)[level].MakeOnlyBackgroundBlack();
+      if (level != 0) {
+        const int new_width  = panorama_pyramids->at(p)[level].Width()  / (0x01 << level);
+        const int new_height = panorama_pyramids->at(p)[level].Height() / (0x01 << level);
+        panorama_pyramids->at(p)[level].ResizeRGB(Vector2i(new_width, new_height));
+      }
+    }
+  }
+  cout << " done." << endl;
 }
   
 }  // namespace structured_indoor_modeling

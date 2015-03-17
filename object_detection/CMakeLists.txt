@@ -20,5 +20,5 @@ if (WIN32)
 endif (WIN32)
 
 add_executable( generate_object_icons_cli generate_object_icons_cli.cc detection.cc ../base/panorama.cc ../base/point_cloud.cc )
-target_link_libraries( evaluate_cli ${OpenCV_LIBS} )
-target_link_libraries( evaluate_cli gflags )
+target_link_libraries( generate_object_icons_cli ${OpenCV_LIBS} )
+target_link_libraries( generate_object_icons_cli gflags )

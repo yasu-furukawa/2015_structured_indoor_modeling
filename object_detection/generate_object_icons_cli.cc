@@ -32,8 +32,9 @@ int main(int argc, char* argv[]) {
   vector<Panorama> panoramas;
   ReadPanoramas(file_io, &panoramas);
 
-  vector<PointCloud> input_point_clouds, object_point_clouds;
-  ReadInputPointClouds(file_io, &input_point_clouds);
+  /*
+  vecor<PointCloud> input_point_clouds, object_point_clouds;
+  ReadPointClouds(file_io, &input_point_clouds);
   ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
 
   // Accuracy and completeness.
@@ -82,6 +83,6 @@ int main(int argc, char* argv[]) {
                    depth_unit);
     }
   }
-  
+  */  
   return 0;
 }

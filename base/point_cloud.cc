@@ -294,4 +294,19 @@ void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
   Update();
 }
 
+//----------------------------------------------------------------------
+void ReadPointClouds(const FileIO& file_io, std::vector<PointCloud>* point_clouds) {
+  cout << "Reading pointclouds" << flush;
+  const int num_panoramas = GetNumPanoramas(file_io);
+
+  point_clouds->clear();
+  point_clouds->resize(num_panoramas);
+  for (int p = 0; p < num_panoramas; ++p) {
+    cout << '.' << flush;
+    point_clouds->at(p).Init(file_io, p);
+    point_clouds->at(p).ToGlobal(file_io, p);
+  }
+  cout << " done." << endl;
+}  
+  
 }  // namespace structured_indoor_modeling

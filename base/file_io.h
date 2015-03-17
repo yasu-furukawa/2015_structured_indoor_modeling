@@ -149,5 +149,20 @@ class FileIO {
   mutable char buffer[1024];
 };
 
+inline int GetNumPanoramas(const FileIO& file_io) {
+  int panorama = 0;
+  while (1) {
+    const std::string filename = file_io.GetPanoramaImage(panorama);
+    std::ifstream ifstr;
+    ifstr.open(filename.c_str());
+    if (!ifstr.is_open()) {
+      ifstr.close();
+      return panorama;
+    }
+    ifstr.close();
+    ++panorama;
+  }
+}
+ 
 }  // namespace structured_indoor_modeling
 #endif  // FILE_IO_H__
