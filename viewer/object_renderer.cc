@@ -144,6 +144,7 @@ void ObjectRenderer::ComputeBoundingBoxes() {
           }
         }
       }
+
       const double average_z = (min_xyz[2] + max_xyz[2]) / 2.0;
       BoundingBox& bounding_box = bounding_boxes[room][object];
       bounding_box.corners[0] =
@@ -174,6 +175,19 @@ void ObjectRenderer::RenderIcons(const double /* alpha */) {
   }
   glEnd();
 
+  glLineWidth(0.5f);
+  for (int room = 0; room < (int)bounding_boxes.size(); ++room) {
+    for (const auto& bounding_box : bounding_boxes[room]) {
+      glBegin(GL_LINE_LOOP);
+      glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+      for (int i = 0; i < 4; ++i)
+        glVertex3d(bounding_box.corners[i][0],
+                   bounding_box.corners[i][1],
+                   bounding_box.corners[i][2]);
+      glEnd();
+    }
+  }
+  
   glDisable(GL_BLEND);
 }
   
