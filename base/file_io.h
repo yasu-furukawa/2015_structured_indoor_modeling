@@ -16,6 +16,8 @@
 
 #ifndef FILE_IO_H__
 #define FILE_IO_H__
+
+#include <fstream>
 #include <stdio.h>
 #include <string>
 namespace structured_indoor_modeling {

@@ -199,7 +199,7 @@ void PointCloud::AddPoints(const PointCloud& point_cloud){
 void PointCloud::AddPoints(const vector<Point>& new_points) {
      int orinum = points.size();
   points.insert(points.end(), new_points.begin(), new_points.end());
-  for(int i=orinum;i<points.size();i++){
+  for(int i = orinum; i< (int)points.size(); i++){
        points[i].object_id += num_objects;
   }
   Update();
@@ -308,5 +308,18 @@ void ReadPointClouds(const FileIO& file_io, std::vector<PointCloud>* point_cloud
   }
   cout << " done." << endl;
 }  
+
+void ReadObjectPointClouds(const FileIO& file_io,
+                           const int num_rooms,
+                           std::vector<PointCloud>* object_point_clouds) {
+  object_point_clouds->clear();
+  object_point_clouds->resize(num_rooms);
+  cout << "Reading object clouds..." << flush;
+  for (int room = 0; room < num_rooms; ++room) {
+    cout << '.' << flush;
+    object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
+  }
+  cout << "done" << endl;
+}
   
 }  // namespace structured_indoor_modeling

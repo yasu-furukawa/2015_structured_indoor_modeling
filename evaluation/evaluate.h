@@ -36,10 +36,6 @@ class IndoorPolygon;
 class Panorama;
 class PointCloud;
 
-void ReadObjectPointClouds(const FileIO& file_io,
-                           const int num_rooms,
-                           std::vector<PointCloud>* object_point_clouds);
-
 Eigen::Vector3d GetLaserCenter(const FileIO& file_io, const int panorama);
 
 void Initialize(const std::vector<Panorama>& panoramas,
