@@ -26,21 +26,6 @@ struct Triple {
   
 namespace {
 
-int GetEndPanorama(const FileIO& file_io, const int start_panorama) {
-  int panorama = start_panorama;
-  while (1) {
-    const string filename = file_io.GetPanoramaImage(panorama);
-    ifstream ifstr;
-    ifstr.open(filename.c_str());
-    if (!ifstr.is_open()) {
-      ifstr.close();
-      return panorama;
-    }
-    ifstr.close();
-    ++panorama;
-  }
-}
-
 double ComputeUnit(const Panorama& panorama,
                    const Vector3d& point) {
   const Vector2d uv_depth = panorama.ProjectToDepth(point);
@@ -264,17 +249,6 @@ void ReadObjectPointClouds(const FileIO& file_io,
     object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
   }
   cout << "done" << endl;
-}
-
-void ReadPanoramas(const FileIO& file_io,
-                   vector<Panorama>* panoramas) {
-  const int kStartPanorama = 0;
-  const int end_panorama = GetEndPanorama(file_io, kStartPanorama);
-  panoramas->clear();
-  panoramas->resize(end_panorama);
-  for (int p = kStartPanorama; p < end_panorama; ++p) {
-    panoramas->at(p).Init(file_io, p);
-  }
 }
 
 Vector3d GetLaserCenter(const FileIO& file_io, const int panorama) {

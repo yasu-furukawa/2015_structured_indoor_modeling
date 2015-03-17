@@ -130,6 +130,10 @@ private:
   bool only_background_black;
 };
 
+//----------------------------------------------------------------------
+int GetEndPanorama(const FileIO& file_io, const int start_panorama);
+void ReadPanoramas(const FileIO& file_io, std::vector<Panorama>* panoramas);
+ 
 }  // namespace structured_indoor_modeling
 
 #endif  // PANORAMA_H_
