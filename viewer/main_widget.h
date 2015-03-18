@@ -16,6 +16,8 @@
 #include <vector>
 
 #include "../base/file_io.h"
+#include "../base/floorplan.h"
+#include "../base/indoor_polygon.h"
 #include "configuration.h"
 #include "navigation.h"
 #include "floorplan_renderer.h"
@@ -23,6 +25,7 @@
 #include "panel_renderer.h"
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
+#include "indoor_polygon_renderer.h"
 
 namespace structured_indoor_modeling {
   
@@ -53,6 +56,7 @@ private:
     //----------------------------------------------------------------------
     // Core data.
     Floorplan floorplan;
+    IndoorPolygon indoor_polygon;
     std::vector<Panorama> panoramas;  // No image data loaded.
     
     //----------------------------------------------------------------------
@@ -60,6 +64,7 @@ private:
     std::vector<PanoramaRenderer> panorama_renderers;
     ObjectRenderer object_renderer;
     PolygonRenderer polygon_renderer;
+    IndoorPolygonRenderer indoor_polygon_renderer;
     FloorplanRenderer floorplan_renderer;
     PanelRenderer panel_renderer;
     // Navigation knows the entire state of the viewer.
@@ -83,6 +88,8 @@ private:
     bool fresh_screen_for_air;
     bool fresh_screen_for_floorplan;
     double simple_click_time_offset_by_move;
+
+    bool polygon_or_indoor_polygon;
     
     QBasicTimer timer;
     QVector2D mousePressPosition;
@@ -93,12 +100,12 @@ private:
 
     QTime simple_click_time;
     QTime double_click_time;
+    QTime object_animation_time;
     bool mouse_down;
 
     void FreeResources();
     void AllocateResources();
     void SetMatrices();
-
 
     void InitPanoramasPanoramaRenderers();
     // void RenderQuad(const double alpha);
@@ -164,6 +171,9 @@ private:
     void RenderAirToFloorplanTransition(const bool flip = false);
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
 
+    double ObjectAnimationPosition() const;
+    bool ObjectAnimation() const;
+    
     void ClearDisplay();
     void ClearDisplayWithWhite();
 };

@@ -10,8 +10,10 @@ const int kInitial = -1;
 const int kFloor = -2;
 const int kWall = -3;
 const int kCeiling = -4;
+const int kDetail = -5;
   
 class Floorplan;
+class IndoorPolygon;
 class PointCloud;
 struct Point;
 
@@ -26,6 +28,9 @@ void LoadData(const int id,
 void SetRoomOccupancy(const Floorplan& floorplan,
                       std::vector<int>* room_occupancy);
 
+void SetDoorOccupancy(const Floorplan& floorplan,
+                      std::vector<int>* room_occupancy_with_doors);
+ 
 void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
                          const Floorplan& floorplan,
                          const std::vector<int>& room_occupancy,
@@ -34,10 +39,15 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
 
 void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
-                              const std::vector<int>& room_occupancy,
                               const int room,
                               std::vector<int>* segments);                          
 
+void IdentifyDetails(const std::vector<Point>& points,
+                     const Floorplan& floorplan,
+                     const IndoorPolygon& indoor_polygon,
+                     const int room,
+                     std::vector<int>* segments);                          
+ 
 void Subsample(const double ratio, std::vector<Point>* points);
  
 void FilterNoisyPoints(std::vector<Point>* points);
@@ -57,7 +67,12 @@ void DensifyObjects(const std::vector<std::vector<int> >& neighbors,
  
 void SetNeighbors(const std::vector<Point>& points,
                   const int num_neighbors,
-                  std::vector<std::vector<int> >* neighbors); 
+                  std::vector<std::vector<int> >* neighbors);
+
+void RemoveWindowAndMirror(const Floorplan& floorplan,
+                           const std::vector<int>& room_occupancy_with_doors,
+                           const Eigen::Vector3d& center,
+                           PointCloud* point_cloud);
 
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,

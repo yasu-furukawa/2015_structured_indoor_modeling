@@ -42,6 +42,8 @@
   panorama.Init(file_io, kPanoramaID);
  */
 
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <vector>
@@ -55,6 +57,7 @@ public:
   Panorama();
   bool Init(const FileIO& file_io, const int panorama);
   bool InitWithoutLoadingImages(const FileIO& file_io, const int panorama);
+  bool InitWithoutDepths(const FileIO& file_io, const int panorama);
 
   Eigen::Vector2d Project(const Eigen::Vector3d& global) const;
   Eigen::Vector3d Unproject(const Eigen::Vector2d& pixel,
@@ -76,7 +79,7 @@ public:
   // Performs bilinear interpolation.
   Eigen::Vector3f GetRGB(const Eigen::Vector2d& pixel) const;
   double GetDepth(const Eigen::Vector2d& depth_pixel) const;
-  const cv::Mat GetRGBImage(){return rgb_image;}
+  const cv::Mat GetRGBImage() const{return rgb_image;} 
   double GetPhiRange() const;
   double GetPhiPerPixel() const;
   Eigen::Matrix4d GetGlobalToLocal() const;
@@ -91,13 +94,20 @@ public:
   bool IsInsideDepth(const Eigen::Vector2d& depth_pixel) const;
 
   // Shrink only and suggested for integer shrink ratio (e.g., making a width half or 1/3).
-  void ResizeRGB(const Eigen::Vector2i& size);
+  void Resize(const Eigen::Vector2i& size);
 
   // void ReleaseMemory();
+
+  // This function needs to be used very carefully. Adjust the center
+  // of the panorama at the specified location (e.g., laser scanning
+  // center), so that Project and Unproject can be used in the laser
+  // scanning coordinate.
+  void AdjustCenter(const Eigen::Vector3d& new_center);
 
 private:
   void InitDepthImage(const FileIO& file_io, const int panorama);
   void InitCameraParameters(const FileIO& file_io, const int panorama);
+  void SetGlobalToLocalFromLocalToGlobal();
 
   Eigen::Matrix4d global_to_local;
   Eigen::Matrix4d local_to_global;
@@ -121,6 +131,14 @@ private:
   bool only_background_black;
 };
 
+//----------------------------------------------------------------------
+void ReadPanoramas(const FileIO& file_io, std::vector<Panorama>* panoramas);
+void ReadPanoramasWithoutDepths(const FileIO& file_io,
+                                std::vector<Panorama>* panoramas);
+void ReadPanoramaPyramids(const FileIO& file_io,
+                          const int num_levels,
+                          std::vector<std::vector<Panorama> >* panorama_pyramids);
+ 
 }  // namespace structured_indoor_modeling
 
 #endif  // PANORAMA_H_

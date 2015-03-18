@@ -103,7 +103,8 @@ void PanoramaRenderer::Init(const FileIO& file_io,
     exit (1);
   }
 
-  InitDepthMesh(file_io.GetDepthPanorama(panorama_id), panorama->GetPhiRange());
+  InitDepthMesh(file_io.GetSmoothDepthPanorama(panorama_id),
+                panorama->GetPhiRange());
 }
 
 void PanoramaRenderer::InitGL() {
@@ -124,7 +125,7 @@ void PanoramaRenderer::InitGL() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
   
-void PanoramaRenderer::InitDepthMesh(const string& filename, const double phi_range) {
+void PanoramaRenderer::InitDepthMesh(const string& /* filename */, const double /* phi_range */) {
   /*
   ifstream ifstr;
   ifstr.open(filename.c_str());

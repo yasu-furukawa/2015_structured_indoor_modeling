@@ -1,4 +1,3 @@
-#include "SLIC.h"
 #include <iostream>
 #include <fstream>
 #include <opencv2/opencv.hpp>
@@ -13,6 +12,7 @@
 #include "object_hole_filling.h"
 #include "depth_filling.h"
 #include <algorithm>
+#include "time.h"
 
 using namespace std;
 using namespace cv;
@@ -21,173 +21,134 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.08,"Weight of smoothness term");
-
-Vec3b colortable[] = {Vec3b((uchar)255,(uchar)0,(uchar)0), Vec3b((uchar)0,(uchar)255,(uchar)0), Vec3b((uchar)0,(uchar)0,(uchar)255), Vec3b((uchar)255,(uchar)255,(uchar)0), Vec3b((uchar)255,(uchar)0,(uchar)255), Vec3b((uchar)0,(uchar)255,(uchar)255), Vec3b((uchar)128,(uchar)0,(uchar)0), Vec3b((uchar)0,(uchar)128,(uchar)0), Vec3b((uchar)0,(uchar)0,(uchar)128), Vec3b((uchar)128,(uchar)128,(uchar)0), Vec3b((uchar)128,(uchar)0,(uchar)128), Vec3b((uchar)0,(uchar)128,(uchar)128), Vec3b((uchar)255,(uchar)128,(uchar)128),Vec3b((uchar)128,(uchar)255,(uchar)128),Vec3b((uchar)128,(uchar)128,(uchar)255)};
-
+DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 
-  gflags::ParseCommandLineFlags(&argc,&argv,true);
-  if(! (FLAGS_config_path.length() > 0)){
-    cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
-  }
-  //get path to data
-  char pathtodata[100];
-  int startid, endid;
-  ifstream confin(FLAGS_config_path.c_str());
-  confin.getline(pathtodata,100);
-  confin>>startid>>endid;
-  confin.close();
-  string pathtodata_s(pathtodata);
-  FileIO file_io(pathtodata_s);
-
-  //////////////////////////////////////
-  //read and group object point cloud
-  vector <PointCloud> objectcloud;
-  vector <PointCloud> backgroundCloud;
-  vector <vector <vector<int> > >objectgroup;
-  vector <vector <double> > objectvolume;
-  cout <<"Reading object pointcloud!"<<endl;
-  ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
-
-  //////////////////////////////////////
-  startid = 0;
-  endid = 16;
-
-  for (int id=startid; id<endid; id++) {
-    cout<<"======================="<<endl;
-    //reading point cloud and convert to depth
-
-    cout<<"Panorama "<<id<<endl;
-    Panorama panorama;
-    panorama.Init(file_io, id);
-
-    PointCloud curpc;
-    cout<<"reading pnaorama  point cloud..."<<endl;
-    curpc.Init(file_io, id);
-    curpc.ToGlobal(file_io, id);
-    
-    //Get depthmap
-    cout<<"Processing depth map..."<<endl;
-    DepthFilling depth;
-    depth.Init(curpc, panorama);
-    depth.SaveDepthmap("./depth.png");
-    depth.fill_hole(panorama);
-    depth.SaveDepthmap("./depth_denoise.png");
-
-    int imgwidth = panorama.Width();
-    int imgheight = panorama.Height();
-    int numlabels(0);
-    vector<int> labels(imgwidth*imgheight);
+    gflags::ParseCommandLineFlags(&argc,&argv,true);
+    if(! (FLAGS_config_path.length() > 0)){
+	cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
+    }
+    //get path to data
+    char pathtodata[100];
     char buffer[100];
+    int startid, endid;
+    ifstream confin(FLAGS_config_path.c_str());
+    confin.getline(pathtodata,100);
+    confin>>startid>>endid;
+    confin.close();
+    string pathtodata_s(pathtodata);
+    FileIO file_io(pathtodata_s);
 
-    sprintf(buffer,"superpixel/SLIC%03d.txt",id);
-    ifstream labelin(buffer, ios::binary);
-    if(!labelin.is_open()){
-	cout<<"Performing SLICO Superpixel..."<<endl;
-	Mat pan = panorama.GetRGBImage().clone();
-	SLIC slic;
-	vector<unsigned int>imagebuffer;
-	MatToImagebuffer(pan, imagebuffer);
-	slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[0],numlabels,FLAGS_label_num,0.0);
-	slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[0],imgwidth,imgheight);
 
-	sprintf(buffer,"superpixel/SLIC%03d.txt",id);
-	slic.SaveSuperpixelLabels(&labels[0],imgwidth,imgheight,numlabels," ",string(buffer));
-	cout<<"numlabels: "<<numlabels<<endl;
-	Mat out;
-	ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
-	//sprintf(buffer,"%s/SLIC%03d.png",file_io.GetDataDirectory().c_str(),id);
-	sprintf(buffer,"SLIC%03d.png",id); 
-	imwrite(buffer,out);
-	waitKey(10);
-    }else{
-	cout <<"Reading superpixel from file"<<endl;
-	labelin.read((char*)&numlabels, sizeof(int));
-	labels.resize(imgwidth * imgheight);
-	for(int i=0;i<labels.size();i++){
-	    labelin.read((char*)&labels[i], sizeof(int));
-	}
-	labelin.close();
-    }
+    //////////////////////////////////////
+    //Init Panoramas
+    //objectgroup: room->object->points
+    //objectvolume: room->object volume
+    vector <PointCloud> objectcloud;
+    vector <PointCloud> backgroundCloud;
+    vector <vector <vector<int> > >objectgroup;
+    vector <vector <double> > objectvolume;
+    vector <Panorama> panorama;
+    vector <DepthFilling> depth;
+    vector <vector <int> >labels;
+    vector <int> numlabels;
+    vector <vector<int> >superpixelLabel(endid - startid + 1); //label of superpixel for each panorama
+    vector <vector<vector<int> > >labelgroup(endid - startid + 1);
+    vector < vector<list<PointCloud> > > objectlist; //room->object->object part
 
-    vector <vector<int> >labelgroup;
-    vector <Vector3d> averageRGB;
-    labelTolabelgroup(labels, panorama, labelgroup, averageRGB, numlabels);
-    cout<<"Getting pairwise structure..."<<endl;
-    map<pair<int,int>,int> pairmap;
-    pairSuperpixel(labels, imgwidth, imgheight, pairmap);
+    cout<<"Init..."<<endl;
+    int imgheight, imgwidth;
+    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, depth, imgwidth, imgheight, startid, endid);
+    ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
+
+    objectlist.resize(objectcloud.size());
+
+
+    /////////
+    //debug for ICP
+     PointCloud src, tgt;
+     vector<structured_indoor_modeling::Point>objpt;
+     objectcloud[0].GetObjectPoints(0, objpt);
+     tgt.AddPoints(objpt);
+     src.Init("/Users/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object000.ply");
+     ICP(src, tgt);
+     src.Write("/Users/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object000_2.ply");
+
+	 
+    //////////////////////////////////////
+    vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
+
+    cout<<endl<<endl;
+    //////////////////////////////////////
+    for (int panid=startid; panid<=endid; panid++) {
+	cout<<"==========================="<<endl<<"Panorama "<<panid<<endl;
+	int curid = panid - startid;
+
+	vector <Vector3d> averageRGB;
+	labelTolabelgroup(labels[curid], panorama[curid], labelgroup[curid], averageRGB, numlabels[curid]);
+	cout<<"Getting pairwise structure..."<<endl;
+	map<pair<int,int>,int> pairmap;
+	pairSuperpixel(labels[curid], imgwidth, imgheight, pairmap);
     
-    ////////////////////////////////////////////////////
-    //get the superpixel confidence for each object and background
-    
-    for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
-      cout<<"--------------------------"<<endl;
-      cout<<"room "<<roomid<<endl;
-      vector <vector<double> >superpixelConfidence(objectgroup[roomid].size());
-      cout<<"Get superpixel confidence"<<endl;
-      for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-	getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama, depth.GetDepthmap(), labels, labelgroup, superpixelConfidence[groupid], numlabels);
-      }
-#if 1
-      cout<<"saving mask..."<<endl;
-      //save the mask
-      double minc = 1e100;
-      double maxc = -1e100;
+	////////////////////////////////////////////////////
+	//get the superpixel confidence for each object and background
+    	for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
+	    cout<<"--------------------------"<<endl;
+	    cout<<"room "<<roomid<<endl;
+	    cout<<"Get superpixel confidence"<<endl;
 
-      for(int i=0;i<superpixelConfidence.size();i++){
-	  for(int j=0;j<superpixelConfidence[i].size();j++){
-	      minc = min(superpixelConfidence[i][j], minc);
-	      maxc = max(superpixelConfidence[i][j], maxc);
-	  }
-      }
-      Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
-      for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-	  int colorid = groupid % 15;
-	  for(int i=0;i<imgwidth*imgheight;++i){
-	      int x = i % imgwidth;
-	      int y = i / imgwidth;
-	      double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
-	      double r = (double)colortable[colorid][0] * curconfidence * 4;
-	      double g = (double)colortable[colorid][1] * curconfidence * 4;
-	      double b = (double)colortable[colorid][2] * curconfidence * 4;
-	      Vec3b curpix((uchar)r, (uchar)g, (uchar)b);
-	      outmask.at<Vec3b>(y,x) += curpix;
-	  }
-      }
-      sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d.jpg",id, roomid);
-      imwrite(buffer, outmask);
-      waitKey(10);
+	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
+	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
+		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
+	    }
+#if 0
+	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
 #endif
-
-
-      vector <int> superpixelLabel;
-      cout<<"Optimizing..."<<endl;
-      MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel);
-
-      //save optimize result
-      Mat optimizeout = panorama.GetRGBImage().clone();
-      for(int y=0;y<imgheight;y++){
-	  for(int x=0;x<imgwidth;x++){
-	      int curlabel = superpixelLabel[labels[y*imgwidth + x]];
-	      int colorid = curlabel;
-	      Vec3b curpix;
-	      if(colorid <= 15)
-		  curpix = colortable[colorid] * 0.8 + optimizeout.at<Vec3b>(y,x)*0.2;
-	      else
-		  curpix = Vec3b((uchar)rand()%255,(uchar)rand()%255,(uchar)rand()%255);
-
-	      optimizeout.at<Vec3b>(y,x) = curpix;
-	  }
-      }
-      sprintf(buffer,"object_project/optimize_pan%03d_room%03d.png",id,roomid);
-      imwrite(buffer,optimizeout);
-      waitKey(10);
-
+	    DepthFilling objectDepth;
+	    cout<<"Optimizing..."<<endl;
+	    cout<<"numlabel:"<<objectgroup[roomid].size()<<endl;
+	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel[curid]);
+#if 1
+	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
+#endif
+	    backProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], resultCloud[roomid]);
+	}
     }
-  }
 
-  return 0;
+    /////////////////////////////    
+    cout<<endl<<"All done! Saving result..."<<endl;
+
+//     for(int roomid=0; roomid<resultCloud.size(); roomid++){
+//     	 // cout<<"Merging close points..."<<endl;
+//     	 // cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+//     	 // clock_t start,end;
+//     	 // start = clock();
+//     	 // mergeVertices(resultCloud[roomid], 1024);
+//     	 // end = clock();
+//     	 // cout<<"done. Time: "<<end - start<<endl;
+//     	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+
+// 	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
+// 	    PointCloud curob;
+// 	    vector<structured_indoor_modeling::Point>obpts;
+// 	    resultCloud[roomid].GetObjectPoints(i, obpts);
+// 	    curob.AddPoints(obpts);
+// 	    vector<double>bbox = curob.GetBoundingbox();
+// 	    double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
+// 	    double density = (double)curob.GetNumPoints() / areaXY;
+// 	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
+// 	    cout<<"Writing "<<buffer<<" XY density: "<<density<<endl;
+// 	    curob.Write(string(buffer));
+// 	}
+// //	cout<<"Cleaning room "<<roomid<<"..."<<endl;
+// //	cleanObjects(resultCloud[roomid], 1e5);
+// 	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
+//     	 string savepath = file_io.GetRefinedObjectClouds(roomid);
+//     	 cout<<"Saving "<<savepath<<endl;
+//     	 resultCloud[roomid].Write(savepath);
+//     }
+
+    return 0;
 }
 

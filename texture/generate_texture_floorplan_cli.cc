@@ -13,9 +13,8 @@
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
 #include "../base/panorama.h"
-#include "generate_texture.h"
+#include "generate_texture_floorplan.h"
 
-DEFINE_int32(start_panorama, 0, "First panorama id.");
 DEFINE_int32(num_pyramid_levels, 3, "Num pyramid levels.");
 DEFINE_int32(pyramid_level_for_floor, 1, "Level of pyramid for floor texture.");
 // DEFINE_double(texel_size_rescale, 1.0, "Less than 1 to increase resolution.");
@@ -49,18 +48,14 @@ int main(int argc, char* argv[]) {
   // Read data from the directory.
   FileIO file_io(argv[1]);
 
-  const int end_panorama = GetEndPanorama(file_io, FLAGS_start_panorama);
-
   TextureInput texture_input;
   {
-    ReadPanoramas(file_io,
-                  FLAGS_start_panorama,
-                  end_panorama,
-                  FLAGS_num_pyramid_levels,
-                  &texture_input.panoramas);
+    ReadPanoramaPyramids(file_io,
+                         FLAGS_num_pyramid_levels,
+                         &texture_input.panoramas);
   }
   {
-    ReadPointClouds(file_io, FLAGS_start_panorama, end_panorama, &texture_input.point_clouds);
+    ReadPointClouds(file_io, &texture_input.point_clouds);
   }
   {
     const string filename = file_io.GetFloorplan();

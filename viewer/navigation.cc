@@ -105,9 +105,9 @@ Navigation::Navigation(const Configuration& configuration,
                        const Floorplan& floorplan,
                        const vector<Panorama>& panoramas,
                        const std::map<int, int>& panorama_to_room,
-                       const std::map<int, int>& room_to_panorama)
+                       const std::map<int, int>& /* room_to_panorama */)
   : floorplan(floorplan), panoramas(panoramas),
-    panorama_to_room(panorama_to_room), room_to_panorama(room_to_panorama) {
+    panorama_to_room(panorama_to_room) /*, room_to_panorama(room_to_panorama) */ {
   air_angle = configuration.air_angle;
   air_field_of_view_degrees = configuration.air_field_of_view_degrees;
   floorplan_angle = configuration.floorplan_angle;
@@ -378,7 +378,7 @@ void Navigation::Tick() {
     break;
   }
   case kAirTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.04;
     camera_air.progress += kStepSize;
     if (camera_air.progress >= 1.0) {
       camera_status = kAir;

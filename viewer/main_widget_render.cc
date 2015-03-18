@@ -43,7 +43,11 @@ void MainWidget::RenderFloorplan(const double alpha,
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
+  // Outlines.
   floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize, height_adjustment);
+
+  // Bounding boxes for objects.
+  object_renderer.RenderIcons(alpha);  
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
@@ -196,10 +200,10 @@ void MainWidget::BlendFrames(const double weight, const int divide_by_alpha_mode
   glPopAttrib();  
 }
 
-void MainWidget::RenderObjects(const double alpha) {
+void MainWidget::RenderObjects(const double /* alpha */) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
-  
-  object_renderer.RenderAll(alpha);
+
+  object_renderer.RenderAll(ObjectAnimationPosition());
 
   glPopAttrib();
 
@@ -328,26 +332,46 @@ void MainWidget::RenderPolygon(const int room_not_rendered,
 void MainWidget::RenderTexturedPolygon(const double alpha) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_CULL_FACE);
-
-  {
-    glCullFace(GL_FRONT);
-    glDisable(GL_TEXTURE_2D);
-    polygon_renderer.RenderTextureMappedRooms(alpha * 0.5, alpha * 0.2);
-  }
-
-  {
-    glCullFace(GL_BACK);
+  if (polygon_or_indoor_polygon) {
     glEnable(GL_TEXTURE_2D);
-    polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
-  }
-  
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_TEXTURE_2D);
-
-  {
-    polygon_renderer.RenderDoors(alpha * 0.2);
+    glEnable(GL_CULL_FACE);
+    
+    {
+      glCullFace(GL_FRONT);
+      glDisable(GL_TEXTURE_2D);
+      polygon_renderer.RenderTextureMappedRooms(alpha * 0.5, alpha * 0.2);
+    }
+    
+    {
+      glCullFace(GL_BACK);
+      glEnable(GL_TEXTURE_2D);
+      polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
+    }
+    
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
+    
+    {
+      polygon_renderer.RenderDoors(alpha * 0.2);
+    }
+  } else {
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_CULL_FACE);
+    
+    {
+      glCullFace(GL_FRONT);
+      glDisable(GL_TEXTURE_2D);
+      indoor_polygon_renderer.RenderTextureMappedRooms(alpha * 0.5, alpha * 0.2);
+    }
+    
+    {
+      glCullFace(GL_BACK);
+      glEnable(GL_TEXTURE_2D);
+      indoor_polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
+    }
+    
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
   }
 
   glPopAttrib();  

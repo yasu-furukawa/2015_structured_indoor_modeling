@@ -32,3 +32,7 @@ target_link_libraries( render_ply_to_panorama_cli ${OpenCV_LIBS} )
 TARGET_LINK_LIBRARIES( render_ply_to_panorama_cli ceres)
 TARGET_LINK_LIBRARIES( render_ply_to_panorama_cli gflags)
 
+add_executable( generate_depthmaps_cli generate_depthmaps_cli.cc ../base/panorama.cc ../base/point_cloud.cc )
+target_link_libraries( generate_depthmaps_cli ${OpenCV_LIBS} )
+TARGET_LINK_LIBRARIES( generate_depthmaps_cli ceres)
+TARGET_LINK_LIBRARIES( generate_depthmaps_cli gflags)

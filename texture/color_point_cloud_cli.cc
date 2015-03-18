@@ -15,13 +15,12 @@
 #include "../base/file_io.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
-#include "generate_texture.h"
+#include "generate_texture_floorplan.h"
 
 using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
 
-DEFINE_int32(start_panorama, 0, "First panorama ID.");
 DEFINE_int32(num_pyramid_levels, 4, "Num pyramid levels.");
 DEFINE_int32(max_num_rooms, 200, "Maximum number of rooms.");
 DEFINE_int32(pyramid_level, 1, "Which level of pyramid to collect colors.");
@@ -113,19 +112,14 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
   FileIO file_io(argv[1]);
-  const int end_panorama = GetEndPanorama(file_io, FLAGS_start_panorama);
 
   vector<vector<Panorama> > panoramas;
   {
-    ReadPanoramas(file_io,
-                  FLAGS_start_panorama,
-                  end_panorama,
-                  FLAGS_num_pyramid_levels,
-                  &panoramas);
+    ReadPanoramaPyramids(file_io, FLAGS_num_pyramid_levels, &panoramas);
   }
   vector<Matrix4d> panorama_to_globals;
   {
-    ReadPanoramaToGlobals(file_io, FLAGS_start_panorama, end_panorama, &panorama_to_globals);
+    ReadPanoramaToGlobals(file_io, &panorama_to_globals);
   }
   vector<Matrix4d> global_to_panoramas;
   {

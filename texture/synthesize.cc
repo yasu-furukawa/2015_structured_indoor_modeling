@@ -328,6 +328,90 @@ void PoissonBlendSub(const SynthesisData& synthesis_data,
       static_cast<unsigned char>(max(0.0, min(255.0, x[v])));
   }  
 }    
+
+void PoissonBlendSubNew(const SynthesisData& synthesis_data,
+                        const vector<vector<Vector3d> >& laplacians,
+                        const vector<vector<Vector3d> >& values,
+                        const vector<Vector3d>& average_laplacian,
+                        const vector<Vector2i>& indexes,
+                        map<pair<int, int>, int>& inverse_indexes,
+                        const int channel,
+                        cv::Mat* floor_texture) {
+  const int width      = synthesis_data.texture_size[0];
+  const int height     = synthesis_data.texture_size[1];
+
+  SparseMatrix<double> A(indexes.size(), indexes.size());
+  VectorXd b(indexes.size());
+
+  vector<Eigen::Triplet<double> > triplets;
+
+  // Laplacian constraints.
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      const int index = y * width + x;
+      if (!synthesis_data.mask[index])
+        continue;
+
+      const int ref_variable_index = inverse_indexes[pair<int, int>(x, y)];
+      
+      int count = 0;
+      vector<Vector2i> neighbors;
+      if (x != 0)
+        neighbors.push_back(Vector2i(x - 1, y));
+      if (x != width - 1)
+        neighbors.push_back(Vector2i(x + 1, y));
+      if (y != 0)
+        neighbors.push_back(Vector2i(x, y - 1));
+      if (y != height - 1)
+        neighbors.push_back(Vector2i(x, y + 1));
+
+      for (const auto neighbor : neighbors) {
+        const int index = neighbor[1] * width + neighbor[0];
+        if (synthesis_data.mask[index]) {
+          if (inverse_indexes.find(pair<int, int>(neighbor[0], neighbor[1])) ==
+              inverse_indexes.end()) {
+            cout << "w1" << endl;
+            exit (1);
+          }
+          const int variable_index = inverse_indexes[pair<int, int>(neighbor[0], neighbor[1])];
+          triplets.push_back(Triplet<double>(ref_variable_index, variable_index, -1));
+          ++count;
+        }
+      }
+      if (count != 0) {
+        if (inverse_indexes.find(pair<int, int>(x, y)) == inverse_indexes.end()){
+          cout << "w5" << endl;
+          exit (1);
+        }
+        triplets.push_back(Triplet<double>(ref_variable_index, ref_variable_index, count));
+      }
+
+      b[ref_variable_index] = average_laplacian[index][channel];      
+    }
+  }  
+  
+  A.setFromTriplets(triplets.begin(), triplets.end());
+
+  // Data terms.
+  const double kDataWeight = 2.0;
+  for (int i = 0; i < indexes.size(); ++i) {
+    const int x = indexes[i][0];
+    const int y = indexes[i][1];
+    const int index = y * width + x;
+    if (values[index].size() != 1)
+        continue;
+    A.coeffRef(i, i) += kDataWeight;
+    b[i] += kDataWeight * values[index][0][channel];
+  }
+  
+  SimplicialCholesky<SparseMatrix<double> > chol(A);
+  VectorXd x = chol.solve(b);
+
+  for (int v = 0; v < (int)indexes.size(); ++v) {
+    floor_texture->at<cv::Vec3b>(indexes[v][1], indexes[v][0])[channel] = 
+      static_cast<unsigned char>(max(0.0, min(255.0, x[v])));
+  }  
+}    
   
 void PoissonBlend(const SynthesisData& synthesis_data,
                   const vector<vector<Vector3d> >& laplacians,
@@ -363,8 +447,8 @@ void PoissonBlend(const SynthesisData& synthesis_data,
   // For each channel.
   const int kNumChannels = 3;
   for (int c = 0; c < kNumChannels; ++c) {
-    PoissonBlendSub(synthesis_data, laplacians, values, average_laplacian,
-                    indexes, inverse_indexes, c, floor_texture);
+    PoissonBlendSubNew(synthesis_data, laplacians, values, average_laplacian,
+                       indexes, inverse_indexes, c, floor_texture);
 
   }
   cerr << " all done." << endl;
@@ -571,24 +655,23 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
                        const std::vector<cv::Mat>& patches,
                        const std::vector<Eigen::Vector2i>& patch_positions,
                        const bool vertical_constraint,
-                       cv::Mat* floor_texture) {
+                       cv::Mat* texture) {
   // First identify the projected texture with the most area.
   const cv::Vec3b kHole(0, 0, 0);
-  // Pixels that are right around the initial floor_texture. "Value"
+  // Pixels that are right around the initial texture. "Value"
   // constraint should not be enforced here for smooth transition.
   vector<bool> pixel_guarded;
-  InitializeTexture(synthesis_data, floor_texture, &pixel_guarded);
+  InitializeTexture(synthesis_data, texture, &pixel_guarded);
 
   // Simple case. Use one image to synthesize.
-  cv::imshow("source", *floor_texture);
-  // cv::imwrite("source.png", *floor_texture);
+  cv::imshow("source", *texture);
+  // cv::imwrite("source.png", *texture);
   // cv::waitKey(0);
-  
-  vector<bool> initial_mask(floor_texture->rows * floor_texture->cols, false);
+  vector<bool> initial_mask(texture->rows * texture->cols, false);
   int index = 0;
-  for (int y = 0; y < floor_texture->rows; ++y) {
-    for (int x = 0; x < floor_texture->cols; ++x, ++index) {
-      if (floor_texture->at<cv::Vec3b>(y, x) != kHole) {
+  for (int y = 0; y < texture->rows; ++y) {
+    for (int x = 0; x < texture->cols; ++x, ++index) {
+      if (texture->at<cv::Vec3b>(y, x) != kHole) {
         initial_mask[index] = true;
       }
     }
@@ -599,6 +682,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   const int height     = synthesis_data.texture_size[1];
   const int patch_size = synthesis_data.patch_size;
   const int margin     = synthesis_data.margin;
+
   // Try patch synthesis at grid points
   // i * (patch_size - margin), j * (patch_size - margin).
   const int grid_width  = (width - patch_size - 1) / (patch_size - margin) + 1;
@@ -613,7 +697,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   while (true) {
     // Find a grid position with the most constraints.
     Vector2i best_grid;
-    if (!FindGridWithMostValid(synthesis_data, *floor_texture, visited_grids, &best_grid))
+    if (!FindGridWithMostValid(synthesis_data, *texture, visited_grids, &best_grid))
       break;
     visited_grids.insert(pair<int, int>(best_grid[0], best_grid[1]));
     
@@ -632,7 +716,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
           const int index = y * width + x;
           if (!synthesis_data.mask[index])
             continue;
-          if (floor_texture->at<cv::Vec3b>(y, x) == kHole)
+          if (texture->at<cv::Vec3b>(y, x) == kHole)
             ++num_holes;
         }
       }
@@ -644,7 +728,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
         for (int x = min_x; x < max_x; ++x) {
           const int index = y * width + x;
           patch_with_initial_texture.at<cv::Vec3b>(y - min_y, x - min_x) =
-            floor_texture->at<cv::Vec3b>(y, x);
+            texture->at<cv::Vec3b>(y, x);
         }
       }
     } else {
@@ -657,7 +741,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
         bool found = false;
         for (int p = 0; p < patch_positions.size(); ++p) {
           if (patch_positions[p][0] == min_x) {
-            residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+            residuals[p] = AverageAbsoluteDifference(*texture, patches[p], x_range, y_range,
                                                      current_min * kMarginResidualScale);
             current_min = min(current_min, residuals[p]);
             found = true;
@@ -667,7 +751,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
         }
         if (!found) {
           for (int p = 0; p < patches.size(); ++p) {
-            residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+            residuals[p] = AverageAbsoluteDifference(*texture, patches[p], x_range, y_range,
                                                      current_min * kMarginResidualScale);
             current_min = min(current_min, residuals[p]);
           }
@@ -680,7 +764,7 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
         }
       } else {
         for (int p = 0; p < patches.size(); ++p) {
-          residuals[p] = AverageAbsoluteDifference(*floor_texture, patches[p], x_range, y_range,
+          residuals[p] = AverageAbsoluteDifference(*texture, patches[p], x_range, y_range,
                                                    current_min * kMarginResidualScale);
           current_min = min(current_min, residuals[p]);
         }
@@ -697,17 +781,17 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
       const int patch_id = candidates[rand() % candidates.size()];
       // cerr << "  patch: " << patch_id << endl;
       patch_with_initial_texture = patches[patch_id];
-      // overwrite with floor_texture and initial_mask.
+      // overwrite with texture and initial_mask.
       for (int y = y_range[0]; y < y_range[1]; ++y) {
         for (int x = x_range[0]; x < x_range[1]; ++x) {
           if (synthesis_data.mask[y * width + x] && initial_mask[y * width + x])
             patch_with_initial_texture.at<cv::Vec3b>(y - y_range[0], x - x_range[0]) =
-              floor_texture->at<cv::Vec3b>(y, x);
+              texture->at<cv::Vec3b>(y, x);
         }
       }
-      CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, floor_texture);
+      CopyPatch(synthesis_data.mask, patch_with_initial_texture, x_range, y_range, texture);
 
-      cv::imshow("next", *floor_texture);
+      cv::imshow("next", *texture);
       //cv::waitKey(0);
     }
     // cout << "setdataforblending" << endl;
@@ -724,10 +808,10 @@ void SynthesizePoisson(const SynthesisData& synthesis_data,
   }
   // cerr << "blend" << endl;
   // Poisson blend.
-  cv::imshow("before", *floor_texture);
+  cv::imshow("before", *texture);
   
   cerr << "blend" << flush;
-  PoissonBlend(synthesis_data, laplacians, values, floor_texture);
+  PoissonBlend(synthesis_data, laplacians, values, texture);
   // cerr << "done" << endl;
 }
 

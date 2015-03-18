@@ -186,7 +186,7 @@ class Navigation {
   const Floorplan& floorplan;
   const std::vector<Panorama>& panoramas;
   const std::map<int, int>& panorama_to_room;
-  const std::map<int, int>& room_to_panorama;
+  // const std::map<int, int>& room_to_panorama;
 };
 
 }  // namespace structured_indoor_modeling

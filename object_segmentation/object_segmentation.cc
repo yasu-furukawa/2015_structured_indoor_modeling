@@ -6,6 +6,7 @@
 #include <queue>
 
 #include "../base/floorplan.h"
+#include "../base/indoor_polygon.h"
 #include "../base/point_cloud.h"
 #include "../base/kdtree/KDtree.h"
 #include "object_segmentation.h"
@@ -26,7 +27,8 @@ namespace {
   
   double PointDistance(const Point& lhs, const Point& rhs);
 
-  void InitializeCentroids(const int num_initial_clusters,
+  void InitializeCentroids(const std::vector<Point>& points,
+                           const int num_initial_clusters,
                            std::vector<int>* segments);
   
   void ComputeDistances(const std::vector<Point>& points,
@@ -51,6 +53,17 @@ namespace {
              std::map<int, Eigen::Vector3i>* color_table);
 
   Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs);
+
+  void FillOccupancy(const Eigen::Vector3d& v0,
+                     const Eigen::Vector3d& v1,
+                     const Eigen::Vector3d& v2,
+                     const Eigen::Vector3d& min_xyz,
+                     const double voxel_unit,
+                     const Eigen::Vector3i& size,
+                     std::vector<bool>* occupancy);
+
+void ReportSegments(const std::vector<int>& segments);
+  
 }  // namespace  
 
 void SaveData(const int id,
@@ -64,7 +77,7 @@ void SaveData(const int id,
 
   ofstr << (int)points.size() << endl;
   for (const auto& point : points) {
-    ofstr << point.depth_position[0] << ' ' << point.depth_position[1] << ' '
+    ofstr << point.depth_position[1] << ' ' << point.depth_position[0] << ' '
           << point.position[0] << ' ' << point.position[1] << ' ' << point.position[2] << ' '
           << point.color[0] << ' ' << point.color[1] << ' ' << point.color[2] << ' '
           << point.normal[0] << ' ' << point.normal[1] << ' ' << point.normal[2] << ' '
@@ -95,7 +108,7 @@ void LoadData(const int id,
   ifstr >> num_points;
   points->resize(num_points);
   for (int p = 0; p < num_points; ++p) {
-    ifstr >> points->at(p).depth_position[0] >> points->at(p).depth_position[1] 
+    ifstr >> points->at(p).depth_position[1] >> points->at(p).depth_position[0] 
           >> points->at(p).position[0] >> points->at(p).position[1] >> points->at(p).position[2] 
           >> points->at(p).color[0]    >> points->at(p).color[1]    >> points->at(p).color[2] 
           >> points->at(p).normal[0]   >> points->at(p).normal[1]   >> points->at(p).normal[2] 
@@ -157,8 +170,88 @@ void SetRoomOccupancy(const Floorplan& floorplan,
       }
     }
   }
+
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("room.ppm");
+    ofstr << "P3" << endl
+          << grid_size[0] << ' ' << grid_size[1] << endl
+          << 255 << endl;
+
+    int index = 0;
+    for (int y = 0; y < grid_size[1]; ++y) {
+      for (int x = 0; x < grid_size[0]; ++x, ++index) {
+        if (room_occupancy->at(index) < 0)
+          ofstr << "255 255 255 " << endl;
+        else
+          ofstr << "0 0 0 " << endl;
+      }
+    }
+    ofstr.close();
+  }
+  */
 }
 
+void SetDoorOccupancy(const Floorplan& floorplan,
+                      std::vector<int>* room_occupancy_with_doors) {
+  const Eigen::Matrix3d global_to_floorplan = floorplan.GetFloorplanToGlobal().transpose();
+
+  const int kDoor = 1000;
+  const int width  = floorplan.GetGridSize()[0];
+  const int height = floorplan.GetGridSize()[1];
+  
+  for (int d = 0; d < floorplan.GetNumDoors(); ++d) {
+    Vector3d local0 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 0);
+    const Vector2d v0 = floorplan.LocalToGrid(Vector2d(local0[0], local0[1]));
+
+    Vector3d local1 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 1);
+    const Vector2d v1 = floorplan.LocalToGrid(Vector2d(local1[0], local1[1]));
+
+    Vector3d local2 = global_to_floorplan * floorplan.GetDoorVertexGlobal(d, 5);
+    const Vector2d v2 = floorplan.LocalToGrid(Vector2d(local2[0], local2[1]));
+
+    const int sample1 = (v1 - v0).norm() * 2;
+    const int sample2 = (v2 - v0).norm() * 2;
+
+    for (int s1 = 0; s1 <= sample1; ++s1) {
+      for (int s2 = 0; s2 <= sample2; ++s2) {
+        Vector2d position = v0 + (v1 - v0) * s1 / sample1 + (v2 - v0) * s2 / sample2;
+        
+        
+        const int x0 = max(0, min(width - 2, static_cast<int>(floor(position[0]))));
+        const int y0 = max(0, min(height - 2, static_cast<int>(floor(position[1]))));
+        const int x1 = x0 + 1;
+        const int y1 = y0 + 1;
+        room_occupancy_with_doors->at(y0 * width + x0) = kDoor;
+        room_occupancy_with_doors->at(y0 * width + x1) = kDoor;
+        room_occupancy_with_doors->at(y1 * width + x0) = kDoor;
+        room_occupancy_with_doors->at(y1 * width + x1) = kDoor;
+      }
+    }
+  }
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("room_door.ppm");
+    ofstr << "P3" << endl
+          << width << ' ' << height << endl
+          << 255 << endl;
+
+    int index = 0;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x, ++index) {
+        if (room_occupancy_with_doors->at(index) < 0)
+          ofstr << "255 255 255 " << endl;
+        else
+          ofstr << "0 0 0 " << endl;
+      }
+    }
+    ofstr.close();
+  }
+  */
+}
+  
 void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
                          const Floorplan& floorplan,
                          const std::vector<int>& room_occupancy,
@@ -177,7 +270,6 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
 
 void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
-                              const std::vector<int>& room_occupancy,
                               const int room,
                               std::vector<int>* segments) {
   const double kFloorMarginRatio   = 0.1;
@@ -207,6 +299,109 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
   }
 }
 
+
+void IdentifyDetails(const std::vector<Point>& points,
+                     const Floorplan& floorplan,
+                     const IndoorPolygon& indoor_polygon,
+                     const int room,
+                     std::vector<int>* segments) {
+  const double kDetailMarginRatio   = 0.1;
+  const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
+  const double detail_margin = room_height * kDetailMarginRatio;
+
+  const double voxel_unit = room_height / 128;
+  Vector3d min_xyz, max_xyz;
+  
+  bool first = false;
+  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+    const Segment& segment = indoor_polygon.GetSegment(s);
+    if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
+        (segment.type == Segment::CEILING && segment.ceiling_info == room) ||
+        (segment.type == Segment::WALL    && segment.wall_info[0] == room)) {
+      for (const auto& vertex : segment.vertices) {
+        if (first) {
+          for (int a = 0; a < 3; ++a) {
+            min_xyz[a] = max_xyz[a] = vertex[a];
+          }
+          first = false;
+        } else {
+          for (int a = 0; a < 3; ++a) {
+            min_xyz[a] = min(min_xyz[a], vertex[a]);
+            max_xyz[a] = max(max_xyz[a], vertex[a]);
+          }
+        }
+      }
+    }
+  }
+    
+  // Allocate a voxel inside a room.
+  Vector3d length = max_xyz - min_xyz;
+  Vector3i size;
+  for (int a = 0; a < 3; ++a) {
+    size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
+  }
+  cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
+
+  vector<bool> occupancy(size[0] * size[1] * size[2], false);
+  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+    const Segment& segment = indoor_polygon.GetSegment(s);
+    if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
+        (segment.type == Segment::CEILING && segment.ceiling_info == room) ||
+        (segment.type == Segment::WALL    && segment.wall_info[0] == room)) {
+      for (const auto& triangle : segment.triangles) {
+        FillOccupancy(segment.vertices[triangle.indices[0]],
+                      segment.vertices[triangle.indices[1]],
+                      segment.vertices[triangle.indices[2]],
+                      min_xyz,
+                      voxel_unit,
+                      size,
+                      &occupancy);
+      }
+    }
+  }
+  
+  // Expand occupancy.
+  const int kExpandMargin = 1;
+  {
+    vector<bool> vbtmp;
+
+    for (int t = 0; t < kExpandMargin; ++t) {
+      vbtmp = occupancy;
+      for (int z = 1; z < size[2] - 1; ++z) {
+        for (int y = 1; y < size[1] - 1; ++y) {
+          for (int x = 1; x < size[0] - 1; ++x) {
+            const int index = z * (size[0] * size[1]) + y * size[0] + x;
+            if (vbtmp[index] ||
+                vbtmp[index - 1] ||
+                vbtmp[index + 1] ||
+                vbtmp[index - size[0]] ||
+                vbtmp[index + size[0]] ||
+                vbtmp[index - size[0] * size[1]] ||
+                vbtmp[index + size[0] * size[1]]) {
+              occupancy[index] = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------
+  for (int p = 0; p < (int)points.size(); ++p) {
+    if (segments->at(p) != kInitial)
+      continue;
+    Vector3d cell_coord = (points[p].position - min_xyz) / voxel_unit;
+    Vector3d cell_coord_int;
+    for (int a = 0; a < 3; ++a) {
+      cell_coord_int[a] = max(0, min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+    }
+    const int index =
+      cell_coord_int[2] * (size[0] * size[1]) + cell_coord_int[1] * size[0] + cell_coord_int[0];
+    if (occupancy[index])
+      segments->at(p) = kDetail;
+  }
+}
+  
 void FilterNoisyPoints(std::vector<Point>* points) {
   const int kNumNeighbors = 20;
 
@@ -273,9 +468,24 @@ void SegmentObjects(const std::vector<Point>& points,
                     const std::vector<std::vector<int> >& neighbors,
                     std::vector<int>* segments) {
   // WritePointsWithColor(points, *segments, "0_first.ply");
-  InitializeCentroids(num_initial_clusters, segments);
-  // WritePointsWithColor(points, *segments, "1_init.ply");
+  InitializeCentroids(points, num_initial_clusters, segments);
+  // WriteObjectPointsWithColor(points, *segments, "1_init.ply");
 
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("test.obj");
+    for (int i = 0; i < segments->size(); ++i)
+      if (segments->at(i) >= 0) {
+        ofstr << "v "
+             << points[i].position[0] << ' '
+             << points[i].position[1] << ' '
+             << points[i].position[2] << endl;
+      }
+    ofstr.close();
+  }
+  */
+    
   AssignFromCentroids(points, neighbors, segments);
   map<int, Vector3i> color_table;
   // WriteObjectPointsWithColor(points, *segments, "2_seed.ply", &color_table);
@@ -465,18 +675,68 @@ double PointDistance(const Point& lhs, const Point& rhs) {
     (lhs_normal_diff.norm() + rhs_normal_diff.norm());
 }
 
-void InitializeCentroids(const int num_initial_clusters,
+void InitializeCentroids(const std::vector<Point>& points,
+                         const int num_initial_clusters,
                          std::vector<int>* segments) {
   // Randomly initialize seeds.
+  /*
   vector<int> seeds;
   {
     for (int p = 0; p < segments->size(); ++p)
       if (segments->at(p) == kInitial)
         seeds.push_back(p);
+
     random_shuffle(seeds.begin(), seeds.end());
     seeds.resize(num_initial_clusters);
   }
+  for (int c = 0; c < (int)seeds.size(); ++c) {
+    segments->at(seeds[c]) = c;
+  }
+  */
 
+  // Randomly initialize seeds.
+  vector<int> seeds;
+  {
+    vector<int> candidates;
+    for (int p = 0; p < segments->size(); ++p)
+      if (segments->at(p) == kInitial)
+        candidates.push_back(p);
+
+    // Pick the first one at random.
+    random_shuffle(candidates.begin(), candidates.end());
+    if (candidates.empty())
+      return;
+
+    vector<bool> chosen(candidates.size(), false);
+
+    const int kFirstIndex = 0;
+    chosen[kFirstIndex] = true;
+    seeds.push_back(candidates[kFirstIndex]);
+    for (int s = 1; s < num_initial_clusters; ++s) {
+      // Pick the farthest point.
+      int best_index = -1;
+      double max_distance = 0.0;
+      const int kSkip = 3;
+      for (int i = 0; i < (int)candidates.size(); i += kSkip) {
+        if (chosen[i])
+          continue;
+        const int candidate = candidates[i];
+        double sum_distance = numeric_limits<double>::max();
+        for (const auto& seed : seeds) {
+          sum_distance = min(sum_distance, (points[seed].position - points[candidate].position).norm());
+        }
+        if (max_distance < sum_distance) {
+          max_distance = sum_distance;
+          best_index = i;
+        }
+      }
+      if (best_index != -1) {
+        chosen[best_index] = true;
+        seeds.push_back(candidates[best_index]);
+      }
+    }
+  }
+  
   for (int c = 0; c < (int)seeds.size(); ++c) {
     segments->at(seeds[c]) = c;
   }
@@ -769,7 +1029,8 @@ bool Merge(const std::vector<Point>& points,
   cerr << "Average inter distance: " << average_inter_distance << endl;
 
   // Merge test.
-  const double kMergeRatio = 2.0;
+  //????
+  const double kMergeRatio = 1.5; // 2.0;
   set<pair<int, int> > merged;
 
   pair<int, int> best_pair;
@@ -924,14 +1185,123 @@ Eigen::Vector3d Intersect(const Point& lhs, const Point& rhs) {
   const Vector3d final_diff = lhs.normal.dot(diff_along_rhs_normal) * lhs.normal;
   return lhs.position - final_diff;
 }
-  
+
+void FillOccupancy(const Eigen::Vector3d& v0,
+                   const Eigen::Vector3d& v1,
+                   const Eigen::Vector3d& v2,
+                   const Eigen::Vector3d& min_xyz,
+                   const double voxel_unit,
+                   const Eigen::Vector3i& size,
+                   std::vector<bool>* occupancy) {
+  const int kScale = 2;
+  const int samples01 = max(2, kScale * static_cast<int>((v1 - v0).norm() / voxel_unit));
+  const int samples02 = max(2, kScale * static_cast<int>((v2 - v0).norm() / voxel_unit));
+
+  const int along_sample = max(samples01, samples02);
+
+  for (int s = 0; s <= along_sample; ++s) {
+    Vector3d v01 = v0 + (v1 - v0) * s / along_sample;
+    Vector3d v02 = v0 + (v2 - v0) * s / along_sample;
+
+    const int perp_sample = max(2, kScale * static_cast<int>((v02 - v01).norm() / voxel_unit));
+    for (int t = 0; t <= perp_sample; ++t) {
+      Vector3d v = v01 + (v02 - v01) * t / perp_sample;
+
+      Vector3d cell_coord = (v - min_xyz) / voxel_unit;
+      Vector3d cell_coord_int;
+      for (int a = 0; a < 3; ++a) {
+        cell_coord_int[a] = max(0, min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+      }
+
+      const int index =
+        cell_coord_int[2] * (size[0] * size[1]) + cell_coord_int[1] * size[0] + cell_coord_int[0];
+      occupancy->at(index) = true;
+    }
+  }
+}
+
 }  // namespace
 
+void RemoveWindowAndMirror(const Floorplan& floorplan,
+                           const vector<int>& room_occupancy_with_doors,
+                           const Eigen::Vector3d& center,
+                           PointCloud* point_cloud) {
+  const Vector2d center_grid = floorplan.LocalToGrid(Vector2d(center[0], center[1]));
+  
+  vector<int> remove_indexes;
+
+  const int width  = floorplan.GetGridSize()[0];
+  const int height = floorplan.GetGridSize()[1];
+
+  for (int p = 0; p < point_cloud->GetNumPoints(); ++p) {
+    const Point& point = point_cloud->GetPoint(p);
+    const Vector2d grid = floorplan.LocalToGrid(Vector2d(point.position[0], point.position[1]));
+
+    // If [ center_grid -> grid ] crosses a room boundary or not.
+    const int sample = static_cast<int>(round((grid - center_grid).norm() / 2));
+
+    // room_occupancy must be [ room ... | non-room ... | room ... ]
+    int block_counts[3] = {0, 0, 0};
+    int block = 0;
+    for (int s = 0; s < sample; ++s) {
+      const Vector2d current = (grid - center_grid) * s / sample + center_grid;
+      const int x = max(0, min(width - 1, static_cast<int>(round(current[0]))));
+      const int y = max(0, min(height - 1, static_cast<int>(round(current[1]))));
+
+      const int occupancy = room_occupancy_with_doors[y * width + x];
+      
+      if (block == 0) {
+        if (occupancy < 0) {
+          block = 1;
+        }
+      } else if (block == 1) {
+        if (occupancy >= 0) {
+          block = 2;
+        }
+      } else if (block == 2) {
+        if (occupancy < 0)
+          break;
+      }
+      
+      ++block_counts[block];
+    }
+
+    // Remove condition.
+    if (block_counts[0] >= 2 && block_counts[1] >= 2) //  && block_counts[2] >= 2)
+      remove_indexes.push_back(p);
+  }
+
+
+  {
+  static int c = 0;
+    ofstream ofstr;
+    char buffer[1024];
+    sprintf(buffer, "remove_%03d.obj", c++);
+    ofstr.open(buffer);
+
+    for (const auto& value : remove_indexes) {
+      ofstr << "v "
+            << point_cloud->GetPoint(value).position[0] << ' '
+            << point_cloud->GetPoint(value).position[1] << ' '
+            << point_cloud->GetPoint(value).position[2] << endl;
+    }
+
+    ofstr.close();
+  }
+
+  point_cloud->RemovePoints(remove_indexes);
+}
+  
 void WriteObjectPointsWithColor(const std::vector<Point>& points,
                                 const std::vector<int>& segments,
                                 const std::string& filename,
                                 const Eigen::Matrix3d& rotation,
                                 map<int, Vector3i>* color_table) {  
+  if (points.size() != segments.size()) {
+    cerr << "Size do not match: " << (int)points.size() << ' ' << (int)segments.size() << endl;
+    exit (1);
+  }
+
   vector<Point> object_points;
   for (int p = 0; p < points.size(); ++p) {
     Point point = points[p];
@@ -939,7 +1309,8 @@ void WriteObjectPointsWithColor(const std::vector<Point>& points,
     case kInitial:
     case kFloor:
     case kWall:
-    case kCeiling: {
+    case kCeiling:
+    case kDetail: {
       break;
     }
     default: {
@@ -985,14 +1356,17 @@ void WriteOtherPointsWithColor(const std::vector<Point>& points,
       point.object_id = 0;
       break;
     }
-      /*
     case kCeiling: {
       point.color = Vector3f(255, 0, 0);
       break;
     }
-      */
     case kInitial: {
       point.color = Vector3f(255, 255, 255);
+      point.object_id = 0;
+      break;
+    }
+    case kDetail: {
+      point.color = Vector3f(0, 255, 255);
       point.object_id = 0;
       break;
     }

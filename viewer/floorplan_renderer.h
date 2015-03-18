@@ -22,6 +22,7 @@
 namespace structured_indoor_modeling {
 
 class Floorplan;
+class IndoorPolygon;
 
 struct PaintStyle {
 public:
@@ -39,10 +40,10 @@ public:
   Eigen::Vector3f stroke_color;
   double stroke_width;
 
-PaintStyle(const PaintStyle::FillStyle fill_style,
-           const Eigen::Vector3f& fill_color,
-           const Eigen::Vector3f& stroke_color,
-           const double stroke_width) :
+  PaintStyle(const PaintStyle::FillStyle fill_style,
+             const Eigen::Vector3f& fill_color,
+             const Eigen::Vector3f& stroke_color,
+             const double stroke_width) :
     fill_style(fill_style),
     fill_color(fill_color),
     stroke_color(stroke_color),
@@ -52,7 +53,7 @@ PaintStyle(const PaintStyle::FillStyle fill_style,
 
 class FloorplanRenderer : protected QGLFunctions {
  public:
-  FloorplanRenderer(const Floorplan& floorplan);
+  FloorplanRenderer(const Floorplan& floorplan, const IndoorPolygon& indoor_polygon);
   virtual ~FloorplanRenderer();
   void Init();
   void InitGL(QGLWidget* widget_tmp);
@@ -73,12 +74,13 @@ class FloorplanRenderer : protected QGLFunctions {
                       const double alpha,
                       const bool set_stencil) const;
 
-  void RenderRoomStroke(const int room,
-                        const PaintStyle& paint_style,
-                        const double alpha,
-                        const bool emphasize,
-                        const double height_adjustment) const;
+  void RenderFloorplanOutline(const int room,
+                              const PaintStyle& paint_style,
+                              const double alpha,
+                              const bool emphasize,
+                              const double height_adjustment) const;
 
+  void RenderIndoorPolygonOutline(const double alpha) const;
 
   void RenderSolidColor(const int room,
                         const PaintStyle& paint_style,
@@ -122,10 +124,13 @@ class FloorplanRenderer : protected QGLFunctions {
                   const Eigen::Vector3d& top,
                   const bool emphasize,
                   const double height_adjustment) const;
+
+  static bool ShouldRender(const Eigen::Vector3d& lhs, const Eigen::Vector3d& rhs);
   
   //Floorplan floorplan;
   QGLWidget* widget;
   const Floorplan& floorplan;
+  const IndoorPolygon& indoor_polygon;
   QImage sheep_image;
   QImage kitchen_image;
   QImage tile_image;

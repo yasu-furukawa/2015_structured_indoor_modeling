@@ -33,7 +33,20 @@ bool Panorama::InitWithoutLoadingImages(const FileIO& file_io, const int panoram
   phi_per_pixel = phi_range / height;
   phi_per_depth_pixel = phi_range / depth_height;
   return true;
-}    
+}
+
+bool Panorama::InitWithoutDepths(const FileIO& file_io, const int panorama) {
+  rgb_image = cv::imread(file_io.GetPanoramaImage(panorama), 1);
+  if (rgb_image.cols == 0 && rgb_image.rows == 0) {
+    cerr << "Panorama image cannot be loaded: " << file_io.GetPanoramaImage(panorama) << endl;
+    return false;
+  }
+  width  = rgb_image.cols;
+  height = rgb_image.rows;
+  InitCameraParameters(file_io, panorama);
+  phi_per_pixel = phi_range / height;
+  return true;
+}  
 
 Eigen::Vector2d Panorama::Project(const Eigen::Vector3d& global) const {
   const Vector3d local = GlobalToLocal(global);
@@ -228,17 +241,24 @@ bool Panorama::IsInsideDepth(const Eigen::Vector2d& depth_pixel) const {
   }
 }
 
-void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
+void Panorama::Resize(const Eigen::Vector2i& size) {
+  const int new_width = size[0];
+  const int new_height = size[1];
+  
+  const int x_scale = width  / new_width;
+  const int y_scale = height / new_height;
+
+  const int new_depth_width = depth_width / x_scale;
+  const int new_depth_height = depth_height / y_scale;
+  
   if (only_background_black) {
     const cv::Vec3b kHole(0, 0, 0);
-    cv::Mat resized_rgb_image(size[1], size[0], CV_8UC3);
-    const int x_scale = width  / size[0];
-    const int y_scale = height / size[1];
+    cv::Mat new_rgb_image(new_height, new_width, CV_8UC3);
     
-    for (int y = 0; y < size[1]; ++y) {
+    for (int y = 0; y < new_height; ++y) {
       const int start_y = y * y_scale;
       const int end_y   = (y + 1) * y_scale;
-      for (int x = 0; x < size[0]; ++x) {
+      for (int x = 0; x < new_width; ++x) {
         const int start_x = x * x_scale;
         const int end_x   = (x + 1) * x_scale;
 
@@ -255,25 +275,75 @@ void Panorama::ResizeRGB(const Eigen::Vector2i& size) {
         }
         if (denom != 0)
           color /= denom;
-        resized_rgb_image.at<cv::Vec3b>(y, x) =
+        new_rgb_image.at<cv::Vec3b>(y, x) =
           cv::Vec3b(static_cast<int>(round(color[0])),
                     static_cast<int>(round(color[1])),
                     static_cast<int>(round(color[2])));
       }
     }
-    rgb_image = resized_rgb_image;
+    rgb_image = new_rgb_image;
   } else {
-    cv::Mat resized_rgb_image;
-    cv::resize(rgb_image, resized_rgb_image, cv::Size(size[0], size[1]));
-    rgb_image = resized_rgb_image;
+    cv::Mat new_rgb_image;
+    cv::resize(rgb_image, new_rgb_image, cv::Size(new_width, new_height));
+    rgb_image = new_rgb_image;
   }
-  
-  width  = size[0];
-  height = size[1];
+
+  // Resize depth.
+  {
+    const double kInvalid = -1.0;
+    vector<double> new_depth_image(new_depth_width * new_depth_height);
+    
+    for (int y = 0; y < new_depth_height; ++y) {
+      const int start_y = y * y_scale;
+      const int end_y   = (y + 1) * y_scale;
+      for (int x = 0; x < new_depth_width; ++x) {
+        const int start_x = x * x_scale;
+        const int end_x   = (x + 1) * x_scale;
+        
+        double sum_depth = 0.0;
+        int denom = 0;
+        for (int j = start_y; j < end_y; ++j) {
+          for (int i = start_x; i < end_x; ++i) {
+            const double depth = depth_image[j * depth_width + i];
+            if (depth != kInvalid) {
+              sum_depth += depth;
+              ++denom;
+            }
+          }
+        }
+        if (denom != 0)
+          sum_depth /= denom;
+        else
+          sum_depth = kInvalid;
+        new_depth_image[y * new_depth_width + x] = sum_depth;
+      }
+    }
+    depth_image.swap(new_depth_image);
+  }
+
+  width  = new_width;
+  height = new_height;
     
   phi_per_pixel = phi_range / height;
+
+  depth_width = new_depth_width;
+  depth_height = new_depth_height;
+
+  phi_per_depth_pixel = phi_range / depth_height;
 }
 
+void Panorama::AdjustCenter(const Eigen::Vector3d& new_center) {
+  const Vector3d translation = center - new_center;
+  Matrix4d adjustment;
+  adjustment.setIdentity();
+  for (int i = 0; i < 3; ++i)
+    adjustment(i, 3) = translation[i];
+  
+  global_to_local = global_to_local * adjustment;
+  
+  SetGlobalToLocalFromLocalToGlobal();
+}
+  
   /*
 void Panorama::ReleaseMemory() {
   rgb_image.release();
@@ -283,6 +353,7 @@ void Panorama::ReleaseMemory() {
 
 void Panorama::InitDepthImage(const FileIO& file_io,
                               const int panorama) {
+  // Interpolate myself.
   ifstream ifstr;
   ifstr.open(file_io.GetDepthPanorama(panorama));
   if (!ifstr.is_open()) {
@@ -306,7 +377,7 @@ void Panorama::InitDepthImage(const FileIO& file_io,
   }
   ifstr.close();
 
-  average_distance /= depth_width * depth_height;  
+  average_distance /= depth_width * depth_height;
 }
   
 void Panorama::InitCameraParameters(const FileIO& file_io,
@@ -328,6 +399,14 @@ void Panorama::InitCameraParameters(const FileIO& file_io,
   for (int y = 0; y < 3; ++y)
     center(y) = local_to_global(y, 3);
 
+  SetGlobalToLocalFromLocalToGlobal();
+    
+  ifstr >> phi_range;
+  
+  ifstr.close();
+}
+
+void Panorama::SetGlobalToLocalFromLocalToGlobal() {
   const Matrix3d rotation = local_to_global.block(0, 0, 3, 3);
   global_to_local.block(0, 0, 3, 3) = rotation.transpose();
   global_to_local.block(0, 3, 3, 1) =
@@ -336,10 +415,6 @@ void Panorama::InitCameraParameters(const FileIO& file_io,
   global_to_local(3, 1) = 0.0;
   global_to_local(3, 2) = 0.0;
   global_to_local(3, 3) = 1.0;
-    
-  ifstr >> phi_range;
-  
-  ifstr.close();
 }  
 
 void Panorama::MakeOnlyBackgroundBlack() {
@@ -375,5 +450,57 @@ void Panorama::MakeOnlyBackgroundBlack() {
   only_background_black = true;
 }
 
+//----------------------------------------------------------------------
+// Utility functions.  
+void ReadPanoramas(const FileIO& file_io,
+                   vector<Panorama>* panoramas) {
+  const int num_panoramas = GetNumPanoramas(file_io);
+  panoramas->clear();
+  panoramas->resize(num_panoramas);
+  cerr << "ReadPanoramas:" << flush;
+  for (int p = 0; p < num_panoramas; ++p) {
+    cerr << '.' << flush;
+    panoramas->at(p).Init(file_io, p);
+  }
+  cerr << endl;
+}
+
+void ReadPanoramasWithoutDepths(const FileIO& file_io,
+                                vector<Panorama>* panoramas) {
+  const int num_panoramas = GetNumPanoramas(file_io);
+  panoramas->clear();
+  panoramas->resize(num_panoramas);
+  cerr << "ReadPanoramasWithoutDepths:" << flush;
+  for (int p = 0; p < num_panoramas; ++p) {
+    cerr << '.' << flush;
+    panoramas->at(p).InitWithoutDepths(file_io, p);
+  }
+  cerr << endl;
+}
+
+void ReadPanoramaPyramids(const FileIO& file_io,
+                          const int num_levels,
+                          std::vector<std::vector<Panorama> >* panorama_pyramids) {
+  const int num_panoramas = GetNumPanoramas(file_io);
+
+  panorama_pyramids->clear();
+  panorama_pyramids->resize(num_panoramas);
+  cout << "Reading panorama_pyramids" << flush;
+  for (int p = 0; p < num_panoramas; ++p) {
+    cout << '.' << flush;
+    panorama_pyramids->at(p).resize(num_levels);
+    for (int level = 0; level < num_levels; ++level) {
+      panorama_pyramids->at(p)[level].Init(file_io, p);
+      panorama_pyramids->at(p)[level].MakeOnlyBackgroundBlack();
+      if (level != 0) {
+        const int new_width  = panorama_pyramids->at(p)[level].Width()  / (0x01 << level);
+        const int new_height = panorama_pyramids->at(p)[level].Height() / (0x01 << level);
+        panorama_pyramids->at(p)[level].Resize(Vector2i(new_width, new_height));
+      }
+    }
+  }
+  cout << " done." << endl;
+}
+  
 }  // namespace structured_indoor_modeling
   

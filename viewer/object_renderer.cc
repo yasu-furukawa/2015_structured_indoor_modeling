@@ -1,6 +1,8 @@
 #include <iostream>
 #include "object_renderer.h"
 #include "../base/file_io.h"
+#include "../base/floorplan.h"
+#include "../base/indoor_polygon.h"
 #include "../base/point_cloud.h"
 
 using namespace Eigen;
@@ -8,12 +10,13 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-ObjectRenderer::ObjectRenderer() {
-  render = false;
+ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
+                               const IndoorPolygon& indoor_polygon)
+  : floorplan(floorplan), indoor_polygon(indoor_polygon) {
+  render = true;
 }
 
 ObjectRenderer::~ObjectRenderer() {
-  // glDeleteBuffers(2, vbos);
 }
 
 bool ObjectRenderer::Toggle() {
@@ -24,217 +27,169 @@ bool ObjectRenderer::Toggle() {
 void ObjectRenderer::Init(const string data_directory) {
   FileIO file_io(data_directory);
 
-  colored_point_clouds.resize(1);
-  colored_point_clouds[0].resize(1);
-
-  /*
-  char buffer[1024];
-  sprintf(buffer, "%s/object_cloud.ply", data_directory.c_str());
-  ifstream ifstr;
-  // ifstr.open("object_cloud.ply");
-  ifstr.open(buffer);
-  string header;
-  for (int i = 0; i < 6; ++i)
-    ifstr >> header;
-  int num_points;
-  ifstr >> num_points;
-  for (int i = 0; i < 37; ++i)
-    ifstr >> header;
-
-  colored_point_clouds[0][0].resize(num_points);
-  for (int p = 0; p < num_points; ++p) {
-    double dtmp;
-    for (int i = 0; i < 2; ++i)
-      ifstr >> dtmp;
-    for (int i = 0; i < 3; ++i)
-      ifstr >> colored_point_clouds[0][0][p].first[i];
-    for (int i = 0; i < 3; ++i) {
-      ifstr >> colored_point_clouds[0][0][p].second[i];
-      colored_point_clouds[0][0][p].second[i] /= 255.0;
-    }
-    for (int i = 0; i < 4; ++i)
-      ifstr >> dtmp;
-  }
-  ifstr.close();
-  */
-
-  // char buffer[1024];
-  // sprintf(buffer, "%s/object_cloud2.ply", data_directory.c_str());
-
-  PointCloud point_cloud;
-  point_cloud.Init(file_io.GetObjectPointCloudsWithColor());
-
-
-  /*  
-  ifstream ifstr;
-  // ifstr.open("object_cloud.ply");
-  ifstr.open(buffer);
-  string header;
-  for (int i = 0; i < 6; ++i)
-    ifstr >> header;
-  int num_points;
-  ifstr >> num_points;
-  for (int i = 0; i < 22; ++i)
-    ifstr >> header;
-
-  colored_point_clouds[0][0].resize(num_points);
-  for (int p = 0; p < num_points; ++p) {
-    for (int i = 0; i < 3; ++i)
-      ifstr >> colored_point_clouds[0][0][p].first[i];
-    for (int i = 0; i < 3; ++i) {
-      ifstr >> colored_point_clouds[0][0][p].second[i];
-      colored_point_clouds[0][0][p].second[i] /= 255.0;
-    }
-    double dtmp;
-    ifstr >> dtmp;
-  }
-  ifstr.close();
-  */
-  colored_point_clouds[0][0].resize(point_cloud.GetNumPoints());
-  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-    for (int i = 0; i < 3; ++i)
-      colored_point_clouds[0][0][p].first[i] =
-        point_cloud.GetPoint(p).position[i];
-
-    for (int i = 0; i < 3; ++i)
-      colored_point_clouds[0][0][p].second[i] =
-        point_cloud.GetPoint(p).color[i] / 255.0;
-  }
-
   vertices.clear();
   colors.clear();
 
-  for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
-    for (int i = 0; i < 3; ++i)
-      vertices.push_back(colored_point_clouds[0][0][p].first[i]);
-    for (int i = 0; i < 3; ++i) {
-      colors.push_back(colored_point_clouds[0][0][p].second[i]);
+  vertices.resize(floorplan.GetNumRooms());
+  colors.resize(floorplan.GetNumRooms());
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    PointCloud point_cloud;
+    point_cloud.Init(file_io.GetRefinedObjectClouds(room));
+
+    vertices[room].resize(point_cloud.GetNumObjects());
+    colors[room].resize(point_cloud.GetNumObjects());
+    
+    for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
+      const Point& point = point_cloud.GetPoint(p);
+      for (int i = 0; i < 3; ++i)
+        vertices[room][point.object_id].push_back(point.position[i]);
+      for (int i = 0; i < 3; ++i) {
+        colors[room][point.object_id].push_back(point.color[i] / 255.0f);
+      }
     }
   }
+
+  vertices_org = vertices;
+  colors_org = colors;
+
+  ComputeBoundingBoxes();
 }
 
 void ObjectRenderer::InitGL() {
   initializeGLFunctions();
-  /*
-  glGenBuffers(1, vbos);
-
-  //glEnableVertexAttribArray(0);
-  //glEnableVertexAttribArray(1);
-  
-  glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof (float),
-               &vertices[0], GL_STATIC_DRAW);
-
-  // glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-  // glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof (float),
-  // &colors[0], GL_STATIC_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  */
 }
   
-void ObjectRenderer::RenderAll(const double alpha) {
+void ObjectRenderer::RenderAll(const double position) {
   if (!render)
     return;
 
-  const bool kBlend = false;
-  
+  const bool kBlend = true; // ??? false
+
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
   if (kBlend) {
-    glDisable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
+    glDepthMask(false);
     glEnable(GL_BLEND);
   }
   glEnable(GL_POINT_SMOOTH);
 
-  glColorPointer(3, GL_FLOAT, 0, &colors[0]);
-  glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
+  const double kDurationPerObject = 0.4;
+  
+  for (int room = 0; room < (int)vertices.size(); ++room) {
+    const double offset = (1.0 - kDurationPerObject) / max(1, (int)vertices[room].size() - 1);
+    for (int object = 0; object < (int)vertices[room].size(); ++object) {
+      // [object * offset, object * offset + kDurationPerObject].
+      double scale;
+      {
+        const double start = object * offset;
+        const double end = start + kDurationPerObject;
+        if (position <= start || end <= position)
+          scale = 1.0;
+        else
+          scale = sin(M_PI * (position - start) / kDurationPerObject) * 0.5 + 1.0;
+      }
+      
+      for (int i = 0; i < (int)colors[room][object].size(); ++i) {
+        colors[room][object][i] = min(1.0, scale * colors_org[room][object][i]);
+      }
+      
+      glColorPointer(3, GL_FLOAT, 0, &colors[room][object][0]);
+      glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);
 
-  if (kBlend) {
-    glBlendColor(0, 0, 0, 0.5);
-    //glBlendColor(0, 0, 0, 1.0);
-    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+      if (kBlend) {
+        glBlendColor(0, 0, 0, 0.5);
+        //glBlendColor(0, 0, 0, 1.0);
+        // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+        glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+      }
+      glPointSize(1.0);
+      
+      glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
+    }
   }
-  glPointSize(1.0);
-
-  glDrawArrays(GL_POINTS, 0, ((int)vertices.size()) / 3);
+  
 	
   glDisable(GL_POINT_SMOOTH);
   if (kBlend) {
     glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
+    glDepthMask(true);
+    // glEnable(GL_DEPTH_TEST);
   }
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
+}
+
+void ObjectRenderer::ComputeBoundingBoxes() {
+  const int num_rooms = vertices.size();
+  bounding_boxes.resize(num_rooms);
+  for (int room = 0; room < num_rooms; ++room) {
+    const int num_objects = vertices[room].size();
+    bounding_boxes[room].resize(num_objects);
+    for (int object = 0; object < num_objects; ++object) {
+
+      Vector3d min_xyz, max_xyz;
+      for (int p = 0; p < (int)vertices[room][object].size(); p += 3) {
+        const Vector3d point(vertices[room][object][p + 0],
+                             vertices[room][object][p + 1],
+                             vertices[room][object][p + 2]);
+        
+        const Vector3d manhattan = indoor_polygon.GlobalToManhattan(point);
+        if (p == 0) {
+          min_xyz = max_xyz = manhattan;
+        } else {
+          for (int a = 0; a < 3; ++a) {
+            min_xyz[a] = min(min_xyz[a], manhattan[a]);
+            max_xyz[a] = max(max_xyz[a], manhattan[a]);
+          }
+        }
+      }
+
+      const double average_z = (min_xyz[2] + max_xyz[2]) / 2.0;
+      BoundingBox& bounding_box = bounding_boxes[room][object];
+      bounding_box.corners[0] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(min_xyz[0], min_xyz[1], average_z));
+      bounding_box.corners[1] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(max_xyz[0], min_xyz[1], average_z));
+      bounding_box.corners[2] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(max_xyz[0], max_xyz[1], average_z));
+      bounding_box.corners[3] =
+        indoor_polygon.ManhattanToGlobal(Vector3d(min_xyz[0], max_xyz[1], average_z));
+    }
+  }
+}
   
-
-
-
-  /*
-  glEnableVertexAttribArray(0);
-
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-  glVertexPointer(3, GL_FLOAT, 0, 0);
-
-  // glEnableClientState(GL_COLOR_ARRAY);
-  // glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-  //glColorPointer(3, GL_FLOAT, 0, 0);
-  //                 BUFFER_OFFSET(sizeof(GLfloat) * vertices.size()));
-
-  glDisable(GL_DEPTH_TEST);
+void ObjectRenderer::RenderIcons(const double /* alpha */) {
   glEnable(GL_BLEND);
+  
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glPointSize(3.0);
-  
-  glDrawArrays(GL_POINTS, 0, vertices.size() / 3);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  // glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
-  glEnable(GL_DEPTH_TEST);
-  */
-
-  
-  /*
-  
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glPointSize(2.0);
-  
-  glBegin(GL_POINTS);
-  for (int p = 0; p < colored_point_clouds[0][0].size(); ++p) {
-    const ColoredPoint& colored_point = colored_point_clouds[0][0][p];
-    
-    glColor4f(colored_point.second[0], colored_point.second[1], colored_point.second[2], alpha / 2.0);
-    glVertex3d(colored_point.first[0], colored_point.first[1], colored_point.first[2]);
-  }  
+  glBegin(GL_QUADS);
+  glColor4f(0.8f, 1.0f, 0.8f, 0.5f);
+  for (int room = 0; room < (int)bounding_boxes.size(); ++room) {
+    for (const auto& bounding_box : bounding_boxes[room]) {
+      for (int i = 0; i < 4; ++i)
+        glVertex3d(bounding_box.corners[i][0],
+                   bounding_box.corners[i][1],
+                   bounding_box.corners[i][2]);
+    }
+  }
   glEnd();
 
+  glLineWidth(0.5f);
+  for (int room = 0; room < (int)bounding_boxes.size(); ++room) {
+    for (const auto& bounding_box : bounding_boxes[room]) {
+      glBegin(GL_LINE_LOOP);
+      glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+      for (int i = 0; i < 4; ++i)
+        glVertex3d(bounding_box.corners[i][0],
+                   bounding_box.corners[i][1],
+                   bounding_box.corners[i][2]);
+      glEnd();
+    }
+  }
+  
   glDisable(GL_BLEND);
-
-
-  glClear(GL_DEPTH_BUFFER_BIT);
-
-  glPointSize(1.0);
-  glBegin(GL_POINTS);
-  for (int p = 0; p < colored_point_clouds[0][0].size(); ++p) {
-    const ColoredPoint& colored_point = colored_point_clouds[0][0][p];
-    
-    glColor4f(colored_point.second[0], colored_point.second[1], colored_point.second[2], alpha);
-    glVertex3d(colored_point.first[0], colored_point.first[1], colored_point.first[2]);
-  }  
-  glEnd();
-          */  
 }
-
-void ObjectRenderer::RenderRoom(const int room) const {
-
-}
-
-void ObjectRenderer::RenderObject(const int room, const int object) const {
-
-}
-
+  
 }  // namespace structured_indoor_modeling
   

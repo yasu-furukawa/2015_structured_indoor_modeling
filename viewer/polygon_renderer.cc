@@ -23,6 +23,7 @@ struct Wall {
 
 typedef vector<Wall> Walls;
 
+  /*
 void wall_to_angles(const Eigen::Vector2d& optical_center,
                     const Wall& wall,
                     double angles[2]) {
@@ -41,7 +42,9 @@ void wall_to_angles(const Eigen::Vector2d& optical_center,
       angles[1] += 2.0 * M_PI;
   }
 }
+  */
 
+  /*
 double ComputeDistance(const Eigen::Vector2d& center,
                        const Eigen::Vector2d& target,
                        const Wall& wall) {
@@ -67,10 +70,12 @@ double ComputeDistance(const Eigen::Vector2d& center,
 
   return (wall.points[0] + t * diff1 - center).norm();
 }
+  */
 
 // -1: lhs is close
 //  1: rhs is close
 //  0: cannot compare
+  /*
 int FrontBackTest(const Eigen::Vector2d& optical_center, const Wall& lhs, const Wall& rhs) {
   double lhs_angles[2], rhs_angles[2];
   wall_to_angles(optical_center, lhs, lhs_angles);
@@ -115,6 +120,7 @@ int FrontBackTest(const Eigen::Vector2d& optical_center, const Wall& lhs, const 
   exit (1);
   return 0;
 }
+  */
 
 void SortTriangles(const Eigen::Vector3d& center, Triangles* triangles) {
   // This is not exact, but should be fine.
@@ -135,6 +141,7 @@ void SortTriangles(const Eigen::Vector3d& center, Triangles* triangles) {
   triangles->swap(new_triangles);
 }
 
+  /*
 void SortWalls(const Eigen::Vector2d& center, Walls* walls) {
   for (int i = 0; i < (int)walls->size(); ++i) {
     for (int j = i + 1; j < (int)walls->size(); ++j) {
@@ -143,7 +150,7 @@ void SortWalls(const Eigen::Vector2d& center, Walls* walls) {
     }
   }
 }
-
+  */
   //void SortRooms(const Eigen::Vector2d& center, vector<Walls>* rooms) {
   //}
 
@@ -370,7 +377,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha, const dou
   */
 }
 
- void PolygonRenderer::RenderDoors(const double alpha) const {
+void PolygonRenderer::RenderDoors(const double alpha) const {
    glBegin(GL_QUADS);
    glColor4f(alpha, alpha, alpha, 1.0);
    for (int door = 0; door < floorplan.GetNumDoors(); ++door) {

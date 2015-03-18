@@ -16,7 +16,10 @@
 
 #ifndef FILE_IO_H__
 #define FILE_IO_H__
+
+#include <fstream>
 #include <stdio.h>
+#include <string>
 namespace structured_indoor_modeling {
 
 class FileIO {
@@ -66,10 +69,19 @@ class FileIO {
     return buffer;
   }
   std::string GetDepthPanorama(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/panorama/%03d_raw.depth", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetDepthVisualization(const int panorama) const {
+    sprintf(buffer, "%s/panorama/%03d_raw_depth.png", data_directory.c_str(), panorama);
+    return buffer;
+  }
+  
+  std::string GetSmoothDepthPanorama(const int panorama) const {
+    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    return buffer;
+  }
+  std::string GetSmoothDepthVisualization(const int panorama) const {
     sprintf(buffer, "%s/panorama/%03d_depth.png", data_directory.c_str(), panorama);
     return buffer;
   }
@@ -85,12 +97,25 @@ class FileIO {
     sprintf(buffer, "%s/floorplan.svg", data_directory.c_str());
     return buffer;
   }
+  std::string GetIndoorPolygon() const {
+    sprintf(buffer, "%s/indoor_polygon.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetIndoorPolygonFinal() const {
+    sprintf(buffer, "%s/indoor_polygon_final.txt", data_directory.c_str());
+    return buffer;
+  }  
 
   std::string GetTextureImage(const int index) const {
     sprintf(buffer, "%s/texture_atlas/texture_image_%03d.png", data_directory.c_str(), index);
     return buffer;
   }
 
+  std::string GetTextureImageIndoorPolygon(const int index) const {
+    sprintf(buffer, "%s/texture_atlas/texture_image_indoor_polygon_%03d.png", data_directory.c_str(), index);
+    return buffer;
+  }
+  
   std::string GetRoomThumbnail(const int room) const {
     sprintf(buffer, "%s/thumbnail/room_thumbnail%03d.png", data_directory.c_str(), room);
     return buffer;
@@ -119,12 +144,45 @@ class FileIO {
   std::string GetFloorWallPointClouds(const int room) const {
     sprintf(buffer, "%s/object/floor_wall_%03d.ply", data_directory.c_str(), room);
     return buffer;
-  }    
+  }
+  std::string GetRefinedObjectClouds(const int room) const{
+    sprintf(buffer, "%s/object/object_refined_room%03d.ply", data_directory.c_str(),room);
+    return buffer;
+  }
+
+  std::string GetEvaluationDirectory() const {
+    sprintf(buffer, "%s/evaluation", data_directory.c_str());
+    return buffer;
+  }
+
+  std::string GetObjectDetections() const {
+    sprintf(buffer, "%s/object/detections.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetObjectDetectionsFinal() const {
+    sprintf(buffer, "%s/object/detections_final.txt", data_directory.c_str());
+    return buffer;
+  }
   
  private:
   const std::string data_directory;
   mutable char buffer[1024];
 };
 
+inline int GetNumPanoramas(const FileIO& file_io) {
+  int panorama = 0;
+  while (1) {
+    const std::string filename = file_io.GetPanoramaImage(panorama);
+    std::ifstream ifstr;
+    ifstr.open(filename.c_str());
+    if (!ifstr.is_open()) {
+      ifstr.close();
+      return panorama;
+    }
+    ifstr.close();
+    ++panorama;
+  }
+}
+ 
 }  // namespace structured_indoor_modeling
 #endif  // FILE_IO_H__
