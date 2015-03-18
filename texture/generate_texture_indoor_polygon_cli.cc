@@ -56,7 +56,6 @@ int main(int argc, char* argv[]) {
   {
     ReadPointClouds(file_io, &texture_input.point_clouds);
   }
-
   {
     const string filename = file_io.GetIndoorPolygon();
     ifstream ifstr;

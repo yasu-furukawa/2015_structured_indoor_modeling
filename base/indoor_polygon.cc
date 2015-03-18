@@ -50,8 +50,9 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
       istr >> segment.wall_info[0] >> header >> segment.wall_info[1];
     } else if (header == "door") {
       segment.type = Segment::DOOR;
-      istr >> segment.door_info[0] >> segment.door_info[1]
-           >> segment.door_info[2] >> segment.door_info[3];
+      string stmp;
+      istr >> stmp >> segment.door_info[0] >> stmp >> segment.door_info[1]
+           >> stmp >> segment.door_info[2] >> stmp >> segment.door_info[3];
     } else {
       cerr << "Invalid segment type: " << header << endl;
       exit (1);
@@ -118,8 +119,8 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
   }
   case Segment::DOOR: {
     ostr << "door "
-         << segment.door_info[0] << ' ' << segment.door_info[1] << ' '
-         << segment.door_info[2] << ' ' << segment.door_info[3] << endl;      
+         << "room1 " << segment.door_info[0] << " wall1 " << segment.door_info[1] << ' '
+         << "room2 " << segment.door_info[2] << " wall2 " << segment.door_info[3] << endl;      
     break;
   }
   default: {
