@@ -909,3 +909,8 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
      cout<<"ICP done"<<endl;
 }
 
+void radiusRemovalFilter(PointCloud &pc, const double radius, const int min_count){
+     
+}
+
+

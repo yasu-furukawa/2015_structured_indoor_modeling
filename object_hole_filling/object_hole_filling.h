@@ -65,6 +65,8 @@ void cleanObjects(structured_indoor_modeling::PointCloud &pc, const double min_v
 
 void ICP(structured_indoor_modeling::PointCloud &src, const structured_indoor_modeling::PointCloud &tgt, const int num_iter = 10);
 
+void radiusRemovalFilter(structured_indoor_modeling::PointCoud &pc, const double radius, const int min_count);
+
 void mergeVertices(structured_indoor_modeling::PointCloud &pc, int resolution);
 
 
