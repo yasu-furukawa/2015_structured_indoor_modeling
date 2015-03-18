@@ -56,14 +56,24 @@ int main(int argc, char* argv[]) {
   }
   
   // Compute an object id map for each panorama.
-  vector<vector<ObjectId> > object_ids;
+  vector<vector<ObjectId> > object_id_maps;
   {
-    RasterizeObjectIds(panoramas, object_point_clouds, &object_ids);
+    RasterizeObjectIds(panoramas, object_point_clouds, &object_id_maps);
   }
   
   // For each detection, find the most relevant object id.
   vector<ObjectId> associated_object_ids;
-  AssociateObjectId(panoramas, detections, object_ids, &associated_object_ids);
+  AssociateObjectId(panoramas, detections, object_id_maps, &associated_object_ids);
+
+
+
+
+
+
+
+
+
+
 
   /*
   vecor<PointCloud> input_point_clouds, object_point_clouds;

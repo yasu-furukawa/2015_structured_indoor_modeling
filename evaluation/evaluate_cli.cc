@@ -12,6 +12,11 @@
 #include "../base/point_cloud.h"
 #include "evaluate.h"
 
+#ifdef _WIN32
+#pragma comment (lib, "gflags.lib") 
+#pragma comment (lib, "Shlwapi.lib") 
+#endif
+
 DEFINE_string(floorplan_file, "", "Floorplan filename.");
 DEFINE_string(indoor_polygon_file, "", "Indoor_polygon filename.");
 DEFINE_bool(evaluate_floorplan, true, "Evaluate floorplan.");
