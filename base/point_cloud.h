@@ -66,6 +66,7 @@ class PointCloud {
   // Transformations.
   void ToGlobal(const FileIO& file_io, const int panorama);
   void Rotate(const Eigen::Matrix3d& rotation);
+  void Translate(const Eigen::Vector3d& translation);
   void Transform(const Eigen::Matrix4d& transformation);
 
   // Accessors.
@@ -94,7 +95,7 @@ class PointCloud {
   void SetAllColor(float r,float g,float b);
   void SetColor(int ind, float r, float g,float b);
 
-  void AddPoints(const PointCloud& point_cloud);
+  void AddPoints(const PointCloud& point_cloud, bool mergeid = false);
   void AddPoints(const std::vector<Point>& new_points, bool mergeid = false);
 
   void RemovePoints(const std::vector<int>& indexes);

@@ -168,6 +168,13 @@ void PointCloud::Rotate(const Eigen::Matrix3d& rotation) {
 
   Transform(transformation);
 }
+
+void PointCloud::Translate(const Eigen::Vector3d& translation){
+     for(auto &v: points){
+	  v.position += translation;
+     }
+     Update();
+}
   
 void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Matrix4d local_to_global;
@@ -191,8 +198,8 @@ void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Transform(local_to_global);
 }
 
-void PointCloud::AddPoints(const PointCloud& point_cloud){
-     AddPoints(point_cloud.points);
+void PointCloud::AddPoints(const PointCloud& point_cloud, bool mergeid){
+    AddPoints(point_cloud.points, mergeid);
 }
 
 
