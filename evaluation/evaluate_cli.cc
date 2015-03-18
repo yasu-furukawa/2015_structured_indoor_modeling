@@ -217,7 +217,8 @@ int main(int argc, char* argv[]) {
 #endif
 
   FileIO file_io(argv[1]);
-  
+
+  cout << "a" << endl;
   string floorplan_file;
   if (FLAGS_floorplan_file == "") {
     floorplan_file = file_io.GetFloorplan();
@@ -227,6 +228,8 @@ int main(int argc, char* argv[]) {
     floorplan_file = buffer;
   }
 
+  cout << "b" << endl;
+  
   string indoor_polygon_file;
   if (FLAGS_indoor_polygon_file == "") {
     indoor_polygon_file = file_io.GetIndoorPolygon();
@@ -235,6 +238,8 @@ int main(int argc, char* argv[]) {
     sprintf(buffer, "%s/%s", argv[1], FLAGS_indoor_polygon_file.c_str());
     indoor_polygon_file = buffer;
   }
+
+  cout << "c" << endl;
   
   Floorplan floorplan(floorplan_file);
   IndoorPolygon indoor_polygon(indoor_polygon_file);
