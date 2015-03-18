@@ -602,10 +602,11 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
     vector<PointCloud>pointcloud_to_merge(backgroundlabel);
     //get depth map for each object
     vector <DepthFilling> objectdepth(backgroundlabel);
-    
+
+    objectlist.resize(backgroundlabel);
+
     for(int objectid=0; objectid<backgroundlabel; objectid++){
     	objectdepth[objectid].Init(objectcloud, panorama, objectgroup[objectid], false);
-
     	//mask for current object
     	for(int spix=0; spix<segmentation.size(); spix++){
     	    if(segmentation[spix] != objectid)
@@ -652,79 +653,104 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
 
     for(int objid=0; objid<pointcloud_to_merge.size(); objid++){
 	pointcloud_to_merge[objid].AddPoints(point_to_add[objid]);
+
+	//ignore small object
 	if(pointcloud_to_merge[objid].GetBoundingboxVolume() < min_volume)
 	    continue;
 	vector<double>curbbox = pointcloud_to_merge[objid].GetBoundingbox();
 	//if the point is sparse at XY plane, abort
-	double areaXY = (curbbox[1] - curbbox[0]) * (curbbox[3] - curbbox[2]);
-	if(areaXY < min_XYdensity)
+	// double areaXY = (curbbox[1] - curbbox[0]) * (curbbox[3] - curbbox[2]);
+	// if(areaXY < min_XYdensity)
+	//     continue;
+
+//	perform ICP, align all parts to original segmentation cloud
+	PointCloud curobj_ori;
+	vector<structured_indoor_modeling::Point>curpt_to_add;
+	for(const auto&v :objectgroup[objid]){
+	    curpt_to_add.push_back(objectcloud.GetPoint(v));
+	}
+	curobj_ori.AddPoints(curpt_to_add);
+	ICP(pointcloud_to_merge[objid], curobj_ori);
+
+	if(objectlist[objid].empty()){
+	    objectlist[objid].push_back(pointcloud_to_merge[objid]);
 	    continue;
-	objectlist[objid].push_back(pointcloud_to_merge[objid]);
+	}
+	if(pointcloud_to_merge[objid].GetNumPoints() > objectlist[objid].front().GetNumPoints())
+	    objectlist[objid].push_front(pointcloud_to_merge[objid]);
+	else
+	    objectlist[objid].push_back(pointcloud_to_merge[objid]);
     }
 }
 
-void backProjectObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, PointCloud &resultcloud){
+//Merge object in objetlist, compensate for exposure difference
+void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vector<PointCloud> &objectcloud, vector<PointCloud> &resultcloud){
+    const int grid_length = 200;
+    resultcloud.clear();
+    resultcloud.resize(objectlist.size());
 
-    const int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
-    const int imgwidth = panorama.Width();
-    const int imgheight = panorama.Height();
-    const int depthwidth = panorama.DepthWidth();
-    const int depthheight = panorama.DepthHeight();
-    const vector <double> bounding_box  = objectcloud.GetBoundingbox();
-    const double max_z = bounding_box[4] + (bounding_box[5] - bounding_box[4]) * 0.8; //remove ceil points
-
-    vector<structured_indoor_modeling::Point>pointtoadd;
-
-    //get depth map for each object
-    vector <DepthFilling> objectdepth(backgroundlabel);
+    vector<vector<vector<int> > >grid(grid_length);
+        
+    for(auto &v: grid){
+	v.resize(grid_length);
+	for(auto &u: v)
+	    u.resize(grid_length);
+    }
     
-    for(int objectid=0; objectid<backgroundlabel; objectid++){
-	objectdepth[objectid].Init(objectcloud, panorama, objectgroup[objectid], false);
-
-	//mask for current object
-	for(int spix=0; spix<segmentation.size(); spix++){
-	    if(segmentation[spix] != objectid)
+    for(int roomid = 0; roomid<objectlist.size(); roomid++){
+	for(int objid = 0; objid<objectlist[roomid].size(); objid++){
+	    //////////////////////////////////////////
+	    //TODO: compensate for exposure
+	    //////////////////////////////////////////
+	    //voxel grid approach
+	    //init voxel grid
+	    for(auto &v:grid){
+		for(auto &u: v){
+		    for(auto &w: u)
+			w = -1;
+		}
+	    }
+	    vector<double>bbox;
+	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
+	    double unitlength = -1;
+	    unitlength = std::max(bbox[1]-bbox[0], unitlength);
+	    unitlength = std::max(bbox[3]-bbox[2], unitlength);
+	    unitlength = std::max(bbox[5]-bbox[4], unitlength);
+	    unitlength /= (double)grid_length;
+	    
+	    if(objectlist[roomid][objid].size() < 2)
 		continue;
-	    for(int pixid=0; pixid<labelgroup[spix].size(); pixid++){
-		int pix = labelgroup[spix][pixid];
-		Vector2d RGBpixel((double)(pix%panorama.Width()), (double)(pix/panorama.Width()));
-		Vector2d depthpixel = panorama.RGBToDepth(RGBpixel);
-		objectdepth[segmentation[spix]].setMask((int)depthpixel[0],(int)depthpixel[1], true);
-	    }
-	}
-	objectdepth[objectid].fill_hole(panorama);
-    }
-  
-    for(int superpixelid=0; superpixelid<segmentation.size(); superpixelid++){
-	if(segmentation[superpixelid] < backgroundlabel){   //object
-	    for(int pixelid=0; pixelid<labelgroup[superpixelid].size(); pixelid++){
-		int pix = labelgroup[superpixelid][pixelid];
-		Vector2d pixloc((double)(pix % imgwidth), (double)(pix / imgwidth));
-		Vector2d depthloc = panorama.RGBToDepth(pixloc);
-		Vector3f curcolor = panorama.GetRGB(pixloc);
-		float temp = curcolor[2];
- 		curcolor[2] = curcolor[0];
-		curcolor[0] = temp;
-		double depthv = objectdepth[segmentation[superpixelid]].GetDepth(depthloc[0],depthloc[1]);
-		if(curcolor.norm() == 0 || depthv < 0)
+	    
+	    auto iter = objectlist[roomid][objid].begin();
+	    for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
+		int x = ((*iter).GetPoint(ptid).position[0] - bbox[0]) / unitlength;
+		int y = ((*iter).GetPoint(ptid).position[1] - bbox[2]) / unitlength;
+		int z = ((*iter).GetPoint(ptid).position[2] - bbox[4]) / unitlength;
+		if(x<0 || x>grid_length || y<0 || y>=grid_length || z<0 || z>=grid_length)
 		    continue;
+		if(grid[x][y][z] == -1)
+		    grid[x][y][z] = ptid;
+	    }
 
-		Vector3d worldcoord = panorama.Unproject(pixloc, depthv);
-		if(worldcoord[2] >= max_z)
-		    continue;
-		
-		structured_indoor_modeling::Point curpt;
-		curpt.position = worldcoord;
-		curpt.color = curcolor;
-		curpt.depth_position = Vector2i(0,0);
-		curpt.normal = Vector3d(0,0,0);
-		curpt.intensity = 0.0;
-		curpt.object_id = segmentation[superpixelid];
-		pointtoadd.push_back(curpt);
+	    ++iter;  //begin from the second part
+	    for(; iter!=objectlist[roomid][objid].end(); ++iter){
+		vector<int>point_to_remove;
+		for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
+		    int x = ((*iter).GetPoint(ptid).position[0] - bbox[0]) / unitlength;
+		    int y = ((*iter).GetPoint(ptid).position[1] - bbox[2]) / unitlength;
+		    int z = ((*iter).GetPoint(ptid).position[2] - bbox[4]) / unitlength;
+		    if(x<0 || x>grid_length || y<0 || y>=grid_length || z<0 || z>=grid_length)
+			continue;
+		    if(grid[x][y][z] == -1)
+			point_to_remove.push_back(ptid);
+		}
+		iter->RemovePoints(point_to_remove);
+		objectlist[roomid][objid].front().AddPoints(*iter, true);
+		objectlist[roomid][objid].erase(iter);
 	    }
+	    resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
 	}
     }
-    resultcloud.AddPoints(pointtoadd);
 }
 
 //remove small objects, re-assign object id
@@ -835,8 +861,10 @@ void mergeVertices(PointCloud &pc, int resolution){
 void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
      cout<<"ICP..."<<endl;
      const int srcnum = src.GetNumPoints();
+     const float max_dist = 100;
+     
      //building kd-tree for target
-     cout<<"Building KD tree"<<endl;
+//     cout<<"Building KD tree"<<endl;
      flann::KDTreeIndexParams indexParams(5);
 
      Mat featurepoints(tgt.GetNumPoints(), 3, CV_32F);
@@ -858,8 +886,8 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
      Matrix4d T;
 
      for(int iter=1; iter<=num_iter; iter++){
-	  cout<<"---------------"<<endl;
-	  cout<<"Iteration "<<iter<<endl;
+//	  cout<<"---------------"<<endl;
+//	  cout<<"Iteration "<<iter<<endl;
 	  
 	  for(int i=0; i<srcnum; i++){
 	       query.at<float>(i,0) = (float)src.GetPoint(i).position[0];
@@ -875,12 +903,16 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
 	  Vector3d center_tgt(0,0,0);
 	  Vector3d center_src = src.GetCenter();
 
+	  int count = 0;
 	  for(int i=0; i<srcnum; i++){
+//	      if(dists.at<float>(0,i) > max_dist)
+//		  continue;
 	       structured_indoor_modeling::Point curpt = tgt.GetPoint(searchres.at<int>(0,i));
 	       center_tgt += curpt.position;
+	       count++;
 	  }
 	  if(srcnum > 0)
-	       center_tgt /= (double)srcnum;
+	       center_tgt /= (double)count;
 	  else
 	       return;
 
@@ -897,20 +929,21 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
 	  // JacobiSVD<Matrix<double,3,3>>svd(M,ComputeFullU|ComputeFullV);
 	  // R = svd.matrixV().transpose() * svd.matrixU();
 
-	  cout<<"Translation:"<<endl;
+//	  cout<<"Translation:"<<endl;
 	  Vector3d trans = center_tgt - center_src;
-	  cout<<trans.transpose()<<endl;
+//	  cout<<trans.transpose()<<endl;
 //	  cout<<"Rotation:"<<endl;
 //	  cout<<R<<endl;
 	  src.Translate(center_tgt - center_src);
 //	  src.Rotate(R);
 //	  src.Translate(center_tgt);
+
      } //iteration
      cout<<"ICP done"<<endl;
 }
 
 void radiusRemovalFilter(PointCloud &pc, const double radius, const int min_count){
-     
+    
 }
 
 

@@ -247,7 +247,7 @@ void PointCloud::GetObjectPoints(int objectid, vector<Point>&object_points){
     }
 }
 
-void PointCloud::GetObjectBoundingbox(int objectid, vector<double>&bbox){
+void PointCloud::GetObjectBoundingbox(int objectid, vector<double>&bbox) const{
     bbox.clear();
     bbox.resize(6);
     bbox[0] = numeric_limits<double>::max();
