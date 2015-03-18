@@ -143,6 +143,7 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
 //    GetCurrentDirectory(_countof(szBuf), szBuf);
 //    OutputDebugString(szBuf);
     sheep_image.load("../viewer/texture/sheep.png");
+
 	#else
     sheep_image.load("texture/sheep.png");
 	#endif
