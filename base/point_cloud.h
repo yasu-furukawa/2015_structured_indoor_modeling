@@ -66,6 +66,7 @@ class PointCloud {
   // Transformations.
   void ToGlobal(const FileIO& file_io, const int panorama);
   void Rotate(const Eigen::Matrix3d& rotation);
+  void Translate(const Eigen::Vector3d& translation);
   void Transform(const Eigen::Matrix4d& transformation);
 
   // Accessors.

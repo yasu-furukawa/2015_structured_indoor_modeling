@@ -168,6 +168,13 @@ void PointCloud::Rotate(const Eigen::Matrix3d& rotation) {
 
   Transform(transformation);
 }
+
+void PointCloud::Translate(const Eigen::Vector3d& translation){
+     for(auto &v: points){
+	  v.position += translation;
+     }
+     Update();
+}
   
 void PointCloud::ToGlobal(const FileIO& file_io, const int panorama) {
   Matrix4d local_to_global;

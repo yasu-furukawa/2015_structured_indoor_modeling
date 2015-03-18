@@ -40,6 +40,7 @@ int main(int argc, char **argv){
     string pathtodata_s(pathtodata);
     FileIO file_io(pathtodata_s);
 
+
     //////////////////////////////////////
     //Init Panoramas
     //objectgroup: room->object->points
@@ -62,6 +63,18 @@ int main(int argc, char **argv){
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
     objectlist.resize(objectcloud.size());
+
+
+    /////////
+    //debug for ICP
+     PointCloud src, tgt;
+     vector<structured_indoor_modeling::Point>objpt;
+     objectcloud[0].GetObjectPoints(0, objpt);
+     tgt.AddPoints(objpt);
+     src.Init("/Users/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object000.ply");
+     ICP(src, tgt);
+     src.Write("/Users/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object000_2.ply");
+
 	 
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
@@ -99,39 +112,42 @@ int main(int argc, char **argv){
 #if 1
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
 #endif
-//	    backProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid]);
+	    backProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], resultCloud[roomid]);
 	}
     }
 
     /////////////////////////////    
     cout<<endl<<"All done! Saving result..."<<endl;
 
-    for(int roomid=0; roomid<resultCloud.size(); roomid++){
-    	 // cout<<"Merging close points..."<<endl;
-    	 // cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
-    	 // clock_t start,end;
-    	 // start = clock();
-    	 // mergeVertices(resultCloud[roomid], 1024);
-    	 // end = clock();
-    	 // cout<<"done. Time: "<<end - start<<endl;
-    	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+//     for(int roomid=0; roomid<resultCloud.size(); roomid++){
+//     	 // cout<<"Merging close points..."<<endl;
+//     	 // cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
+//     	 // clock_t start,end;
+//     	 // start = clock();
+//     	 // mergeVertices(resultCloud[roomid], 1024);
+//     	 // end = clock();
+//     	 // cout<<"done. Time: "<<end - start<<endl;
+//     	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
 
-	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
-	    PointCloud curob;
-	    vector<structured_indoor_modeling::Point>obpts;
-	    resultCloud[roomid].GetObjectPoints(i, obpts);
-	    curob.AddPoints(obpts);
-	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
-	    cout<<"Writing "<<buffer<<endl;
-	    curob.Write(string(buffer));
-	}
-//	cout<<"Cleaning room "<<roomid<<"..."<<endl;
-//	cleanObjects(resultCloud[roomid], 1e5);
-	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
-    	 string savepath = file_io.GetRefinedObjectClouds(roomid);
-    	 cout<<"Saving "<<savepath<<endl;
-    	 resultCloud[roomid].Write(savepath);
-    }
+// 	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
+// 	    PointCloud curob;
+// 	    vector<structured_indoor_modeling::Point>obpts;
+// 	    resultCloud[roomid].GetObjectPoints(i, obpts);
+// 	    curob.AddPoints(obpts);
+// 	    vector<double>bbox = curob.GetBoundingbox();
+// 	    double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
+// 	    double density = (double)curob.GetNumPoints() / areaXY;
+// 	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
+// 	    cout<<"Writing "<<buffer<<" XY density: "<<density<<endl;
+// 	    curob.Write(string(buffer));
+// 	}
+// //	cout<<"Cleaning room "<<roomid<<"..."<<endl;
+// //	cleanObjects(resultCloud[roomid], 1e5);
+// 	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
+//     	 string savepath = file_io.GetRefinedObjectClouds(roomid);
+//     	 cout<<"Saving "<<savepath<<endl;
+//     	 resultCloud[roomid].Write(savepath);
+//     }
 
     return 0;
 }

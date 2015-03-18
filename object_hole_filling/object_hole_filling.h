@@ -63,6 +63,8 @@ void mergeObject(const structured_indoor_modeling::Panorama &panorama, const str
 
 void cleanObjects(structured_indoor_modeling::PointCloud &pc, const double min_volume);
 
+void ICP(structured_indoor_modeling::PointCloud &src, const structured_indoor_modeling::PointCloud &tgt, const int num_iter = 10);
+
 void mergeVertices(structured_indoor_modeling::PointCloud &pc, int resolution);
 
 

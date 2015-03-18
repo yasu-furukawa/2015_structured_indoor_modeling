@@ -5,6 +5,7 @@
 #include <iterator>
 #include <algorithm>
 #include <fstream>
+#include <Eigen/SVD>
 
 using namespace std;
 using namespace cv;
@@ -582,7 +583,6 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
     delete mrf;
     delete smoothnessterm;
     delete dataterm;
-  
 }
 
 
@@ -724,7 +724,7 @@ void backProjectObject(const Panorama &panorama, const DepthFilling& depth,const
 	    }
 	}
     }
-    resultcloud.AddPoints(pointtoadd, true);
+    resultcloud.AddPoints(pointtoadd);
 }
 
 //remove small objects, re-assign object id
@@ -829,5 +829,83 @@ void mergeVertices(PointCloud &pc, int resolution){
      pc.RemovePoints(points_to_remove);
 
      cout<<endl;
+}
+
+
+void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
+     cout<<"ICP..."<<endl;
+     const int srcnum = src.GetNumPoints();
+     //building kd-tree for target
+     cout<<"Building KD tree"<<endl;
+     flann::KDTreeIndexParams indexParams(5);
+
+     Mat featurepoints(tgt.GetNumPoints(), 3, CV_32F);
+     Mat query(srcnum,3,CV_32F);
+     for(int i=0; i<tgt.GetNumPoints(); i++){
+	  structured_indoor_modeling::Point curpt = tgt.GetPoint(i);
+	  featurepoints.at<float>(i,0) = (float)curpt.position[0];
+	  featurepoints.at<float>(i,1) = (float)curpt.position[1];
+	  featurepoints.at<float>(i,2) = (float)curpt.position[2];
+
+     }
+     flann::Index searchtree(featurepoints, indexParams);
+
+     typedef Matrix<double, 3,Dynamic> Matrix3;
+
+     Matrix3 P = Matrix3::Zero(3,srcnum);
+     Matrix3 Q = Matrix3::Zero(3,srcnum);
+     Matrix<double,3,3> M, R;
+     Matrix4d T;
+
+     for(int iter=1; iter<=num_iter; iter++){
+	  cout<<"---------------"<<endl;
+	  cout<<"Iteration "<<iter<<endl;
+	  
+	  for(int i=0; i<srcnum; i++){
+	       query.at<float>(i,0) = (float)src.GetPoint(i).position[0];
+	       query.at<float>(i,1) = (float)src.GetPoint(i).position[1];
+	       query.at<float>(i,2) = (float)src.GetPoint(i).position[2];
+	  }
+	  
+	  Mat searchres(srcnum, 1, CV_32S, Scalar::all(-1));
+	  Mat dists(srcnum, 1, CV_32F);
+
+	  searchtree.knnSearch(query, searchres, dists, 1, flann::SearchParams(32));
+	  
+	  Vector3d center_tgt(0,0,0);
+	  Vector3d center_src = src.GetCenter();
+
+	  for(int i=0; i<srcnum; i++){
+	       structured_indoor_modeling::Point curpt = tgt.GetPoint(searchres.at<int>(0,i));
+	       center_tgt += curpt.position;
+	  }
+	  if(srcnum > 0)
+	       center_tgt /= (double)srcnum;
+	  else
+	       return;
+
+	  // for(int i=0; i<srcnum; i++){
+	  //      P(0,i) = src.GetPoint(i).position[0] - center_src[0];
+	  //      P(1,i) = src.GetPoint(i).position[1] - center_src[1];
+	  //      P(2,i) = src.GetPoint(i).position[2] - center_src[2];
+
+	  //      Q(0,i) = tgt.GetPoint(searchres.at<int>(0,i)).position[0] - center_tgt[0];
+	  //      Q(1,i) = tgt.GetPoint(searchres.at<int>(0,i)).position[1] - center_tgt[1];
+	  //      Q(2,i) = tgt.GetPoint(searchres.at<int>(0,i)).position[2] - center_tgt[2];
+	  // }
+	  // M = P * Q.transpose();
+	  // JacobiSVD<Matrix<double,3,3>>svd(M,ComputeFullU|ComputeFullV);
+	  // R = svd.matrixV().transpose() * svd.matrixU();
+
+	  cout<<"Translation:"<<endl;
+	  Vector3d trans = center_tgt - center_src;
+	  cout<<trans.transpose()<<endl;
+//	  cout<<"Rotation:"<<endl;
+//	  cout<<R<<endl;
+	  src.Translate(center_tgt - center_src);
+//	  src.Rotate(R);
+//	  src.Translate(center_tgt);
+     } //iteration
+     cout<<"ICP done"<<endl;
 }
 
