@@ -81,8 +81,8 @@ class PointCloud {
   inline const Point& GetPoint(const int p) const { return points[p]; }
   inline Point& GetPoint(const int p) { return points[p]; }
   inline bool isempty() const {return (int)points.size() == 0;}
-  void GetObjectIndice(int objectid, std::vector<int>&indices) ;
-  void GetObjectPoints(int objectid, std::vector<structured_indoor_modeling::Point>& object_points);
+  void GetObjectIndice(int objectid, std::vector<int>&indices) const;
+  void GetObjectPoints(int objectid, std::vector<structured_indoor_modeling::Point>& object_points) const;
   void GetObjectBoundingbox(int objectid, std::vector<double>&bbox)const;
   double GetBoundingboxVolume();
   double GetObjectBoundingboxVolume(const int objectid);

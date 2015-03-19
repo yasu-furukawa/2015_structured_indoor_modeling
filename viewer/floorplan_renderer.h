@@ -5,6 +5,7 @@
 #include <QGLFunctions>
 #include <string>
 #include <vector>
+#include "../base/detection.h"
 
 #ifdef __linux__
 #include <GL/glu.h>
@@ -53,7 +54,9 @@ public:
 
 class FloorplanRenderer : protected QGLFunctions {
  public:
-  FloorplanRenderer(const Floorplan& floorplan, const IndoorPolygon& indoor_polygon);
+  FloorplanRenderer(const Floorplan& floorplan,
+                    const IndoorPolygon& indoor_polygon,
+                    const std::string& detection_file);
   virtual ~FloorplanRenderer();
   void Init();
   void InitGL(QGLWidget* widget_tmp);
@@ -137,6 +140,8 @@ class FloorplanRenderer : protected QGLFunctions {
   GLint sheep_texture_id;
   GLint kitchen_texture_id;  
   GLint tile_texture_id;
+
+  std::vector<Detection> detections;
 
   const GLint* viewport;
   const GLdouble* modelview;
