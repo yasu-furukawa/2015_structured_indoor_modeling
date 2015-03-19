@@ -17,6 +17,9 @@ using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
 
+DEFINE_double(score_threshold, 0.0, "Ignore detections below this threshold.");
+DEFINE_double(area_threshold, 0.3, "How many pixels in a bounding box must be of the object.");
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     cerr << "Usage: " << argv[0] << " data_directory" << endl;
@@ -36,7 +39,6 @@ int main(int argc, char* argv[]) {
   }
 
   vector<Detection> detections;
-  /*
   {
     ifstream ifstr;
     ifstr.open(file_io.GetObjectDetections().c_str());
@@ -47,7 +49,6 @@ int main(int argc, char* argv[]) {
     ifstr >> detections;
     ifstr.close();
   }
-  */
   
   vector<PointCloud> object_point_clouds;
   {
@@ -62,18 +63,19 @@ int main(int argc, char* argv[]) {
   }
   
   // For each detection, find the most relevant object id.
-  vector<ObjectId> associated_object_ids;
-  AssociateObjectId(panoramas, detections, object_id_maps, &associated_object_ids);
+  map<ObjectId, Detection> object_id_to_detection;
+  AssociateObjectId(panoramas,
+                    detections,
+                    object_id_maps,
+                    FLAGS_score_threshold,
+                    FLAGS_area_threshold,
+                    &object_id_to_detection);
 
-
-
-
-
-
-
-
-
-
+  for (const auto& item : object_id_to_detection) {
+    cout << item.first.first << ' ' << item.first.second << "  "
+         << item.second.name << ' ' << item.second.score << endl;
+  }
+  
 
   /*
   vecor<PointCloud> input_point_clouds, object_point_clouds;

@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
       const Vector2d pixel = panorama.Project(point.position);
       const int x = static_cast<int>(round(pixel[0] * depth_width / panorama.Width()));
       const int y = static_cast<int>(round(pixel[1] * depth_height / panorama.Height()));
-                                           
+
       if (0 <= x && x < depth_width && 0 <= y && y < depth_height) {
         const double distance = (panorama.GetCenter() - point.position).norm();
         const int index = y * depth_width + x;
