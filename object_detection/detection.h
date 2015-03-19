@@ -33,10 +33,18 @@ namespace structured_indoor_modeling {
 // 
 //
 struct Detection {
+  Detection() {
+    panorama = -1;
+
+    score = 0.0;
+
+    room = -1;
+    object = -1;
+  }
+
   //----------------------------------------------------------------------
   // Input of the pipeline (or output of the RCNN).
   //----------------------------------------------------------------------
-
   int panorama;
   // Left and right u values. us[0] could be smaller than us[1].
   Eigen::Vector2d us;
@@ -46,6 +54,12 @@ struct Detection {
   // Output of the object detector. Name and the detection score.
   std::string name;
   double score;
+
+  // Associated icon information.
+  int room;
+  int object;
+  // Bounding box in the floorplan coordinate.
+  Eigen::Vector2d ranges[3];
 };
 
 std::istream& operator >>(std::istream& istr, Detection& detection);

@@ -7,7 +7,7 @@
 
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
-// #include "../base/indoor_polygon.h"
+#include "../base/indoor_polygon.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
 #include "detection.h"
@@ -32,6 +32,8 @@ int main(int argc, char* argv[]) {
 #endif
 
   FileIO file_io(argv[1]);
+
+  IndoorPolygon indoor_polygon(file_io.GetIndoorPolygon());
   
   vector<Panorama> panoramas;
   {
@@ -63,19 +65,25 @@ int main(int argc, char* argv[]) {
   }
   
   // For each detection, find the most relevant object id.
-  map<ObjectId, Detection> object_id_to_detection;
+  map<ObjectId, int> object_to_detection;
   AssociateObjectId(panoramas,
                     detections,
                     object_id_maps,
                     FLAGS_score_threshold,
                     FLAGS_area_threshold,
-                    &object_id_to_detection);
+                    &object_to_detection);
 
-  for (const auto& item : object_id_to_detection) {
-    cout << item.first.first << ' ' << item.first.second << "  "
-         << item.second.name << ' ' << item.second.score << endl;
-  }
-  
+  vector<Detection> detections_with_icon;
+  AddIconInformationToDetections(indoor_polygon,
+                                 object_point_clouds,
+                                 object_to_detection,
+                                 detections,
+                                 &detections_with_icon);
+
+  ofstream ofstr;
+  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
+  ofstr << detections_with_icon;
+  ofstr.close();
 
   /*
   vecor<PointCloud> input_point_clouds, object_point_clouds;

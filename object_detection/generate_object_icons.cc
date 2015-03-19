@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include "../base/indoor_polygon.h"
 #include "generate_object_icons.h"
 
 using namespace Eigen;
@@ -102,8 +103,8 @@ void RasterizeObjectIds(const std::vector<Panorama>& panoramas,
         object_id_maps->at(p)[v * width + u] = object_id;
       }
     }
-
     /*
+    //?????
     {
       map<ObjectId, Vector3i> color_table;
       char buffer[1024];
@@ -122,6 +123,10 @@ void RasterizeObjectIds(const std::vector<Panorama>& panoramas,
             if (color_table.find(object_id_maps->at(p)[index]) == color_table.end()) {
               Vector3i color(rand() % 255, rand() % 255, rand() % 255);
               color_table[object_id_maps->at(p)[index]] = color;
+
+              if (object_id_maps->at(p)[index].second == 42)
+                color_table[object_id_maps->at(p)[index]] = Vector3i(255, 0, 0);
+              
             }
             ofstr << color_table[object_id_maps->at(p)[index]][0] << ' '
                   << color_table[object_id_maps->at(p)[index]][1] << ' '
@@ -132,6 +137,7 @@ void RasterizeObjectIds(const std::vector<Panorama>& panoramas,
       ofstr.close();
     }
     */
+
   }
   cerr << endl;
 }
@@ -141,9 +147,9 @@ void AssociateObjectId(const std::vector<Panorama>& panoramas,
                        const std::vector<std::vector<ObjectId> >& object_id_maps,
                        const double score_threshold,
                        const double area_threshold,
-                       std::map<ObjectId, Detection>* object_id_to_detection) {
+                       std::map<ObjectId, int>* object_to_detection) {
   // For each detection, corresponding object id.
-  object_id_to_detection->clear();
+  object_to_detection->clear();
   vector<bool> detection_used((int)detections.size(), false);
   //----------------------------------------------------------------------
   // Greedy assignment.
@@ -177,12 +183,50 @@ void AssociateObjectId(const std::vector<Panorama>& panoramas,
       continue;
 
     // If best_object has already an associated detection ignore.
-    if (object_id_to_detection->find(best_object) != object_id_to_detection->end())
+    if (object_to_detection->find(best_object) != object_to_detection->end())
         continue;
 
-    (*object_id_to_detection)[best_object] = detections[best_detection_index];
+    (*object_to_detection)[best_object] = best_detection_index;
   }
-}  
+}
+
+void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
+                                    const std::vector<PointCloud>& object_point_clouds,
+                                    const std::map<ObjectId, int>& object_to_detection,
+                                    const std::vector<Detection>& detections,
+                                    std::vector<Detection>* detections_with_icon) {
+  for (const auto& item : object_to_detection) {
+    const ObjectId& object_id = item.first;
+    Detection detection = detections[item.second];
+    detection.room = object_id.first;
+    detection.object = object_id.second;
+
+    vector<Point> points;
+    object_point_clouds[detection.room].GetObjectPoints(detection.object, points);
+
+    vector<double> histograms[3];
+    for (const auto& point : points) {
+      const Vector3d& manhattan = indoor_polygon.GlobalToManhattan(point.position);
+      for (int a = 0; a < 3; ++a) {
+        histograms[a].push_back(manhattan[a]);
+      }
+    }
+
+    // 5 percentile and 95 percentile.
+    for (int a = 0; a < 3; ++a) {
+      vector<double>::iterator lower_ite =
+        histograms[a].begin() + static_cast<int>(round(histograms[a].size() * 0.05));
+      vector<double>::iterator upper_ite =
+        histograms[a].begin() + static_cast<int>(round(histograms[a].size() * 0.95));
+      
+      nth_element(histograms[a].begin(), lower_ite, histograms[a].end());
+      detection.ranges[a][0] = *lower_ite;
+      nth_element(histograms[a].begin(), upper_ite, histograms[a].end());
+      detection.ranges[a][1] = *upper_ite;
+    }
+    detections_with_icon->push_back(detection);
+  }
+}
 
 }  // namespace structured_indoor_modeling
   

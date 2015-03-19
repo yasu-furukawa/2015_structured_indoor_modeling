@@ -231,15 +231,15 @@ void PointCloud::RemovePoints(const std::vector<int>& indexes) {
   Update();
 }
 
-void PointCloud::GetObjectIndice(int objectid, vector<int>&indices) {
-    for(int i=0; i<GetNumPoints(); i++){
-	Point curpt = GetPoint(i);
-	if(curpt.object_id == objectid)
-	    indices.push_back(i);
-    }
+void PointCloud::GetObjectIndice(int objectid, vector<int>&indices) const{
+  for(int i=0; i<GetNumPoints(); i++){
+    const Point& curpt = GetPoint(i);
+    if(curpt.object_id == objectid)
+      indices.push_back(i);
+  }
 }
 
-void PointCloud::GetObjectPoints(int objectid, vector<Point>&object_points){
+void PointCloud::GetObjectPoints(int objectid, vector<Point>&object_points) const{
     object_points.clear();
     for(const auto& pt: points){
 	if(pt.object_id == objectid)
@@ -369,7 +369,8 @@ void ReadObjectPointClouds(const FileIO& file_io,
   cout << "Reading object clouds..." << flush;
   for (int room = 0; room < num_rooms; ++room) {
     cout << '.' << flush;
-    object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
+    //object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
+    object_point_clouds->at(room).Init(file_io.GetObjectPointClouds(room));
   }
   cout << "done" << endl;
 }
