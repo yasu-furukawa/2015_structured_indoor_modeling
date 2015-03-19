@@ -692,23 +692,24 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
     vector<vector<vector<int> > >grid(grid_length);
         
     for(auto &v: grid){
-	v.resize(grid_length);
-	for(auto &u: v)
-	    u.resize(grid_length);
+    	v.resize(grid_length);
+    	for(auto &u: v)
+    	    u.resize(grid_length);
     }
     
     for(int roomid = 0; roomid<objectlist.size(); roomid++){
 	for(int objid = 0; objid<objectlist[roomid].size(); objid++){
+	     cout<<"room "<<roomid<<' '<<"objid "<<objid<<endl;
 	    //////////////////////////////////////////
 	    //TODO: compensate for exposure
 	    //////////////////////////////////////////
 	    //voxel grid approach
 	    //init voxel grid
 	    for(auto &v:grid){
-		for(auto &u: v){
-		    for(auto &w: u)
-			w = -1;
-		}
+	    	for(auto &u: v){
+	    	    for(auto &w: u)
+	    		w = -1;
+	    	}
 	    }
 	    vector<double>bbox;
 	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
@@ -723,13 +724,6 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 	    
 	    auto iter = objectlist[roomid][objid].begin();
 	    for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
-		int x = ((*iter).GetPoint(ptid).position[0] - bbox[0]) / unitlength;
-		int y = ((*iter).GetPoint(ptid).position[1] - bbox[2]) / unitlength;
-		int z = ((*iter).GetPoint(ptid).position[2] - bbox[4]) / unitlength;
-		if(x<0 || x>grid_length || y<0 || y>=grid_length || z<0 || z>=grid_length)
-		    continue;
-		if(grid[x][y][z] == -1)
-		    grid[x][y][z] = ptid;
 	    }
 
 	    ++iter;  //begin from the second part
@@ -746,7 +740,7 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 		}
 		iter->RemovePoints(point_to_remove);
 		objectlist[roomid][objid].front().AddPoints(*iter, true);
-		objectlist[roomid][objid].erase(iter);
+//		objectlist[roomid][objid].erase(iter);
 	    }
 	    resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
 	}
