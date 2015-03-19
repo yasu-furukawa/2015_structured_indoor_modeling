@@ -26,7 +26,8 @@ qtHaveModule(opengl) {
        panorama_renderer.cc \
        polygon_renderer.cc \
        indoor_polygon_renderer.cc \
-       ../base/floorplan.cc \
+       ../base/detection.cc \
+       ../base/floorplan.cc \       
        ../base/indoor_polygon.cc \
        ../base/panorama.cc \
        ../base/point_cloud.cc
@@ -42,6 +43,7 @@ qtHaveModule(opengl) {
         panel_renderer.h \
         polygon_renderer.h \
         indoor_polygon_renderer.h \
+        ../base/detection.h \
         ../base/file_io.h \
         ../base/floorplan.h \
         ../base/indoor_polygon.h \

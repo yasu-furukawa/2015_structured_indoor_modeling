@@ -127,11 +127,19 @@ void ComputeRanges(const Floorplan& floorplan, const int room, Vector2d* x_range
 }  // namespace
 
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan,
-                                     const IndoorPolygon& indoor_polygon)
+                                     const IndoorPolygon& indoor_polygon,
+                                     const std::string& detection_file)
   : floorplan(floorplan), indoor_polygon(indoor_polygon) {
   sheep_texture_id = -1;
   kitchen_texture_id = -1;
   tile_texture_id = -1;
+
+  ifstream ifstr;
+  ifstr.open(detection_file.c_str());
+  if (ifstr.is_open()) {
+    ifstr >> detections;
+    ifstr.close();
+  }
 }
 
 FloorplanRenderer::~FloorplanRenderer() {

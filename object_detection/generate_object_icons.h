@@ -3,9 +3,9 @@
 #include <Eigen/Dense>
 #include <map>
 #include <vector>
+#include "../base/detection.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
-#include "detection.h"
 
 namespace structured_indoor_modeling {
 

@@ -5,12 +5,12 @@
 
 #include <gflags/gflags.h>
 
+#include "../base/detection.h"
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
 #include "../base/indoor_polygon.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
-#include "detection.h"
 #include "generate_object_icons.h"
 
 using namespace Eigen;

@@ -19,6 +19,6 @@ if (WIN32)
 	link_directories("C:\\gflags-2.1.1\\lib")	
 endif (WIN32)
 
-add_executable( generate_object_icons_cli generate_object_icons_cli.cc generate_object_icons.cc detection.cc ../base/floorplan.cc ../base/indoor_polygon.cc ../base/panorama.cc ../base/point_cloud.cc )
+add_executable( generate_object_icons_cli generate_object_icons_cli.cc generate_object_icons.cc ../base/detection.cc ../base/floorplan.cc ../base/indoor_polygon.cc ../base/panorama.cc ../base/point_cloud.cc )
 target_link_libraries( generate_object_icons_cli ${OpenCV_LIBS} )
 target_link_libraries( generate_object_icons_cli gflags )
