@@ -94,6 +94,10 @@ class PointCloud {
   
   void SetAllColor(float r,float g,float b);
   void SetColor(int ind, float r, float g,float b);
+  
+  inline void SetColor(int ind, Eigen::Vector3f new_color){
+      SetColor(ind, new_color[0], new_color[1], new_color[2]);
+  }
 
   void AddPoints(const PointCloud& point_cloud, bool mergeid = false);
   void AddPoints(const std::vector<Point>& new_points, bool mergeid = false);

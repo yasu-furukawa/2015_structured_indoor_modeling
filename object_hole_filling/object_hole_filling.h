@@ -54,6 +54,8 @@ void MRFOptimizeLabels(const std::vector<int>&superpixelConfidence,  const std::
 
 void MRFOptimizeLabels_multiLayer(const std::vector< std::vector<double> >&superpixelConfidence, const std::map<std::pair<int,int>,int> &pairmap, const std::vector< Eigen::Vector3d> &averageRGB,  float smoothweight, int numlabels, std::vector <int> &superpixelLabel);
 
+void computeColorTransform(std::vector<Eigen::Vector3f>&src, std::vector<Eigen::Vector3f>&dst, Eigen::Matrix3f& transform);
+
 void backProjectObject(std::vector<std::vector<std::list<structured_indoor_modeling::PointCloud> > >&objectlist , const std::vector<structured_indoor_modeling::PointCloud> &objectcloud, std::vector<structured_indoor_modeling::PointCloud> &resultcloud);
 
 //void BackProjectObject(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector
@@ -63,7 +65,7 @@ void mergeObject(const structured_indoor_modeling::Panorama &panorama, const str
 
 void cleanObjects(structured_indoor_modeling::PointCloud &pc, const double min_volume);
 
-void ICP(structured_indoor_modeling::PointCloud &src, const structured_indoor_modeling::PointCloud &tgt, const int num_iter = 10);
+void ICP(structured_indoor_modeling::PointCloud &src, const structured_indoor_modeling::PointCloud &tgt, const int num_iter = 10, const int downsample = 1);
 
 void radiusRemovalFilter(structured_indoor_modeling::PointCloud &pc, const double radius, const int min_count);
 

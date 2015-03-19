@@ -5,7 +5,7 @@
 #include <iterator>
 #include <algorithm>
 #include <fstream>
-#include <Eigen/SVD>
+#include <Eigen/Dense>
 
 using namespace std;
 using namespace cv;
@@ -409,6 +409,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	for(int i=0;i<curwall.GetNumPoints();i++){
 	    curwall.GetPoint(i).object_id = 0 ;
 	}
+
 	curob.AddPoints(curwall);
 
 	objectCloud.push_back(curob);
@@ -429,7 +430,7 @@ double unaryDiffFunc(double confidence){
 }
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
-    const double offset = 80;
+    const double offset = 50;
     const double maxv = 1.0;
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
     return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.1);
@@ -651,17 +652,17 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
     	}
     }
 
+    //push original segmentation to objectlist
+    for(int objid=0; objid<backgroundlabel; objid++){
+	
+    }
+    
     for(int objid=0; objid<pointcloud_to_merge.size(); objid++){
 	pointcloud_to_merge[objid].AddPoints(point_to_add[objid]);
 
 	//ignore small object
 	if(pointcloud_to_merge[objid].GetBoundingboxVolume() < min_volume)
 	    continue;
-	vector<double>curbbox = pointcloud_to_merge[objid].GetBoundingbox();
-	//if the point is sparse at XY plane, abort
-	// double areaXY = (curbbox[1] - curbbox[0]) * (curbbox[3] - curbbox[2]);
-	// if(areaXY < min_XYdensity)
-	//     continue;
 
 //	perform ICP, align all parts to original segmentation cloud
 	PointCloud curobj_ori;
@@ -670,7 +671,8 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
 	    curpt_to_add.push_back(objectcloud.GetPoint(v));
 	}
 	curobj_ori.AddPoints(curpt_to_add);
-	ICP(pointcloud_to_merge[objid], curobj_ori);
+
+	ICP(pointcloud_to_merge[objid], curobj_ori, 15);
 
 	if(objectlist[objid].empty()){
 	    objectlist[objid].push_back(pointcloud_to_merge[objid]);
@@ -683,9 +685,40 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
     }
 }
 
+void computeColorTransform(vector<Vector3f>&src, vector<Vector3f>&dst, Matrix3f &transform){
+    Matrix<float, Dynamic ,9>A;
+    Matrix<float, Dynamic, 1>B;
+    A = Matrix<float, Dynamic, 9>::Zero((int)src.size() * 3, 9);
+    B = Matrix<float, Dynamic, 1>::Zero((int)src.size() * 3, 1);
+    for(int i=0; i<src.size(); i++){
+	A(i*3,0) = src[i][0];
+	A(i*3,1) = src[i][1];
+	A(i*3,2) = src[i][2];
+	A(i*3+1,3) = src[i][0];
+	A(i*3+1,4) = src[i][1];
+	A(i*3+1,5) = src[i][2];
+	A(i*3+2,6) = src[i][0];
+	A(i*3+2,7) = src[i][1];
+	A(i*3+2,8) = src[i][2];
+	B(i*3,0) = dst[i][0];
+	B(i*3+1,0) = dst[i][1];
+	B(i*3+2,0) = dst[i][2];
+    }
+    Matrix<float,9,9>L = A.transpose() * A;
+    Matrix<float,9,1>R = A.transpose() * B;
+
+    Matrix<float,9,1>X = L.householderQr().solve(R);
+    
+    for(int y=0;y<3;y++){
+	for(int x=0;x<3;x++)
+	    transform(y,x) = X(y*3+x,0);
+    }
+}
 //Merge object in objetlist, compensate for exposure difference
 void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vector<PointCloud> &objectcloud, vector<PointCloud> &resultcloud){
-    const int grid_length = 200;
+    const int grid_length = 300;
+    const double max_conflict_ratio = 0.9;
+    
     resultcloud.clear();
     resultcloud.resize(objectlist.size());
 
@@ -700,9 +733,7 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
     for(int roomid = 0; roomid<objectlist.size(); roomid++){
 	for(int objid = 0; objid<objectlist[roomid].size(); objid++){
 	     cout<<"room "<<roomid<<' '<<"objid "<<objid<<endl;
-	    //////////////////////////////////////////
-	    //TODO: compensate for exposure
-	    //////////////////////////////////////////
+
 	    //voxel grid approach
 	    //init voxel grid
 	    for(auto &v:grid){
@@ -713,34 +744,72 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 	    }
 	    vector<double>bbox;
 	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
-	    double unitlength = -1;
-	    unitlength = std::max(bbox[1]-bbox[0], unitlength);
-	    unitlength = std::max(bbox[3]-bbox[2], unitlength);
-	    unitlength = std::max(bbox[5]-bbox[4], unitlength);
-	    unitlength /= (double)grid_length;
+	    double unitlength = 5.0;
+	    // unitlength = std::max(bbox[1]-bbox[0], unitlength);
+	    // unitlength = std::max(bbox[3]-bbox[2], unitlength);
+	    // unitlength = std::max(bbox[5]-bbox[4], unitlength);
+	    // unitlength /= (double)grid_length;
 	    
-	    if(objectlist[roomid][objid].size() < 2)
-		continue;
-	    
+	    auto firstpart = objectlist[roomid][objid].begin();
 	    auto iter = objectlist[roomid][objid].begin();
-	    for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
-	    }
 
+	    if(iter == objectlist[roomid][objid].end())
+		continue;
 	    ++iter;  //begin from the second part
-	    for(; iter!=objectlist[roomid][objid].end(); ++iter){
+
+	    for(; iter!=objectlist[roomid][objid].end();++iter){
+		if(iter->GetNumPoints() < 100)
+		    continue;
+
+		vector<Vector3f>conflictRGB_ori;
+		vector<Vector3f>conflictRGB_cur;
+		
+		int diff_count = 0;
+
+		for(int ptid=0; ptid<firstpart->GetNumPoints(); ptid++){
+		    int x = ((*firstpart).GetPoint(ptid).position[0] - bbox[0]) / unitlength;
+		    int y = ((*firstpart).GetPoint(ptid).position[1] - bbox[2]) / unitlength;
+		    int z = ((*firstpart).GetPoint(ptid).position[2] - bbox[4]) / unitlength;
+		    if(x<0 || x>=grid_length || y<0 || y>=grid_length || z<0 || z>=grid_length)
+			continue;
+		    grid[x][y][z] = ptid;
+		}
+
 		vector<int>point_to_remove;
 		for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
 		    int x = ((*iter).GetPoint(ptid).position[0] - bbox[0]) / unitlength;
 		    int y = ((*iter).GetPoint(ptid).position[1] - bbox[2]) / unitlength;
 		    int z = ((*iter).GetPoint(ptid).position[2] - bbox[4]) / unitlength;
-		    if(x<0 || x>grid_length || y<0 || y>=grid_length || z<0 || z>=grid_length)
-			continue;
-		    if(grid[x][y][z] == -1)
+		    if(x<0 || x>=grid_length || y<0 || y>=grid_length || z<0 || z>=grid_length){
 			point_to_remove.push_back(ptid);
+			continue;
+		    }
+		    
+		    if(grid[x][y][z] != -1){
+			Vector3f oricolor = (*firstpart).GetPoint(grid[x][y][z]).color;
+			Vector3f curcolor = (*iter).GetPoint(ptid).color;
+			conflictRGB_ori.push_back(oricolor);
+			conflictRGB_cur.push_back(curcolor);
+			diff_count++;
+			point_to_remove.push_back(ptid);
+		    }
 		}
+		double cur_conflict_ratio = (double)diff_count / (double)(*iter).GetNumPoints();
+		if(cur_conflict_ratio > max_conflict_ratio)
+		    continue;
+		cout<<"Conflict count: "<<diff_count<<endl;
 		iter->RemovePoints(point_to_remove);
+
+		//compute Color transform
+		Matrix3f transform;
+		computeColorTransform(conflictRGB_cur, conflictRGB_ori, transform);
+		
+		for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
+		    Vector3f curcolor = iter->GetPoint(ptid).color;
+		    iter->SetColor(ptid, transform * curcolor);
+		}
+
 		objectlist[roomid][objid].front().AddPoints(*iter, true);
-//		objectlist[roomid][objid].erase(iter);
 	    }
 	    resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
 	}
@@ -852,30 +921,30 @@ void mergeVertices(PointCloud &pc, int resolution){
 }
 
 
-void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
+void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter, const int downsample){
      cout<<"ICP..."<<endl;
      const int srcnum = src.GetNumPoints();
      const float max_dist = 100;
      
      //building kd-tree for target
 //     cout<<"Building KD tree"<<endl;
-     flann::KDTreeIndexParams indexParams(5);
+     flann::KDTreeIndexParams indexParams(4);
 
      Mat featurepoints(tgt.GetNumPoints(), 3, CV_32F);
-     Mat query(srcnum,3,CV_32F);
-     for(int i=0; i<tgt.GetNumPoints(); i++){
+     Mat query(srcnum/downsample,3,CV_32F);
+     for(int i=0; i<tgt.GetNumPoints(); i+=downsample){
 	  structured_indoor_modeling::Point curpt = tgt.GetPoint(i);
-	  featurepoints.at<float>(i,0) = (float)curpt.position[0];
-	  featurepoints.at<float>(i,1) = (float)curpt.position[1];
-	  featurepoints.at<float>(i,2) = (float)curpt.position[2];
+	  featurepoints.at<float>(i/downsample,0) = (float)curpt.position[0];
+	  featurepoints.at<float>(i/downsample,1) = (float)curpt.position[1];
+	  featurepoints.at<float>(i/downsample,2) = (float)curpt.position[2];
 
      }
      flann::Index searchtree(featurepoints, indexParams);
 
      typedef Matrix<double, 3,Dynamic> Matrix3;
 
-     Matrix3 P = Matrix3::Zero(3,srcnum);
-     Matrix3 Q = Matrix3::Zero(3,srcnum);
+     Matrix3 P = Matrix3::Zero(3,srcnum/downsample);
+     Matrix3 Q = Matrix3::Zero(3,srcnum/downsample);
      Matrix<double,3,3> M, R;
      Matrix4d T;
 
@@ -883,14 +952,14 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
 //	  cout<<"---------------"<<endl;
 //	  cout<<"Iteration "<<iter<<endl;
 	  
-	  for(int i=0; i<srcnum; i++){
-	       query.at<float>(i,0) = (float)src.GetPoint(i).position[0];
-	       query.at<float>(i,1) = (float)src.GetPoint(i).position[1];
-	       query.at<float>(i,2) = (float)src.GetPoint(i).position[2];
+	  for(int i=0; i<srcnum; i+=downsample){
+	       query.at<float>(i/downsample,0) = (float)src.GetPoint(i).position[0];
+	       query.at<float>(i/downsample,1) = (float)src.GetPoint(i).position[1];
+	       query.at<float>(i/downsample,2) = (float)src.GetPoint(i).position[2];
 	  }
 	  
-	  Mat searchres(srcnum, 1, CV_32S, Scalar::all(-1));
-	  Mat dists(srcnum, 1, CV_32F);
+	  Mat searchres(srcnum/downsample, 1, CV_32S, Scalar::all(-1));
+	  Mat dists(srcnum/downsample, 1, CV_32F);
 
 	  searchtree.knnSearch(query, searchres, dists, 1, flann::SearchParams(32));
 	  
@@ -898,26 +967,26 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter){
 	  Vector3d center_src = src.GetCenter();
 
 	  int count = 0;
-	  for(int i=0; i<srcnum; i++){
+	  for(int i=0; i<srcnum/downsample; i++){
 //	      if(dists.at<float>(0,i) > max_dist)
 //		  continue;
 	       structured_indoor_modeling::Point curpt = tgt.GetPoint(searchres.at<int>(0,i));
 	       center_tgt += curpt.position;
 	       count++;
 	  }
-	  if(srcnum > 0)
+	  if(count > 0)
 	       center_tgt /= (double)count;
 	  else
 	       return;
 
-	  // for(int i=0; i<srcnum; i++){
-	  //      P(0,i) = src.GetPoint(i).position[0] - center_src[0];
-	  //      P(1,i) = src.GetPoint(i).position[1] - center_src[1];
-	  //      P(2,i) = src.GetPoint(i).position[2] - center_src[2];
+	  // for(int i=0; i<srcnum; i+=downsample){
+	  //      P(0,i/downsample) = src.GetPoint(i).position[0] - center_src[0];
+	  //      P(1,i/downsample) = src.GetPoint(i).position[1] - center_src[1];
+	  //      P(2,i/downsample) = src.GetPoint(i).position[2] - center_src[2];
 
-	  //      Q(0,i) = tgt.GetPoint(searchres.at<int>(0,i)).position[0] - center_tgt[0];
-	  //      Q(1,i) = tgt.GetPoint(searchres.at<int>(0,i)).position[1] - center_tgt[1];
-	  //      Q(2,i) = tgt.GetPoint(searchres.at<int>(0,i)).position[2] - center_tgt[2];
+	  //      Q(0,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[0] - center_tgt[0];
+	  //      Q(1,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[1] - center_tgt[1];
+	  //      Q(2,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[2] - center_tgt[2];
 	  // }
 	  // M = P * Q.transpose();
 	  // JacobiSVD<Matrix<double,3,3>>svd(M,ComputeFullU|ComputeFullV);
