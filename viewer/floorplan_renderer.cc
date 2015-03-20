@@ -34,7 +34,7 @@ namespace {
                                  2);
 
   const PaintStyle kDefaultStyle(PaintStyle::SolidColor,
-                                 Vector3f(240/255.0, 230/255.0, 140/255.0),
+                                 Vector3f(240/255.0, 230/255.0, 200/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
   
@@ -50,7 +50,7 @@ namespace {
                                  2);
   */
   const PaintStyle kKitchenStyle(PaintStyle::SolidColor,
-                                 Vector3f(255/255.0, 229/255.0, 204/255.0),
+                                 Vector3f(255/255.0, 239/255.0, 214/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
   
@@ -65,7 +65,7 @@ namespace {
                              2);
   */
   const PaintStyle kBedStyle(PaintStyle::SolidColor,
-                             Vector3f(204/255.0, 229/255.0, 255/255.0),
+                             Vector3f(224/255.0, 239/255.0, 255/255.0),
                              Vector3f(1/255.0, 1/255.0, 1/255.0),
                              2);
   
@@ -127,19 +127,11 @@ void ComputeRanges(const Floorplan& floorplan, const int room, Vector2d* x_range
 }  // namespace
 
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan,
-                                     const IndoorPolygon& indoor_polygon,
-                                     const std::string& detection_file)
+                                     const IndoorPolygon& indoor_polygon) 
   : floorplan(floorplan), indoor_polygon(indoor_polygon) {
   sheep_texture_id = -1;
   kitchen_texture_id = -1;
   tile_texture_id = -1;
-
-  ifstream ifstr;
-  ifstr.open(detection_file.c_str());
-  if (ifstr.is_open()) {
-    ifstr >> detections;
-    ifstr.close();
-  }
 }
 
 FloorplanRenderer::~FloorplanRenderer() {
@@ -191,9 +183,9 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
   }
   {
     #ifdef _WIN32
-    tile_image.load("../viewer/texture/tile3.jpg");
+    tile_image.load("../viewer/texture/tile2.png");
     #else
-    tile_image.load("texture/tile3.jpg");
+    tile_image.load("texture/tile2.png");
     #endif
 
     if (tile_image.isNull()) {
@@ -535,7 +527,7 @@ void FloorplanRenderer::RenderTile(const int room,
                                    const PaintStyle& paint_style,
                                    const double unit,
                                    const double alpha) const {
-  const double kTileTextureScale = 4;
+  const double kTileTextureScale = 30;
   RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
 }
   

@@ -110,6 +110,27 @@ namespace structured_indoor_modeling{
 	}
     }
 
+     void DepthFilling::Init(const Panorama &panorama, bool maskv = true){
+	  depthwidth = panorama.DepthWidth();
+	  depthheight = panorama.DepthHeight();
+	  depthmap.clear();
+	  depthmap.resize(depthwidth * depthheight);
+	  mask.resize(depthmap.size());
+	  for(auto &v :depthmap)
+	       v = -1.0;
+	  for(auto &v :mask)
+	       v = maskv ? 1 : 0;
+	  //project the point cloud to the panorama and get the depth
+	  max_depth = -1e100;
+	  min_depth = 1e100;
+
+	  for(int y=0; y<depthheight; y++){
+	       for(int x=0; x<depthwidth; x++){
+		    depthmap[y*depthwidth + x] = panorama.GetDepth(Vector2d((double)x, (double)y));
+	       }
+	  }
+
+     }
     void DepthFilling::setMask(int id, bool maskv){
 	if(depthmap.size() == 0 || id >= mask.size())
 	    return;

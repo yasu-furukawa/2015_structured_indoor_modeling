@@ -21,7 +21,7 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.12,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 
@@ -41,6 +41,8 @@ int main(int argc, char **argv){
     FileIO file_io(pathtodata_s);
 
 
+    clock_t start,end;
+    start = clock();
     //////////////////////////////////////
     //Init Panoramas
     //objectgroup: room->object->points
@@ -130,24 +132,26 @@ int main(int argc, char **argv){
     	 // cout<<"done. Time: "<<end - start<<endl;
     	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
 
-	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
-	    PointCloud curob;
-	    vector<structured_indoor_modeling::Point>obpts;
-	    resultCloud[roomid].GetObjectPoints(i, obpts);
-	    curob.AddPoints(obpts);
-	    vector<double>bbox = curob.GetBoundingbox();
-	    double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
-	    double density = (double)curob.GetNumPoints() / areaXY;
-	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
-	    curob.Write(string(buffer));
-	}
-//	cout<<"Cleaning room "<<roomid<<"..."<<endl;
-//	cleanObjects(resultCloud[roomid], 1e5);
-//	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
+	// for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
+	//     PointCloud curob;
+	//     vector<structured_indoor_modeling::Point>obpts;
+	//     resultCloud[roomid].GetObjectPoints(i, obpts);
+	//     curob.AddPoints(obpts);
+	//     vector<double>bbox = curob.GetBoundingbox();
+	//     double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
+	//     double density = (double)curob.GetNumPoints() / areaXY;
+	//     sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
+	//     curob.Write(string(buffer));
+	// }
+	cout<<"Cleaning room "<<roomid<<"..."<<endl;
+	cleanObjects(resultCloud[roomid], 1e5);
+	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
     	 string savepath = file_io.GetRefinedObjectClouds(roomid);
     	 cout<<"Saving "<<savepath<<endl;
     	 resultCloud[roomid].Write(savepath);
     }
+    end = clock();
+    cout<<"Total time usage: "<<(end - start) / 1000000<<"s"<<endl;
 
     return 0;
 }

@@ -102,7 +102,7 @@ void Render(const Panorama& panorama,
             const int height,
             cv::Mat* thumbnail,
             std::vector<Vector3d>* depth_points) {
-  const int kOffset = -height * 0.05;
+  const int kOffset = height * 0.4; // -height * 0.05;
   *thumbnail = cv::Mat(height, width, CV_8UC3);
   // Render.
   Vector3d optical_center = panorama.GetCenter();

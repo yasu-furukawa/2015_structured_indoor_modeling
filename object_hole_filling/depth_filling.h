@@ -16,6 +16,7 @@ namespace structured_indoor_modeling{
   class DepthFilling{
   public:
     DepthFilling(){}
+    void Init(const Panorama& panorama, bool maskv = true);
     void Init(const PointCloud &point_cloud, const Panorama &panorama, bool maskv = true);
     void Init(const PointCloud &point_cloud, const Panorama &panorama, const std::vector<int>&objectgroup, bool maskv = true);
     void setMask(int id, bool maskv);
