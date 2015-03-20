@@ -21,7 +21,7 @@ using namespace structured_indoor_modeling;
 
 DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 

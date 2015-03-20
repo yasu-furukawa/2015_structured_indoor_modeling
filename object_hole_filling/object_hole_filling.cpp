@@ -716,7 +716,7 @@ void computeColorTransform(vector<Vector3f>&src, vector<Vector3f>&dst, Matrix3f 
 }
 //Merge object in objetlist, compensate for exposure difference
 void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vector<PointCloud> &objectcloud, vector<PointCloud> &resultcloud){
-    const int grid_length = 300;
+    const int grid_length = 500;
     const double max_conflict_ratio = 0.9;
     
     resultcloud.clear();
