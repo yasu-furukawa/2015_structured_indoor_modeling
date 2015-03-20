@@ -34,7 +34,7 @@ namespace {
                                  2);
 
   const PaintStyle kDefaultStyle(PaintStyle::SolidColor,
-                                 Vector3f(240/255.0, 230/255.0, 200/255.0),
+                                 Vector3f(240/255.0, 240/255.0, 240/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
   
