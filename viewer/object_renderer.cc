@@ -318,8 +318,112 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::V
 }
 
 void ObjectRenderer::RenderLamp(const Detection& detection, const Eigen::Vector3d vs[4]) const {
-  
+  const float kFillAlpha = 0.5f;
+  const float kLineAlpha = 1.0f;
+  // Outer frame.
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBegin(GL_TRIANGLE_FAN);
+  glColor4f(1.0f, 1.0f, 1.0f, kFillAlpha);
+  for (int i = 0; i < 4; ++i)
+    glVertex3d(vs[i][0], vs[i][1], vs[i][2]);
+  glEnd();
 
+  glBegin(GL_LINE_LOOP);
+  glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
+  for (int i = 0; i < 4; ++i)
+    glVertex3d(vs[i][0], vs[i][1], vs[i][2]);
+  glEnd();
+
+  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
+  Vector3d x_diff = (vs[1] - vs[0]) / 2.0;
+  Vector3d y_diff = (vs[3] - vs[0]) / 2.0;
+
+  const double x_length = x_diff.norm();
+  const double y_length = y_diff.norm();
+  const double length = min(x_length, y_length);
+  x_diff *= length / x_length;
+  y_diff *= length / y_length;
+  
+  const double kLargeRadius = 1.0;
+  const double kSmallRadius = 0.4;
+  {
+    const int kNumSamples = 20;
+    glBegin(GL_TRIANGLE_FAN);
+    // Yellow.
+    glColor4f(1.0f, 1.0f, 0.0f, kFillAlpha);
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = 2.0 * M_PI * s / kNumSamples;
+      const Vector3d point = center + kLargeRadius * cos(angle) * x_diff + kLargeRadius * sin(angle) * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+
+    glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = 2.0 * M_PI * s / kNumSamples;
+      const Vector3d point = center + kLargeRadius * cos(angle) * x_diff + kLargeRadius * sin(angle) * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+
+  {
+    const int kNumSamples = 20;
+    glBegin(GL_TRIANGLE_FAN);
+    // White opaque.
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = 2.0 * M_PI * s / kNumSamples;
+      const Vector3d point = center + kSmallRadius * cos(angle) * x_diff + kSmallRadius * sin(angle) * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = 2.0 * M_PI * s / kNumSamples;
+      const Vector3d point = center + kSmallRadius * cos(angle) * x_diff + kSmallRadius * sin(angle) * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+
+  {
+    const double kRadius = 0.2;
+    const int kNumSamples = 20;
+    glBegin(GL_TRIANGLE_FAN);
+    // White opaque.
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = 2.0 * M_PI * s / kNumSamples;
+      const Vector3d point = center + kRadius * cos(angle) * x_diff + kRadius * sin(angle) * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+
+  /*
+  {
+    const double angles[3] = { 0.0, M_PI * 2 / 3, M_PI * 4 / 3 };
+    
+    glBegin(GL_LINES);
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+
+    for (int i = 0; i < 3; ++i) {
+      glVertex3d(center[0], center[1], center[2]);
+      const Vector3d point = center + kSmallRadius * cos(angles[i]) * x_diff + kSmallRadius * sin(angles[i]) * y_diff;
+      
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+  */
+  
+  glDisable(GL_BLEND);
 }
   
 void ObjectRenderer::RenderDefault(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
