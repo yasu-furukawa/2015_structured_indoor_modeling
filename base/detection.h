@@ -35,11 +35,14 @@ namespace structured_indoor_modeling {
 struct Detection {
   Detection() {
     panorama = -1;
-
+    us[0] = us[1] = 0.0;
+    vs[0] = vs[1] = 0.0;
     score = 0.0;
-
+    
     room = -1;
     object = -1;
+    for (int a = 0; a < 3; ++a)
+      ranges[a][0] = ranges[a][1] = 0.0;
   }
 
   //----------------------------------------------------------------------
@@ -52,7 +55,7 @@ struct Detection {
   Eigen::Vector2d vs;
 
   // Output of the object detector. Name and the detection score.
-  std::string name;
+  std::vector<std::string> names;
   double score;
 
   // Associated icon information.

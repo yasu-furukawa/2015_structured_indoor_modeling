@@ -103,6 +103,7 @@ void RasterizeObjectIds(const std::vector<Panorama>& panoramas,
         object_id_maps->at(p)[v * width + u] = object_id;
       }
     }
+
     /*
     //?????
     {

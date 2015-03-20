@@ -12,9 +12,13 @@ istream& operator >>(istream& istr, Detection& detection) {
   istr >> header
        >> detection.panorama
        >> detection.us[0] >> detection.us[1]
-       >> detection.vs[0] >> detection.vs[1]
-       >> detection.name
-       >> detection.score;
+       >> detection.vs[0] >> detection.vs[1];
+  int num_names;
+  istr >> num_names;
+  detection.names.resize(num_names);
+  for (int i = 0; i < num_names; ++i)
+    istr >> detection.names[i];
+  istr >> detection.score;
 
   if (header == "DETECTION_WITH_ICON") {
     istr >> detection.room >> detection.object;
@@ -33,7 +37,10 @@ ostream& operator <<(ostream& ostr, const Detection& detection) {
        << detection.panorama << endl
        << detection.us[0] << ' ' << detection.us[1] << endl
        << detection.vs[0] << ' ' << detection.vs[1] << endl
-       << detection.name << endl
+       << (int)detection.names.size();
+  for (int i = 0; i < (int)detection.names.size(); ++i)
+    ostr << ' ' << detection.names[i];
+  ostr << endl
        << detection.score << endl
        << detection.room << ' ' << detection.object << endl;
   for (int a = 0; a < 3; ++a)

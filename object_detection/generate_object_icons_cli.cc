@@ -18,7 +18,7 @@ using namespace std;
 using namespace structured_indoor_modeling;
 
 DEFINE_double(score_threshold, 0.0, "Ignore detections below this threshold.");
-DEFINE_double(area_threshold, 0.3, "How many pixels in a bounding box must be of the object.");
+DEFINE_double(area_threshold, 0.01, "How many pixels in a bounding box must be of the object.");
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {

@@ -168,8 +168,8 @@ void ObjectRenderer::ComputeBoundingBoxes() {
   }
 }
 
-void ObjectRenderer::RenderDesk(const Detection& detection, const Eigen::Vector3d vs[4]) {
-  const double kCornerRatio = 0.2;
+void ObjectRenderer::RenderDesk(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
+  const double kCornerRatio = 0.1;
   
   vector<Vector3d> points;
   
@@ -215,18 +215,156 @@ void ObjectRenderer::RenderDesk(const Detection& detection, const Eigen::Vector3
   glDisable(GL_BLEND);
 }
 
-void ObjectRenderer::RenderSofa(const Detection& detection, const Eigen::Vector3d vs[4]) {
+void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
+  const Vector3d x_diff = vs[1] - vs[0];
+  const Vector3d y_diff = vs[3] - vs[0];
+  vector<vector<Vector2d> > points_for_lines, points_for_polygons;
+
+  const int num_cushions = static_cast<int>(round(x_diff.norm() / y_diff.norm()));
+
+  {
+    vector<Vector2d> outer_frame;
+    outer_frame.push_back(Vector2d(0, 0.05));
+    outer_frame.push_back(Vector2d(0, 1.0));
+    outer_frame.push_back(Vector2d(1.0, 1.0));
+    outer_frame.push_back(Vector2d(1.0, 0.05));
+    outer_frame.push_back(Vector2d(0.875, 0.05));
+    outer_frame.push_back(Vector2d(0.875, 0.75));
+    outer_frame.push_back(Vector2d(0.125, 0.75));
+    outer_frame.push_back(Vector2d(0.125, 0.05));
+
+    points_for_lines.push_back(outer_frame);
+  }
+  for (int c = 0; c < num_cushions; ++c) {
+    vector<Vector2d> cushion;
+    const double min_x = 0.125 + c * 0.75 / num_cushions;
+    const double max_x = 0.125 + (c + 1) * 0.75 / num_cushions;
+    const double min_y = 0.0;
+    const double max_y = 0.75;
+    
+    cushion.push_back(Vector2d(min_x, min_y));
+    cushion.push_back(Vector2d(min_x, max_y));
+    cushion.push_back(Vector2d(max_x, max_y));
+    cushion.push_back(Vector2d(max_x, min_y));
+
+    points_for_lines.push_back(cushion);
+  }
+
+  //----------------------------------------------------------------------
+  {
+    vector<Vector2d> outer_frame;
+    outer_frame.push_back(Vector2d(0.125, 0.05));
+    outer_frame.push_back(Vector2d(0.125, 0.75));
+    outer_frame.push_back(Vector2d(0, 1.0));
+    outer_frame.push_back(Vector2d(0, 0.05));
+
+    points_for_polygons.push_back(outer_frame);
+  }
+  {
+    vector<Vector2d> outer_frame;
+    outer_frame.push_back(Vector2d(0.875, 0.75));
+    outer_frame.push_back(Vector2d(1.0, 1.0));
+    outer_frame.push_back(Vector2d(0, 1.0));
+    outer_frame.push_back(Vector2d(0.125, 0.75));
+
+    points_for_polygons.push_back(outer_frame);
+  }
+  {
+    vector<Vector2d> outer_frame;
+    outer_frame.push_back(Vector2d(0.875, 0.75));
+    outer_frame.push_back(Vector2d(0.875, 0.05));
+    outer_frame.push_back(Vector2d(1.0, 0.05));
+    outer_frame.push_back(Vector2d(1.0, 1.0));
+
+    points_for_polygons.push_back(outer_frame);
+  }
+  for (int c = 0; c < num_cushions; ++c) {
+    vector<Vector2d> cushion;
+    const double min_x = 0.125 + c * 0.75 / num_cushions;
+    const double max_x = 0.125 + (c + 1) * 0.75 / num_cushions;
+    const double min_y = 0.0;
+    const double max_y = 0.75;
+    
+    cushion.push_back(Vector2d(max_x, min_y));
+    cushion.push_back(Vector2d(max_x, max_y));
+    cushion.push_back(Vector2d(min_x, max_y));
+    cushion.push_back(Vector2d(min_x, min_y));
+
+    points_for_polygons.push_back(cushion);
+  }
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  for (int p = 0; p < (int)points_for_polygons.size(); ++p) {
+    glBegin(GL_TRIANGLE_FAN);
+    glColor4f(1.0f, 0.8f, 0.8f, 0.5f);
+    for (const auto& uv : points_for_polygons[p]) {
+      const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+  
+  glLineWidth(1.5f);
+  for (int p = 0; p < (int)points_for_lines.size(); ++p) {
+    glBegin(GL_LINE_LOOP);
+    glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+    for (const auto& uv : points_for_lines[p]) {
+      const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+}
+
+void ObjectRenderer::RenderLamp(const Detection& detection, const Eigen::Vector3d vs[4]) const {
+  
+
+}
+  
+void ObjectRenderer::RenderDefault(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
+  
 
 }
 
-void ObjectRenderer::RenderDefault(const Detection& detection, const Eigen::Vector3d vs[4]) {
+void ObjectRenderer::RotateToFrontal(const Detection& detection,
+                                     const Eigen::Vector3d vs[4],
+                                     Eigen::Vector3d rotated_vs[4]) const {
+  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
+  // Identify the longest side.
+  const Vector3d x_diff = vs[1] - vs[0];
+  const Vector3d y_diff = vs[3] - vs[0];
+  const double width  = x_diff.norm();
+  const double height = y_diff.norm();
 
+  // Identify the frontal direction.
+  const Vector3d room_center = floorplan.GetRoomCenterGlobal(detection.room);
+  const Vector3d diff = room_center - center;
 
+  // Identify frontal side and shift vs.
+  int shift;
+  if (width > height) {
+    if (y_diff.dot(diff) < 0.0)
+      shift = 0;
+    else
+      shift = 2;
+  } else {
+    if (x_diff.dot(diff) < 0.0)
+      shift = 1;
+    else
+      shift = 3;
+  }
+
+  for (int i = 0; i < 4; ++i)
+    rotated_vs[(i + shift) % 4] = vs[i];
 }
   
 void ObjectRenderer::RenderIcons(const double /* alpha */) {
   // Depending on detection.name, change.
   for (const auto& detection : detections) {
+    if (detection.room == -1)
+      continue;
+    
     const double z = (detection.ranges[2][0] + detection.ranges[2][1]) / 2.0;
     Vector3d vs[4] = { Vector3d(detection.ranges[0][0], detection.ranges[1][0], z),
                        Vector3d(detection.ranges[0][1], detection.ranges[1][0], z),
@@ -234,13 +372,19 @@ void ObjectRenderer::RenderIcons(const double /* alpha */) {
                        Vector3d(detection.ranges[0][0], detection.ranges[1][1], z) };
     for (int i = 0; i < 4; ++i)
       vs[i] = indoor_polygon.ManhattanToGlobal(vs[i]);
+
+    Vector3d rotated_vs[4];
+    RotateToFrontal(detection, vs, rotated_vs);
     
-    if (detection.name == "table") {
-      RenderDesk(detection, vs);
-    } else if (detection.name == "sofa") {
-      RenderSofa(detection, vs);
+    if (detection.names[0] == "table") {
+      RenderDesk(detection, rotated_vs);
+    } else if (detection.names[0] == "sofa") {
+      RenderSofa(detection, rotated_vs);
+    } else if (detection.names[0] == "lamp") {
+      RenderLamp(detection, rotated_vs);
     } else {
-      RenderDefault(detection, vs);
+      // RenderDefault(detection, rotated_vs);
+      RenderDesk(detection, rotated_vs);
     }
   }
   

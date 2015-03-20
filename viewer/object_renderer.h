@@ -39,10 +39,14 @@ struct BoundingBox {
   
  private:
   void ComputeBoundingBoxes();
-  void RenderDesk(const Detection& detection, const Eigen::Vector3d bounding_boxes[4]);
-  void RenderChair(const Detection& detection, const Eigen::Vector3d vs[4]);
-  void RenderSofa(const Detection& detection, const Eigen::Vector3d vs[4]);
-  void RenderDefault(const Detection& detection, const Eigen::Vector3d vs[4]);
+  void RenderDesk(const Detection& detection, const Eigen::Vector3d bounding_boxes[4]) const;
+  void RenderSofa(const Detection& detection, const Eigen::Vector3d vs[4]) const;
+  void RenderLamp(const Detection& detection, const Eigen::Vector3d vs[4]) const;
+  void RenderDefault(const Detection& detection, const Eigen::Vector3d vs[4]) const;
+
+  void RotateToFrontal(const Detection& detection,
+                       const Eigen::Vector3d vs[4],
+                       Eigen::Vector3d rotated_vs[4]) const;
     
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;

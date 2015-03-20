@@ -4,3 +4,5 @@
 ./texture/generate_thumbnail_cli $1
 ./object_segmentation/object_segmentation_cli $1
 
+# After detection.
+./object_detection/generate_object_icons_cli $1
