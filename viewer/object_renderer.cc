@@ -168,7 +168,16 @@ void ObjectRenderer::ComputeBoundingBoxes() {
   }
 }
 
-void ObjectRenderer::RenderDesk(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
+void ObjectRenderer::RenderDesk(const Detection& /* detection */,
+                                const Eigen::Vector3d vs[4],
+                                const double animation) const {
+  const double kAnimationRatio = 0.1;
+
+  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
+  Vector3d new_vs[4];
+  for (int i = 0; i < 4; ++i)
+    new_vs[i] = vs[i] + (vs[i] - center) * animation * kAnimationRatio;
+
   const double kCornerRatio = 0.1;
   
   vector<Vector3d> points;
@@ -177,14 +186,20 @@ void ObjectRenderer::RenderDesk(const Detection& /* detection */, const Eigen::V
     const int prev = (current - 1 + 4) % 4;
     const int next = (current + 1) % 4;
 
-    const Vector3d prev_diff = (vs[prev] - vs[current]) * kCornerRatio;
-    const Vector3d next_diff = (vs[next] - vs[current]) * kCornerRatio;
+    Vector3d prev_diff = (new_vs[prev] - new_vs[current]) * kCornerRatio;
+    Vector3d next_diff = (new_vs[next] - new_vs[current]) * kCornerRatio;
 
-    const Vector3d internal = vs[current] + prev_diff + next_diff;
+    const double prev_length = prev_diff.norm();
+    const double next_length = next_diff.norm();
+    const double min_length = min(prev_length, next_length);
+    prev_diff *= min_length / prev_length;
+    next_diff *= min_length / next_length;    
+
+    const Vector3d internal = new_vs[current] + prev_diff + next_diff;
     
     // First line.
-    points.push_back((vs[prev] + vs[current]) / 2.0);
-    points.push_back(vs[current] + prev_diff);
+    points.push_back((new_vs[prev] + new_vs[current]) / 2.0);
+    points.push_back(new_vs[current] + prev_diff);
     // Corner.
     const int kNumSamples = 6;
     for (int s = 0; s < kNumSamples; ++s) {
@@ -192,13 +207,13 @@ void ObjectRenderer::RenderDesk(const Detection& /* detection */, const Eigen::V
       points.push_back(internal - cos(angle) * next_diff - sin(angle) * prev_diff);
     }
     // Second line.
-    points.push_back(vs[current] + next_diff);
+    points.push_back(new_vs[current] + next_diff);
   }
   
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glBegin(GL_TRIANGLE_FAN);
-  glColor4f(0.8f, 1.0f, 0.8f, 0.5f);
+  glColor4f(0.8f, 1.0f, 0.8f, 0.5f + 0.5f * animation);
   for (const auto& point : points) {
     glVertex3d(point[0], point[1], point[2]);
   }
@@ -215,7 +230,9 @@ void ObjectRenderer::RenderDesk(const Detection& /* detection */, const Eigen::V
   glDisable(GL_BLEND);
 }
 
-void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
+void ObjectRenderer::RenderSofa(const Detection& /* detection */,
+                                const Eigen::Vector3d vs[4],
+                                const double animation) const {
   const Vector3d x_diff = vs[1] - vs[0];
   const Vector3d y_diff = vs[3] - vs[0];
   vector<vector<Vector2d> > points_for_lines, points_for_polygons;
@@ -239,7 +256,7 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::V
     vector<Vector2d> cushion;
     const double min_x = 0.125 + c * 0.75 / num_cushions;
     const double max_x = 0.125 + (c + 1) * 0.75 / num_cushions;
-    const double min_y = 0.0;
+    const double min_y = - 0.3 * animation;
     const double max_y = 0.75;
     
     cushion.push_back(Vector2d(min_x, min_y));
@@ -282,7 +299,7 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::V
     vector<Vector2d> cushion;
     const double min_x = 0.125 + c * 0.75 / num_cushions;
     const double max_x = 0.125 + (c + 1) * 0.75 / num_cushions;
-    const double min_y = 0.0;
+    const double min_y = - 0.3 * animation;
     const double max_y = 0.75;
     
     cushion.push_back(Vector2d(max_x, min_y));
@@ -297,7 +314,7 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::V
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   for (int p = 0; p < (int)points_for_polygons.size(); ++p) {
     glBegin(GL_TRIANGLE_FAN);
-    glColor4f(1.0f, 0.8f, 0.8f, 0.5f);
+    glColor4f(1.0f, 0.8f, 0.8f, 0.5f + 0.5f * animation);
     for (const auto& uv : points_for_polygons[p]) {
       const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
       glVertex3d(point[0], point[1], point[2]);
@@ -317,8 +334,14 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */, const Eigen::V
   }
 }
 
-void ObjectRenderer::RenderLamp(const Detection& detection, const Eigen::Vector3d vs[4]) const {
-  const float kFillAlpha = 0.5f;
+void ObjectRenderer::RenderLamp(const Detection& /* detection */,
+                                const Eigen::Vector3d vs[4],
+                                const double animation) const {
+  const double kLargeRadius = 1.0 + 0.2 * animation;
+  const double kSmallRadius = 0.4 + 0.2 * animation;
+  const double kTinyRadius = 0.2 + 0.2 * animation;
+
+  const float kFillAlpha = 0.5f + 0.5f * animation;
   const float kLineAlpha = 1.0f;
   // Outer frame.
   glEnable(GL_BLEND);
@@ -345,8 +368,6 @@ void ObjectRenderer::RenderLamp(const Detection& detection, const Eigen::Vector3
   x_diff *= length / x_length;
   y_diff *= length / y_length;
   
-  const double kLargeRadius = 1.0;
-  const double kSmallRadius = 0.4;
   {
     const int kNumSamples = 20;
     glBegin(GL_TRIANGLE_FAN);
@@ -393,14 +414,13 @@ void ObjectRenderer::RenderLamp(const Detection& detection, const Eigen::Vector3
   }
 
   {
-    const double kRadius = 0.2;
     const int kNumSamples = 20;
     glBegin(GL_TRIANGLE_FAN);
     // White opaque.
     glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = 2.0 * M_PI * s / kNumSamples;
-      const Vector3d point = center + kRadius * cos(angle) * x_diff + kRadius * sin(angle) * y_diff;
+      const Vector3d point = center + kTinyRadius * cos(angle) * x_diff + kTinyRadius * sin(angle) * y_diff;
       glVertex3d(point[0], point[1], point[2]);
     }
     glEnd();
@@ -426,7 +446,9 @@ void ObjectRenderer::RenderLamp(const Detection& detection, const Eigen::Vector3
   glDisable(GL_BLEND);
 }
   
-void ObjectRenderer::RenderDefault(const Detection& /* detection */, const Eigen::Vector3d vs[4]) const {
+void ObjectRenderer::RenderDefault(const Detection& /* detection */,
+                                   const Eigen::Vector3d vs[4],
+                                   const double animation) const {
   
 
 }
@@ -463,7 +485,7 @@ void ObjectRenderer::RotateToFrontal(const Detection& detection,
     rotated_vs[(i + shift) % 4] = vs[i];
 }
   
-void ObjectRenderer::RenderIcons(const double /* alpha */) {
+void ObjectRenderer::RenderIcons(const double /* alpha */, const double animation) {
   // Depending on detection.name, change.
   for (const auto& detection : detections) {
     if (detection.room == -1)
@@ -481,14 +503,14 @@ void ObjectRenderer::RenderIcons(const double /* alpha */) {
     RotateToFrontal(detection, vs, rotated_vs);
     
     if (detection.names[0] == "table") {
-      RenderDesk(detection, rotated_vs);
+      RenderDesk(detection, rotated_vs, animation);
     } else if (detection.names[0] == "sofa") {
-      RenderSofa(detection, rotated_vs);
+      RenderSofa(detection, rotated_vs, animation);
     } else if (detection.names[0] == "lamp") {
-      RenderLamp(detection, rotated_vs);
+      RenderLamp(detection, rotated_vs, animation);
     } else {
       // RenderDefault(detection, rotated_vs);
-      RenderDesk(detection, rotated_vs);
+      RenderDesk(detection, rotated_vs, animation);
     }
   }
   
