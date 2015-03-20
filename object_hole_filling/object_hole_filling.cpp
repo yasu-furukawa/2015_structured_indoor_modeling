@@ -391,7 +391,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 5;
+     int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -418,22 +418,21 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	break;
     }
 }
 
 
 double unaryDiffFunc(double confidence){
-     const double offset = 3.0;
-     const double maxv = 1.0;
-     return max(sigmaFunc(confidence, offset, maxv, 1.0), 0.1);
+//     const double offset = 3.0;
+//     const double maxv = 1.0;
+     return max(gaussianFunc(confidence, 1.0), 0.01);
 }
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     const double offset = 50;
     const double maxv = 1.0;
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
-    return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.1);
+    return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.01);
 }
 
 
@@ -716,8 +715,10 @@ void computeColorTransform(vector<Vector3f>&src, vector<Vector3f>&dst, Matrix3f 
 }
 //Merge object in objetlist, compensate for exposure difference
 void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vector<PointCloud> &objectcloud, vector<PointCloud> &resultcloud){
-    const int grid_length = 300;
+    const int grid_length = 500;
     const double max_conflict_ratio = 0.9;
+    const double min_object_volume = 1e7;
+    const int min_object_points_num = 1500;
     
     resultcloud.clear();
     resultcloud.resize(objectlist.size());
@@ -734,27 +735,25 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 	for(int objid = 0; objid<objectlist[roomid].size(); objid++){
 	     cout<<"room "<<roomid<<' '<<"objid "<<objid<<endl;
 
-	    //voxel grid approach
-	    //init voxel grid
-	    for(auto &v:grid){
-	    	for(auto &u: v){
-	    	    for(auto &w: u)
-	    		w = -1;
-	    	}
-	    }
-	    vector<double>bbox;
-	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
-	    double unitlength = 3.0;
-	    // unitlength = std::max(bbox[1]-bbox[0], unitlength);
-	    // unitlength = std::max(bbox[3]-bbox[2], unitlength);
-	    // unitlength = std::max(bbox[5]-bbox[4], unitlength);
-	    // unitlength /= (double)grid_length;
 	    
 	    auto firstpart = objectlist[roomid][objid].begin();
 	    auto iter = objectlist[roomid][objid].begin();
 
 	    if(iter == objectlist[roomid][objid].end())
 		continue;
+
+	    //voxel grid approach
+	    //init voxel grid
+	    for(auto &v:grid){
+		 for(auto &u: v){
+		      for(auto &w: u)
+			   w = -1;
+		 }
+	    }
+	    vector<double>bbox;
+	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
+	    double unitlength = 5.0;
+
 	    ++iter;  //begin from the second part
 
 	    for(; iter!=objectlist[roomid][objid].end();++iter){
@@ -813,22 +812,18 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 		}
 		objectlist[roomid][objid].front().AddPoints(*iter, true);
 	    }
-	    resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
+
+	    double object_volume = objectlist[roomid][objid].front().GetBoundingboxVolume();
+	    int object_point_num = objectlist[roomid][objid].front().GetNumPoints();
+	    if(object_volume > min_object_volume && object_point_num > min_object_points_num)
+		 resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
 	}
     }
 }
 
 //remove small objects, re-assign object id
 void cleanObjects(PointCloud &pc, const double min_volume){
-    //clean small objects
-    for(int objid = 0; objid < pc.GetNumObjects(); objid++){
-	double curvolume = pc.GetObjectBoundingboxVolume(objid);
-	if(curvolume >= min_volume)
-	    continue;
-	vector<int>points_to_remove;
-	pc.GetObjectIndice(objid, points_to_remove);
-	pc.RemovePoints(points_to_remove);
-    }
+
     //reassign object_id
     vector<int>objectid;
     vector<bool>hash(pc.GetNumObjects());
@@ -944,11 +939,6 @@ void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter, const int d
      flann::Index searchtree(featurepoints, indexParams);
 
      typedef Matrix<double, 3,Dynamic> Matrix3;
-
-     Matrix3 P = Matrix3::Zero(3,srcnum/downsample);
-     Matrix3 Q = Matrix3::Zero(3,srcnum/downsample);
-     Matrix<double,3,3> M, R;
-     Matrix4d T;
 
      for(int iter=1; iter<=num_iter; iter++){
 //	  cout<<"---------------"<<endl;
