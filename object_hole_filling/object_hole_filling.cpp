@@ -744,7 +744,7 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 	    }
 	    vector<double>bbox;
 	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
-	    double unitlength = 5.0;
+	    double unitlength = 3.0;
 	    // unitlength = std::max(bbox[1]-bbox[0], unitlength);
 	    // unitlength = std::max(bbox[3]-bbox[2], unitlength);
 	    // unitlength = std::max(bbox[5]-bbox[4], unitlength);
@@ -798,7 +798,7 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 		if(cur_conflict_ratio > max_conflict_ratio)
 		    continue;
 		cout<<"Conflict count: "<<diff_count<<endl;
-		iter->RemovePoints(point_to_remove);
+		(*iter).RemovePoints(point_to_remove);
 
 		//compute Color transform
 		Matrix3f transform;
@@ -806,9 +806,11 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 		
 		for(int ptid=0; ptid<iter->GetNumPoints(); ptid++){
 		    Vector3f curcolor = iter->GetPoint(ptid).color;
+		    Vector3f newcolor = transform * curcolor;
+		    if(newcolor[0]<0 || newcolor[1] >255 || newcolor[1]<0 || newcolor[1]>255 || newcolor[2]<0 || newcolor[2]>255)
+			 continue;
 		    iter->SetColor(ptid, transform * curcolor);
 		}
-
 		objectlist[roomid][objid].front().AddPoints(*iter, true);
 	    }
 	    resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
