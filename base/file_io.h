@@ -156,11 +156,11 @@ class FileIO {
   }
 
   std::string GetObjectDetections() const {
-    sprintf(buffer, "%s/object/detections.txt", data_directory.c_str());
+    sprintf(buffer, "%s/object_detection/detections.txt", data_directory.c_str());
     return buffer;
   }
   std::string GetObjectDetectionsFinal() const {
-    sprintf(buffer, "%s/object/detections_final.txt", data_directory.c_str());
+    sprintf(buffer, "%s/object_detection/detections_final.txt", data_directory.c_str());
     return buffer;
   }
   

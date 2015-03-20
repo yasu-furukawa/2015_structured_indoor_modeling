@@ -5,17 +5,20 @@
 
 #include <gflags/gflags.h>
 
+#include "../base/detection.h"
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
-// #include "../base/indoor_polygon.h"
+#include "../base/indoor_polygon.h"
 #include "../base/panorama.h"
 #include "../base/point_cloud.h"
-#include "detection.h"
 #include "generate_object_icons.h"
 
 using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
+
+DEFINE_double(score_threshold, 0.0, "Ignore detections below this threshold.");
+DEFINE_double(area_threshold, 0.3, "How many pixels in a bounding box must be of the object.");
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -29,6 +32,8 @@ int main(int argc, char* argv[]) {
 #endif
 
   FileIO file_io(argv[1]);
+
+  IndoorPolygon indoor_polygon(file_io.GetIndoorPolygon());
   
   vector<Panorama> panoramas;
   {
@@ -36,7 +41,6 @@ int main(int argc, char* argv[]) {
   }
 
   vector<Detection> detections;
-  /*
   {
     ifstream ifstr;
     ifstr.open(file_io.GetObjectDetections().c_str());
@@ -47,7 +51,6 @@ int main(int argc, char* argv[]) {
     ifstr >> detections;
     ifstr.close();
   }
-  */
   
   vector<PointCloud> object_point_clouds;
   {
@@ -62,18 +65,25 @@ int main(int argc, char* argv[]) {
   }
   
   // For each detection, find the most relevant object id.
-  vector<ObjectId> associated_object_ids;
-  AssociateObjectId(panoramas, detections, object_id_maps, &associated_object_ids);
+  map<ObjectId, int> object_to_detection;
+  AssociateObjectId(panoramas,
+                    detections,
+                    object_id_maps,
+                    FLAGS_score_threshold,
+                    FLAGS_area_threshold,
+                    &object_to_detection);
 
+  vector<Detection> detections_with_icon;
+  AddIconInformationToDetections(indoor_polygon,
+                                 object_point_clouds,
+                                 object_to_detection,
+                                 detections,
+                                 &detections_with_icon);
 
-
-
-
-
-
-
-
-
+  ofstream ofstr;
+  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
+  ofstr << detections_with_icon;
+  ofstr.close();
 
   /*
   vecor<PointCloud> input_point_clouds, object_point_clouds;
