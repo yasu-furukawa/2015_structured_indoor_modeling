@@ -123,14 +123,6 @@ int main(int argc, char **argv){
     cout<<endl<<"All done! Saving result..."<<endl;
 
     for(int roomid=0; roomid<resultCloud.size(); roomid++){
-    	 // cout<<"Merging close points..."<<endl;
-    	 // cout<<"Before merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
-    	 // clock_t start,end;
-    	 // start = clock();
-    	 // mergeVertices(resultCloud[roomid], 1024);
-    	 // end = clock();
-    	 // cout<<"done. Time: "<<end - start<<endl;
-    	 // cout<<"After merging: "<<resultCloud[roomid].GetNumPoints()<<endl;
 
 	// for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
 	//     PointCloud curob;
