@@ -27,7 +27,6 @@ void AssociateObjectId(const std::vector<Panorama>& panoramas,
 void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
                                     const std::vector<PointCloud>& object_point_clouds,
                                     const std::map<ObjectId, int>& object_to_detection,
-                                    const std::vector<Detection>& detections,
-                                    std::vector<Detection>* detections_with_icon);
+                                    std::vector<Detection>* detections);
 
 }  // namespace structured_indoor_modeling

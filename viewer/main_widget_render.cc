@@ -47,7 +47,7 @@ void MainWidget::RenderFloorplan(const double alpha,
   floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize, height_adjustment);
 
   // Bounding boxes for objects.
-  object_renderer.RenderIcons(alpha);  
+  object_renderer.RenderIcons(alpha);
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);

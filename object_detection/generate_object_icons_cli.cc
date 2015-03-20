@@ -73,16 +73,14 @@ int main(int argc, char* argv[]) {
                     FLAGS_area_threshold,
                     &object_to_detection);
 
-  vector<Detection> detections_with_icon;
   AddIconInformationToDetections(indoor_polygon,
                                  object_point_clouds,
                                  object_to_detection,
-                                 detections,
-                                 &detections_with_icon);
+                                 &detections);
 
   ofstream ofstr;
   ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
-  ofstr << detections_with_icon;
+  ofstr << detections;
   ofstr.close();
 
   /*

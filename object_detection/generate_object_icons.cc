@@ -193,11 +193,10 @@ void AssociateObjectId(const std::vector<Panorama>& panoramas,
 void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
                                     const std::vector<PointCloud>& object_point_clouds,
                                     const std::map<ObjectId, int>& object_to_detection,
-                                    const std::vector<Detection>& detections,
-                                    std::vector<Detection>* detections_with_icon) {
+                                    std::vector<Detection>* detections) {
   for (const auto& item : object_to_detection) {
     const ObjectId& object_id = item.first;
-    Detection detection = detections[item.second];
+    Detection& detection = detections->at(item.second);
     detection.room = object_id.first;
     detection.object = object_id.second;
 
@@ -224,7 +223,6 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
       nth_element(histograms[a].begin(), upper_ite, histograms[a].end());
       detection.ranges[a][1] = *upper_ite;
     }
-    detections_with_icon->push_back(detection);
   }
 }
 

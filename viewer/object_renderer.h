@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 
+#include "../base/detection.h"
+
 namespace structured_indoor_modeling {
 
 class Floorplan;
@@ -21,7 +23,9 @@ struct BoundingBox {
 
  class ObjectRenderer : protected QGLFunctions {
  public:
-  ObjectRenderer(const Floorplan& floorplan, const IndoorPolygon& indoor_polygon);
+   ObjectRenderer(const Floorplan& floorplan,
+                  const IndoorPolygon& indoor_polygon,
+                  const std::string& detection_file);
   virtual ~ObjectRenderer();
 
   void Init(const std::string data_directory);
@@ -35,7 +39,11 @@ struct BoundingBox {
   
  private:
   void ComputeBoundingBoxes();
-  
+  void RenderDesk(const Detection& detection, const Eigen::Vector3d bounding_boxes[4]);
+  void RenderChair(const Detection& detection, const Eigen::Vector3d vs[4]);
+  void RenderSofa(const Detection& detection, const Eigen::Vector3d vs[4]);
+  void RenderDefault(const Detection& detection, const Eigen::Vector3d vs[4]);
+    
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   // private:
@@ -51,6 +59,8 @@ struct BoundingBox {
 
   // Bounding boxes for each object.
   std::vector<std::vector<BoundingBox> > bounding_boxes;
+
+  std::vector<Detection> detections;
   
 };
 

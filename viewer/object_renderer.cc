@@ -1,5 +1,6 @@
 #include <iostream>
 #include "object_renderer.h"
+#include "../base/detection.h"
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
 #include "../base/indoor_polygon.h"
@@ -11,9 +12,17 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
-                               const IndoorPolygon& indoor_polygon)
+                               const IndoorPolygon& indoor_polygon,
+                               const std::string& detection_file)
   : floorplan(floorplan), indoor_polygon(indoor_polygon) {
   render = true;
+
+  ifstream ifstr;
+  ifstr.open(detection_file.c_str());
+  if (ifstr.is_open()) {
+    ifstr >> detections;
+    ifstr.close();
+  }
 }
 
 ObjectRenderer::~ObjectRenderer() {
@@ -158,8 +167,84 @@ void ObjectRenderer::ComputeBoundingBoxes() {
     }
   }
 }
+
+void ObjectRenderer::RenderDesk(const Detection& detection, const Eigen::Vector3d vs[4]) {
+  const double kCornerRatio = 0.2;
+  
+  vector<Vector3d> points;
+  
+  for (int current = 0; current < 4; ++current) {
+    const int prev = (current - 1 + 4) % 4;
+    const int next = (current + 1) % 4;
+
+    const Vector3d prev_diff = (vs[prev] - vs[current]) * kCornerRatio;
+    const Vector3d next_diff = (vs[next] - vs[current]) * kCornerRatio;
+
+    const Vector3d internal = vs[current] + prev_diff + next_diff;
+    
+    // First line.
+    points.push_back((vs[prev] + vs[current]) / 2.0);
+    points.push_back(vs[current] + prev_diff);
+    // Corner.
+    const int kNumSamples = 6;
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = M_PI / 2.0 * (s + 0.5) / kNumSamples;
+      points.push_back(internal - cos(angle) * next_diff - sin(angle) * prev_diff);
+    }
+    // Second line.
+    points.push_back(vs[current] + next_diff);
+  }
+  
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBegin(GL_TRIANGLE_FAN);
+  glColor4f(0.8f, 1.0f, 0.8f, 0.5f);
+  for (const auto& point : points) {
+    glVertex3d(point[0], point[1], point[2]);
+  }
+  glEnd();
+
+  glLineWidth(1.5f);
+  glBegin(GL_LINE_LOOP);
+  glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+  for (const auto& point : points) {
+    glVertex3d(point[0], point[1], point[2]);
+  }
+  glEnd();
+
+  glDisable(GL_BLEND);
+}
+
+void ObjectRenderer::RenderSofa(const Detection& detection, const Eigen::Vector3d vs[4]) {
+
+}
+
+void ObjectRenderer::RenderDefault(const Detection& detection, const Eigen::Vector3d vs[4]) {
+
+
+}
   
 void ObjectRenderer::RenderIcons(const double /* alpha */) {
+  // Depending on detection.name, change.
+  for (const auto& detection : detections) {
+    const double z = (detection.ranges[2][0] + detection.ranges[2][1]) / 2.0;
+    Vector3d vs[4] = { Vector3d(detection.ranges[0][0], detection.ranges[1][0], z),
+                       Vector3d(detection.ranges[0][1], detection.ranges[1][0], z),
+                       Vector3d(detection.ranges[0][1], detection.ranges[1][1], z),
+                       Vector3d(detection.ranges[0][0], detection.ranges[1][1], z) };
+    for (int i = 0; i < 4; ++i)
+      vs[i] = indoor_polygon.ManhattanToGlobal(vs[i]);
+    
+    if (detection.name == "table") {
+      RenderDesk(detection, vs);
+    } else if (detection.name == "sofa") {
+      RenderSofa(detection, vs);
+    } else {
+      RenderDefault(detection, vs);
+    }
+  }
+  
+  /*
   glEnable(GL_BLEND);
   
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -189,6 +274,7 @@ void ObjectRenderer::RenderIcons(const double /* alpha */) {
   }
   
   glDisable(GL_BLEND);
+  */
 }
   
 }  // namespace structured_indoor_modeling

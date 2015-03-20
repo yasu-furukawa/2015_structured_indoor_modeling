@@ -127,19 +127,11 @@ void ComputeRanges(const Floorplan& floorplan, const int room, Vector2d* x_range
 }  // namespace
 
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan,
-                                     const IndoorPolygon& indoor_polygon,
-                                     const std::string& detection_file)
+                                     const IndoorPolygon& indoor_polygon) 
   : floorplan(floorplan), indoor_polygon(indoor_polygon) {
   sheep_texture_id = -1;
   kitchen_texture_id = -1;
   tile_texture_id = -1;
-
-  ifstream ifstr;
-  ifstr.open(detection_file.c_str());
-  if (ifstr.is_open()) {
-    ifstr >> detections;
-    ifstr.close();
-  }
 }
 
 FloorplanRenderer::~FloorplanRenderer() {
@@ -535,7 +527,7 @@ void FloorplanRenderer::RenderTile(const int room,
                                    const PaintStyle& paint_style,
                                    const double unit,
                                    const double alpha) const {
-  const double kTileTextureScale = 4;
+  const double kTileTextureScale = 8;
   RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
 }
   
