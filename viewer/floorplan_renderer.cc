@@ -183,13 +183,13 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
   }
   {
     #ifdef _WIN32
-    tile_image.load("../viewer/texture/tile2.png");
+    tile_image.load("../viewer/texture/tile4.jpg");
     #else
-    tile_image.load("texture/tile2.png");
+    tile_image.load("texture/tile4.jpg");
     #endif
 
     if (tile_image.isNull()) {
-      cout << "texture/tile3.jpg cannot be loaded." << endl
+      cout << "texture/tile4.jpg cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
       exit (1);
     }
