@@ -19,9 +19,12 @@
 
 DEFINE_string(floorplan_file, "", "Floorplan filename.");
 DEFINE_string(indoor_polygon_file, "", "Indoor_polygon filename.");
+
 DEFINE_bool(evaluate_floorplan, true, "Evaluate floorplan.");
 DEFINE_bool(evaluate_indoor_polygon, true, "Evaluate indoor_polygon.");
-DEFINE_bool(evaluate_object_point_clouds, true, "Evaluate indoor_polygon.");
+DEFINE_bool(evaluate_indoor_polygon_and_object_point_clouds, true, "Evaluate indoor_polygon.");
+DEFINE_bool(evaluate_poisson_mesh, true, "Evaluate poisson mesh.");
+DEFINE_bool(evaluate_vgcut_mesh, true, "Evaluate poisson mesh.");
 
 using namespace Eigen;
 using namespace std;
@@ -284,17 +287,44 @@ int main(int argc, char* argv[]) {
                  panoramas,
                  kInitial,
                  depth_unit);
+  }
 
-    if (FLAGS_evaluate_object_point_clouds) {
-      // Plus objects.
-      RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
-      VisualizeResults(file_io, "object_point_clouds", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-      ReportErrors(input_point_clouds,
-                   rasterized_geometries,
-                   panoramas,
-                   kInitial,
-                   depth_unit);
-    }
+  if (FLAGS_evaluate_indoor_polygon_and_object_point_clouds) {
+    Initialize(panoramas, kInitial, &rasterized_geometries);
+    RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
+    RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
+    VisualizeResults(file_io, "indoor_polygon_and_object_point_clouds", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+    ReportErrors(input_point_clouds,
+		 rasterized_geometries,
+		 panoramas,
+		 kInitial,
+		 depth_unit);
+  }
+
+  if (FLAGS_evaluate_poisson_mesh) {
+    /*
+    Initialize(panoramas, kInitial, &rasterized_geometries);
+    RasterizePoissonMesh(poisson_mesh, panoramas, &rasterized_geometries);
+    VisualizeResults(file_io, "poisson_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+    ReportErrors(input_point_clouds,
+		 rasterized_geometries,
+		 panoramas,
+		 kInitial,
+		 depth_unit);
+    */
+  }
+
+  if (FLAGS_evaluate_vgcut_mesh) {
+    /*
+    Initialize(panoramas, kInitial, &rasterized_geometries);
+    RasterizeVgcutMesh(poisson_mesh, panoramas, &rasterized_geometries);
+    VisualizeResults(file_io, "vgcut_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+    ReportErrors(input_point_clouds,
+		 rasterized_geometries,
+		 panoramas,
+		 kInitial,
+		 depth_unit);
+    */
   }
   
   return 0;
