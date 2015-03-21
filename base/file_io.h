@@ -98,7 +98,8 @@ class FileIO {
     return buffer;
   }
   std::string GetIndoorPolygon() const {
-    sprintf(buffer, "%s/indoor_polygon.txt", data_directory.c_str());
+    // sprintf(buffer, "%s/indoor_polygon.txt", data_directory.c_str());
+    sprintf(buffer, "%s/floorplan_detailed.txt", data_directory.c_str());
     return buffer;
   }
   std::string GetIndoorPolygonFinal() const {
