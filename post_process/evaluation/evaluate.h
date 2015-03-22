@@ -5,16 +5,11 @@
 namespace structured_indoor_modeling {
 
 enum GeometryType {
-  kFloorplanFloor,
-  kFloorplanCeiling,
-  kFloorplanWall,
-  kFloorplanDoor,
+  kFloor,
+  kCeiling,
+  kWall,
+  kDoor,
 
-  kIndoorPolygonFloor,
-  kIndoorPolygonCeiling,
-  kIndoorPolygonWall,
-  kIndoorPolygonDoor,
-  
   kObject,
 
   kHole

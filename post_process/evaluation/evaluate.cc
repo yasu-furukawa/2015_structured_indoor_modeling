@@ -63,9 +63,9 @@ double UVDistance(const Eigen::Vector2d& lhs, const Eigen::Vector2d& rhs, const 
   return distance;
 }
 
-void RasterizeMesh(const Panorama& panorama,
-                   const Mesh& mesh,
-                   std::vector<RasterizedGeometry>* rasterized_geometry) {
+void RasterizeMeshForPanorama(const Panorama& panorama,
+                              const Mesh& mesh,
+                              std::vector<RasterizedGeometry>* rasterized_geometry) {
   const int width = panorama.DepthWidth();
   const int height = panorama.DepthHeight();
 
@@ -258,35 +258,35 @@ void RasterizeFloorplan(const Floorplan& floorplan,
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       const FloorCeilingTriangulation& triangulation = floorplan.GetFloorTriangulation(room);
       Mesh mesh;
-      mesh.geometry_type = kFloorplanFloor;
+      mesh.geometry_type = kFloor;
       for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
         mesh.vertices.push_back(floorplan.GetFloorVertexGlobal(room, v));
       }
       for (const auto& triangle : triangulation.triangles) {
         mesh.faces.push_back(triangle.indices);
       }
-      RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
+      RasterizeMeshForPanorama(panoramas[p], mesh, &rasterized_geometries->at(p));
     }
     cout << " ceiling" << flush;
     // Ceiling.
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       const FloorCeilingTriangulation& triangulation = floorplan.GetCeilingTriangulation(room);
       Mesh mesh;
-      mesh.geometry_type = kFloorplanCeiling;
+      mesh.geometry_type = kCeiling;
       for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
         mesh.vertices.push_back(floorplan.GetCeilingVertexGlobal(room, v));
       }
       for (const auto& triangle : triangulation.triangles) {
         mesh.faces.push_back(triangle.indices);
       }
-      RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
+      RasterizeMeshForPanorama(panoramas[p], mesh, &rasterized_geometries->at(p));
     }
     cout << " walls" << flush;
     // Walls.
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
         Mesh mesh;
-        mesh.geometry_type = kFloorplanWall;
+        mesh.geometry_type = kWall;
         
         for (int v = 0; v < floorplan.GetNumWallVertices(room, wall); ++v) {
           mesh.vertices.push_back(floorplan.GetWallVertexGlobal(room, wall, v));
@@ -294,14 +294,14 @@ void RasterizeFloorplan(const Floorplan& floorplan,
         for (int t = 0; t < floorplan.GetNumWallTriangles(room, wall); ++t) {
           mesh.faces.push_back(floorplan.GetWallTriangle(room, wall, t).indices);
         }
-        RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
+        RasterizeMeshForPanorama(panoramas[p], mesh, &rasterized_geometries->at(p));
       }
     }
     cout << " doors" << flush;
     // Doors.
     for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
       Mesh mesh;
-      mesh.geometry_type = kFloorplanDoor;
+      mesh.geometry_type = kDoor;
 
       for (int v = 0; v < floorplan.GetNumDoorVertices(door); ++v) {
         mesh.vertices.push_back(floorplan.GetDoorVertexGlobal(door, v));
@@ -309,7 +309,7 @@ void RasterizeFloorplan(const Floorplan& floorplan,
       for (int t = 0; t < floorplan.GetNumDoorTriangles(door); ++t) {
         mesh.faces.push_back(floorplan.GetDoorTriangle(door, t).indices);
       }
-      RasterizeMesh(panoramas[p], mesh, &rasterized_geometries->at(p));
+      RasterizeMeshForPanorama(panoramas[p], mesh, &rasterized_geometries->at(p));
     }
     cout << " done." << endl;
   }
@@ -328,19 +328,19 @@ void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
       Mesh mesh;
       switch (segment.type) {
       case Segment::FLOOR: {
-        mesh.geometry_type = kIndoorPolygonFloor;
+        mesh.geometry_type = kFloor;
         break;
       }
       case Segment::CEILING: {
-        mesh.geometry_type = kIndoorPolygonCeiling;
+        mesh.geometry_type = kCeiling;
         break;
       }
       case Segment::WALL: {
-        mesh.geometry_type = kIndoorPolygonWall;
+        mesh.geometry_type = kWall;
         break;
       }
       case Segment::DOOR: {
-        mesh.geometry_type = kIndoorPolygonDoor;
+        mesh.geometry_type = kDoor;
         break;
       }
       }
@@ -352,7 +352,7 @@ void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
         mesh.faces.push_back(triangle.indices);
       }
       
-      RasterizeMesh(panorama, mesh, &rasterized_geometry);
+      RasterizeMeshForPanorama(panorama, mesh, &rasterized_geometry);
     }
   }
 }
@@ -373,15 +373,18 @@ void ReadMesh(const std::string& filename, Mesh* mesh) {
 
   ifstr.close();
 
-  //  mesh->geometry_type = ;
+  mesh->geometry_type = kWall;
 }
 
 void RasterizeMesh(const Mesh& mesh,
                    const std::vector<Panorama>& panoramas,
                    std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
-
-
-
+  for (int p = 0; p < panoramas.size(); ++p) {
+    cout << "Panorama " << p << '/' << panoramas.size() << endl;
+    const Panorama& panorama = panoramas[p];
+    vector<RasterizedGeometry>& rasterized_geometry = rasterized_geometries->at(p);
+    RasterizeMeshForPanorama(panorama, mesh, &rasterized_geometry);
+  }
 }
   
 void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
@@ -393,14 +396,10 @@ void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
   const pair<Vector2d, int> kInitial(Vector2d(0, 0), 0);
   vector<GeometryType> all_geometry_types;
   {
-    all_geometry_types.push_back(kFloorplanFloor);
-    all_geometry_types.push_back(kFloorplanCeiling);
-    all_geometry_types.push_back(kFloorplanWall);
-    all_geometry_types.push_back(kFloorplanDoor);
-    all_geometry_types.push_back(kIndoorPolygonFloor);
-    all_geometry_types.push_back(kIndoorPolygonCeiling);
-    all_geometry_types.push_back(kIndoorPolygonWall);
-    all_geometry_types.push_back(kIndoorPolygonDoor);
+    all_geometry_types.push_back(kFloor);
+    all_geometry_types.push_back(kCeiling);
+    all_geometry_types.push_back(kWall);
+    all_geometry_types.push_back(kDoor);
     all_geometry_types.push_back(kObject);
     all_geometry_types.push_back(kHole);
   }
