@@ -360,16 +360,26 @@ void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
 void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,
                                 const vector<Panorama>& panoramas,
                                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+  for (int p = 0; p < panoramas.size(); ++p) {
+    cout << "Panorama " << p << '/' << panoramas.size() << endl;
+    const Panorama& panorama = panoramas[p];
+    vector<RasterizedGeometry>& rasterized_geometry = rasterized_geometries->at(p);
 
-
+    for (const auto& point_cloud : object_point_clouds) {
+      for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
+        const Point& point = point_cloud.GetPoint(p);
+        PaintPoint(panorama, point.position, point.normal, kObject, &rasterized_geometry);
+      }
+    }
+  }
 }
 
 void ReadMesh(const std::string& filename, Mesh* mesh) {
   ifstream ifstr;
   ifstr.open(filename.c_str());
 
+  //????
   
-
 
   ifstr.close();
 
