@@ -14,12 +14,6 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-struct Mesh {
-  std::vector<Vector3d> vertices;
-  std::vector<Vector3i> faces;
-  GeometryType geometry_type;
-};
-
 struct Triple {
   Eigen::Vector3d points[3];
 };
@@ -370,6 +364,26 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
 
 }
 
+void ReadMesh(const std::string& filename, Mesh* mesh) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+
+  
+
+
+  ifstr.close();
+
+  //  mesh->geometry_type = ;
+}
+
+void RasterizeMesh(const Mesh& mesh,
+                   const std::vector<Panorama>& panoramas,
+                   std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+
+
+
+}
+  
 void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
                   const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
                   const vector<Panorama>& panoramas,

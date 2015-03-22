@@ -164,6 +164,15 @@ class FileIO {
     sprintf(buffer, "%s/object_detection/detections_final.txt", data_directory.c_str());
     return buffer;
   }
+
+  std::string GetPoissonMesh() const {
+    sprintf(buffer, "%s/evaluation//poisson_mesh.ply", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetVgcutMesh() const {
+    sprintf(buffer, "%s/evaluation//vgcut_mesh.ply", data_directory.c_str());
+    return buffer;
+  }
   
  private:
   const std::string data_directory;

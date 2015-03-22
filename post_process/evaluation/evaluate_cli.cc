@@ -30,6 +30,8 @@ using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
 
+namespace {
+
 void WriteDepthmap(const Panorama& panorama,
                    const std::vector<RasterizedGeometry>& rasterized_geometry,
                    const double invalid_depth,
@@ -208,6 +210,31 @@ void VisualizeResults(const FileIO& file_io, const string prefix,
     */
 }
 
+void Initialize(const FileIO& file_io, Floorplan* floorplan, IndoorPolygon* indoor_polygon) {
+  string floorplan_file;
+  if (FLAGS_floorplan_file == "") {
+    floorplan_file = file_io.GetFloorplan();
+  } else {
+    char buffer[1024];
+    sprintf(buffer, "%s/%s", file_io.GetDataDirectory().c_str(), FLAGS_floorplan_file.c_str());
+    floorplan_file = buffer;
+  }
+
+  string indoor_polygon_file;
+  if (FLAGS_indoor_polygon_file == "") {
+    indoor_polygon_file = file_io.GetIndoorPolygon();
+  } else {
+    char buffer[1024];
+    sprintf(buffer, "%s/%s", file_io.GetDataDirectory().c_str(), FLAGS_indoor_polygon_file.c_str());
+    indoor_polygon_file = buffer;
+  }
+
+  *floorplan      = Floorplan(floorplan_file);
+  *indoor_polygon = IndoorPolygon(indoor_polygon_file);
+}
+  
+}  // namespace
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     cerr << "Usage: " << argv[0] << " data_directory" << endl;
@@ -220,27 +247,9 @@ int main(int argc, char* argv[]) {
 #endif
 
   FileIO file_io(argv[1]);
-
-  string floorplan_file;
-  if (FLAGS_floorplan_file == "") {
-    floorplan_file = file_io.GetFloorplan();
-  } else {
-    char buffer[1024];
-    sprintf(buffer, "%s/%s", argv[1], FLAGS_floorplan_file.c_str());
-    floorplan_file = buffer;
-  }
-
-  string indoor_polygon_file;
-  if (FLAGS_indoor_polygon_file == "") {
-    indoor_polygon_file = file_io.GetIndoorPolygon();
-  } else {
-    char buffer[1024];
-    sprintf(buffer, "%s/%s", argv[1], FLAGS_indoor_polygon_file.c_str());
-    indoor_polygon_file = buffer;
-  }
-
-  Floorplan floorplan(floorplan_file);
-  IndoorPolygon indoor_polygon(indoor_polygon_file);
+  Floorplan floorplan;
+  IndoorPolygon indoor_polygon;
+  Initialize(file_io, &floorplan, &indoor_polygon);
 
   vector<Panorama> panoramas;
   ReadPanoramas(file_io, &panoramas);
@@ -255,7 +264,6 @@ int main(int argc, char* argv[]) {
 
   // Accuracy and completeness.
   const RasterizedGeometry kInitial(numeric_limits<double>::max(), Vector3d(0, 0, 0), kHole);
-
   std::vector<std::vector<RasterizedGeometry> > rasterized_geometries;
 
   double depth_unit = 0.0;
@@ -269,24 +277,15 @@ int main(int argc, char* argv[]) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "floorplan", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds,
-                 rasterized_geometries,
-                 panoramas,
-                 kInitial,
-                 depth_unit);
+    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
-
   
   // Indoor polygon only.
   if (FLAGS_evaluate_indoor_polygon) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "indoor_polygon", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds,
-                 rasterized_geometries,
-                 panoramas,
-                 kInitial,
-                 depth_unit);
+    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
   if (FLAGS_evaluate_indoor_polygon_and_object_point_clouds) {
@@ -294,37 +293,25 @@ int main(int argc, char* argv[]) {
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "indoor_polygon_and_object_point_clouds", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds,
-		 rasterized_geometries,
-		 panoramas,
-		 kInitial,
-		 depth_unit);
+    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
   if (FLAGS_evaluate_poisson_mesh) {
-    /*
+    Mesh poisson_mesh;
+    ReadMesh(file_io.GetPoissonMesh(), &poisson_mesh);
     Initialize(panoramas, kInitial, &rasterized_geometries);
-    RasterizePoissonMesh(poisson_mesh, panoramas, &rasterized_geometries);
+    RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "poisson_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds,
-		 rasterized_geometries,
-		 panoramas,
-		 kInitial,
-		 depth_unit);
-    */
+    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
   if (FLAGS_evaluate_vgcut_mesh) {
-    /*
+    Mesh vgcut_mesh;
+    ReadMesh(file_io.GetVgcutMesh(), &vgcut_mesh);
     Initialize(panoramas, kInitial, &rasterized_geometries);
-    RasterizeVgcutMesh(poisson_mesh, panoramas, &rasterized_geometries);
+    RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "vgcut_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds,
-		 rasterized_geometries,
-		 panoramas,
-		 kInitial,
-		 depth_unit);
-    */
+    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
   
   return 0;

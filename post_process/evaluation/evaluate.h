@@ -1,5 +1,6 @@
 #include <Eigen/Dense>
 #include <vector>
+#include <string>
 
 namespace structured_indoor_modeling {
 
@@ -28,8 +29,14 @@ struct RasterizedGeometry {
   double depth;
   Eigen::Vector3d normal;
   GeometryType geometry_type;
-};  
+};
 
+struct Mesh {
+  std::vector<Eigen::Vector3d> vertices;
+  std::vector<Eigen::Vector3i> faces;
+  GeometryType geometry_type;
+};
+ 
 class FileIO;
 class Floorplan;
 class IndoorPolygon;
@@ -54,12 +61,17 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
                                 const std::vector<Panorama>& panoramas,
                                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
-void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
+void ReadMesh(const std::string& filename, Mesh* mesh);
+
+void RasterizeMesh(const Mesh& mesh,
+                   const std::vector<Panorama>& panoramas,
+                   std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
+
+ void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
                   const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
                   const std::vector<Panorama>& panoramas,
                   const RasterizedGeometry& initial_value,
                   const double depth_unit);
-
  
 }  // namespace structured_indoor_modeling
   
