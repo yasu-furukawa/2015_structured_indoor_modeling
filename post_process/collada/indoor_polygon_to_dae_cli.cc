@@ -8,9 +8,6 @@
 #include "../../base/file_io.h"
 #include "../../base/indoor_polygon.h"
 
-DEFINE_string(floorplan_file, "", "Floorplan filename.");
-DEFINE_string(indoor_polygon_file, "", "Indoor-polygon filename.");
-
 using namespace Eigen;
 using namespace structured_indoor_modeling;
 using namespace std;
