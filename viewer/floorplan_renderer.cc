@@ -309,7 +309,9 @@ void FloorplanRenderer::Render(const double alpha,
       const Vector3d start = floorplan.GetDoorVertexGlobal(door, 5);
       const Vector3d end   = floorplan.GetDoorVertexGlobal(door, 4);
       const Vector3d top   = floorplan.GetDoorVertexGlobal(door, 6);
-      RenderDoor(start, end, top, emphasize, height_adjustment);
+      // RenderDoor(start, end, top, emphasize, height_adjustment);
+      // No animation.
+      RenderDoor(start, end, top, emphasize, 0.0);
     }
   }
 }
