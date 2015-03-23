@@ -19,7 +19,93 @@ struct Polygon {
   vector<vector<int> > holes;
 };
 
-void SetPolygon(const Segment& segment, const int offset, Polygon* polygon) {
+void SetPolygon(const Segment& segment, const int offset, vector<Polygon>* polygons) {
+  const int num_vertices = segment.vertices.size();
+  // For each vertex, in-out vertex pair.
+  vector<vector<pair<int, int> > > intervals(num_vertices);
+  for (const auto& triangle : segment.triangles) {
+    for (int index0 = 0; index0 < 3; ++index0) {
+      const int index1 = (index0 + 1) % 3;
+      const int index2 = (index0 + 2) % 3;
+      intervals[triangle.indices[index0]].push_back(make_pair(triangle.indices[index1],
+                                                              triangle.indices[index2]));
+    }
+  }
+
+  const int kInvalid = -1;
+  // Find concatenated intervals.
+  vector<vector<pair<int, int> > > concatenated_intervals(num_vertices);
+  for (int v = 0; v < num_vertices; ++v) {
+    const vector<pair<int, int> >& candidates = intervals[v];
+    vector<bool> used(candidates.size(), false);
+    while (true) {
+      // Pick unused candidate.
+      int first_index = kInvalid;
+      for (int i = 0; i < (int)used.size(); ++i) {
+        if (!used[i]) {
+          first_index = i;
+          break;
+        }
+      }
+
+      if (first_index == kInvalid)
+        break;
+
+      used[first_index] = true;
+
+      pair<int, int> interval = candidates[first_index];
+      // Search forward.
+      while (true) {
+        // Find an unused candidate, which starts with interval.second.
+        int index = kInvalid;
+        for (int i = 0; i < (int)used.size(); ++i) {
+          if (!used[i] && candidates[i].first == interval.second) {
+            index = i;
+            break;
+          }
+        }
+        if (index == kInvalid)
+          break;
+
+        used[index] = true;
+        interval.second = candidates[i].second;
+      }
+      // Search backward.
+      while (true) {
+        // Find an unused candidate, which starts with interval.second.
+        int index = kInvalid;
+        for (int i = 0; i < (int)used.size(); ++i) {
+          if (!used[i] && candidates[i].second == interval.first) {
+            index = i;
+            break;
+          }
+        }
+        if (index == kInvalid)
+          break;
+        
+        used[index] = true;
+        interval.first = candidates[i].first;
+      }
+
+      // If interval.first and interval.second are the same, vanish.
+      if (interval.first == interval.second)
+        continue;
+
+      concatenated_intervals[v].push_back(interval);
+    }
+  }
+
+  // Now trace.
+  while (true) {
+    // Find a vertex that has some concatenated intervals.
+
+
+    // use offset
+
+  }
+  
+
+  /*
   set<pair<int, int> > edges;
   for (const auto& triangle : segment.triangles) {
     for (int lhs = 0; lhs < 3; ++lhs) {
@@ -44,6 +130,7 @@ void SetPolygon(const Segment& segment, const int offset, Polygon* polygon) {
 
     chains.push_back(chain);
   }
+  */
 }
   
 }  // namespace
@@ -71,10 +158,7 @@ int main(int argc, char* argv[]) {
     for (const auto& vertex : segment.vertices)
       vertices.push_back(vertex);
 
-    Polygon polygon;
-    SetPolygon(segment, offset, &polygon);
-
-    polygons.push_back(polygon);
+    SetPolygon(segment, offset, &polygons);
   }
   
   ofstream ofstr;
