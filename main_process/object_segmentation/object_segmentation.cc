@@ -1271,7 +1271,7 @@ void RemoveWindowAndMirror(const Floorplan& floorplan,
       remove_indexes.push_back(p);
   }
 
-
+  /*
   {
   static int c = 0;
     ofstream ofstr;
@@ -1288,6 +1288,7 @@ void RemoveWindowAndMirror(const Floorplan& floorplan,
 
     ofstr.close();
   }
+  */
 
   point_cloud->RemovePoints(remove_indexes);
 }
