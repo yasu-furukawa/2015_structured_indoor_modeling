@@ -11,6 +11,7 @@ set( CMAKE_CXX_FLAGS "-std=c++11 -Wno-c++11-extensions -Wno-gnu-static-float-ini
 
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
 	include_directories(/usr/local/include/eigen3)
+	link_directories(/usr/local/lib)
 elseif(${CMAKE_SYSTEM} MATCHES "Linux")
 	include_directories("/usr/local/include")
 	include_directories("/usr/include/eigen3")

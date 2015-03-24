@@ -99,13 +99,13 @@ void PreparePatch(const TextureInput& texture_input,
       }
     }
   }
+  // For a slanted door, this can happen. Suppress this error message.
+  /*
   if (min_xyz[2] != max_xyz[2]) {
     cerr << "Impossible: " << min_xyz[2] << ' ' << max_xyz[2] << endl;
-    cout << segment << endl;
-
-
     exit (1);
   }
+  */
   const double z = min_xyz[2];
   patch->vertices[0] = patch->axes[0] * min_xyz[0] + patch->axes[1] * min_xyz[1] + patch->axes[2] * z;
   patch->vertices[1] = patch->axes[0] * max_xyz[0] + patch->axes[1] * min_xyz[1] + patch->axes[2] * z;
