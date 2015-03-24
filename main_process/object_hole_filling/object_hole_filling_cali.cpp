@@ -4,9 +4,9 @@
 #include <Eigen/Eigen>
 #include <string>
 #include <gflags/gflags.h>
-#include "../base/file_io.h"
-#include "../base/point_cloud.h"
-#include "../base/panorama.h"
+#include "../../base/file_io.h"
+#include "../../base/point_cloud.h"
+#include "../../base/panorama.h"
 #include <vector>
 #include <typeinfo>
 #include "object_hole_filling.h"
@@ -35,20 +35,12 @@ int main(int argc, char **argv){
   }
 
     //get path to data
-  /*
-    char pathtodata[100];
-    char buffer[100];
-    int startid, endid;
-    ifstream confin(FLAGS_config_path.c_str());
-    confin.getline(pathtodata,100);
-    confin>>startid>>endid;
-    confin.close();
-    string pathtodata_s(pathtodata);
-    FileIO file_io(pathtodata_s);
-  */
+
   FileIO file_io(argv[1]);
   int startid = 0;
   int endid = GetNumPanoramas(file_io) - 1;
+
+  char buffer[100];
 
 
     clock_t start,end;
