@@ -360,6 +360,7 @@ void RasterizeIndoorPolygon(const IndoorPolygon& indoor_polygon,
 void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clouds,
                                 const vector<Panorama>& panoramas,
                                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {
+
   for (int p = 0; p < panoramas.size(); ++p) {
     cout << "Panorama " << p << '/' << panoramas.size() << endl;
     const Panorama& panorama = panoramas[p];
