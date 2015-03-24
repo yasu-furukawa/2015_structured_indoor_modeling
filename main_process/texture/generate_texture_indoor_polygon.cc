@@ -106,7 +106,7 @@ void PreparePatch(const TextureInput& texture_input,
     exit (1);
   }
   */
-  const double z = min_xyz[2];
+  const double z = (min_xyz[2] + max_xyz[2]) / 2.0;
   patch->vertices[0] = patch->axes[0] * min_xyz[0] + patch->axes[1] * min_xyz[1] + patch->axes[2] * z;
   patch->vertices[1] = patch->axes[0] * max_xyz[0] + patch->axes[1] * min_xyz[1] + patch->axes[2] * z;
   patch->vertices[2] = patch->axes[0] * max_xyz[0] + patch->axes[1] * max_xyz[1] + patch->axes[2] * z;
@@ -475,7 +475,9 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
                               const Patch& patch,
                               std::vector<cv::Mat>* projected_textures) {
   const int level = texture_input.pyramid_level;
-  const double threshold = texture_input.visibility_margin;
+  //????
+  // const double threshold = texture_input.visibility_margin;
+  const double threshold = texture_input.visibility_margin * 2;
   
   for (int p = 0; p < texture_input.panoramas.size(); ++p) {
     const Panorama& panorama = texture_input.panoramas[p][level];
@@ -503,6 +505,21 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
           panorama.GetDepth(Vector2d(depth_x, depth_y));
         const double distance = (global - panorama.GetCenter()).norm();
 
+
+        // 47 160.
+        
+        if (p == 11) { // && abs(depth_x  - 47) < 5 && abs(depth_y - 160) < 5) {
+          
+          Vector3d p1 = panorama.Unproject(depth_pixel, distance);
+          Vector3d p2 = panorama.Unproject(Vector2d(depth_x, depth_y), distance);
+          
+          cout << depth_x << ' ' << depth_y << "  " << depthmap_distance << ' ' << distance << ' '
+               << (p1 - panorama.GetCenter()).norm() << ' '
+               << (p2 - panorama.GetCenter()).norm() << endl;
+        }
+        
+        
+        
         if (distance < depthmap_distance + threshold) {
           Vector3f rgb = panorama.GetRGB(pixel);
           for (int i = 0; i < 3; ++i)
@@ -511,6 +528,11 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
       }
     }
 
+    cout << p << endl;
+    cv::imshow("aa", projected_texture);
+    cv::waitKey(0);
+    
+    
     const int kShrinkPixels = 6;
     ShrinkTexture(patch.texture_size[0], patch.texture_size[1], kShrinkPixels,
                   &projected_texture);

@@ -76,7 +76,9 @@ int main(int argc, char* argv[]) {
   const double default_visibility_margin = ComputeVisibilityMargin(texture_input.indoor_polygon);
 
   vector<Patch> patches(texture_input.indoor_polygon.GetNumSegments());
-  for (int p = 0; p < patches.size(); ++p) {
+  // for (int p = 0; p < patches.size(); ++p) {
+  //???
+  for (int p = 0; p < 1; ++p) {
     const Segment& segment = texture_input.indoor_polygon.GetSegment(p);
     bool visibility_check;
     if (segment.type == Segment::FLOOR) {
