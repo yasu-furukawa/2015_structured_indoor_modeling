@@ -19,7 +19,6 @@ using namespace cv;
 using namespace Eigen;
 using namespace structured_indoor_modeling;
 
-DEFINE_string(config_path,"lumber.configuration","Path to the configuration file");
 DEFINE_int32(label_num,20000,"Number of superpixel");
 DEFINE_double(smoothness_weight,0.12,"Weight of smoothness term");
 
@@ -30,10 +29,13 @@ int main(int argc, char **argv){
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
 
-    if(! (FLAGS_config_path.length() > 0)){
-	cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
-    }
+  if (argc < 2) {
+    cerr << "Usage: " << argv[0] << " data_directory" << endl;
+    return 1;
+  }
+
     //get path to data
+  /*
     char pathtodata[100];
     char buffer[100];
     int startid, endid;
@@ -43,6 +45,10 @@ int main(int argc, char **argv){
     confin.close();
     string pathtodata_s(pathtodata);
     FileIO file_io(pathtodata_s);
+  */
+  FileIO file_io(argv[1]);
+  int startid = 0;
+  int endid = GetNumPanoramas(file_io) - 1;
 
 
     clock_t start,end;

@@ -7,7 +7,7 @@ if(${CMAKE_SYSTEM} MATCHES "Linux")
 find_package(gflags REQUIRED)
 endif(${CMAKE_SYSTEM} MATCHES "Linux")
 
-set( CMAKE_CXX_FLAGS "-std=c++11 -Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
+set( CMAKE_CXX_FLAGS "-std=c++11 -Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare -DUSE_64_BIT_PTR_CAST" )
 
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
 	include_directories(/usr/local/include/eigen3)
@@ -16,11 +16,11 @@ elseif(${CMAKE_SYSTEM} MATCHES "Linux")
 	include_directories("/usr/include/eigen3")
 endif(${CMAKE_SYSTEM} MATCHES "Darwin")
 
-add_executable(Object_hole_filling object_hole_filling.cpp SLIC.cpp object_hole_filling_cali.cpp depth_filling.cpp ../base/point_cloud.cc ../base/panorama.cc)
+add_executable(Object_hole_filling object_hole_filling.cpp SLIC.cpp object_hole_filling_cali.cpp depth_filling.cpp ../base/point_cloud.cc ../base/panorama.cc MRF/BP-S.cpp MRF/GCoptimization.cpp MRF/ICM.cpp MRF/LinkedBlockList.cpp MRF/MaxProdBP.cpp MRF/TRW-S.cpp MRF/graph.cpp MRF/maxflow.cpp MRF/mrf.cpp MRF/regions-maxprod.cpp)
 
 target_link_libraries(Object_hole_filling gflags)
 target_link_libraries(Object_hole_filling opencv_core opencv_highgui opencv_imgproc opencv_flann)
-target_link_libraries(Object_hole_filling MRF)
+# target_link_libraries(Object_hole_filling MRF)
 
 if(${CMAKE_SYSTEM} MATCHES "Linux")
 	target_link_libraries(Object_hole_filling pthread)
