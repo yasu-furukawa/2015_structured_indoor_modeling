@@ -277,7 +277,7 @@ int main(int argc, char* argv[]) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "floorplan", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    ReportErrors(file_io, "floorplan", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
   
   // Indoor polygon only.
@@ -285,7 +285,7 @@ int main(int argc, char* argv[]) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "indoor_polygon", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    ReportErrors(file_io, "indoor_polygon", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
   if (FLAGS_evaluate_indoor_polygon_and_object_point_clouds) {
@@ -293,7 +293,7 @@ int main(int argc, char* argv[]) {
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "indoor_polygon_and_object_point_clouds", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    ReportErrors(file_io, "indoor_polygon_and_object_point_clouds", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
   if (FLAGS_evaluate_poisson_mesh) {
@@ -302,7 +302,7 @@ int main(int argc, char* argv[]) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "poisson_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    ReportErrors(file_io, "poisson_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
   if (FLAGS_evaluate_vgcut_mesh) {
@@ -311,7 +311,7 @@ int main(int argc, char* argv[]) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "vgcut_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    ReportErrors(file_io, "vgcut_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
   
   return 0;

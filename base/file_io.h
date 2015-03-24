@@ -179,6 +179,10 @@ class FileIO {
     return buffer;
   }
 
+  std::string GetErrorReport(const std::string prefix) const {
+    sprintf(buffer, "%s/evaluation/error_%s.txt", data_directory.c_str(), prefix.c_str());
+    return buffer;
+  }
   
  private:
   const std::string data_directory;

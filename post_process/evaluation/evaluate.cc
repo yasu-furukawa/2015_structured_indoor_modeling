@@ -397,7 +397,9 @@ void RasterizeMesh(const Mesh& mesh,
   }
 }
   
-void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
+void ReportErrors(const FileIO& file_io,
+                  const std::string& prefix,
+                  const std::vector<PointCloud>& input_point_clouds,
                   const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
                   const vector<Panorama>& panoramas,
                   const RasterizedGeometry& initial_value,
@@ -451,7 +453,61 @@ void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
     }
   }
 
-  cerr << "=========================== Error ============================" << endl;
+  map<GeometryType, pair<Vector2d, int> > total_errors;
+  for (const auto& type : all_geometry_types) {
+    total_errors[type]  = kInitial;
+  }
+
+  for (int p = 0; p < panoramas.size(); ++p) {
+    for (const auto& type : all_geometry_types) {
+      total_errors[type].first += errors[p][type].first;
+      total_errors[type].second += errors[p][type].second;
+    }
+  }
+
+  ofstream ofstr;
+  ofstr.open(file_io.GetErrorReport(prefix).c_str());
+  ofstr << "Total Position" << endl
+        << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+        << total_errors[kFloor].first[0] / max(1, total_errors[kFloor].second) << '\t'
+        << total_errors[kCeiling].first[0] / max(1, total_errors[kCeiling].second) << '\t'
+        << total_errors[kWall].first[0] / max(1, total_errors[kWall].second) << '\t'
+        << total_errors[kDoor].first[0] / max(1, total_errors[kDoor].second) << '\t'
+        << total_errors[kObject].first[0] / max(1, total_errors[kObject].second) << endl << endl;
+
+  ofstr << "Total Normal" << endl
+        << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+        << total_errors[kFloor].first[1] / max(1, total_errors[kFloor].second) << '\t'
+        << total_errors[kCeiling].first[1] / max(1, total_errors[kCeiling].second) << '\t'
+        << total_errors[kWall].first[1] / max(1, total_errors[kWall].second) << '\t'
+        << total_errors[kDoor].first[1] / max(1, total_errors[kDoor].second) << '\t'
+        << total_errors[kObject].first[1] / max(1, total_errors[kObject].second) << endl << endl;
+
+  for (int p = 0; p < panoramas.size(); ++p) {
+    ofstr << "Panorama Position " << p << endl;
+    for (const auto& type : all_geometry_types) {
+      ofstr << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+            << errors[p][kFloor].first[0] / max(1, errors[p][kFloor].second) << '\t'
+            << errors[p][kCeiling].first[0] / max(1, errors[p][kCeiling].second) << '\t'
+            << errors[p][kWall].first[0] / max(1, errors[p][kWall].second) << '\t'
+            << errors[p][kDoor].first[0] / max(1, errors[p][kDoor].second) << '\t'
+            << errors[p][kObject].first[0] / max(1, errors[p][kObject].second) << endl;
+    }
+  }
+
+  for (int p = 0; p < panoramas.size(); ++p) {
+    ofstr << "Panorama Normal " << p << endl;
+    for (const auto& type : all_geometry_types) {
+      ofstr << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+            << errors[p][kFloor].first[1] / max(1, errors[p][kFloor].second) << '\t'
+            << errors[p][kCeiling].first[1] / max(1, errors[p][kCeiling].second) << '\t'
+            << errors[p][kWall].first[1] / max(1, errors[p][kWall].second) << '\t'
+            << errors[p][kDoor].first[1] / max(1, errors[p][kDoor].second) << '\t'
+            << errors[p][kObject].first[1] / max(1, errors[p][kObject].second) << endl;
+    }
+  }
+  
+  /*
   for (int p = 0; p < panoramas.size(); ++p) {
     Vector2d error_sum(0, 0);
     int count = 0;
@@ -461,6 +517,7 @@ void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
     }
     cout << p << " : " << error_sum[0] / count << ' ' << error_sum[1] / count << endl;
   }
+  */
 }
   
 }  // namespace structured_indoor_modeling
