@@ -20,7 +20,7 @@ using namespace Eigen;
 using namespace structured_indoor_modeling;
 
 DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.12,"Weight of smoothness term");
+DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
 
 int main(int argc, char **argv){
 #ifdef __APPLE__
@@ -87,16 +87,38 @@ int main(int argc, char **argv){
      // ICP(src, tgt, 100);
      // src.Write("/home/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object002_2.ply");
 
-	 
+ 
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
 
     cout<<endl<<endl;
     //////////////////////////////////////
     for (int panid=startid; panid<=endid; panid++) {
+
 	cout<<"==========================="<<endl<<"Panorama "<<panid<<endl;
 	int curid = panid - startid;
 
+	//debug projection
+	Vector3d temppt(-1256.26,-467.829,-986.206);
+	Vector2d temppixel = panorama[curid].Project(temppt);
+	Vector2d tempdepthpixel = panorama[curid].RGBToDepth(temppixel);
+	DepthFilling tempdepthfilling;
+	tempdepthfilling.Init(objectcloud[0], panorama[curid]);
+	double tempdepth1 = tempdepthfilling.GetDepth(tempdepthpixel[0], tempdepthpixel[1]);
+	double tempdepth2 = panorama[curid].GetDepth(tempdepthpixel);
+	Vector3d unproject1 = panorama[curid].Unproject(temppixel, tempdepth1);
+	Vector3d unproject2 = panorama[curid].Unproject(temppixel, tempdepth2);
+	cout<<temppt.transpose()<<endl;
+	if(tempdepth1 > 0)
+	    cout<<unproject1.transpose()<<endl;
+	else
+	    cout<<"point out of border"<<endl;
+	if(tempdepth2 > 0)
+	    cout<<unproject2.transpose()<<endl;
+	else
+	    cout<<"point out of border"<<endl;
+
+	
 	vector <Vector3d> averageRGB;
 	labelTolabelgroup(labels[curid], panorama[curid], labelgroup[curid], averageRGB, numlabels[curid]);
 	cout<<"Getting pairwise structure..."<<endl;
@@ -125,7 +147,7 @@ int main(int argc, char **argv){
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
 #endif
 //	    backProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], resultCloud[roomid]);
-	    mergeObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid]);
+	    mergeObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
 	}
     }
     backProjectObject(objectlist, objectcloud, resultCloud);
@@ -134,17 +156,17 @@ int main(int argc, char **argv){
 
     for(int roomid=0; roomid<resultCloud.size(); roomid++){
 
-	// for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
-	//     PointCloud curob;
-	//     vector<structured_indoor_modeling::Point>obpts;
-	//     resultCloud[roomid].GetObjectPoints(i, obpts);
-	//     curob.AddPoints(obpts);
-	//     vector<double>bbox = curob.GetBoundingbox();
-	//     double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
-	//     double density = (double)curob.GetNumPoints() / areaXY;
-	//     sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
-	//     curob.Write(string(buffer));
-	// }
+	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
+	    PointCloud curob;
+	    vector<structured_indoor_modeling::Point>obpts;
+	    resultCloud[roomid].GetObjectPoints(i, obpts);
+	    curob.AddPoints(obpts);
+	    vector<double>bbox = curob.GetBoundingbox();
+	    double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
+	    double density = (double)curob.GetNumPoints() / areaXY;
+	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
+	    curob.Write(string(buffer));
+	}
 	cout<<"Cleaning room "<<roomid<<"..."<<endl;
 	cleanObjects(resultCloud[roomid], 1e5);
 	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;

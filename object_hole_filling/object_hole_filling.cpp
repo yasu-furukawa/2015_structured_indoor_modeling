@@ -391,7 +391,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 0;
+     int roomid = 5;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -418,6 +418,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+	break;
     }
 }
 
@@ -587,7 +588,7 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
 
 
 
-void mergeObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, vector<list<PointCloud> >&objectlist){
+void mergeObject(const Panorama &panorama, const DepthFilling& depth,const PointCloud& objectcloud, const vector< vector<int> >&objectgroup, const vector<int>&segmentation, const vector< vector<int> >&labelgroup, vector<list<PointCloud> >&objectlist, const int panoramaid, const int roomid){
     const int backgroundlabel = *max_element(segmentation.begin(),segmentation.end());
     const int imgwidth = panorama.Width();
     const int imgheight = panorama.Height();
@@ -607,6 +608,9 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
 
     for(int objectid=0; objectid<backgroundlabel; objectid++){
     	objectdepth[objectid].Init(objectcloud, panorama, objectgroup[objectid], false);
+	char buffer[100];
+	sprintf(buffer, "depth/depth_object_pan%03d_object%03d.png", panoramaid, objectid);
+	objectdepth[objectid].SaveDepthmap(string(buffer));
     	//mask for current object
     	for(int spix=0; spix<segmentation.size(); spix++){
     	    if(segmentation[spix] != objectid)
@@ -618,7 +622,7 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
     		objectdepth[segmentation[spix]].setMask((int)depthpixel[0],(int)depthpixel[1], true);
     	    }
     	}
-    	objectdepth[objectid].fill_hole(panorama);
+//    	objectdepth[objectid].fill_hole(panorama);
     }
   
     for(int superpixelid=0; superpixelid<segmentation.size(); superpixelid++){
@@ -651,10 +655,6 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
     	}
     }
 
-    //push original segmentation to objectlist
-    for(int objid=0; objid<backgroundlabel; objid++){
-	
-    }
     
     for(int objid=0; objid<pointcloud_to_merge.size(); objid++){
 	pointcloud_to_merge[objid].AddPoints(point_to_add[objid]);
@@ -671,7 +671,7 @@ void mergeObject(const Panorama &panorama, const DepthFilling& depth,const Point
 	}
 	curobj_ori.AddPoints(curpt_to_add);
 
-	ICP(pointcloud_to_merge[objid], curobj_ori, 15);
+//	ICP(pointcloud_to_merge[objid], curobj_ori, 15);
 
 	if(objectlist[objid].empty()){
 	    objectlist[objid].push_back(pointcloud_to_merge[objid]);
@@ -797,7 +797,7 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 		if(cur_conflict_ratio > max_conflict_ratio)
 		    continue;
 		cout<<"Conflict count: "<<diff_count<<endl;
-		(*iter).RemovePoints(point_to_remove);
+//		(*iter).RemovePoints(point_to_remove);
 
 		//compute Color transform
 		Matrix3f transform;
@@ -810,13 +810,13 @@ void backProjectObject(vector<vector<list<PointCloud> > >&objectlist, const vect
 			 continue;
 		    iter->SetColor(ptid, transform * curcolor);
 		}
-		objectlist[roomid][objid].front().AddPoints(*iter, true);
+		objectlist[roomid][objid].front().AddPoints(*iter, false);
 	    }
 
 	    double object_volume = objectlist[roomid][objid].front().GetBoundingboxVolume();
 	    int object_point_num = objectlist[roomid][objid].front().GetNumPoints();
 	    if(object_volume > min_object_volume && object_point_num > min_object_points_num)
-		 resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
+		 resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), false);
 	}
     }
 }
