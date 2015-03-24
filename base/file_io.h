@@ -190,9 +190,6 @@ class FileIO {
 };
 
 inline int GetNumPanoramas(const FileIO& file_io) {
-  //????
-  return 1;
-  
   int panorama = 0;
   while (1) {
     const std::string filename = file_io.GetPanoramaImage(panorama);
