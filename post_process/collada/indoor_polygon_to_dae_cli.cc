@@ -254,6 +254,9 @@ int main(int argc, char* argv[]) {
 
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
     const Segment& segment = indoor_polygon.GetSegment(s);
+    if (segment.type == Segment::CEILING)
+      continue;
+    
     const int offset = vertices.size();
     for (const auto& vertex : segment.vertices)
       vertices.push_back(vertex);
