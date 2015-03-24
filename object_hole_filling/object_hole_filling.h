@@ -60,7 +60,7 @@ void backProjectObject(std::vector<std::vector<std::list<structured_indoor_model
 
 //void BackProjectObject(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector
 
-void mergeObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling &depth, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, std::vector <std::list< structured_indoor_modeling::PointCloud> > &objectlist);
+void mergeObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling &depth, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, std::vector <std::list< structured_indoor_modeling::PointCloud> > &objectlist, const int panoramaid, const int roomid);
 
 
 void cleanObjects(structured_indoor_modeling::PointCloud &pc, const double min_volume);
