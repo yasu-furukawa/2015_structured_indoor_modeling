@@ -36,12 +36,10 @@ int main(int argc, char **argv){
 
     //get path to data
 
+  char buffer[1024];
   FileIO file_io(argv[1]);
   int startid = 0;
   int endid = GetNumPanoramas(file_io) - 1;
-
-  char buffer[100];
-
 
     clock_t start,end;
     start = clock();
