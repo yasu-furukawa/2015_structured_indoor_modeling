@@ -366,6 +366,7 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
     vector<RasterizedGeometry>& rasterized_geometry = rasterized_geometries->at(p);
 
     for (const auto& point_cloud : object_point_clouds) {
+      cout << "paint " << point_cloud.GetNumPoints() << endl;
       for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
         const Point& point = point_cloud.GetPoint(p);
         PaintPoint(panorama, point.position, point.normal, kObject, &rasterized_geometry);
