@@ -36,11 +36,11 @@ class FileIO {
     return buffer;
   }
   std::string GetLocalPly(const int panorama) const {
-    sprintf(buffer, "%s/ply/%03d.ply", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/ply/%03d.ply", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetLocalToGlobalTransformation(const int panorama) const {
-    sprintf(buffer, "%s/transformations/%03d.txt", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/transformations/%03d.txt", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetMeta(const int panorama) const {
@@ -49,61 +49,62 @@ class FileIO {
   }
 
   std::string GetPanoramaImage(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d.png", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/panorama/%03d.png", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetImageAlignmentCalibration(const int panorama) const {
-    sprintf(buffer, "%s/calibration/%03d.calibration", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/calibration/%03d.calibration", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetPanoramaDepthAlignmentCalibration(const int panorama) const {
-    sprintf(buffer, "%s/calibration/%03d.calibration2", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/calibration/%03d.calibration2", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetPanoramaDepthAlignmentVisualization(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d.jpg", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/panorama/%03d.jpg", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetPanoramaToGlobalTransformation(const int panorama) const {
-    sprintf(buffer, "%s/calibration/%03d.camera_to_global", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/calibration/%03d.camera_to_global", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetDepthPanorama(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d_raw.depth", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/panorama/%03d_raw.depth", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetDepthVisualization(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d_raw_depth.png", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/panorama/%03d_raw_depth.png", data_directory.c_str(), panorama);
     return buffer;
   }
   
   std::string GetSmoothDepthPanorama(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d.depth", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/panorama/%03d.depth", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetSmoothDepthVisualization(const int panorama) const {
-    sprintf(buffer, "%s/panorama/%03d_depth.png", data_directory.c_str(), panorama);
+    sprintf(buffer, "%s/input/panorama/%03d_depth.png", data_directory.c_str(), panorama);
     return buffer;
   }
   std::string GetFloorplan() const {
-    sprintf(buffer, "%s/floorplan.txt", data_directory.c_str());
-    return buffer;
-  }
-  std::string GetFloorplanFinal() const {
-    sprintf(buffer, "%s/floorplan_final.txt", data_directory.c_str());
+    sprintf(buffer, "%s/input/floorplan.txt", data_directory.c_str());
     return buffer;
   }
   std::string GetFloorplanSVG() const {
-    sprintf(buffer, "%s/floorplan.svg", data_directory.c_str());
+    sprintf(buffer, "%s/floorplan/floorplan.svg", data_directory.c_str());
     return buffer;
   }
   std::string GetIndoorPolygon() const {
     // sprintf(buffer, "%s/indoor_polygon.txt", data_directory.c_str());
-    sprintf(buffer, "%s/floorplan_detailed.txt", data_directory.c_str());
+    sprintf(buffer, "%s/input/floorplan_detailed.txt", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetFloorplanFinal() const {
+    sprintf(buffer, "%s/floorplan/floorplan_final.txt", data_directory.c_str());
     return buffer;
   }
   std::string GetIndoorPolygonFinal() const {
-    sprintf(buffer, "%s/indoor_polygon_final.txt", data_directory.c_str());
+    // sprintf(buffer, "%s/indoor_polygon_final.txt", data_directory.c_str());
+    sprintf(buffer, "%s/floorplan/floorplan_detailed_final.txt", data_directory.c_str());
     return buffer;
   }  
 
@@ -113,7 +114,7 @@ class FileIO {
   }
 
   std::string GetTextureImageIndoorPolygon(const int index) const {
-    sprintf(buffer, "%s/texture_atlas/texture_image_indoor_polygon_%03d.png", data_directory.c_str(), index);
+    sprintf(buffer, "%s/texture_atlas/texture_image_detailed_%03d.png", data_directory.c_str(), index);
     return buffer;
   }
   
@@ -157,7 +158,7 @@ class FileIO {
   }
 
   std::string GetObjectDetections() const {
-    sprintf(buffer, "%s/detections.txt", data_directory.c_str());
+    sprintf(buffer, "%s/input/detections.txt", data_directory.c_str());
     return buffer;
   }
   std::string GetObjectDetectionsFinal() const {
