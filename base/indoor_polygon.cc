@@ -111,7 +111,7 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
     break;
   }
   case Segment::CEILING: {
-    ostr << "ceiling" << segment.ceiling_info << endl;
+    ostr << "ceiling " << segment.ceiling_info << endl;
     break;
   }
   case Segment::WALL: {

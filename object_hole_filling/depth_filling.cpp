@@ -110,7 +110,7 @@ namespace structured_indoor_modeling{
 	}
     }
 
-     void DepthFilling::Init(const Panorama &panorama, bool maskv = true){
+     void DepthFilling::Init(const Panorama &panorama, bool maskv){
 	  depthwidth = panorama.DepthWidth();
 	  depthheight = panorama.DepthHeight();
 	  depthmap.clear();
