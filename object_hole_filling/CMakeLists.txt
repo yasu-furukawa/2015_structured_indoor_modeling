@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(Object_hole_filling)
 
+find_package(OpenCV REQUIRED)
 
 if(${CMAKE_SYSTEM} MATCHES "Linux")
 find_package(gflags REQUIRED)
-find_package(OpenCV REQUIRED)
 endif(${CMAKE_SYSTEM} MATCHES "Linux")
 
 set( CMAKE_CXX_FLAGS "-std=c++11 -Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )

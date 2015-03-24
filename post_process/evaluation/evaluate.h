@@ -62,7 +62,9 @@ void RasterizeMesh(const Mesh& mesh,
                    const std::vector<Panorama>& panoramas,
                    std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
- void ReportErrors(const std::vector<PointCloud>& input_point_clouds,
+void ReportErrors(const FileIO& file_io,
+                  const std::string& prefix,
+                  const std::vector<PointCloud>& input_point_clouds,
                   const std::vector<std::vector<RasterizedGeometry> >& rasterized_geometries,
                   const std::vector<Panorama>& panoramas,
                   const RasterizedGeometry& initial_value,
