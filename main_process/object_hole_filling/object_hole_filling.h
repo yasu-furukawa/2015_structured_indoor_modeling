@@ -1,9 +1,9 @@
 #pragma once
 
 #include <Eigen/Eigen>
-#include "../base/point_cloud.h"
-#include "../base/file_io.h"
-#include "../base/panorama.h"
+#include "../../base/point_cloud.h"
+#include "../../base/file_io.h"
+#include "../../base/panorama.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <algorithm>

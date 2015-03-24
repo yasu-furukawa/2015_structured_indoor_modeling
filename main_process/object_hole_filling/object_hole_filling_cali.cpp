@@ -4,9 +4,9 @@
 #include <Eigen/Eigen>
 #include <string>
 #include <gflags/gflags.h>
-#include "../base/file_io.h"
-#include "../base/point_cloud.h"
-#include "../base/panorama.h"
+#include "../../base/file_io.h"
+#include "../../base/point_cloud.h"
+#include "../../base/panorama.h"
 #include <vector>
 #include <typeinfo>
 #include "object_hole_filling.h"
@@ -35,6 +35,7 @@ int main(int argc, char **argv){
   }
 
     //get path to data
+  char buffer[1024];
   /*
     char pathtodata[100];
     char buffer[100];
