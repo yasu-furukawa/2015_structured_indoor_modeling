@@ -152,7 +152,8 @@ int main(int argc, char* argv[]) {
       panorama.Width() / FLAGS_depthmap_shrink_ratio;
     const int depth_height =
       panorama.Height() / FLAGS_depthmap_shrink_ratio;
-    
+
+    /*
     const double kInvalid = -1.0;
     vector<double> depthmap(depth_width * depth_height, kInvalid);
 
@@ -171,6 +172,46 @@ int main(int argc, char* argv[]) {
         }
       }
     }
+    */
+
+    const pair<double, double> kInvalidPair(0.0, 0.0);
+    vector<pair<double, double> > depthmap_pair(depth_width * depth_height, kInvalidPair);
+    for (int q = 0; q < point_cloud.GetNumPoints(); ++q) {
+      const Point& point = point_cloud.GetPoint(q);
+      const Vector2d pixel = panorama.Project(point.position);
+      const double dx = pixel[0] * depth_width / panorama.Width();
+      const double dy = pixel[1] * depth_height / panorama.Height();
+
+      int xs[2], ys[2];
+      xs[0] = static_cast<int>(floor(dx));
+      xs[1] = xs[0] + 1;
+      ys[0] = static_cast<int>(floor(dy));
+      ys[1] = ys[0] + 1;
+      
+      const double distance = (panorama.GetCenter() - point.position).norm();
+      for (int j = 0; j < 2; ++j) {
+        if (ys[j] < 0 || depth_height <= ys[j])
+          continue;
+        for (int i = 0; i < 2; ++i) {
+          if (xs[i] < 0 || depth_width <= xs[i])
+            continue;
+
+          const double weight = fabs(xs[1 - i] - dx) * fabs(ys[1 - j] - dy);
+          const int index = ys[j] * depth_width + xs[i];
+          depthmap_pair[index].first += weight * distance;
+          depthmap_pair[index].second += weight;
+        }
+      }
+    }
+
+    const double kInvalid = -1.0;
+    vector<double> depthmap(depth_width * depth_height, kInvalid);
+    for (int i = 0; i < (int)depthmap_pair.size(); ++i) {
+      if (depthmap_pair[i].second != 0.0) {
+        depthmap[i] = depthmap_pair[i].first / depthmap_pair[i].second;
+      }
+    }
+    
     // Laplacian smoothing.
     SmoothField(depth_width, depth_height, kInvalid, &depthmap);
 

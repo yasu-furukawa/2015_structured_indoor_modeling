@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
   {
     ReadPanoramaPyramids(file_io, FLAGS_num_pyramid_levels, &texture_input.panoramas);
   }
+  
   {
     ReadPointClouds(file_io, &texture_input.point_clouds);
   }
@@ -76,9 +77,7 @@ int main(int argc, char* argv[]) {
   const double default_visibility_margin = ComputeVisibilityMargin(texture_input.indoor_polygon);
 
   vector<Patch> patches(texture_input.indoor_polygon.GetNumSegments());
-  // for (int p = 0; p < patches.size(); ++p) {
-  //???
-  for (int p = 0; p < 1; ++p) {
+  for (int p = 0; p < patches.size(); ++p) {
     const Segment& segment = texture_input.indoor_polygon.GetSegment(p);
     bool visibility_check;
     if (segment.type == Segment::FLOOR) {

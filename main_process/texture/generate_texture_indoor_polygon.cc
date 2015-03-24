@@ -474,15 +474,15 @@ void ShrinkTexture(const int width,
 void ComputeProjectedTextures(const TextureInput& texture_input,
                               const Patch& patch,
                               std::vector<cv::Mat>* projected_textures) {
+  const int kFirstLevel = 0;
   const int level = texture_input.pyramid_level;
-  //????
-  // const double threshold = texture_input.visibility_margin;
   const double threshold = texture_input.visibility_margin * 2;
   
   for (int p = 0; p < texture_input.panoramas.size(); ++p) {
     const Panorama& panorama = texture_input.panoramas[p][level];
-    const int depth_width  = panorama.DepthWidth();
-    const int depth_height = panorama.DepthHeight();
+    const Panorama& panorama_for_depth = texture_input.panoramas[p][kFirstLevel];
+    const int depth_width  = panorama_for_depth.DepthWidth();
+    const int depth_height = panorama_for_depth.DepthHeight();
 
     cv::Mat projected_texture(patch.texture_size[1],
                               patch.texture_size[0],
@@ -497,42 +497,22 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
           ManhattanToGlobal(patch.UVToManhattan(patch.TextureToUV(Vector2d(x, y))));
 
         // Project to the depth_mask.
-        const Vector2d pixel = panorama.Project(global);
-        const Vector2d depth_pixel = panorama.RGBToDepth(pixel);
+        const Vector2d pixel = panorama_for_depth.Project(global);
+        const Vector2d depth_pixel = panorama_for_depth.RGBToDepth(pixel);
         const int depth_x = min(depth_width - 1, static_cast<int>(round(depth_pixel[0])));
         const int depth_y = min(depth_height - 1, static_cast<int>(round(depth_pixel[1])));
         const double depthmap_distance =
-          panorama.GetDepth(Vector2d(depth_x, depth_y));
-        const double distance = (global - panorama.GetCenter()).norm();
-
-
-        // 47 160.
-        
-        if (p == 11) { // && abs(depth_x  - 47) < 5 && abs(depth_y - 160) < 5) {
-          
-          Vector3d p1 = panorama.Unproject(depth_pixel, distance);
-          Vector3d p2 = panorama.Unproject(Vector2d(depth_x, depth_y), distance);
-          
-          cout << depth_x << ' ' << depth_y << "  " << depthmap_distance << ' ' << distance << ' '
-               << (p1 - panorama.GetCenter()).norm() << ' '
-               << (p2 - panorama.GetCenter()).norm() << endl;
-        }
-        
-        
-        
+          panorama_for_depth.GetDepth(Vector2d(depth_x, depth_y));
+        const double distance = (global - panorama_for_depth.GetCenter()).norm();
         if (distance < depthmap_distance + threshold) {
-          Vector3f rgb = panorama.GetRGB(pixel);
+          const Vector2d pixel_for_rgb = panorama.Project(global);
+          Vector3f rgb = panorama.GetRGB(pixel_for_rgb);
           for (int i = 0; i < 3; ++i)
             projected_texture.at<cv::Vec3b>(y, x)[i] = rgb[i];
         }
       }
     }
 
-    cout << p << endl;
-    cv::imshow("aa", projected_texture);
-    cv::waitKey(0);
-    
-    
     const int kShrinkPixels = 6;
     ShrinkTexture(patch.texture_size[0], patch.texture_size[1], kShrinkPixels,
                   &projected_texture);

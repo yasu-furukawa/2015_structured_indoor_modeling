@@ -180,8 +180,13 @@ class FileIO {
     return buffer;
   }
 
-  std::string GetErrorReport(const std::string prefix) const {
+  std::string GetErrorReport(const std::string& prefix) const {
     sprintf(buffer, "%s/evaluation/error_%s.txt", data_directory.c_str(), prefix.c_str());
+    return buffer;
+  }
+
+  std::string GetErrorHistogram(const std::string& prefix) const {
+    sprintf(buffer, "%s/evaluation/error_histogram_%s.txt", data_directory.c_str(), prefix.c_str());
     return buffer;
   }
   
