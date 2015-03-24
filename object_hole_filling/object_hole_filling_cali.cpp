@@ -24,8 +24,12 @@ DEFINE_int32(label_num,20000,"Number of superpixel");
 DEFINE_double(smoothness_weight,0.12,"Weight of smoothness term");
 
 int main(int argc, char **argv){
+#ifdef __APPLE__
+  google::ParseCommandLineFlags(&argc, &argv, true);
+#else
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+#endif
 
-    gflags::ParseCommandLineFlags(&argc,&argv,true);
     if(! (FLAGS_config_path.length() > 0)){
 	cout<<"Usage: Object_hole_filling /path to your configuration file"<<endl;
     }
