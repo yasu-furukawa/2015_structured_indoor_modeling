@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
   {
     ReadPanoramaPyramids(file_io, FLAGS_num_pyramid_levels, &texture_input.panoramas);
   }
+  
   {
     ReadPointClouds(file_io, &texture_input.point_clouds);
   }

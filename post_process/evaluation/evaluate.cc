@@ -407,6 +407,7 @@ void ReportErrors(const FileIO& file_io,
                   const RasterizedGeometry& initial_value,
                   const double depth_unit) {
   vector<map<GeometryType, pair<Vector2d, int> > > errors(panoramas.size());
+  vector<map<GeometryType, vector<double> > > error_histograms(panoramas.size());
   const pair<Vector2d, int> kInitial(Vector2d(0, 0), 0);
   vector<GeometryType> all_geometry_types;
   {
@@ -420,6 +421,7 @@ void ReportErrors(const FileIO& file_io,
   for (int p = 0; p < (int)panoramas.size(); ++p) {
     for (const auto& type : all_geometry_types) {
       errors[p][type]  = kInitial;
+      error_histograms[p][type] = vector<double>();
     }
   }
   
@@ -449,9 +451,12 @@ void ReportErrors(const FileIO& file_io,
       const double normal_error =
         acos(min(1.0, max(-1.0, rasterized_geometry[index].normal.dot(point.normal)))) * 180.0 / M_PI;
 
-      errors[p][rasterized_geometry[index].geometry_type].first[0] += depth_error;
-      errors[p][rasterized_geometry[index].geometry_type].first[1] += normal_error;
-      errors[p][rasterized_geometry[index].geometry_type].second += 1;
+      const auto& type = rasterized_geometry[index].geometry_type;
+      errors[p][type].first[0] += depth_error;
+      errors[p][type].first[1] += normal_error;
+      errors[p][type].second += 1;
+
+      error_histograms[p][type].push_back(depth_error);
     }
   }
 
@@ -467,46 +472,60 @@ void ReportErrors(const FileIO& file_io,
     }
   }
 
-  ofstream ofstr;
-  ofstr.open(file_io.GetErrorReport(prefix).c_str());
-  ofstr << "Total Position" << endl
-        << "Floor\tCeiling\tWall\tDoor\tObject" << endl
-        << total_errors[kFloor].first[0] / max(1, total_errors[kFloor].second) << '\t'
-        << total_errors[kCeiling].first[0] / max(1, total_errors[kCeiling].second) << '\t'
-        << total_errors[kWall].first[0] / max(1, total_errors[kWall].second) << '\t'
-        << total_errors[kDoor].first[0] / max(1, total_errors[kDoor].second) << '\t'
-        << total_errors[kObject].first[0] / max(1, total_errors[kObject].second) << endl << endl;
-
-  ofstr << "Total Normal" << endl
-        << "Floor\tCeiling\tWall\tDoor\tObject" << endl
-        << total_errors[kFloor].first[1] / max(1, total_errors[kFloor].second) << '\t'
-        << total_errors[kCeiling].first[1] / max(1, total_errors[kCeiling].second) << '\t'
-        << total_errors[kWall].first[1] / max(1, total_errors[kWall].second) << '\t'
-        << total_errors[kDoor].first[1] / max(1, total_errors[kDoor].second) << '\t'
-        << total_errors[kObject].first[1] / max(1, total_errors[kObject].second) << endl << endl;
-
-  for (int p = 0; p < panoramas.size(); ++p) {
-    ofstr << "Panorama Position " << p << endl;
-    for (const auto& type : all_geometry_types) {
-      ofstr << "Floor\tCeiling\tWall\tDoor\tObject" << endl
-            << errors[p][kFloor].first[0] / max(1, errors[p][kFloor].second) << '\t'
-            << errors[p][kCeiling].first[0] / max(1, errors[p][kCeiling].second) << '\t'
-            << errors[p][kWall].first[0] / max(1, errors[p][kWall].second) << '\t'
-            << errors[p][kDoor].first[0] / max(1, errors[p][kDoor].second) << '\t'
-            << errors[p][kObject].first[0] / max(1, errors[p][kObject].second) << endl;
+  {
+    ofstream ofstr;
+    ofstr.open(file_io.GetErrorReport(prefix).c_str());
+    ofstr << "Total Position" << endl
+	  << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+	  << total_errors[kFloor].first[0] / max(1, total_errors[kFloor].second) << '\t'
+	  << total_errors[kCeiling].first[0] / max(1, total_errors[kCeiling].second) << '\t'
+	  << total_errors[kWall].first[0] / max(1, total_errors[kWall].second) << '\t'
+	  << total_errors[kDoor].first[0] / max(1, total_errors[kDoor].second) << '\t'
+	  << total_errors[kObject].first[0] / max(1, total_errors[kObject].second) << endl << endl;
+    
+    ofstr << "Total Normal" << endl
+	  << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+	  << total_errors[kFloor].first[1] / max(1, total_errors[kFloor].second) << '\t'
+	  << total_errors[kCeiling].first[1] / max(1, total_errors[kCeiling].second) << '\t'
+	  << total_errors[kWall].first[1] / max(1, total_errors[kWall].second) << '\t'
+	  << total_errors[kDoor].first[1] / max(1, total_errors[kDoor].second) << '\t'
+	  << total_errors[kObject].first[1] / max(1, total_errors[kObject].second) << endl << endl;
+    
+    for (int p = 0; p < panoramas.size(); ++p) {
+      ofstr << "Panorama Position " << p << endl
+	    << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+	    << errors[p][kFloor].first[0] / max(1, errors[p][kFloor].second) << '\t'
+	    << errors[p][kCeiling].first[0] / max(1, errors[p][kCeiling].second) << '\t'
+	    << errors[p][kWall].first[0] / max(1, errors[p][kWall].second) << '\t'
+	    << errors[p][kDoor].first[0] / max(1, errors[p][kDoor].second) << '\t'
+	    << errors[p][kObject].first[0] / max(1, errors[p][kObject].second) << endl;
+    }
+    
+    for (int p = 0; p < panoramas.size(); ++p) {
+      ofstr << "Panorama Normal " << p << endl
+	    << "Floor\tCeiling\tWall\tDoor\tObject" << endl
+	    << errors[p][kFloor].first[1] / max(1, errors[p][kFloor].second) << '\t'
+	    << errors[p][kCeiling].first[1] / max(1, errors[p][kCeiling].second) << '\t'
+	    << errors[p][kWall].first[1] / max(1, errors[p][kWall].second) << '\t'
+	    << errors[p][kDoor].first[1] / max(1, errors[p][kDoor].second) << '\t'
+	    << errors[p][kObject].first[1] / max(1, errors[p][kObject].second) << endl;
     }
   }
 
-  for (int p = 0; p < panoramas.size(); ++p) {
-    ofstr << "Panorama Normal " << p << endl;
+  {
+    ofstream ofstr;
+    ofstr.open(file_io.GetErrorHistogram(prefix).c_str());
+    ofstr << "# Histogram of errors (floor, ceiling, wall, door, object, hole)." << endl;
     for (const auto& type : all_geometry_types) {
-      ofstr << "Floor\tCeiling\tWall\tDoor\tObject" << endl
-            << errors[p][kFloor].first[1] / max(1, errors[p][kFloor].second) << '\t'
-            << errors[p][kCeiling].first[1] / max(1, errors[p][kCeiling].second) << '\t'
-            << errors[p][kWall].first[1] / max(1, errors[p][kWall].second) << '\t'
-            << errors[p][kDoor].first[1] / max(1, errors[p][kDoor].second) << '\t'
-            << errors[p][kObject].first[1] / max(1, errors[p][kObject].second) << endl;
+      for (int p = 0; p < (int)panoramas.size(); ++p) {
+	const auto& histogram = error_histograms[p][type];
+	for (const auto& value : histogram) {
+	  ofstr << value << ' ';
+	}
+      }
+      ofstr << endl << endl;
     }
+    ofstr.close();
   }
   
   /*

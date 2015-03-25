@@ -55,6 +55,7 @@ Eigen::Vector2d Panorama::Project(const Eigen::Vector3d& global) const {
   double theta = -atan2(local.y(), local.x());
   if (theta < 0.0)
     theta += 2 * M_PI;
+  
   double theta_ratio = max(0.0, min(1.0, theta / (2 * M_PI)));
   if (theta_ratio == 1.0)
     theta_ratio = 0.0;
@@ -98,7 +99,7 @@ Eigen::Vector3d Panorama::GlobalToLocal(const Eigen::Vector3d& global) const {
 Eigen::Vector3d Panorama::LocalToGlobal(const Eigen::Vector3d& local) const {
   const Vector4d local4(local[0], local[1], local[2], 1.0);
   const Vector4d global4 = local_to_global * local4;
-  return Vector3d(global4[0], global4[1], local4[2]); 
+  return Vector3d(global4[0], global4[1], global4[2]); 
 }
 
 Eigen::Vector2d Panorama::RGBToDepth(const Eigen::Vector2d& pixel) const {
