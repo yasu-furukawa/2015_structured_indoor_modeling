@@ -39,7 +39,8 @@ int main(int argc, char **argv){
   char buffer[1024];
   FileIO file_io(argv[1]);
   int startid = 0;
-  int endid = GetNumPanoramas(file_io) - 1;
+//  int endid = GetNumPanoramas(file_io) - 1;
+  int endid = 1;
 
     clock_t start,end;
     start = clock();
@@ -96,8 +97,10 @@ int main(int argc, char **argv){
 	tempdepthfilling.Init(objectcloud[0], panorama[curid]);
 	double tempdepth1 = tempdepthfilling.GetDepth(tempdepthpixel[0], tempdepthpixel[1]);
 	double tempdepth2 = panorama[curid].GetDepth(tempdepthpixel);
+	double tempdepth3 = (panorama[curid].GetCenter() - temppt).norm();
 	Vector3d unproject1 = panorama[curid].Unproject(temppixel, tempdepth1);
 	Vector3d unproject2 = panorama[curid].Unproject(temppixel, tempdepth2);
+	Vector3d unproject3 = panorama[curid].Unproject(temppixel, tempdepth3);
 	cout<<temppt.transpose()<<endl;
 	if(tempdepth1 > 0)
 	    cout<<unproject1.transpose()<<endl;
@@ -105,6 +108,10 @@ int main(int argc, char **argv){
 	    cout<<"point out of border"<<endl;
 	if(tempdepth2 > 0)
 	    cout<<unproject2.transpose()<<endl;
+	else
+	    cout<<"point out of border"<<endl;
+	if(tempdepth3 > 0)
+	    cout<<unproject3.transpose()<<endl;
 	else
 	    cout<<"point out of border"<<endl;
 
