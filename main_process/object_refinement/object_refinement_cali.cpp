@@ -19,28 +19,30 @@ using namespace cv;
 using namespace Eigen;
 using namespace structured_indoor_modeling;
 
-DEFINE_int32(label_num,20000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
+DEFINE_int32(label_num,10000,"Number of superpixel");
+DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
+DEFINE_int32(start_id, 0,"Start id");
+DEFINE_int32(end_id,0, "End id");
 
 int main(int argc, char **argv){
 #ifdef __APPLE__
-  google::ParseCommandLineFlags(&argc, &argv, true);
+    google::ParseCommandLineFlags(&argc, &argv, true);
 #else
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
 
-  if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " data_directory" << endl;
-    return 1;
-  }
+    if (argc < 2) {
+	cerr << "Usage: " << argv[0] << " data_directory" << endl;
+	return 1;
+    }
 
     //get path to data
 
-  char buffer[1024];
-  FileIO file_io(argv[1]);
-  int startid = 0;
-//  int endid = GetNumPanoramas(file_io) - 1;
-  int endid = 1;
+    char buffer[1024];
+    FileIO file_io(argv[1]);
+
+    const int &startid = FLAGS_start_id;
+    const int &endid = FLAGS_end_id;
 
     clock_t start,end;
     start = clock();
@@ -53,31 +55,22 @@ int main(int argc, char **argv){
     vector <vector <vector<int> > >objectgroup;
     vector <vector <double> > objectvolume;
     vector <Panorama> panorama;
-    vector <DepthFilling> depth;
     vector <vector <int> >labels;
     vector <int> numlabels;
     vector <vector<int> >superpixelLabel(endid - startid + 1); //label of superpixel for each panorama
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
     vector < vector<list<PointCloud> > > objectlist; //room->object->object part
+    vector <vector<list<PointCloud> > > input_objectlist;
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
-    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, depth, imgwidth, imgheight, startid, endid);
+    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, imgwidth, imgheight, startid, endid);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
     objectlist.resize(objectcloud.size());
+    input_objectlist.resize(objectcloud.size());
 
-
-    /////////
-    //debug for ICP
-     // PointCloud src, tgt;
-     // vector<structured_indoor_modeling::Point>objpt;
-     // objectcloud[0].GetObjectPoints(0, objpt);
-     // tgt.AddPoints(objpt);
-     // src.Init("/home/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object002.ply");
-     // ICP(src, tgt, 100);
-     // src.Write("/home/yanhang/Documents/research/furukawa/code/object_hole_filling/temp/object_room000_object002_2.ply");
-
+    
  
     //////////////////////////////////////
     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
@@ -89,33 +82,6 @@ int main(int argc, char **argv){
 	cout<<"==========================="<<endl<<"Panorama "<<panid<<endl;
 	int curid = panid - startid;
 
-	//debug projection
-	Vector3d temppt(-1256.26,-467.829,-986.206);
-	Vector2d temppixel = panorama[curid].Project(temppt);
-	Vector2d tempdepthpixel = panorama[curid].RGBToDepth(temppixel);
-	DepthFilling tempdepthfilling;
-	tempdepthfilling.Init(objectcloud[0], panorama[curid]);
-	double tempdepth1 = tempdepthfilling.GetDepth(tempdepthpixel[0], tempdepthpixel[1]);
-	double tempdepth2 = panorama[curid].GetDepth(tempdepthpixel);
-	double tempdepth3 = (panorama[curid].GetCenter() - temppt).norm();
-	Vector3d unproject1 = panorama[curid].Unproject(temppixel, tempdepth1);
-	Vector3d unproject2 = panorama[curid].Unproject(temppixel, tempdepth2);
-	Vector3d unproject3 = panorama[curid].Unproject(temppixel, tempdepth3);
-	cout<<temppt.transpose()<<endl;
-	if(tempdepth1 > 0)
-	    cout<<unproject1.transpose()<<endl;
-	else
-	    cout<<"point out of border"<<endl;
-	if(tempdepth2 > 0)
-	    cout<<unproject2.transpose()<<endl;
-	else
-	    cout<<"point out of border"<<endl;
-	if(tempdepth3 > 0)
-	    cout<<unproject3.transpose()<<endl;
-	else
-	    cout<<"point out of border"<<endl;
-
-	
 	vector <Vector3d> averageRGB;
 	labelTolabelgroup(labels[curid], panorama[curid], labelgroup[curid], averageRGB, numlabels[curid]);
 	cout<<"Getting pairwise structure..."<<endl;
@@ -131,7 +97,7 @@ int main(int argc, char **argv){
 
 	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], depth[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
+		getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
 	    }
 #if 0
 	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
@@ -143,11 +109,10 @@ int main(int argc, char **argv){
 #if 1
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
 #endif
-//	    backProjectObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], resultCloud[roomid]);
-	    mergeObject(panorama[curid], depth[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
+	    backProjectObject(panorama[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
 	}
     }
-    backProjectObject(objectlist, objectcloud, resultCloud);
+    mergeObject(objectlist, objectcloud, resultCloud);
     /////////////////////////////    
     cout<<endl<<"All done! Saving result..."<<endl;
 
@@ -167,9 +132,9 @@ int main(int argc, char **argv){
 	cout<<"Cleaning room "<<roomid<<"..."<<endl;
 	cleanObjects(resultCloud[roomid], 1e5);
 	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
-    	 string savepath = file_io.GetRefinedObjectClouds(roomid);
-    	 cout<<"Saving "<<savepath<<endl;
-    	 resultCloud[roomid].Write(savepath);
+	string savepath = file_io.GetRefinedObjectClouds(roomid);
+	cout<<"Saving "<<savepath<<endl;
+	resultCloud[roomid].Write(savepath);
     }
     end = clock();
     cout<<"Total time usage: "<<(end - start) / 1000000<<"s"<<endl;

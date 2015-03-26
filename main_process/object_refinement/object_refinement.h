@@ -12,7 +12,7 @@
 #include "depth_filling.h"
 
 
-void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels, std::vector<structured_indoor_modeling::DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid);
+void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels, int &imgwidth, int &imgheight, const int startid, const int endid);
 
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
@@ -43,9 +43,11 @@ inline double sigmaFunc(double x, double offset, double maxv, double scale){
 
 bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);
 
+void getInputObjectlist(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector<structured_indoor_modeling::Panorama>& objectcloud, std::vector<std::vector<std::list<structured_indoor_modeling::PointCloud> > >& input_objectlist);
+
 int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup, std::vector<double>&objectVolume);    //objectVolume: volume of the boundingbox of each object
 
-void getSuperpixelConfidence(const structured_indoor_modeling::PointCloud &point_cloud, const std::vector<int>&objectgroup, const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling& depthmap, const std::vector<int>& superpixel,const std::vector< std::vector<int> >&labelgroup,const std::map<std::pair<int,int>,int>& pairmap, std::vector<double> &superpixelConfidence, const int superpixelnum, const int erodeiter);
+void getSuperpixelConfidence(const structured_indoor_modeling::PointCloud &point_cloud, const std::vector<int>&objectgroup, const structured_indoor_modeling::Panorama &panorama, const std::vector<int>& superpixel,const std::vector< std::vector<int> >&labelgroup,const std::map<std::pair<int,int>,int>& pairmap, std::vector<double> &superpixelConfidence, const int superpixelnum, const int erodeiter);
 
 
 void pairSuperpixel(const std::vector <int> &labels, int width, int height, std::map<std::pair<int,int>, int> &pairmap);
@@ -56,11 +58,9 @@ void MRFOptimizeLabels_multiLayer(const std::vector< std::vector<double> >&super
 
 void computeColorTransform(std::vector<Eigen::Vector3f>&src, std::vector<Eigen::Vector3f>&dst, Eigen::Matrix3f& transform);
 
-void backProjectObject(std::vector<std::vector<std::list<structured_indoor_modeling::PointCloud> > >&objectlist , const std::vector<structured_indoor_modeling::PointCloud> &objectcloud, std::vector<structured_indoor_modeling::PointCloud> &resultcloud);
+void mergeObject(std::vector<std::vector<std::list<structured_indoor_modeling::PointCloud> > >&objectlist , const std::vector<structured_indoor_modeling::PointCloud> &objectcloud, std::vector<structured_indoor_modeling::PointCloud> &resultcloud);
 
-//void BackProjectObject(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector
-
-void mergeObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::DepthFilling &depth, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, std::vector <std::list< structured_indoor_modeling::PointCloud> > &objectlist, const int panoramaid, const int roomid);
+void backProjectObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, std::vector <std::list< structured_indoor_modeling::PointCloud> > &objectlist, const int panoramaid, const int roomid);
 
 
 void cleanObjects(structured_indoor_modeling::PointCloud &pc, const double min_volume);
@@ -69,7 +69,6 @@ void ICP(structured_indoor_modeling::PointCloud &src, const structured_indoor_mo
 
 void radiusRemovalFilter(structured_indoor_modeling::PointCloud &pc, const double radius, const int min_count);
 
-void mergeVertices(structured_indoor_modeling::PointCloud &pc, int resolution);
 
 
 
