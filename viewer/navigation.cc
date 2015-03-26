@@ -660,6 +660,14 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
     best_start_directions_for_floorplan[i] += -tan(floorplan_angle) * Vector3d(0, 0, 1);
     best_start_directions_for_floorplan[i] *= floorplan_height / tan(floorplan_angle);
   }
+
+  if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
+    tree_layout_direction = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
+    tree_layout_orthogonal_direction = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);    
+  } else {
+    tree_layout_direction = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
+    tree_layout_orthogonal_direction = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
+  }
 }  
 
 void Navigation::MoveToPanorama(const int target_panorama_index) {

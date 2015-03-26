@@ -38,7 +38,8 @@ struct BoundingBox2D {
                  const double air_to_tree_progress,
                  const double animation,
                  const double max_vertical_shift,
-                 const double max_shrink_ratio) const;
+                 const double max_shrink_ratio,
+                 const double max_object_shrink_ratio);
 
   void RenderIcons(const double alpha, const double animation);
 

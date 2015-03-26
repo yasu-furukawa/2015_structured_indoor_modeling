@@ -135,9 +135,78 @@ void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
                                const double air_to_tree_progress,
                                const double animation,
                                const double max_vertical_shift,
-                               const double max_shrink_ratio) const {
-  //???
+                               const double max_shrink_ratio,
+                               const double max_object_shrink_ratio) {
+  if (!render)
+    return;
+
+  const double shrink_ratio = air_to_tree_progress * max_shrink_ratio + (1.0 - air_to_tree_progress);
+  const Vector3d vertical_shift(0, 0, air_to_tree_progress * max_vertical_shift);
+  Matrix3d rotation;
+  rotation(0, 0) = cos(animation * 2 * M_PI);
+  rotation(0, 1) = -sin(animation * 2 * M_PI);
+  rotation(0, 2) = 0.0;
+  rotation(1, 0) = sin(animation * 2 * M_PI);
+  rotation(1, 1) = cos(animation * 2 * M_PI);
+  rotation(1, 2) = 0.0;
+  rotation(2, 0) = 0.0;
+  rotation(2, 1) = 0.0;
+  rotation(2, 2) = 1.0;
+
   
+  const bool kBlend = true; // ??? false
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_COLOR_ARRAY);
+  if (kBlend) {
+    // glDisable(GL_DEPTH_TEST);
+    glDepthMask(false);
+    glEnable(GL_BLEND);
+  }
+  glEnable(GL_POINT_SMOOTH);
+
+  const double kDurationPerObject = 0.4;
+
+  vector<float> positions;  
+  for (int room = 0; room < (int)vertices.size(); ++room) {
+    const BoundingBox& bounding_box = tree_organizer.GetFloorplanDeformation().room_bounding_boxes[room];
+    const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
+
+    for (int object = 0; object < (int)vertices[room].size(); ++object) {
+      glColorPointer(3, GL_FLOAT, 0, &colors_org[room][object][0]);
+
+      positions = vertices[room][object];
+      for (int p = 0; p < (int)positions.size(); p += 3) {
+        Vector3d position(positions[p], positions[p + 1], positions[p + 2]);
+        // Adjust with respect to the object center.
+        position = room_center + rotation * (position - room_center) * shrink_ratio;
+        position += vertical_shift;
+        for (int a = 0; a < 3; ++a)
+          positions[p + a] = position[a];
+      }
+      glVertexPointer(3, GL_FLOAT, 0, &positions[0]);
+
+      if (kBlend) {
+        glBlendColor(0, 0, 0, 0.5);
+        //glBlendColor(0, 0, 0, 1.0);
+        // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+        glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+      }
+      glPointSize(1.0);
+      
+      glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
+    }
+  }
+  
+	
+  glDisable(GL_POINT_SMOOTH);
+  if (kBlend) {
+    glDisable(GL_BLEND);
+    glDepthMask(true);
+    // glEnable(GL_DEPTH_TEST);
+  }
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
 }
   
 void ObjectRenderer::ComputeBoundingBoxes2D() {

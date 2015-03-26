@@ -127,6 +127,8 @@ class Navigation {
   double GetTreeProgress() const { return tree_progress; }
   double GetAverageFloorHeight() const { return average_floor_height; }
   double GetAverageCeilingHeight() const { return average_ceiling_height; }
+  Eigen::Vector3d GetTreeLayoutDirection() const { return tree_layout_direction; }
+  Eigen::Vector3d GetTreeLayoutOrthogonalDirection() const { return tree_layout_orthogonal_direction; }
 
   //----------------------------------------------------------------------
   void Init();
@@ -188,6 +190,9 @@ class Navigation {
   Eigen::Vector3d best_ground_center;
   Eigen::Vector3d best_start_directions_for_air[2];
   Eigen::Vector3d best_start_directions_for_floorplan[2];
+
+  Eigen::Vector3d tree_layout_direction;
+  Eigen::Vector3d tree_layout_orthogonal_direction;
 
   // Average distance.
   double average_distance;

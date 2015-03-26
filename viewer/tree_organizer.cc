@@ -12,10 +12,18 @@ TreeOrganizer::TreeOrganizer(const Floorplan& floorplan,
   floorplan(floorplan), indoor_polygon(indoor_polygon), object_renderer(object_renderer) {
 }
 
-void TreeOrganizer::Init() {
+void TreeOrganizer::Init(const Eigen::Vector3d& tree_layout_direction,
+                         const Eigen::Vector3d& tree_layout_orthogonal_direction) {
   InitFloorplanDeformation();
   InitIndoorPolygonDeformation();
   InitObjectDeformation();
+
+  // Compute displacements for floorplan_deformation.
+  ComputeDisplacementsFloorplan(tree_layout_direction, tree_layout_orthgonal_direction);
+
+  indoor_polygon_deformation.displacements = floorplan_deformation.displacements;
+
+  // Compute displacements for objects.
 }
 
 const FloorplanDeformation& TreeOrganizer::GetFloorplanDeformation() const {

@@ -68,13 +68,17 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
     indoor_polygon_renderer.Init(configuration.data_directory, this);
     floorplan_renderer.Init();
     panel_renderer.Init(configuration.data_directory);
-    tree_organizer.Init();
   }
 
   setFocusPolicy(Qt::ClickFocus);
   setMouseTracking(true);
+
+  {
+    navigation.Init();
+    tree_organizer.Init(navigation.GetTreeLayoutDirection(),
+                        navigation.GetTreeLayoutOrthogonalDirection());
+  }
   
-  navigation.Init();
 
   SetPanoramaToRoom(floorplan, panorama_renderers, &panorama_to_room);
   SetRoomToPanorama(floorplan, panorama_renderers, &room_to_panorama);

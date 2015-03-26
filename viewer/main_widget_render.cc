@@ -628,11 +628,11 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double animation = air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
   const double building_height = navigation.GetAverageCeilingHeight() - navigation.GetAverageFloorHeight();
   const double kMaxShrinkRatio = 0.6;
-  const double kNoShrink = 1.0;
+  const double kMaxObjectShrinkRatio = 0.8;
 
-  const double kVerticalFloorplanRatio = 1.5;
-  const double kVerticalIndoorPolygonRatio = -2.5;
-  const double kVerticalObjectRatio = -4.0;
+  const double kVerticalFloorplanRatio = 1.0;
+  const double kVerticalIndoorPolygonRatio = -2.0;
+  const double kVerticalObjectRatio = -5.0;
 
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
 
@@ -728,7 +728,8 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                               air_to_tree_progress,
                               animation,
                               kVerticalObjectRatio * building_height,
-                              kNoShrink);
+                              kMaxShrinkRatio,
+                              kMaxObjectShrinkRatio);
     glPopAttrib();
   }
 

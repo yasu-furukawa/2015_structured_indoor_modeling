@@ -20,10 +20,16 @@ struct FloorplanDeformation {
   std::vector<BoundingBox> room_bounding_boxes;
   std::vector<BoundingBox> floor_bounding_boxes;
   std::vector<std::vector<BoundingBox> > wall_bounding_boxes;
+
+  // Displacement to the target (horizontal motion).
+  std::vector<Eigen::Vector3d> displacements;
 };
  
 struct ObjectDeformation {
   std::vector<std::vector<BoundingBox> > bounding_boxes;
+
+  // Displacement to the target (horizontal motion).
+  std::vector<Eigen::Vector3d> displacements;
 };
   
 class TreeOrganizer {
@@ -31,7 +37,8 @@ class TreeOrganizer {
   TreeOrganizer(const Floorplan& floorplan,
                 const IndoorPolygon& indoor_polygon,
                 const ObjectRenderer& object_renderer);
-  void Init();
+  void Init(const Eigen::Vector3d& tree_layout_direction,
+            const Eigen::Vector3d& tree_layout_orthogonal_direction);
 
   const FloorplanDeformation& GetFloorplanDeformation() const;
   const FloorplanDeformation& GetIndoorPolygonDeformation() const;
@@ -41,6 +48,9 @@ class TreeOrganizer {
   void InitFloorplanDeformation();
   void InitIndoorPolygonDeformation();
   void InitObjectDeformation();
+
+  void ComputeDisplacementsFloorplan(const Eigen::Vector3d& tree_layout_direction,
+                                     const Eigen::Vector3d& tree_layout_orthogonal_direction);
 
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
