@@ -56,7 +56,9 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
              floorplan,
              panoramas,
              panorama_to_room,
-             room_to_panorama) {
+             room_to_panorama),
+  tree_organizer(floorplan, indoor_polygon, object_renderer)
+{
 
   // Renderer initialization.
   {
@@ -66,6 +68,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
     indoor_polygon_renderer.Init(configuration.data_directory, this);
     floorplan_renderer.Init();
     panel_renderer.Init(configuration.data_directory);
+    tree_organizer.Init();
   }
 
   setFocusPolicy(Qt::ClickFocus);
@@ -387,6 +390,11 @@ void MainWidget::PaintFloorplan() {
     RenderAllRoomNames(1.0, this);
   }    
 }
+
+
+void MainWidget::PaintTree() {
+  RenderTree();
+}  
   
 void MainWidget::paintGL() {
   ClearDisplay();
@@ -452,6 +460,15 @@ void MainWidget::paintGL() {
     RenderPanoramaTour();
     break;
   }
+  case kTree:
+  case kTreeTransition:
+  case kTreeToAirTransition:
+  case kAirToTreeTransition: {
+    PaintTree();
+    break;
+  }
+
+    
   default: {
     ;
   }
@@ -584,6 +601,8 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 
 void MainWidget::keyPressEvent(QKeyEvent* e) {
   const double kRotationDegrees = 45.0 * M_PI / 180.0;
+  //----------------------------------------------------------------------
+  // Arrows.
   if (e->key() == Qt::Key_Up) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.MoveForwardPanorama();
@@ -595,7 +614,8 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   } else if (e->key() == Qt::Key_Left) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(kRotationDegrees);
-    } else if (navigation.GetCameraStatus() == kAir) {
+    } else if (navigation.GetCameraStatus() == kAir ||
+               navigation.GetCameraStatus() == kTree) {
       navigation.RotateAir(-kRotationDegrees);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
       navigation.RotateFloorplan(-kRotationDegrees);
@@ -604,12 +624,16 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   else if (e->key() == Qt::Key_Right) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(-kRotationDegrees);
-    } else if (navigation.GetCameraStatus() == kAir) {
+    } else if (navigation.GetCameraStatus() == kAir ||
+               navigation.GetCameraStatus() == kTree) {
       navigation.RotateAir(kRotationDegrees);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
       navigation.RotateFloorplan(kRotationDegrees);
     }
-  } else if (e->key() == Qt::Key_A) {
+  }
+  //----------------------------------------------------------------------
+  // 4 modes.
+  else if (e->key() == Qt::Key_A) {
     if (navigation.GetCameraStatus() == kAir)
       navigation.AirToPanorama(navigation.GetCameraPanorama().start_index);
     else if (navigation.GetCameraStatus() == kFloorplan)
@@ -624,7 +648,15 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
       navigation.PanoramaToFloorplan();
     else if (navigation.GetCameraStatus() == kAir)
       navigation.AirToFloorplan();
-  } else if (e->key() == Qt::Key_O) {
+  } else if (e->key() == Qt::Key_F) {
+    if (navigation.GetCameraStatus() == kTree)
+      navigation.TreeToAir();
+    else if (navigation.GetCameraStatus() == kAir)
+      navigation.AirToTree();
+  }
+  //----------------------------------------------------------------------
+  // Toggle switch.
+  else if (e->key() == Qt::Key_O) {
     object_renderer.Toggle();
     updateGL();
   } else if (e->key() == Qt::Key_P) {

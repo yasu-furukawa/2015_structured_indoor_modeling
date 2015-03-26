@@ -32,7 +32,13 @@ enum CameraStatus {
   kFloorplanToAirTransition,
 
   // Tour
-  kPanoramaTour
+  kPanoramaTour,
+
+  // Tree view.
+  kTree,
+  kTreeTransition,
+  kTreeToAirTransition,
+  kAirToTreeTransition
 };
 
 struct CameraPanorama {
@@ -78,7 +84,7 @@ struct CameraInTransition {
   CameraFloorplan camera_floorplan;
   double progress;  
 };
-
+ 
 struct CameraPanoramaTour {
   std::vector<int> indexes;
   std::vector<Eigen::Vector3d> centers;
@@ -143,6 +149,8 @@ class Navigation {
   void FloorplanToPanorama(const int panorama_index);
   void AirToFloorplan();
   void FloorplanToAir();
+  void AirToTree();
+  void TreeToAir();
   
  private:
   bool Collide(const int from_index, const int to_index) const;
@@ -160,6 +168,8 @@ class Navigation {
   CameraFloorplan camera_floorplan;
   CameraInTransition camera_in_transition;
   CameraPanoramaTour camera_panorama_tour;
+
+  double progress_tree_transition;
 
   // Z coordinate of the camera in the air.
   double air_height;
