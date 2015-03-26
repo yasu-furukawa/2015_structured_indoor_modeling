@@ -21,11 +21,12 @@
 #include "configuration.h"
 #include "navigation.h"
 #include "floorplan_renderer.h"
+#include "indoor_polygon_renderer.h"
 #include "object_renderer.h"
 #include "panel_renderer.h"
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
-#include "indoor_polygon_renderer.h"
+#include "tree_organizer.h"
 
 namespace structured_indoor_modeling {
   
@@ -69,6 +70,8 @@ private:
     PanelRenderer panel_renderer;
     // Navigation knows the entire state of the viewer.
     Navigation navigation;
+    // Tree organizer.
+    TreeOrganizer tree_organizer;
 
     //----------------------------------------------------------------------
     // GL resources.
@@ -134,6 +137,7 @@ private:
     void PaintPanorama();
     void PaintAir();
     void PaintFloorplan();
+    void PaintTree();
     
     //----------------------------------------------------------------------
     // Render functions.
@@ -163,12 +167,13 @@ private:
     
     void RenderPanoramaTransition(const int start_index,
                                   const int end_index,
-                                  const double start_weight);
+                                  const double start_weight);    
     void BlendFrames(const double weight, const int divide_by_alpha_mode);
     void RenderPanoramaTour();    
     void RenderPanoramaToAirTransition(const bool flip = false);
     void RenderPanoramaToFloorplanTransition(const bool flip = false);
     void RenderAirToFloorplanTransition(const bool flip = false);
+    void RenderTree(const double air_to_tree_progress);
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
 
     double ObjectAnimationPosition() const;

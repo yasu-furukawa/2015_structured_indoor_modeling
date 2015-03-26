@@ -32,8 +32,11 @@ struct BoundingBox {
   void InitGL();
 
   void RenderAll(const double position);
-
   void RenderIcons(const double alpha, const double animation);
+
+  int GetNumRooms() const;
+  int GetNumObjects(const int room) const;
+  const std::vector<float>& GetObject(const int room, const int object) const;
 
   bool Toggle();
   

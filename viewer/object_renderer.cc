@@ -546,6 +546,18 @@ void ObjectRenderer::RenderIcons(const double /* alpha */, const double animatio
   glDisable(GL_BLEND);
   */
 }
+
+int ObjectRenderer::GetNumRooms() const {
+  return vertices.size();
+}
+ 
+int ObjectRenderer::GetNumObjects(const int room) const {
+  return vertices[room].size();
+}
+
+const std::vector<float>& ObjectRenderer::GetObject(const int room, const int object) const {
+  return vertices[room][object];
+}
   
 }  // namespace structured_indoor_modeling
   

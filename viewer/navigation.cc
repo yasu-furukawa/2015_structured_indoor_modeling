@@ -125,10 +125,14 @@ Vector3d Navigation::GetCenter() const {
     return weight_start * camera_panorama.start_center +
       weight_end * camera_panorama.end_center;
   }
-  case kAir: {
+  case kAir:
+  case kTree:
+  case kTreeToAirTransition:
+  case kAirToTreeTransition: {
     return camera_air.GetCenter();
   }
-  case kAirTransition: {
+  case kAirTransition:
+  case kTreeTransition: {
     const Vector3d direction = GetDirection();
     return camera_air.ground_center - direction;
   }
@@ -216,10 +220,14 @@ Vector3d Navigation::GetDirection() const {
     
     return normalized_direction;
   }
-  case kAir: {
+  case kAir:
+  case kTree:
+  case kTreeToAirTransition:
+  case kAirToTreeTransition: {
     return camera_air.start_direction;
   }
-  case kAirTransition: {
+  case kAirTransition:
+  case kTreeTransition: {
     Vector3d horizontal_direction = camera_air.start_direction;
     const double vertical_distance = horizontal_direction[2];
     horizontal_direction[2] = 0.0;
@@ -377,7 +385,8 @@ void Navigation::Tick() {
     }
     break;
   }
-  case kAirTransition: {
+  case kAirTransition:
+  case kTreeTransition: {
     const double kStepSize = 0.04;
     camera_air.progress += kStepSize;
     if (camera_air.progress >= 1.0) {
@@ -511,6 +520,29 @@ void Navigation::Tick() {
     }
     break;
   }
+
+  case kTreeToAirTransition: {
+    const double kStepSize = 0.02;
+
+    tree_progress += kStepSize;
+    if (tree_progress >= 1.0) {
+      camera_status = kAir;
+      camera_air.progress = 0.0;
+    }
+    break;
+  }
+  case kAirToTreeTransition: {
+    const double kStepSize = 0.02;
+
+    tree_progress += kStepSize;
+    if (tree_progress >= 1.0) {
+      camera_status = kTree;
+      camera_air.progress = 0.0;
+      tree_progress = 0.0;
+    }
+    break;
+  }
+    
   default: {
     break;
   }
@@ -871,6 +903,17 @@ void Navigation::FloorplanToAir() {
   
   camera_in_transition.progress = 0.0;  
 }
+
+void Navigation::TreeToAir() {
+  camera_status = kTreeToAirTransition;
+  tree_progress = 0.0; 
+}
+
+void Navigation::AirToTree() {
+  camera_status = kAirToTreeTransition;
+  tree_progress = 0.0;  
+}
+  
   
 double Navigation::ProgressInverse() const {
   switch (camera_status) {
@@ -920,7 +963,11 @@ double Navigation::GetFieldOfViewInDegrees() const {
   }
   // CameraAir handles the state.
   case kAir:
-  case kAirTransition: {
+  case kAirTransition:
+  case kTree:
+  case kTreeTransition:
+  case kTreeToAirTransition:
+  case kAirToTreeTransition: {
     return scaled_air_field_of_view_degrees;
   }
   case kFloorplan:

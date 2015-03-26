@@ -20,6 +20,7 @@ qtHaveModule(opengl) {
        main_widget_render.cc \
        main_widget_util.cc \
        navigation.cc \
+       tree_organizer.cc \
        floorplan_renderer.cc \
        object_renderer.cc \
        panel_renderer.cc \
@@ -37,6 +38,7 @@ qtHaveModule(opengl) {
         main_widget_util.h \
         configuration.h \
         navigation.h \
+        tree_organizer.h \
         floorplan_renderer.h \
         object_renderer.h \
         panorama_renderer.h \

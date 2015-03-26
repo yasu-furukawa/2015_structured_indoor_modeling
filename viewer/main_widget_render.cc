@@ -620,6 +620,11 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
 
   glPopAttrib();
 }
+
+void MainWidget::RenderTree(const double air_to_tree_progress) {
+  
+
+}
   
 int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
   unsigned char red, green, blue;
