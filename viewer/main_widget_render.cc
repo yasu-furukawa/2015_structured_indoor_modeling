@@ -634,8 +634,16 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double kVerticalIndoorPolygonRatio = -2.5;
   const double kVerticalObjectRatio = -4.0;
 
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
+
   {
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+  }
+  {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
     {
@@ -673,11 +681,17 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                    kVerticalFloorplanRatio * building_height,
                                    kMaxShrinkRatio);
     }
+    glPopAttrib();
   }
-  glPopAttrib();
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  
+  glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   {
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+  }
+  {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
     {
@@ -705,21 +719,21 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     
     glDisable(GL_CULL_FACE);
     glDisable(GL_TEXTURE_2D);
-  }
-  glPopAttrib();
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  {
+    glPopAttrib();
+  
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    
     object_renderer.RenderAll(tree_organizer,
                               building_height,
                               air_to_tree_progress,
                               animation,
                               kVerticalObjectRatio * building_height,
                               kNoShrink);
+    glPopAttrib();
   }
-  glPopAttrib();
-  
 
+  const int kDivideByAlpha = 1;
+  BlendFrames(min(0.5, 1.0 * air_to_tree_progress), kDivideByAlpha);
 }
   
 int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
