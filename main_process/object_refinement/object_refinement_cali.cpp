@@ -19,10 +19,10 @@ using namespace cv;
 using namespace Eigen;
 using namespace structured_indoor_modeling;
 
-DEFINE_int32(label_num,10000,"Number of superpixel");
-DEFINE_double(smoothness_weight,0.10,"Weight of smoothness term");
+DEFINE_int32(label_num,20000,"Number of superpixel");
+DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
 DEFINE_int32(start_id, 0,"Start id");
-DEFINE_int32(end_id,0, "End id");
+DEFINE_int32(end_id,3, "End id");
 
 int main(int argc, char **argv){
 #ifdef __APPLE__
@@ -99,7 +99,7 @@ int main(int argc, char **argv){
 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
 		getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
 	    }
-#if 0
+#if 1
 	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
 #endif
 	    DepthFilling objectDepth;
@@ -109,33 +109,33 @@ int main(int argc, char **argv){
 #if 1
 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
 #endif
-	    backProjectObject(panorama[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
+//	    backProjectObject(panorama[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
 	}
     }
-    mergeObject(objectlist, objectcloud, resultCloud);
-    /////////////////////////////    
-    cout<<endl<<"All done! Saving result..."<<endl;
+    // mergeObject(objectlist, objectcloud, resultCloud);
+    // /////////////////////////////    
+    // cout<<endl<<"All done! Saving result..."<<endl;
 
-    for(int roomid=0; roomid<resultCloud.size(); roomid++){
+    // for(int roomid=0; roomid<resultCloud.size(); roomid++){
 
-	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
-	    PointCloud curob;
-	    vector<structured_indoor_modeling::Point>obpts;
-	    resultCloud[roomid].GetObjectPoints(i, obpts);
-	    curob.AddPoints(obpts);
-	    vector<double>bbox = curob.GetBoundingbox();
-	    double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
-	    double density = (double)curob.GetNumPoints() / areaXY;
-	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
-	    curob.Write(string(buffer));
-	}
-	cout<<"Cleaning room "<<roomid<<"..."<<endl;
-	cleanObjects(resultCloud[roomid], 1e5);
-	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
-	string savepath = file_io.GetRefinedObjectClouds(roomid);
-	cout<<"Saving "<<savepath<<endl;
-	resultCloud[roomid].Write(savepath);
-    }
+    // 	for(int i=0; i<resultCloud[roomid].GetNumObjects(); i++){
+    // 	    PointCloud curob;
+    // 	    vector<structured_indoor_modeling::Point>obpts;
+    // 	    resultCloud[roomid].GetObjectPoints(i, obpts);
+    // 	    curob.AddPoints(obpts);
+    // 	    vector<double>bbox = curob.GetBoundingbox();
+    // 	    double areaXY = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2]);
+    // 	    double density = (double)curob.GetNumPoints() / areaXY;
+    // 	    sprintf(buffer,"temp/object_room%03d_object%03d.ply",roomid,i);
+    // 	    curob.Write(string(buffer));
+    // 	}
+    // 	cout<<"Cleaning room "<<roomid<<"..."<<endl;
+    // 	cleanObjects(resultCloud[roomid], 1e5);
+    // 	cout<<"Object num after cleaning: "<<resultCloud[roomid].GetNumObjects()<<endl;
+    // 	string savepath = file_io.GetRefinedObjectClouds(roomid);
+    // 	cout<<"Saving "<<savepath<<endl;
+    // 	resultCloud[roomid].Write(savepath);
+    // }
     end = clock();
     cout<<"Total time usage: "<<(end - start) / 1000000<<"s"<<endl;
 
