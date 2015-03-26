@@ -393,7 +393,28 @@ void MainWidget::PaintFloorplan() {
 
 
 void MainWidget::PaintTree() {
-  RenderTree();
+  switch (navigation.GetCameraStatus()) {
+  case kTree:
+  case kTreeTransition: {
+    const double kNoTransitionAnimation = 1.0;
+    RenderTree(kNoTransitionAnimation);
+    break;
+  }
+  case kTreeToAirTransition: {
+    const double progress = navigation.GetTreeProgress();
+    RenderTree(1.0 - progress);
+    break;
+  }
+  case kAirToTreeTransition: {
+    const double progress = navigation.GetTreeProgress();
+    RenderTree(progress);
+    break;
+  }
+  default: {
+    cerr << "Impossible in RenderTree." << endl;
+    exit (1);
+  }
+  }
 }  
   
 void MainWidget::paintGL() {
@@ -643,15 +664,15 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
       navigation.PanoramaToAir();
     else if (navigation.GetCameraStatus() == kFloorplan)
       navigation.FloorplanToAir();
+    else if (navigation.GetCameraStatus() == kTree)
+      navigation.TreeToAir();
   } else if (e->key() == Qt::Key_D) {
     if (navigation.GetCameraStatus() == kPanorama)
       navigation.PanoramaToFloorplan();
     else if (navigation.GetCameraStatus() == kAir)
       navigation.AirToFloorplan();
   } else if (e->key() == Qt::Key_F) {
-    if (navigation.GetCameraStatus() == kTree)
-      navigation.TreeToAir();
-    else if (navigation.GetCameraStatus() == kAir)
+    if (navigation.GetCameraStatus() == kAir)
       navigation.AirToTree();
   }
   //----------------------------------------------------------------------
@@ -731,7 +752,10 @@ void MainWidget::timerEvent(QTimerEvent *) {
   case kFloorplanToPanoramaTransition:
   case kAirToFloorplanTransition:
   case kFloorplanToAirTransition:
-  case kPanoramaTour: {
+  case kPanoramaTour:
+  case kTreeTransition:
+  case kTreeToAirTransition:
+  case kAirToTreeTransition: {
     navigation.Tick();
     updateGL();
     break;
@@ -753,6 +777,9 @@ void MainWidget::timerEvent(QTimerEvent *) {
       updateGL();
     }
     break;
+  }
+  case kTree: {
+    updateGL();
   }
   }
 }  

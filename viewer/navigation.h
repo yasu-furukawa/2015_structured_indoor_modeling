@@ -124,6 +124,7 @@ class Navigation {
   double GetAverageDistance() const { return average_distance; }
   double GetAirHeight() const { return air_height; }
   double GetFloorplanHeight() const { return floorplan_height; }
+  double GetTreeProgress() const { return tree_progress; }
 
   //----------------------------------------------------------------------
   void Init();
@@ -169,7 +170,7 @@ class Navigation {
   CameraInTransition camera_in_transition;
   CameraPanoramaTour camera_panorama_tour;
 
-  double progress_tree_transition;
+  double tree_progress;
 
   // Z coordinate of the camera in the air.
   double air_height;

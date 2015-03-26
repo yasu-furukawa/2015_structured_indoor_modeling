@@ -524,8 +524,8 @@ void Navigation::Tick() {
   case kTreeToAirTransition: {
     const double kStepSize = 0.02;
 
-    progress_tree_transition += kStepSize;
-    if (progress_tree_transition >= 1.0) {
+    tree_progress += kStepSize;
+    if (tree_progress >= 1.0) {
       camera_status = kAir;
       camera_air.progress = 0.0;
     }
@@ -534,11 +534,11 @@ void Navigation::Tick() {
   case kAirToTreeTransition: {
     const double kStepSize = 0.02;
 
-    progress_tree_transition += kStepSize;
-    if (progress_tree_transition >= 1.0) {
+    tree_progress += kStepSize;
+    if (tree_progress >= 1.0) {
       camera_status = kTree;
       camera_air.progress = 0.0;
-      progress_tree_transition = 0.0;
+      tree_progress = 0.0;
     }
     break;
   }
@@ -905,10 +905,13 @@ void Navigation::FloorplanToAir() {
 }
 
 void Navigation::TreeToAir() {
+  camera_status = kTreeToAirTransition;
+  tree_progress = 0.0; 
 }
 
 void Navigation::AirToTree() {
-  
+  camera_status = kAirToTreeTransition;
+  tree_progress = 0.0;  
 }
   
   

@@ -16,7 +16,6 @@ void TreeOrganizer::Init() {
   InitFloorplanCenters();
   InitIndoorPolygonCenters();
   InitObjectCenters();
-
 }
 
 void TreeOrganizer::InitFloorplanCenters() {
@@ -77,7 +76,14 @@ void TreeOrganizer::InitFloorplanCenters() {
 void TreeOrganizer::InitIndoorPolygonCenters() {
   indoor_polygon_centers.room_centers.clear();
   indoor_polygon_centers.room_centers.resize(floorplan.GetNumRooms());
+  indoor_polygon_centers.floor_centers.clear();
+  indoor_polygon_centers.floor_centers.resize(floorplan.GetNumRooms());
 
+  indoor_polygon_centers.wall_centers.clear();
+  indoor_polygon_centers.wall_centers.resize(floorplan.GetNumRooms());
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room)
+    indoor_polygon_centers.wall_centers[room].resize(floorplan.GetNumWalls(room));
+  
   const Eigen::Vector3d kMinInitial(numeric_limits<double>::max(),
                                     numeric_limits<double>::max(),
                                     numeric_limits<double>::max());
@@ -125,7 +131,6 @@ void TreeOrganizer::InitIndoorPolygonCenters() {
       }
     }
   }
-
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     indoor_polygon_centers.room_centers[room] = (room_min_xyzs[room] + room_max_xyzs[room]) / 2.0;

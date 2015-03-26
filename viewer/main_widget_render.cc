@@ -621,7 +621,7 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   glPopAttrib();
 }
 
-void MainWidget::RenderTree() {
+void MainWidget::RenderTree(const double air_to_tree_progress) {
   
 
 }
