@@ -47,7 +47,7 @@ void MainWidget::RenderFloorplan(const double alpha,
   floorplan_renderer.Render(alpha, viewport, modelview, projection, emphasize, height_adjustment);
 
   // Bounding boxes for objects.
-  object_renderer.RenderIcons(alpha);  
+  object_renderer.RenderIcons(alpha, height_adjustment);
 
   glDisable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
@@ -619,6 +619,11 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
   BlendFrames(weight, kDivideByAlpha);
 
   glPopAttrib();
+}
+
+void MainWidget::RenderTree(const double air_to_tree_progress) {
+  
+
 }
   
 int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {

@@ -53,7 +53,8 @@ public:
 
 class FloorplanRenderer : protected QGLFunctions {
  public:
-  FloorplanRenderer(const Floorplan& floorplan, const IndoorPolygon& indoor_polygon);
+  FloorplanRenderer(const Floorplan& floorplan,
+                    const IndoorPolygon& indoor_polygon);
   virtual ~FloorplanRenderer();
   void Init();
   void InitGL(QGLWidget* widget_tmp);

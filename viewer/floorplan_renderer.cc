@@ -34,7 +34,7 @@ namespace {
                                  2);
 
   const PaintStyle kDefaultStyle(PaintStyle::SolidColor,
-                                 Vector3f(240/255.0, 230/255.0, 140/255.0),
+                                 Vector3f(240/255.0, 240/255.0, 240/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
   
@@ -50,7 +50,7 @@ namespace {
                                  2);
   */
   const PaintStyle kKitchenStyle(PaintStyle::SolidColor,
-                                 Vector3f(255/255.0, 229/255.0, 204/255.0),
+                                 Vector3f(255/255.0, 239/255.0, 214/255.0),
                                  Vector3f(1/255.0, 1/255.0, 1/255.0),
                                  2);
   
@@ -65,7 +65,7 @@ namespace {
                              2);
   */
   const PaintStyle kBedStyle(PaintStyle::SolidColor,
-                             Vector3f(204/255.0, 229/255.0, 255/255.0),
+                             Vector3f(224/255.0, 239/255.0, 255/255.0),
                              Vector3f(1/255.0, 1/255.0, 1/255.0),
                              2);
   
@@ -127,7 +127,7 @@ void ComputeRanges(const Floorplan& floorplan, const int room, Vector2d* x_range
 }  // namespace
 
 FloorplanRenderer::FloorplanRenderer(const Floorplan& floorplan,
-                                     const IndoorPolygon& indoor_polygon)
+                                     const IndoorPolygon& indoor_polygon) 
   : floorplan(floorplan), indoor_polygon(indoor_polygon) {
   sheep_texture_id = -1;
   kitchen_texture_id = -1;
@@ -184,13 +184,13 @@ void FloorplanRenderer::InitGL(QGLWidget* widget_tmp) {
   }
   {
     #ifdef _WIN32
-    tile_image.load("../viewer/texture/tile3.jpg");
+    tile_image.load("../viewer/texture/tile4.jpg");
     #else
-    tile_image.load("texture/tile3.jpg");
+    tile_image.load("texture/tile4.jpg");
     #endif
 
     if (tile_image.isNull()) {
-      cout << "texture/tile3.jpg cannot be loaded." << endl
+      cout << "texture/tile4.jpg cannot be loaded." << endl
            << "Likely using visual studio. Need to change a relative path infloorplan_renderer.cc." << endl;
       exit (1);
     }
@@ -310,7 +310,9 @@ void FloorplanRenderer::Render(const double alpha,
       const Vector3d start = floorplan.GetDoorVertexGlobal(door, 5);
       const Vector3d end   = floorplan.GetDoorVertexGlobal(door, 4);
       const Vector3d top   = floorplan.GetDoorVertexGlobal(door, 6);
-      RenderDoor(start, end, top, emphasize, height_adjustment);
+      // RenderDoor(start, end, top, emphasize, height_adjustment);
+      // No animation.
+      RenderDoor(start, end, top, emphasize, 0.0);
     }
   }
 }
@@ -528,7 +530,7 @@ void FloorplanRenderer::RenderTile(const int room,
                                    const PaintStyle& paint_style,
                                    const double unit,
                                    const double alpha) const {
-  const double kTileTextureScale = 4;
+  const double kTileTextureScale = 30;
   RenderTexture(room, paint_style, unit, alpha, tile_texture_id, kTileTextureScale);
 }
   

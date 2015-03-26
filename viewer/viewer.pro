@@ -20,13 +20,15 @@ qtHaveModule(opengl) {
        main_widget_render.cc \
        main_widget_util.cc \
        navigation.cc \
+       tree_organizer.cc \
        floorplan_renderer.cc \
        object_renderer.cc \
        panel_renderer.cc \
        panorama_renderer.cc \
        polygon_renderer.cc \
        indoor_polygon_renderer.cc \
-       ../base/floorplan.cc \
+       ../base/detection.cc \
+       ../base/floorplan.cc \       
        ../base/indoor_polygon.cc \
        ../base/panorama.cc \
        ../base/point_cloud.cc
@@ -36,12 +38,14 @@ qtHaveModule(opengl) {
         main_widget_util.h \
         configuration.h \
         navigation.h \
+        tree_organizer.h \
         floorplan_renderer.h \
         object_renderer.h \
         panorama_renderer.h \
         panel_renderer.h \
         polygon_renderer.h \
         indoor_polygon_renderer.h \
+        ../base/detection.h \
         ../base/file_io.h \
         ../base/floorplan.h \
         ../base/indoor_polygon.h \
