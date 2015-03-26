@@ -623,10 +623,13 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
                               (y_range[0] + y_range[1]) / 2.0);
 
   average_floor_height = 0.0;
+  average_ceiling_height = 0.0;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     average_floor_height += floorplan.GetFloorHeight(room);
+    average_ceiling_height += floorplan.GetCeilingHeight(room);
   }
   average_floor_height /= floorplan.GetNumRooms();
+  average_ceiling_height /= floorplan.GetNumRooms();
 
   best_ground_center =
     floorplan.GetFloorplanToGlobal() *

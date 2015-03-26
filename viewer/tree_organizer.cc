@@ -53,7 +53,8 @@ void TreeOrganizer::InitFloorplanDeformation() {
         }
       }
       
-      floorplan_deformation.floor_bounding_boxes[room] = (min_xyz + max_xyz) / 2.0;
+      floorplan_deformation.floor_bounding_boxes[room].min_xyz = min_xyz;
+      floorplan_deformation.floor_bounding_boxes[room].max_xyz = max_xyz;
       
       for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
         const Eigen::Vector3d& ceiling_vertex = floorplan.GetCeilingVertexGlobal(room, v);
@@ -62,7 +63,8 @@ void TreeOrganizer::InitFloorplanDeformation() {
           max_xyz[a] = max(max_xyz[a], ceiling_vertex[a]);
         }
       }
-      floorplan_deformation.room_bounding_boxes[room] = (min_xyz + max_xyz) / 2.0;
+      floorplan_deformation.room_bounding_boxes[room].min_xyz = min_xyz;
+      floorplan_deformation.room_bounding_boxes[room].max_xyz = max_xyz;
     }
   }    
 
@@ -74,12 +76,19 @@ void TreeOrganizer::InitFloorplanDeformation() {
       floorplan_deformation.wall_bounding_boxes[room].resize(floorplan.GetNumRoomVertices(room));
       for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
         const int next_v = (v + 1) % floorplan.GetNumRoomVertices(room);
-        
-        floorplan_deformation.wall_bounding_boxes[room][v] = 
-          (floorplan.GetFloorVertexGlobal(room, v) +
-           floorplan.GetFloorVertexGlobal(room, next_v) +
-           floorplan.GetCeilingVertexGlobal(room, v) +
-           floorplan.GetCeilingVertexGlobal(room, next_v)) / 4.0;
+
+        for (int a = 0; a < 3; ++a) {
+          floorplan_deformation.wall_bounding_boxes[room][v].min_xyz[a] = 
+            min(min(floorplan.GetFloorVertexGlobal(room, v)[a],
+                    floorplan.GetFloorVertexGlobal(room, next_v)[a]),
+                min(floorplan.GetCeilingVertexGlobal(room, v)[a],
+                    floorplan.GetCeilingVertexGlobal(room, next_v)[a]));
+          floorplan_deformation.wall_bounding_boxes[room][v].max_xyz[a] = 
+            max(max(floorplan.GetFloorVertexGlobal(room, v)[a],
+                    floorplan.GetFloorVertexGlobal(room, next_v)[a]),
+                max(floorplan.GetCeilingVertexGlobal(room, v)[a],
+                    floorplan.GetCeilingVertexGlobal(room, next_v)[a]));
+        }
       }
     }
   }
@@ -124,33 +133,42 @@ void TreeOrganizer::InitIndoorPolygonDeformation() {
       const int wall = segment.wall_info[1];
 
       for (const auto& vertex : segment.vertices) {
-        for (int a = 0; a < 3; ++a) {
-          room_min_xyzs[room][a] = min(room_min_xyzs[room][a], vertex[a]);
-          room_max_xyzs[room][a] = max(room_max_xyzs[room][a], vertex[a]);
+        const Vector3d& global = indoor_polygon.ManhattanToGlobal(vertex);
 
-          wall_min_xyzs[room][wall][a] = min(wall_min_xyzs[room][wall][a], vertex[a]);
-          wall_max_xyzs[room][wall][a] = max(wall_max_xyzs[room][wall][a], vertex[a]);
+        for (int a = 0; a < 3; ++a) {
+          room_min_xyzs[room][a] = min(room_min_xyzs[room][a], global[a]);
+          room_max_xyzs[room][a] = max(room_max_xyzs[room][a], global[a]);
+
+          wall_min_xyzs[room][wall][a] = min(wall_min_xyzs[room][wall][a], global[a]);
+          wall_max_xyzs[room][wall][a] = max(wall_max_xyzs[room][wall][a], global[a]);
         }
       }
     } else if (segment.type == Segment::FLOOR) {
       const int room = segment.floor_info;
 
       for (const auto& vertex : segment.vertices) {
+        const Vector3d& global = indoor_polygon.ManhattanToGlobal(vertex);
+        
         for (int a = 0; a < 3; ++a) {
-          floor_min_xyzs[room][a] = min(floor_min_xyzs[room][a], vertex[a]);
-          floor_max_xyzs[room][a] = max(floor_max_xyzs[room][a], vertex[a]);
+          floor_min_xyzs[room][a] = min(floor_min_xyzs[room][a], global[a]);
+          floor_max_xyzs[room][a] = max(floor_max_xyzs[room][a], global[a]);
         }
       }
     }
   }
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    indoor_polygon_deformation.room_bounding_boxes[room] = (room_min_xyzs[room] + room_max_xyzs[room]) / 2.0;
-    indoor_polygon_deformation.floor_bounding_boxes[room] = (floor_min_xyzs[room] + floor_max_xyzs[room]) / 2.0;
-
+    indoor_polygon_deformation.room_bounding_boxes[room].min_xyz = room_min_xyzs[room];
+    indoor_polygon_deformation.room_bounding_boxes[room].max_xyz = room_max_xyzs[room];
+    
+    indoor_polygon_deformation.floor_bounding_boxes[room].min_xyz = floor_min_xyzs[room];
+    indoor_polygon_deformation.floor_bounding_boxes[room].max_xyz = floor_max_xyzs[room];
+    
     for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
-      indoor_polygon_deformation.wall_bounding_boxes[room][wall] =
-        (wall_min_xyzs[room][wall] + wall_max_xyzs[room][wall]) / 2.0;
+      indoor_polygon_deformation.wall_bounding_boxes[room][wall].min_xyz =
+        wall_min_xyzs[room][wall];
+      indoor_polygon_deformation.wall_bounding_boxes[room][wall].max_xyz =
+        wall_max_xyzs[room][wall];
     }
   }
 }
@@ -178,7 +196,8 @@ void TreeOrganizer::InitObjectDeformation() {
         }
       }
 
-      object_deformation.bounding_boxes[room][object] = (min_xyz + max_xyz) / 2.0;
+      object_deformation.bounding_boxes[room][object].min_xyz = min_xyz;
+      object_deformation.bounding_boxes[room][object].max_xyz = max_xyz;
     }
   }
 }

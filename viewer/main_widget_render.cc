@@ -623,7 +623,16 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
 
 void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double kAlpha = 1.0;
-  const double animation = 0.0;
+
+  const int kInterval = 20 * 1000;
+  const double animation = ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
+  const double building_height = navigation.GetAverageCeilingHeight() - navigation.GetAverageFloorHeight();
+  const double kMaxShrinkRatio = 0.6;
+  const double kNoShrink = 1.0;
+
+  const double kVerticalFloorplanRatio = 1.5;
+  const double kVerticalIndoorPolygonRatio = -2.5;
+  const double kVerticalObjectRatio = -4.0;
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   {
@@ -632,19 +641,25 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     {
       glCullFace(GL_FRONT);
       glDisable(GL_TEXTURE_2D);
-      polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5, kAlpha * 0.2,
+      polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5,
+                                                kAlpha * 0.2,
                                                 tree_organizer,
                                                 air_to_tree_progress,
-                                                animation);
+                                                animation,
+                                                kVerticalFloorplanRatio * building_height,
+                                                kMaxShrinkRatio);
     }
     
     {
       glCullFace(GL_BACK);
       glEnable(GL_TEXTURE_2D);
-      polygon_renderer.RenderTextureMappedRooms(kAlpha, kAlpha,
+      polygon_renderer.RenderTextureMappedRooms(kAlpha,
+                                                kAlpha,
                                                 tree_organizer,
                                                 air_to_tree_progress,
-                                                animation);
+                                                animation,
+                                                kVerticalFloorplanRatio * building_height,
+                                                kMaxShrinkRatio);
     }
     
     glDisable(GL_CULL_FACE);
@@ -654,7 +669,9 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
       polygon_renderer.RenderDoors(kAlpha * 0.2,
                                    tree_organizer,
                                    air_to_tree_progress,
-                                   animation);
+                                   animation,
+                                   kVerticalFloorplanRatio * building_height,
+                                   kMaxShrinkRatio);
     }
   }
   glPopAttrib();
@@ -663,14 +680,16 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   {
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
-    
     {
       glCullFace(GL_FRONT);
       glDisable(GL_TEXTURE_2D);
-      indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5, kAlpha * 0.2,
+      indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5,
+                                                       kAlpha * 0.2,
                                                        tree_organizer,
                                                        air_to_tree_progress,
-                                                       animation);
+                                                       animation,
+                                                       kVerticalIndoorPolygonRatio * building_height,
+                                                       kMaxShrinkRatio);
     }
     
     {
@@ -679,7 +698,9 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
       indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha, kAlpha,
                                                        tree_organizer,
                                                        air_to_tree_progress,
-                                                       animation);
+                                                       animation,
+                                                       kVerticalIndoorPolygonRatio * building_height,
+                                                       kMaxShrinkRatio);
     }
     
     glDisable(GL_CULL_FACE);
@@ -689,7 +710,12 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   {
-    object_renderer.RenderAll(tree_organizer, air_to_tree_progress, animation);
+    object_renderer.RenderAll(tree_organizer,
+                              building_height,
+                              air_to_tree_progress,
+                              animation,
+                              kVerticalObjectRatio * building_height,
+                              kNoShrink);
   }
   glPopAttrib();
   

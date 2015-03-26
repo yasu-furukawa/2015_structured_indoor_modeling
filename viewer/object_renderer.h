@@ -18,7 +18,7 @@ class TreeOrganizer;
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
 typedef std::vector<ColoredPoint> ColoredPointCloud;
 
-struct BoundingBox {
+struct BoundingBox2D {
   Eigen::Vector3d corners[4];
 };
 
@@ -34,8 +34,11 @@ struct BoundingBox {
 
   void RenderAll(const double position);
   void RenderAll(const TreeOrganizer& tree_organizer,
+                 const double building_height,
                  const double air_to_tree_progress,
-                 const double animation) const;
+                 const double animation,
+                 const double max_vertical_shift,
+                 const double max_shrink_ratio) const;
 
   void RenderIcons(const double alpha, const double animation);
 
@@ -46,7 +49,7 @@ struct BoundingBox {
   bool Toggle();
   
  private:
-  void ComputeBoundingBoxes();
+  void ComputeBoundingBoxes2D();
   void RenderDesk(const Detection& detection,
                   const Eigen::Vector3d bounding_boxes[4],
                   const double animation) const;
@@ -78,7 +81,7 @@ struct BoundingBox {
   std::vector<std::vector<std::vector<float> > > colors_org;
 
   // Bounding boxes for each object.
-  std::vector<std::vector<BoundingBox> > bounding_boxes;
+  std::vector<std::vector<BoundingBox2D> > bounding_boxes_2D;
 
   std::vector<Detection> detections;
   

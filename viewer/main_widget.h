@@ -105,6 +105,7 @@ private:
     QTime double_click_time;
     QTime object_animation_time;
     bool mouse_down;
+    int tree_entry_time;
 
     void FreeResources();
     void AllocateResources();

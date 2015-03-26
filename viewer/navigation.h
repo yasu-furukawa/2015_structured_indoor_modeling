@@ -125,6 +125,8 @@ class Navigation {
   double GetAirHeight() const { return air_height; }
   double GetFloorplanHeight() const { return floorplan_height; }
   double GetTreeProgress() const { return tree_progress; }
+  double GetAverageFloorHeight() const { return average_floor_height; }
+  double GetAverageCeilingHeight() const { return average_ceiling_height; }
 
   //----------------------------------------------------------------------
   void Init();
@@ -190,6 +192,7 @@ class Navigation {
   // Average distance.
   double average_distance;
   double average_floor_height;
+  double average_ceiling_height;
 
   // Scaling in air field of view.
   double air_floorplan_field_of_view_scale;

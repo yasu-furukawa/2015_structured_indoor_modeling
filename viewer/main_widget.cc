@@ -672,8 +672,10 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     else if (navigation.GetCameraStatus() == kAir)
       navigation.AirToFloorplan();
   } else if (e->key() == Qt::Key_F) {
-    if (navigation.GetCameraStatus() == kAir)
+    if (navigation.GetCameraStatus() == kAir) {
       navigation.AirToTree();
+      tree_entry_time = object_animation_time.elapsed();
+    }
   }
   //----------------------------------------------------------------------
   // Toggle switch.

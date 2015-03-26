@@ -62,7 +62,7 @@ void ObjectRenderer::Init(const string data_directory) {
   vertices_org = vertices;
   colors_org = colors;
 
-  ComputeBoundingBoxes();
+  ComputeBoundingBoxes2D();
 }
 
 void ObjectRenderer::InitGL() {
@@ -131,18 +131,21 @@ void ObjectRenderer::RenderAll(const double position) {
 }
 
 void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
+                               const double building_height,
                                const double air_to_tree_progress,
-                               const double animation) const {
+                               const double animation,
+                               const double max_vertical_shift,
+                               const double max_shrink_ratio) const {
   //???
-
+  
 }
   
-void ObjectRenderer::ComputeBoundingBoxes() {
+void ObjectRenderer::ComputeBoundingBoxes2D() {
   const int num_rooms = vertices.size();
-  bounding_boxes.resize(num_rooms);
+  bounding_boxes_2D.resize(num_rooms);
   for (int room = 0; room < num_rooms; ++room) {
     const int num_objects = vertices[room].size();
-    bounding_boxes[room].resize(num_objects);
+    bounding_boxes_2D[room].resize(num_objects);
     for (int object = 0; object < num_objects; ++object) {
 
       Vector3d min_xyz, max_xyz;
@@ -163,14 +166,14 @@ void ObjectRenderer::ComputeBoundingBoxes() {
       }
 
       const double average_z = (min_xyz[2] + max_xyz[2]) / 2.0;
-      BoundingBox& bounding_box = bounding_boxes[room][object];
-      bounding_box.corners[0] =
+      BoundingBox2D& bounding_box_2D = bounding_boxes_2D[room][object];
+      bounding_box_2D.corners[0] =
         indoor_polygon.ManhattanToGlobal(Vector3d(min_xyz[0], min_xyz[1], average_z));
-      bounding_box.corners[1] =
+      bounding_box_2D.corners[1] =
         indoor_polygon.ManhattanToGlobal(Vector3d(max_xyz[0], min_xyz[1], average_z));
-      bounding_box.corners[2] =
+      bounding_box_2D.corners[2] =
         indoor_polygon.ManhattanToGlobal(Vector3d(max_xyz[0], max_xyz[1], average_z));
-      bounding_box.corners[3] =
+      bounding_box_2D.corners[3] =
         indoor_polygon.ManhattanToGlobal(Vector3d(min_xyz[0], max_xyz[1], average_z));
     }
   }

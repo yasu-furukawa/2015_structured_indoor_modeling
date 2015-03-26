@@ -20,7 +20,9 @@ class IndoorPolygonRenderer : protected QGLFunctions {
                                 const double bottom_alpha,
                                 const TreeOrganizer& tree_organizer,
                                 const double air_to_tree_progress,
-                                const double animation) const;
+                                const double animation,
+                                const double max_vertical_shift,
+                                const double max_shrink_ratio) const;
   
   void Init(const std::string data_directory, QGLWidget* widget);
   void InitGL();
