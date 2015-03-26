@@ -411,7 +411,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                const TreeOrganizer& tree_organizer,
                                                const double air_to_tree_progress,
                                                const double animation) const {
-  //???
+
 
 }
 

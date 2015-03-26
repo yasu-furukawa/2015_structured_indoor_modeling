@@ -390,7 +390,10 @@ void Navigation::Tick() {
     const double kStepSize = 0.04;
     camera_air.progress += kStepSize;
     if (camera_air.progress >= 1.0) {
-      camera_status = kAir;
+      if (camera_status == kAirTransition)
+        camera_status = kAir;
+      else
+        camera_status = kTree;
 
       camera_air.start_direction = camera_air.end_direction;
       camera_air.progress = 0.0;
@@ -779,7 +782,14 @@ void Navigation::RotateAir(const double radian) {
 
   camera_air.end_direction = rotation * camera_air.start_direction;
   camera_air.progress = 0.0;
-  camera_status = kAirTransition;  
+  if (camera_status == kAir) {
+    camera_status = kAirTransition;
+  } else if (camera_status == kTree) {
+    camera_status = kTreeTransition;
+  } else {
+    cerr << "Impossible in RotateAir." << endl;
+    exit (1);
+  }
 }
 
 void Navigation::RotateFloorplan(const double radian) {

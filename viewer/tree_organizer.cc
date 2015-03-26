@@ -32,11 +32,11 @@ const ObjectDeformation& TreeOrganizer::GetObjectDeformation() const {
   
 void TreeOrganizer::InitFloorplanDeformation() {
   {
-    floorplan_deformation.room_centers.clear();
-    floorplan_deformation.room_centers.resize(floorplan.GetNumRooms());
+    floorplan_deformation.room_bounding_boxes.clear();
+    floorplan_deformation.room_bounding_boxes.resize(floorplan.GetNumRooms());
     
-    floorplan_deformation.floor_centers.clear();
-    floorplan_deformation.floor_centers.resize(floorplan.GetNumRooms());
+    floorplan_deformation.floor_bounding_boxes.clear();
+    floorplan_deformation.floor_bounding_boxes.resize(floorplan.GetNumRooms());
     
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       // Compute the bounding of the room.
@@ -53,7 +53,7 @@ void TreeOrganizer::InitFloorplanDeformation() {
         }
       }
       
-      floorplan_deformation.floor_centers[room] = (min_xyz + max_xyz) / 2.0;
+      floorplan_deformation.floor_bounding_boxes[room] = (min_xyz + max_xyz) / 2.0;
       
       for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
         const Eigen::Vector3d& ceiling_vertex = floorplan.GetCeilingVertexGlobal(room, v);
@@ -62,20 +62,20 @@ void TreeOrganizer::InitFloorplanDeformation() {
           max_xyz[a] = max(max_xyz[a], ceiling_vertex[a]);
         }
       }
-      floorplan_deformation.room_centers[room] = (min_xyz + max_xyz) / 2.0;
+      floorplan_deformation.room_bounding_boxes[room] = (min_xyz + max_xyz) / 2.0;
     }
   }    
 
   {
-    floorplan_deformation.wall_centers.clear();
-    floorplan_deformation.wall_centers.resize(floorplan.GetNumRooms());
+    floorplan_deformation.wall_bounding_boxes.clear();
+    floorplan_deformation.wall_bounding_boxes.resize(floorplan.GetNumRooms());
 
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-      floorplan_deformation.wall_centers[room].resize(floorplan.GetNumRoomVertices(room));
+      floorplan_deformation.wall_bounding_boxes[room].resize(floorplan.GetNumRoomVertices(room));
       for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
         const int next_v = (v + 1) % floorplan.GetNumRoomVertices(room);
         
-        floorplan_deformation.wall_centers[room][v] = 
+        floorplan_deformation.wall_bounding_boxes[room][v] = 
           (floorplan.GetFloorVertexGlobal(room, v) +
            floorplan.GetFloorVertexGlobal(room, next_v) +
            floorplan.GetCeilingVertexGlobal(room, v) +
@@ -86,15 +86,15 @@ void TreeOrganizer::InitFloorplanDeformation() {
 }
   
 void TreeOrganizer::InitIndoorPolygonDeformation() {
-  indoor_polygon_deformation.room_centers.clear();
-  indoor_polygon_deformation.room_centers.resize(floorplan.GetNumRooms());
-  indoor_polygon_deformation.floor_centers.clear();
-  indoor_polygon_deformation.floor_centers.resize(floorplan.GetNumRooms());
+  indoor_polygon_deformation.room_bounding_boxes.clear();
+  indoor_polygon_deformation.room_bounding_boxes.resize(floorplan.GetNumRooms());
+  indoor_polygon_deformation.floor_bounding_boxes.clear();
+  indoor_polygon_deformation.floor_bounding_boxes.resize(floorplan.GetNumRooms());
 
-  indoor_polygon_deformation.wall_centers.clear();
-  indoor_polygon_deformation.wall_centers.resize(floorplan.GetNumRooms());
+  indoor_polygon_deformation.wall_bounding_boxes.clear();
+  indoor_polygon_deformation.wall_bounding_boxes.resize(floorplan.GetNumRooms());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room)
-    indoor_polygon_deformation.wall_centers[room].resize(floorplan.GetNumWalls(room));
+    indoor_polygon_deformation.wall_bounding_boxes[room].resize(floorplan.GetNumWalls(room));
   
   const Eigen::Vector3d kMinInitial(numeric_limits<double>::max(),
                                     numeric_limits<double>::max(),
@@ -145,22 +145,22 @@ void TreeOrganizer::InitIndoorPolygonDeformation() {
   }
 
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    indoor_polygon_deformation.room_centers[room] = (room_min_xyzs[room] + room_max_xyzs[room]) / 2.0;
-    indoor_polygon_deformation.floor_centers[room] = (floor_min_xyzs[room] + floor_max_xyzs[room]) / 2.0;
+    indoor_polygon_deformation.room_bounding_boxes[room] = (room_min_xyzs[room] + room_max_xyzs[room]) / 2.0;
+    indoor_polygon_deformation.floor_bounding_boxes[room] = (floor_min_xyzs[room] + floor_max_xyzs[room]) / 2.0;
 
     for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
-      indoor_polygon_deformation.wall_centers[room][wall] =
+      indoor_polygon_deformation.wall_bounding_boxes[room][wall] =
         (wall_min_xyzs[room][wall] + wall_max_xyzs[room][wall]) / 2.0;
     }
   }
 }
   
 void TreeOrganizer::InitObjectDeformation() {
-  object_deformation.centers.clear();
-  object_deformation.centers.resize(object_renderer.GetNumRooms());
+  object_deformation.bounding_boxes.clear();
+  object_deformation.bounding_boxes.resize(object_renderer.GetNumRooms());
 
   for (int room = 0; room < object_renderer.GetNumRooms(); ++room) {
-    object_deformation.centers[room].resize(object_renderer.GetNumObjects(room));
+    object_deformation.bounding_boxes[room].resize(object_renderer.GetNumObjects(room));
     
     for (int object = 0; object < object_renderer.GetNumObjects(room); ++object) {
       const vector<float>& points = object_renderer.GetObject(room, object);
@@ -178,7 +178,7 @@ void TreeOrganizer::InitObjectDeformation() {
         }
       }
 
-      object_deformation.centers[room][object] = (min_xyz + max_xyz) / 2.0;
+      object_deformation.bounding_boxes[room][object] = (min_xyz + max_xyz) / 2.0;
     }
   }
 }

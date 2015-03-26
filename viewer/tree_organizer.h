@@ -11,14 +11,19 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+struct BoundingBox {
+  Eigen::Vector3d min_xyz;
+  Eigen::Vector3d max_xyz;
+};
+  
 struct FloorplanDeformation {
-  std::vector<Eigen::Vector3d> room_centers;
-  std::vector<Eigen::Vector3d> floor_centers;
-  std::vector<std::vector<Eigen::Vector3d> > wall_centers;
+  std::vector<BoundingBox> room_bounding_boxes;
+  std::vector<BoundingBox> floor_bounding_boxes;
+  std::vector<std::vector<BoundingBox> > wall_bounding_boxes;
 };
  
 struct ObjectDeformation {
-  std::vector<std::vector<Eigen::Vector3d> > centers;
+  std::vector<std::vector<BoundingBox> > bounding_boxes;
 };
   
 class TreeOrganizer {
