@@ -6,6 +6,7 @@
 #include "../base/file_io.h"
 #include "../base/indoor_polygon.h"
 #include "indoor_polygon_renderer.h"
+#include "tree_organizer.h"
 
 using namespace Eigen;
 using namespace std;
@@ -106,4 +107,12 @@ if (segment.type == Segment::CEILING)
   }
 }
 
+void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
+                                                     const double bottom_alpha,
+                                                     const TreeOrganizer& tree_organizer,
+                                                     const double air_to_tree_progress,
+                                                     const double animation) const {
+  //???
+}
+  
 }  // namespace structured_indoor_modeling

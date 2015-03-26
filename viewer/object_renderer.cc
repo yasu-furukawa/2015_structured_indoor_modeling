@@ -1,5 +1,6 @@
 #include <iostream>
 #include "object_renderer.h"
+#include "tree_organizer.h"
 #include "../base/detection.h"
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
@@ -129,6 +130,13 @@ void ObjectRenderer::RenderAll(const double position) {
   glDisableClientState(GL_VERTEX_ARRAY);
 }
 
+void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
+                               const double air_to_tree_progress,
+                               const double animation) const {
+  //???
+
+}
+  
 void ObjectRenderer::ComputeBoundingBoxes() {
   const int num_rooms = vertices.size();
   bounding_boxes.resize(num_rooms);
@@ -447,8 +455,8 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
 }
   
 void ObjectRenderer::RenderDefault(const Detection& /* detection */,
-                                   const Eigen::Vector3d vs[4],
-                                   const double animation) const {
+                                   const Eigen::Vector3d /* vs */ [4],
+                                   const double /* animation */) const {
   
 
 }

@@ -9,6 +9,8 @@
 
 namespace structured_indoor_modeling {
 
+class TreeOrganizer;
+
 struct Triangle2 {
   Eigen::Vector3d vertices[3];
   Eigen::Vector3d colors[3];
@@ -22,7 +24,16 @@ class PolygonRenderer : protected QGLFunctions {
   PolygonRenderer(const Floorplan& floorplan);
   virtual ~PolygonRenderer();
   void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const;
+  void RenderTextureMappedRooms(const double top_alpha,
+                                const double bottom_alpha,
+                                const TreeOrganizer& tree_organizer,
+                                const double air_to_tree_progress,
+                                const double animation) const;
   void RenderDoors(const double alpha) const;
+  void RenderDoors(const double alpha,
+                   const TreeOrganizer& tree_organizer,
+                   const double air_to_tree_progress,
+                   const double animation) const;
   
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,

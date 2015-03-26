@@ -5,6 +5,7 @@
 
 #include "../base/file_io.h"
 #include "polygon_renderer.h"
+#include "tree_organizer.h"
 
 using namespace Eigen;
 using namespace std;
@@ -402,7 +403,24 @@ void PolygonRenderer::RenderDoors(const double alpha) const {
      glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
    }
    glEnd();
- }    
+}    
+
+
+void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
+                                               const double bottom_alpha,
+                                               const TreeOrganizer& tree_organizer,
+                                               const double air_to_tree_progress,
+                                               const double animation) const {
+  //???
+
+}
+
+void PolygonRenderer::RenderDoors(const double alpha,
+                                  const TreeOrganizer& tree_organizer,
+                                  const double air_to_tree_progress,
+                                  const double animation) const {
+  //???
+}
   
 void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
                                               const bool depth_order_height_adjustment,

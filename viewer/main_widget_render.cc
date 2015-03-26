@@ -622,6 +622,76 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
 }
 
 void MainWidget::RenderTree(const double air_to_tree_progress) {
+  const double kAlpha = 1.0;
+  const double animation = 0.0;
+
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  {
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_CULL_FACE);
+    {
+      glCullFace(GL_FRONT);
+      glDisable(GL_TEXTURE_2D);
+      polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5, kAlpha * 0.2,
+                                                tree_organizer,
+                                                air_to_tree_progress,
+                                                animation);
+    }
+    
+    {
+      glCullFace(GL_BACK);
+      glEnable(GL_TEXTURE_2D);
+      polygon_renderer.RenderTextureMappedRooms(kAlpha, kAlpha,
+                                                tree_organizer,
+                                                air_to_tree_progress,
+                                                animation);
+    }
+    
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
+    
+    {
+      polygon_renderer.RenderDoors(kAlpha * 0.2,
+                                   tree_organizer,
+                                   air_to_tree_progress,
+                                   animation);
+    }
+  }
+  glPopAttrib();
+
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  {
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_CULL_FACE);
+    
+    {
+      glCullFace(GL_FRONT);
+      glDisable(GL_TEXTURE_2D);
+      indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5, kAlpha * 0.2,
+                                                       tree_organizer,
+                                                       air_to_tree_progress,
+                                                       animation);
+    }
+    
+    {
+      glCullFace(GL_BACK);
+      glEnable(GL_TEXTURE_2D);
+      indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha, kAlpha,
+                                                       tree_organizer,
+                                                       air_to_tree_progress,
+                                                       animation);
+    }
+    
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
+  }
+  glPopAttrib();
+
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  {
+    object_renderer.RenderAll(tree_organizer, air_to_tree_progress, animation);
+  }
+  glPopAttrib();
   
 
 }

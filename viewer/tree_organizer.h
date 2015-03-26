@@ -11,13 +11,13 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-struct FloorplanCenters {
+struct FloorplanDeformation {
   std::vector<Eigen::Vector3d> room_centers;
   std::vector<Eigen::Vector3d> floor_centers;
   std::vector<std::vector<Eigen::Vector3d> > wall_centers;
 };
  
-struct ObjectCenters {
+struct ObjectDeformation {
   std::vector<std::vector<Eigen::Vector3d> > centers;
 };
   
@@ -26,21 +26,24 @@ class TreeOrganizer {
   TreeOrganizer(const Floorplan& floorplan,
                 const IndoorPolygon& indoor_polygon,
                 const ObjectRenderer& object_renderer);
-
   void Init();
 
+  const FloorplanDeformation& GetFloorplanDeformation() const;
+  const FloorplanDeformation& GetIndoorPolygonDeformation() const;
+  const ObjectDeformation& GetObjectDeformation() const;
+
  private:
-  void InitFloorplanCenters();
-  void InitIndoorPolygonCenters();
-  void InitObjectCenters();
+  void InitFloorplanDeformation();
+  void InitIndoorPolygonDeformation();
+  void InitObjectDeformation();
 
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   const ObjectRenderer& object_renderer;
 
-  FloorplanCenters floorplan_centers;
-  FloorplanCenters indoor_polygon_centers;
-  ObjectCenters object_centers;
+  FloorplanDeformation floorplan_deformation;
+  FloorplanDeformation indoor_polygon_deformation;
+  ObjectDeformation object_deformation;
   
 
 };
