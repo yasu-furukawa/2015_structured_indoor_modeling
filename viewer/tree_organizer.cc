@@ -1,4 +1,5 @@
 #include <limits>
+#include <numeric>
 #include "tree_organizer.h"
 
 using namespace Eigen;
@@ -18,12 +19,12 @@ void TreeOrganizer::Init(const Eigen::Vector3d& tree_layout_direction,
   InitIndoorPolygonDeformation();
   InitObjectDeformation();
 
-  // Compute displacements for floorplan_deformation.
-  ComputeDisplacementsFloorplan(tree_layout_direction, tree_layout_orthgonal_direction);
-
-  indoor_polygon_deformation.displacements = floorplan_deformation.displacements;
-
-  // Compute displacements for objects.
+  ComputeDisplacementsFloorplan(tree_layout_direction, tree_layout_orthogonal_direction);
+  {
+    indoor_polygon_deformation.displacements = floorplan_deformation.displacements;
+    indoor_polygon_deformation.shrink_ratio  = floorplan_deformation.shrink_ratio;
+  }
+  ComputeDisplacementsObjects(tree_layout_direction, tree_layout_orthogonal_direction);
 }
 
 const FloorplanDeformation& TreeOrganizer::GetFloorplanDeformation() const {
@@ -210,4 +211,64 @@ void TreeOrganizer::InitObjectDeformation() {
   }
 }
 
+void TreeOrganizer::ComputeDisplacementsFloorplan(const Eigen::Vector3d& tree_layout_direction,
+                                                  const Eigen::Vector3d& tree_layout_orthogonal_direction) {
+  const vector<BoundingBox>& bounding_boxes = floorplan_deformation.room_bounding_boxes;
+  // Get the data center.
+  Vector3d center;
+  {
+    BoundingBox entire_bounding_box;
+    for (const auto& bounding_box : bounding_boxes) {
+      for (int a = 0; a < 3; ++a) {
+        entire_bounding_box.min_xyz[a] = min(entire_bounding_box.min_xyz[a], bounding_box.min_xyz[a]);
+        entire_bounding_box.max_xyz[a] = max(entire_bounding_box.max_xyz[a], bounding_box.max_xyz[a]);
+      }
+    }
+    center = (entire_bounding_box.min_xyz + entire_bounding_box.max_xyz) / 2.0;
+  }
+
+  Vector2d range_along_direction(numeric_limits<double>::max(), -numeric_limits<double>::max());
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
+      const Vector3d diff = floorplan.GetFloorVertexGlobal(room, v) - center;
+      const double offset = diff.dot(tree_layout_direction);
+      range_along_direction[0] = min(range_along_direction[0], offset);
+      range_along_direction[1] = max(range_along_direction[1], offset);
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // All the rooms must fit inside range_along_direction.
+  vector<double> room_sizes(floorplan.GetNumRooms());
+  vector<pair<double, int> > room_offsets;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    room_sizes[room] = max(fabs(bounding_boxes[room].max_xyz[0] - bounding_boxes[room].min_xyz[0]),
+                           fabs(bounding_boxes[room].max_xyz[1] - bounding_boxes[room].min_xyz[1]));
+
+    const double offset =
+      tree_layout_direction.dot((bounding_boxes[room].min_xyz + bounding_boxes[room].max_xyz) / 2.0 - center);
+    room_offsets.push_back(pair<double, int>(offset, room));
+  }
+  sort(room_offsets.begin(), room_offsets.end());
+
+  const double total_room_size = accumulate(room_sizes.begin(), room_sizes.end(), 0.0);
+  const double range = range_along_direction[1] - range_along_direction[0];
+
+  // Need to make rooms smaller by
+  floorplan_deformation.shrink_ratio = range / total_room_size;
+  floorplan_deformation.displacements.resize(floorplan.GetNumRooms());
+
+  // Determine its location from the sorted order.
+  for (const auto& room_offset : room_offsets) {
+    const int room = room_offset.second;
+
+    const Vector3d room_center = (bounding_boxes[room].min_xyz + bounding_boxes[room].max_xyz) / 2.0;
+    floorplan_deformation.displacements[room] = center + floorplan_deformation.shrink_ratio * tree_layout_direction * room_offset.first - room_center;
+  }
+}
+
+void TreeOrganizer::ComputeDisplacementsObjects(const Eigen::Vector3d& tree_layout_direction,
+                                                const Eigen::Vector3d& tree_layout_orthogonal_direction) {
+}
+  
 }  // namespace structured_indoor_modeling

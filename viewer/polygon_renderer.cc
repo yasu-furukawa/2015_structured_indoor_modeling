@@ -413,7 +413,9 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                const double animation,
                                                const double max_vertical_shift,
                                                const double max_shrink_ratio) const {
-  const double shrink_ratio = air_to_tree_progress * max_shrink_ratio + (1.0 - air_to_tree_progress);
+  const double max_shrink_ratio2 = tree_organizer.GetFloorplanDeformation().shrink_ratio;
+
+  const double shrink_ratio = air_to_tree_progress * max_shrink_ratio2 + (1.0 - air_to_tree_progress);
   const Vector3d vertical_shift(0, 0, air_to_tree_progress * max_vertical_shift);
   Matrix3d rotation;
   rotation(0, 0) = cos(animation * 2 * M_PI);
@@ -425,6 +427,9 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
   rotation(2, 0) = 0.0;
   rotation(2, 1) = 0.0;
   rotation(2, 2) = 1.0;
+
+  const std::vector<Eigen::Vector3d>& displacements =
+    tree_organizer.GetFloorplanDeformation().displacements;
 
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
@@ -478,7 +483,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
 
             // Move wall vertex closer to the centers.
             position = room_center + rotation * (position - room_center) * shrink_ratio;
-            position += vertical_shift;
+            position += displacements[room] + vertical_shift;
             glVertex3d(position[0], position[1], position[2]);
           }
         }
@@ -497,7 +502,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
           const int index = triangle.indices[i];
           Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
           position = room_center + rotation * (position - room_center) * shrink_ratio;
-          position += vertical_shift;
+          position += displacements[room] + vertical_shift;
           glVertex3d(position[0], position[1], position[2]);
         }
       }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <limits>
 #include <vector>
 #include "../base/floorplan.h"
 #include "../base/indoor_polygon.h"
@@ -12,6 +13,15 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 struct BoundingBox {
+  BoundingBox() {
+    min_xyz = Eigen::Vector3d(std::numeric_limits<double>::max(),
+                              std::numeric_limits<double>::max(),
+                              std::numeric_limits<double>::max());
+    max_xyz = Eigen::Vector3d(- std::numeric_limits<double>::max(),
+                              - std::numeric_limits<double>::max(),
+                              - std::numeric_limits<double>::max());
+  }
+
   Eigen::Vector3d min_xyz;
   Eigen::Vector3d max_xyz;
 };
@@ -23,6 +33,8 @@ struct FloorplanDeformation {
 
   // Displacement to the target (horizontal motion).
   std::vector<Eigen::Vector3d> displacements;
+
+  double shrink_ratio;
 };
  
 struct ObjectDeformation {
@@ -30,6 +42,8 @@ struct ObjectDeformation {
 
   // Displacement to the target (horizontal motion).
   std::vector<Eigen::Vector3d> displacements;
+
+  double shrink_ratio;
 };
   
 class TreeOrganizer {
@@ -52,6 +66,9 @@ class TreeOrganizer {
   void ComputeDisplacementsFloorplan(const Eigen::Vector3d& tree_layout_direction,
                                      const Eigen::Vector3d& tree_layout_orthogonal_direction);
 
+  void ComputeDisplacementsObjects(const Eigen::Vector3d& tree_layout_direction,
+                                   const Eigen::Vector3d& tree_layout_orthogonal_direction);
+  
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   const ObjectRenderer& object_renderer;
