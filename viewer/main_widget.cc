@@ -695,6 +695,7 @@ void MainWidget::wheelEvent(QWheelEvent* e) {
   switch (navigation.GetCameraStatus()) {
   case kAir:
   case kFloorplan:
+  case kTree:
     {
     if (e->orientation() == Qt::Vertical) {
       navigation.ScaleAirFloorplanFieldOfView(e->delta());
