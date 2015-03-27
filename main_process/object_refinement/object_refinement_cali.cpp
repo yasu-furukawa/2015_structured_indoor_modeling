@@ -25,7 +25,7 @@ DEFINE_int32(start_id, 0,"Start id");
 DEFINE_int32(end_id,3, "End id");
 
 int main(int argc, char **argv){
-#ifdef __APPLE__
+#if 0
     google::ParseCommandLineFlags(&argc, &argv, true);
 #else
     gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -60,11 +60,12 @@ int main(int argc, char **argv){
     vector <vector<int> >superpixelLabel(endid - startid + 1); //label of superpixel for each panorama
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
     vector < vector<list<PointCloud> > > objectlist; //room->object->object part
+    vector<DepthFilling> depth(endid - startid + 1);
     vector <vector<list<PointCloud> > > input_objectlist;
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
-    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels, imgwidth, imgheight, startid, endid);
+    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
     objectlist.resize(objectcloud.size());
@@ -97,9 +98,9 @@ int main(int argc, char **argv){
 
 	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-		getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], labels[curid], labelgroup[curid],pairmap, superpixelConfidence[groupid], numlabels[curid],5);
+		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], labels[curid], labelgroup[curid],pairmap,depth[curid], superpixelConfidence[groupid], numlabels[curid],1);
 	    }
-#if 1
+#if 0
 	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
 #endif
 	    DepthFilling objectDepth;

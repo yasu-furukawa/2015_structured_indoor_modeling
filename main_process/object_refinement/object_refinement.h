@@ -12,7 +12,7 @@
 #include "depth_filling.h"
 
 
-void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels, int &imgwidth, int &imgheight, const int startid, const int endid);
+void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels,std::vector<structured_indoor_modeling::DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid);
 
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
@@ -47,7 +47,7 @@ void getInputObjectlist(const std::vector<structured_indoor_modeling::Panorama>&
 
 int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup, std::vector<double>&objectVolume);    //objectVolume: volume of the boundingbox of each object
 
-void getSuperpixelConfidence(const structured_indoor_modeling::PointCloud &point_cloud, const std::vector<int>&objectgroup, const structured_indoor_modeling::Panorama &panorama, const std::vector<int>& superpixel,const std::vector< std::vector<int> >&labelgroup,const std::map<std::pair<int,int>,int>& pairmap, std::vector<double> &superpixelConfidence, const int superpixelnum, const int erodeiter = 0);
+void getSuperpixelConfidence(const structured_indoor_modeling::PointCloud &point_cloud, const std::vector<int>&objectgroup, const structured_indoor_modeling::Panorama &panorama, const std::vector<int>& superpixel,const std::vector< std::vector<int> >&labelgroup,const std::map<std::pair<int,int>,int>& pairmap, const structured_indoor_modeling::DepthFilling& depthmap, std::vector<double> &superpixelConfidence, const int superpixelnum, const int erodeiter = 0);
 
 
 void pairSuperpixel(const std::vector <int> &labels, int width, int height, std::map<std::pair<int,int>, int> &pairmap);
