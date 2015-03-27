@@ -75,10 +75,10 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   {
     navigation.Init();
-    tree_organizer.Init(navigation.GetTreeLayoutDirection(),
-                        navigation.GetTreeLayoutOrthogonalDirection());
+    tree_organizer.Init(navigation.GetTreeXaxis(),
+                        navigation.GetTreeYaxis(),
+                        navigation.GetTreeZaxis());
   }
-  
 
   SetPanoramaToRoom(floorplan, panorama_renderers, &panorama_to_room);
   SetRoomToPanorama(floorplan, panorama_renderers, &room_to_panorama);

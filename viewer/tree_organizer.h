@@ -25,59 +25,80 @@ struct BoundingBox {
   Eigen::Vector3d min_xyz;
   Eigen::Vector3d max_xyz;
 };
-  
-struct FloorplanDeformation {
-  std::vector<BoundingBox> room_bounding_boxes;
-  std::vector<BoundingBox> floor_bounding_boxes;
-  std::vector<std::vector<BoundingBox> > wall_bounding_boxes;
 
-  // Displacement to the target (horizontal motion).
-  std::vector<Eigen::Vector3d> displacements;
+// All local.
+ struct TreeConfiguration {
+   // Before bounding box.
+   BoundingBox bounding_box;
+   // Before center.
+   Eigen::Vector3d center;
 
-  double shrink_ratio;
-};
- 
-struct ObjectDeformation {
-  std::vector<std::vector<BoundingBox> > bounding_boxes;
+   // Offset with respect to the node one higher up (local)
+   Eigen::Vector3d displacement;
+   // Scale.
+   double scale;
+ };
 
-  // Displacement to the target (horizontal motion).
-  std::vector<Eigen::Vector3d> displacements;
-
-  double shrink_ratio;
-};
-  
 class TreeOrganizer {
  public:
   TreeOrganizer(const Floorplan& floorplan,
                 const IndoorPolygon& indoor_polygon,
                 const ObjectRenderer& object_renderer);
-  void Init(const Eigen::Vector3d& tree_layout_direction,
-            const Eigen::Vector3d& tree_layout_orthogonal_direction);
+  void Init(const Eigen::Vector3d& x_axis,
+            const Eigen::Vector3d& y_axis,
+            const Eigen::Vector3d& z_axis);
 
-  const FloorplanDeformation& GetFloorplanDeformation() const;
-  const FloorplanDeformation& GetIndoorPolygonDeformation() const;
-  const ObjectDeformation& GetObjectDeformation() const;
+  Eigen::Vector3d TransformRoom(const Vector3d& global,
+                                const int room,
+                                const double progress,
+                                const double animation,
+                                const double max_vertical_shift) const;
+  
+  Eigen::Vector3d TransformObject(const Vector3d& global,
+                                  const int room,
+                                  const int object,
+                                  const double progress,
+                                  const double animation,
+                                  const double max_vertical_shift) const;
 
  private:
-  void InitFloorplanDeformation();
-  void InitIndoorPolygonDeformation();
-  void InitObjectDeformation();
-
-  void ComputeDisplacementsFloorplan(const Eigen::Vector3d& tree_layout_direction,
-                                     const Eigen::Vector3d& tree_layout_orthogonal_direction);
-
-  void ComputeDisplacementsObjects(const Eigen::Vector3d& tree_layout_direction,
-                                   const Eigen::Vector3d& tree_layout_orthogonal_direction);
+  void InitCenter();
+  void InitBoundingBoxes();
+  void InitTreeConfigurationCenter();
+  void SetDisplacements();
+  
+  Eigen::Vector3d GlobalToLocal(const Eigen::Vector3d& global) const {
+    const Eigen::Vector3d& diff = global - center;
+    return Eigen::Vector3d(x_axis.dot(diff), y_axis.dot(diff), z_axis.dot(diff));
+  }
+  Eigen::Vector3d LocalToGlobal(const Eigen::Vector3d& local) const {
+    return local[0] * x_axis + local[1] * y_axis + local[2] * z_axis + center;
+  }
+  Eigen::Vector3d GlobalToLocalNormal(const Eigen::Vector3d& global) const {
+    return Eigen::Vector3d(x_axis.dot(global), y_axis.dot(global), z_axis.dot(global));
+  }
+  Eigen::Vector3d LocalToGlobalNormal(const Eigen::Vector3d& local) const {
+    return local[0] * x_axis + local[1] * y_axis + local[2] * z_axis;
+  }
   
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   const ObjectRenderer& object_renderer;
 
-  FloorplanDeformation floorplan_deformation;
-  FloorplanDeformation indoor_polygon_deformation;
-  ObjectDeformation object_deformation;
-  
+  // global.
+  Eigen::Vector3d center;
+  Eigen::Vector3d x_axis;
+  Eigen::Vector3d y_axis;
+  Eigen::Vector3d z_axis;
 
+  // Displacement is from the current room location.
+  std::vector<TreeConfiguration> room_configurations;
+  // Displacement is from the moved room.
+  std::vector<TreeConfiguration> floor_configurations;
+  // Displacement is from the moved room.
+  std::vector<std::vector<TreeConfiguration> > wall_configurations;
+  // Displacement is from the moved room.  
+  std::vector<std::vector<TreeConfiguration> > object_configurations;  
 };
   
 }  // namespace structured_indoor_modeling

@@ -662,11 +662,13 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
   }
 
   if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
-    tree_layout_direction = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
-    tree_layout_orthogonal_direction = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);    
+    tree_xaxis = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
+    tree_yaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);    
+    tree_zaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 0, 1);
   } else {
-    tree_layout_direction = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
-    tree_layout_orthogonal_direction = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
+    tree_xaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
+    tree_yaxis = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);    
+    tree_zaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 0, 1);
   }
 }  
 

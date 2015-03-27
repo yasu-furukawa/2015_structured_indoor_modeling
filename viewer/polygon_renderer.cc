@@ -413,6 +413,90 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                const double animation,
                                                const double max_vertical_shift,
                                                const double max_shrink_ratio) const {
+  // For each texture.
+  for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
+    glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBegin(GL_TRIANGLES);
+    
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+        const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
+        const Vector3d v00 = floorplan.GetFloorVertexGlobal(room, wall);
+        const Vector3d v10 = floorplan.GetFloorVertexGlobal(room, next_wall);
+        const Vector3d v01 = floorplan.GetCeilingVertexGlobal(room, wall);
+        const Vector3d v11 = floorplan.GetCeilingVertexGlobal(room, next_wall);
+        const Vector3d x_diff = v10 - v00;
+        const Vector3d y_diff = v01 - v00;
+        
+        const WallTriangulation wall_triangulation =
+          floorplan.GetWallTriangulation(room, wall);
+
+        for (const auto& triangle : wall_triangulation.triangles) {
+          if (triangle.image_index != texture)
+            continue;
+
+          for (int i = 0; i < 3; ++i) {
+            glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+            const int index = triangle.indices[i];
+            const Vector2d vertex_in_uv = wall_triangulation.vertices_in_uv[index];
+
+            Vector3d position;
+            if (vertex_in_uv[0] == 0.0 && vertex_in_uv[1] == 0.0)
+              position = v00;
+            else if (vertex_in_uv[0] == 1.0 && vertex_in_uv[1] == 0.0)
+              position = v10;
+            else if (vertex_in_uv[0] == 0.0 && vertex_in_uv[1] == 1.0)
+              position = v01;
+            else if (vertex_in_uv[0] == 1.0 && vertex_in_uv[1] == 1.0)
+              position = v11;
+            else
+              position = v00 + x_diff * vertex_in_uv[0] + y_diff * vertex_in_uv[1];
+
+            const double alpha = vertex_in_uv[1] * (top_alpha - bottom_alpha) + bottom_alpha;
+            glColor4f(alpha, alpha, alpha, 1.0);
+
+            // Move wall vertex closer to the centers.
+            position = tree_organizer.TransformRoom(position,
+                                                    room,
+                                                    air_to_tree_progress,
+                                                    animation,
+                                                    max_vertical_shift);
+            glVertex3d(position[0], position[1], position[2]);
+          }
+        }
+      }
+
+      // Floor.
+      const FloorCeilingTriangulation floor_triangulation = floorplan.GetFloorTriangulation(room);
+      for (const auto& triangle : floor_triangulation.triangles) {
+        if (triangle.image_index != texture)
+          continue;
+
+        for (int i = 0; i < 3; ++i) {
+          glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+          // Make floor darker ?.
+          // glColor4f(alpha / 2.0, alpha / 2.0, alpha / 2.0, 1.0);
+          const int index = triangle.indices[i];
+          Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
+          position = tree_organizer.TransformRoom(position,
+                                                  room,
+                                                  air_to_tree_progress,
+                                                  animation,
+                                                  max_vertical_shift);
+          
+          glVertex3d(position[0], position[1], position[2]);
+        }
+      }
+    }
+    glEnd();
+  }
+
+  /*
   const double max_shrink_ratio2 = tree_organizer.GetFloorplanDeformation().shrink_ratio;
 
   const double shrink_ratio = air_to_tree_progress * max_shrink_ratio2 + (1.0 - air_to_tree_progress);
@@ -509,6 +593,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     }
     glEnd();
   }
+  */
 }
 
 void PolygonRenderer::RenderDoors(const double alpha,

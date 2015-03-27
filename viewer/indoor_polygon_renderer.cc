@@ -114,6 +114,62 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                      const double animation,
                                                      const double max_vertical_shift,
                                                      const double max_shrink_ratio) const {
+  // For each texture.
+  for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
+    glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBegin(GL_TRIANGLES);
+    for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+      const Segment& segment = indoor_polygon.GetSegment(s);
+      int room;
+      if (segment.type == Segment::CEILING) {
+        continue;
+      } else if (segment.type == Segment::DOOR) {
+        continue;
+      } else if (segment.type == Segment::FLOOR) {
+        room = segment.floor_info;
+      } else if (segment.type == Segment::WALL) {
+        room = segment.wall_info[0];
+      } else {
+        cerr << "Invalid" << endl;
+        exit (1);
+      }
+      const BoundingBox& bounding_box = tree_organizer.GetIndoorPolygonDeformation().room_bounding_boxes[room];
+      const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
+
+      for (const auto& triangle : segment.triangles) {
+        if (triangle.image_index != texture)
+          continue;
+
+        for (int i = 0; i < 3; ++i) {
+          glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+
+          const double z_position =
+            max(0.0, min(1.0, (segment.vertices[triangle.indices[i]][2] - bottom_z) / (top_z - bottom_z)));
+          const double alpha = z_position * (top_alpha - bottom_alpha) + bottom_alpha;
+          glColor4f(alpha, alpha, alpha, 1.0);
+          
+          Vector3d global =
+            indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);
+
+          global = tree_organizer.TransformRoom(global,
+                                                room,
+                                                air_to_tree_progress,
+                                                animation,
+                                                max_vertical_shift);
+          
+          glVertex3d(global[0], global[1], global[2]);
+        }
+      }
+    }
+    glEnd();
+  }
+  
+  /*
   const double shrink_ratio = air_to_tree_progress * max_shrink_ratio + (1.0 - air_to_tree_progress);
   const Vector3d vertical_shift(0, 0, air_to_tree_progress * max_vertical_shift);
   Matrix3d rotation;
@@ -178,6 +234,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     }
     glEnd();
   }
+  */
 }
   
 }  // namespace structured_indoor_modeling
