@@ -39,6 +39,10 @@ class FileIO {
     sprintf(buffer, "%s/input/ply/%03d.ply", data_directory.c_str(), panorama);
     return buffer;
   }
+  std::string GetSuperPixelFile(const int panorama) const{
+      sprintf(buffer, "%s/input/panorama/SLIC%03d", data_directory.c_str(), panorama);
+      return buffer;
+  }
   std::string GetLocalToGlobalTransformation(const int panorama) const {
     sprintf(buffer, "%s/input/transformations/%03d.txt", data_directory.c_str(), panorama);
     return buffer;

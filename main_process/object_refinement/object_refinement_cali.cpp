@@ -23,6 +23,7 @@ DEFINE_int32(label_num,20000,"Number of superpixel");
 DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
 DEFINE_int32(start_id, 0,"Start id");
 DEFINE_int32(end_id,3, "End id");
+DEFINE_bool(recompute, false, "Recompute superpixel");
 
 int main(int argc, char **argv){
 #if 0
@@ -65,7 +66,7 @@ int main(int argc, char **argv){
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
-    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid);
+    initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid, FLAGS_recompute);
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
     objectlist.resize(objectcloud.size());

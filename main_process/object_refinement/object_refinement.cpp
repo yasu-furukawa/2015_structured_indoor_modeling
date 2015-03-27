@@ -1,5 +1,5 @@
 #include "object_refinement.h"
-#include "SLIC.h"
+#include "../../base/SLIC.h"
 #include <numeric>
 #include <iostream>
 #include <iterator>
@@ -19,7 +19,7 @@ using namespace structured_indoor_modeling;
 
 Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255),Vec3b(255,255,255)};
 
-void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, vector<DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid){
+void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, vector<DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid, const bool recompute){
     cout<<"Init panorama..."<<endl;
 
     char buffer[100];
@@ -32,33 +32,33 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	int curid = id - startid;
 	cout<<"Panorama "<<id<<endl;
 	panorama[curid].Init(file_io, id);
+	panorama[curid].MakeOnlyBackgroundBlack();
            	
 	imgwidth = panorama[curid].Width();
 	imgheight = panorama[curid].Height();
 
     
-	//Get depthmap
-	cout<<"Processing depth map..."<<endl;
-	sprintf(buffer,"depth/panorama%03d.depth",id);
-	if(!depth[curid].ReadDepthFromFile(string(buffer))){
-	     PointCloud curpc;
-	     cout<<"reading pnaorama  point cloud..."<<endl;
-	     curpc.Init(file_io, id);
-	     curpc.ToGlobal(file_io, id);
+	// //Get depthmap
+	// cout<<"Processing depth map..."<<endl;
+	// sprintf(buffer,"depth/panorama%03d.depth",id);
+	// if(!depth[curid].ReadDepthFromFile(string(buffer))){
+	//      PointCloud curpc;
+	//      cout<<"reading pnaorama  point cloud..."<<endl;
+	//      curpc.Init(file_io, id);
+	//      curpc.ToGlobal(file_io, id);
 
-	     depth[curid].Init(curpc, panorama[curid]);
-	     depth[curid].fill_hole(panorama[curid]);
-	     depth[curid].SaveDepthFile(string(buffer));
-	}
-	sprintf(buffer,"depth/panoramaDepth%03d.png",id);
-	depth[curid].SaveDepthmap(string(buffer));
+	//      depth[curid].Init(curpc, panorama[curid]);
+	//      depth[curid].fill_hole(panorama[curid]);
+	//      depth[curid].SaveDepthFile(string(buffer));
+	// }
+	// sprintf(buffer,"depth/panoramaDepth%03d.png",id);
+	// depth[curid].SaveDepthmap(string(buffer));
 
 	
 	labels[curid].resize(imgwidth*imgheight);
 
-	sprintf(buffer,"superpixel/SLIC%03d",id);
-	ifstream labelin(buffer, ios::binary);
-	if(!labelin.is_open()){
+	ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
+	if(!labelin.is_open() || recompute){
 	    cout<<"Performing SLICO Superpixel..."<<endl;
 	    Mat pan = panorama[curid].GetRGBImage().clone();
 	    SLIC slic;
@@ -67,7 +67,7 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
 	    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
 	    sprintf(buffer,"superpixel/SLIC%03d",id);
-	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",string(buffer));
+	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
 	    cout<<"numlabels: "<<numlabels[curid]<<endl;
 	    Mat out;
 	    ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
@@ -96,8 +96,8 @@ void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
 	cout << "invlid image"<<endl;
 	exit(-1);
     }
-    int imgheight = image.rows;
-    int imgwidth = image.cols;
+    const int imgheight = image.rows;
+    const int imgwidth = image.cols;
     imagebuffer.clear();
     imagebuffer.resize(imgheight * imgwidth);
     for(int y=0;y<imgheight;y++){
@@ -325,7 +325,7 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
     const int imgwidth = panorama.Width();
     const int imgheight = panorama.Height();
     const Vector3d panCenter = panorama.GetCenter();
-    const double depth_tolerence = 5;
+    const double depth_tolerence = 50;
     
     for(int ptid = 0; ptid<objectgroup.size(); ptid++){
 	Vector3d curpt = point_cloud.GetPoint(objectgroup[ptid]).position;
@@ -335,11 +335,11 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
 	if(curRGB.norm() < 0.00001)
 	    continue;
 	Vector2d depth_pixel = panorama.RGBToDepth(RGBpixel);
-//	double panoramadepth = panorama.GetDepth(depth_pixel);
-	double panoramadepth = depthmap.GetDepth(depth_pixel[0], depth_pixel[1]);
+	double panoramadepth = panorama.GetDepth(depth_pixel);
+//	double panoramadepth = depthmap.GetDepth(depth_pixel[0], depth_pixel[1]);
 	double ptdepth = offset.norm();
 	//visibility test
-	if(ptdepth > panoramadepth - depth_tolerence)
+	if(ptdepth > panoramadepth + depth_tolerence)
 	    continue;
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
 	superpixelConfidence[superpixellabel] += 1.0;
@@ -392,7 +392,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 0;
+     int roomid = 7;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -419,6 +419,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+	break;
     }
 }
 
@@ -426,14 +427,15 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 double unaryDiffFunc(double confidence){
 //     const double offset = 3.0;
 //     const double maxv = 1.0;
-     return max(gaussianFunc(confidence, 1.0),0.1);
+     return max(gaussianFunc(confidence, 1.0),0.01);
 }
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
     const double offset = 50;
     const double maxv = 1.0;
     Vector3d colordiff = averageRGB[pix1] - averageRGB[pix2];
-    return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.01);
+//    return max(sigmaFunc(colordiff.norm(),offset,maxv,1.0),0.01);
+    return max(gaussianFunc(colordiff.norm(), 15),0.1);
 }
 
 

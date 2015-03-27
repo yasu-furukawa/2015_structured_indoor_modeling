@@ -12,7 +12,7 @@
 #include "depth_filling.h"
 
 
-void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels,std::vector<structured_indoor_modeling::DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid);
+void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels,std::vector<structured_indoor_modeling::DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid, const bool recompute = false);
 
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
