@@ -625,7 +625,18 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double kAlpha = 1.0;
 
   const int kInterval = 20 * 1000;
-  const double animation = 0; // ????? air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
+  // const double animation = air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
+
+  const int kNoAnimationPeriod = 1000;
+  double animation = (max(0, object_animation_time.elapsed() - tree_entry_time - kNoAnimationPeriod) % kInterval) / static_cast<double>(kInterval);
+  if (animation < 0.5)
+    animation = animation * air_to_tree_progress;
+  else
+    animation = air_to_tree_progress * animation + (1.0 - air_to_tree_progress);
+  
+    air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
+
+  
   const double building_height = navigation.GetAverageCeilingHeight() - navigation.GetAverageFloorHeight();
   const double kMaxShrinkRatio = 0.6;
   const double kMaxObjectShrinkRatio = 0.8;

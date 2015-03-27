@@ -84,7 +84,6 @@ class TreeOrganizer {
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   const ObjectRenderer& object_renderer;
-
   // global.
   Eigen::Vector3d center;
   Eigen::Vector3d x_axis;
