@@ -641,9 +641,9 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double kMaxShrinkRatio = 0.6;
   const double kMaxObjectShrinkRatio = 0.8;
 
-  const double kVerticalFloorplanRatio = 1.0;
-  const double kVerticalIndoorPolygonRatio = -2.0;
-  const double kVerticalObjectRatio = -5.0;
+  const double kVerticalFloorplanRatio = 1.5;
+  const double kVerticalIndoorPolygonRatio = -1.0;
+  const double kVerticalObjectRatio = -4.0;
 
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
 
@@ -738,7 +738,8 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                               building_height,
                               air_to_tree_progress,
                               animation,
-                              kVerticalObjectRatio * building_height,
+                              // kVerticalObjectRatio * building_height,
+                              kVerticalIndoorPolygonRatio * building_height,
                               kMaxShrinkRatio,
                               kMaxObjectShrinkRatio);
     glPopAttrib();

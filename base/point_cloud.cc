@@ -346,6 +346,19 @@ void PointCloud::Transform(const Eigen::Matrix4d& transformation) {
   Update();
 }
 
+void PointCloud::RandomSampleScale(const double scale) {
+  const int target_size = static_cast<int>(scale * points.size());
+  random_shuffle(points.begin(), points.end());
+  points.resize(target_size);
+}
+
+void PointCloud::RandomSampleCount(const int max_count) {
+  if (max_count < (int)points.size()) {
+    random_shuffle(points.begin(), points.end());
+    points.resize(max_count);
+  }
+}
+  
 //----------------------------------------------------------------------
 void ReadPointClouds(const FileIO& file_io, std::vector<PointCloud>* point_clouds) {
   cout << "Reading pointclouds" << flush;

@@ -69,6 +69,9 @@ class PointCloud {
   void Translate(const Eigen::Vector3d& translation);
   void Transform(const Eigen::Matrix4d& transformation);
 
+  void RandomSampleScale(const double scale);
+  void RandomSampleCount(const int max_count);
+  
   // Accessors.
   inline int GetNumPoints() const { return points.size(); }
   inline int GetDepthWidth() const { return depth_width; }

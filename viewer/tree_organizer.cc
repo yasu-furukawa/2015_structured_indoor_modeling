@@ -279,7 +279,7 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
 
   Vector3d local = GlobalToLocal(global);
   local = object_configurations[room][object].center +
-    progress * scale * rotation * (local - object_configurations[room][object].center);
+    scale * rotation * (local - object_configurations[room][object].center);
 
   return global_displacement + LocalToGlobal(local);
 }
