@@ -241,7 +241,7 @@ Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
   rotation(2, 1) = 0.0;
   rotation(2, 2) = 1.0;
     
-  const Vector3d global_displacement = progress * LocalToGlobal(room_configurations[room].displacement + Vector3d(0, 0, max_vertical_shift));
+  const Vector3d global_displacement = progress * (LocalToGlobal(room_configurations[room].displacement + Vector3d(0, 0, max_vertical_shift)));
 
   Vector3d local = GlobalToLocal(global);
   local = local + room_configurations[room].scale * rotation * (local - room_configurations[room].center);
@@ -268,7 +268,7 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
     
   const Vector3d global_displacement =
     progress *
-    LocalToGlobal(room_configurations[room].displacement + object_configurations[room][object].displacement + Vector3d(0, 0, max_vertical_shift));
+    (LocalToGlobal(room_configurations[room].displacement + object_configurations[room][object].displacement + Vector3d(0, 0, max_vertical_shift)));
 
   Vector3d local = GlobalToLocal(global);
   local = local + object_configurations[room][object].scale * rotation * (local - object_configurations[room][object].center);
