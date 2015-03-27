@@ -392,7 +392,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 4;
+     int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -419,7 +419,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	break;
     }
 }
 
