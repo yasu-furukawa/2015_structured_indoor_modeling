@@ -258,7 +258,10 @@ void TreeOrganizer::ComputeDisplacementsFloorplan(const Eigen::Vector3d& tree_la
   floorplan_deformation.shrink_ratio = range / total_room_size;
   floorplan_deformation.displacements.resize(floorplan.GetNumRooms());
 
+  // [0 total_room_size] maps to range_along_direction
+  
   // Determine its location from the sorted order.
+  double accumulated_position = 0.0;
   for (const auto& room_offset : room_offsets) {
     const int room = room_offset.second;
 
