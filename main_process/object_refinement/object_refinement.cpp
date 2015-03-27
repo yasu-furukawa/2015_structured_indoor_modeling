@@ -14,12 +14,12 @@ using namespace structured_indoor_modeling;
 
 #define PI 3.1415927
 #define COLORTABLE_LENGTH 7
-#define ERODE_THRES 0
+#define ERODE_THRES 1
 //Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255), Vec3b(128,0,0), Vec3b(0,128,0), Vec3b(0,0,128), Vec3b(128,128,0), Vec3b(128,0,128), Vec3b(0,128,128), Vec3b(255,128,128),Vec3b(128,255,128),Vec3b(128,128,255),Vec3b(128,128,128)};
 
 Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255),Vec3b(255,255,255)};
 
-void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, int &imgwidth, int &imgheight, const int startid, const int endid){
+void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, vector<DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid){
     cout<<"Init panorama..."<<endl;
 
     char buffer[100];
@@ -32,14 +32,27 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	int curid = id - startid;
 	cout<<"Panorama "<<id<<endl;
 	panorama[curid].Init(file_io, id);
-	
-	PointCloud curpc;
-	cout<<"reading pnaorama  point cloud..."<<endl;
-	curpc.Init(file_io, id);
-	curpc.ToGlobal(file_io, id);
-    	
+           	
 	imgwidth = panorama[curid].Width();
 	imgheight = panorama[curid].Height();
+
+    
+	//Get depthmap
+	cout<<"Processing depth map..."<<endl;
+	sprintf(buffer,"depth/panorama%03d.depth",id);
+	if(!depth[curid].ReadDepthFromFile(string(buffer))){
+	     PointCloud curpc;
+	     cout<<"reading pnaorama  point cloud..."<<endl;
+	     curpc.Init(file_io, id);
+	     curpc.ToGlobal(file_io, id);
+
+	     depth[curid].Init(curpc, panorama[curid]);
+	     depth[curid].fill_hole(panorama[curid]);
+	     depth[curid].SaveDepthFile(string(buffer));
+	}
+	sprintf(buffer,"depth/panoramaDepth%03d.png",id);
+	depth[curid].SaveDepthmap(string(buffer));
+
 	
 	labels[curid].resize(imgwidth*imgheight);
 
@@ -128,30 +141,24 @@ void saveConfidence(const vector< vector<double> >&superpixelConfidence, const v
 	    maxc = max(superpixelConfidence[i][j], maxc);
 	}
     }
-
-
+    Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
     for(int groupid = 0;groupid<superpixelConfidence.size();groupid++){
-	 Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
 	 int colorid = groupid % COLORTABLE_LENGTH;
 	for(int i=0;i<imgwidth*imgheight;++i){
 	    int x = i % imgwidth;
 	    int y = i / imgwidth;
-///	    double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
-	    double curconfidence = (double)superpixelConfidence[groupid][labels[i]];
-	    // double r = (double)colortable[colorid][0] * curconfidence * 4;
-	    // double g = (double)colortable[colorid][1] * curconfidence * 4;
-	    // double b = (double)colortable[colorid][2] * curconfidence * 4;
-	    double r = (double)curconfidence * 4;
-	    double g = (double)curconfidence * 4;
-	    double b = (double)curconfidence * 4;
+//	    double curconfidence =(double) (superpixelConfidence[groupid][labels[i]] - minc) / (double)(maxc - minc);
+	    double curconfidence = (double)(superpixelConfidence[groupid][labels[i]]);
+	    double r = (double)colortable[colorid][0] * curconfidence / 2;
+	    double g = (double)colortable[colorid][1] * curconfidence / 2;
+	    double b = (double)colortable[colorid][2] * curconfidence / 2;
 	    Vec3b curpix((uchar)r, (uchar)g, (uchar)b);
 	    outmask.at<Vec3b>(y,x) += curpix;
 	}
-	sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d_group%03d.jpg",id, roomid, groupid);
-	imwrite(buffer, outmask);
-	waitKey(10);
-
     }
+    sprintf(buffer,"object_project/objectmask_panorama%03d_room%03d.jpg",id, roomid);
+    imwrite(buffer, outmask);
+    waitKey(10);
 }
 
 void saveOptimizeResult(const Panorama &panorama, const vector<int>&superpixelLabel, const vector <int> &labels, const int id, const int roomid){
@@ -305,8 +312,8 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
 
 
 
-void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<int> &superpixel,const vector< vector<int> >&labelgroup, const map<pair<int,int>,int>&pairmap,  vector <double> &superpixelConfidence, const int superpixelnum, const int erodeiter){
-     if(superpixelConfidence.size() > 0)
+void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<int> &superpixel,const vector< vector<int> >&labelgroup, const map<pair<int,int>,int>&pairmap, const DepthFilling& depthmap,  vector <double> &superpixelConfidence, const int superpixelnum, const int erodeiter){
+    if(superpixelConfidence.size() > 0)
 	  superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
     
@@ -315,34 +322,37 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
 
     if(point_cloud.isempty())
 	return;
-    int imgwidth = panorama.Width();
-    int imgheight = panorama.Height();
-
+    const int imgwidth = panorama.Width();
+    const int imgheight = panorama.Height();
+    const Vector3d panCenter = panorama.GetCenter();
+    const double depth_tolerence = 5;
+    
     for(int ptid = 0; ptid<objectgroup.size(); ptid++){
 	Vector3d curpt = point_cloud.GetPoint(objectgroup[ptid]).position;
-	Vector3d panCenter = panorama.GetCenter();
 	Vector3d offset = curpt - panCenter;
 	Vector2d RGBpixel = panorama.Project(curpt);
+	Vector3f curRGB = panorama.GetRGB(RGBpixel);
+	if(curRGB.norm() < 0.00001)
+	    continue;
 	Vector2d depth_pixel = panorama.RGBToDepth(RGBpixel);
-	double depthv = panorama.GetDepth(depth_pixel);
-	double curdepth = offset.norm();
+//	double panoramadepth = panorama.GetDepth(depth_pixel);
+	double panoramadepth = depthmap.GetDepth(depth_pixel[0], depth_pixel[1]);
+	double ptdepth = offset.norm();
 	//visibility test
-	if(curdepth > depthv)
+	if(ptdepth > panoramadepth - depth_tolerence)
 	    continue;
 	int superpixellabel = superpixel[(int)RGBpixel[1] * imgwidth + (int)RGBpixel[0]];
 	superpixelConfidence[superpixellabel] += 1.0;
     }
+    
     //perform erosion, to avoid conflicts on the border
     for(int iter=0; iter<erodeiter; iter++){
 	 for(const auto& curmap: pairmap){
 	      pair<int,int> curpair = curmap.first;
-	      if(curpair.first > ERODE_THRES && superpixelConfidence[curpair.second] < ERODE_THRES){
+	      if(curpair.first < ERODE_THRES || superpixelConfidence[curpair.second] < ERODE_THRES){
 		   superpixelConfidence[curpair.first] = 0;
-	      }
-	      if(curpair.second > ERODE_THRES && superpixelConfidence[curpair.first] < ERODE_THRES){
 		   superpixelConfidence[curpair.second] = 0;
 	      }
-						
 	 }
 	 
     }
@@ -416,7 +426,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 double unaryDiffFunc(double confidence){
 //     const double offset = 3.0;
 //     const double maxv = 1.0;
-     return max(gaussianFunc(confidence, 1.0), 0.01);
+     return max(gaussianFunc(confidence, 1.0),0.1);
 }
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
@@ -525,24 +535,6 @@ void MRFOptimizeLabels_multiLayer(const vector< vector<double> >&superpixelConfi
     //solve
     mrf->initialize();
 
-#if 0
-    //statistics for colordiff
-    vector <double> colordiffarray;
-    for(const auto &mapiter:pairmap){
-	pair<int,int> curpair = mapiter.first;
-	double v = (double)mapiter.second * std::abs((averageRGB[curpair.first] - averageRGB[curpair.second]).norm());
-	colordiffarray.push_back(v);
-    }
-
-    double mean = std::accumulate(colordiffarray.begin(), colordiffarray.end(), 0.0) / (double)colordiffarray.size();
-    vector<double>diff(colordiffarray.size());
-    std::transform(colordiffarray.begin(),colordiffarray.end(),diff.begin(),std::bind2nd(std::minus<double>(),mean));
-    double var = std::sqrt(std::inner_product(diff.begin(),diff.end(),diff.begin(),0.0) / ((double)diff.size() - 1));
-    cout<<"size of array: "<<colordiffarray.size()<<' '<<"mean: "<<mean<<' '<<"variance: "<<var<<endl;
-    ofstream mystream("color.txt");
-    std::copy(colordiffarray.begin(),colordiffarray.end(),std::ostream_iterator<double>(mystream,"\n"));
-    mystream.close();
-#endif
  
     for(const auto &mapiter:pairmap){
 	pair<int,int> curpair = mapiter.first;
