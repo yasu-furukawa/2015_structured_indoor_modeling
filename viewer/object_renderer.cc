@@ -155,9 +155,6 @@ void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
 
   vector<float> positions;  
   for (int room = 0; room < (int)vertices.size(); ++room) {
-    const BoundingBox& bounding_box = tree_organizer.GetFloorplanDeformation().room_bounding_boxes[room];
-    const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
-
     for (int object = 0; object < (int)vertices[room].size(); ++object) {
       glColorPointer(3, GL_FLOAT, 0, &colors_org[room][object][0]);
 

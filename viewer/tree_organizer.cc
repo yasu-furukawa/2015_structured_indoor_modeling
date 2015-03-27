@@ -23,7 +23,7 @@ void TreeOrganizer::Init(const Eigen::Vector3d& x_axis_tmp,
     wall_configurations[room].resize(floorplan.GetNumWalls(room));
   object_configurations.resize(floorplan.GetNumRooms());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room)
-    wall_configurations[room].resize(object_renderer.GetNumObjects(room));
+    object_configurations[room].resize(object_renderer.GetNumObjects(room));
 
   x_axis = x_axis_tmp;
   y_axis = y_axis_tmp;
@@ -32,7 +32,6 @@ void TreeOrganizer::Init(const Eigen::Vector3d& x_axis_tmp,
   InitCenter();
   InitBoundingBoxes();
   InitTreeConfigurationCenter();
-
   SetDisplacements();
 }
 
@@ -121,9 +120,9 @@ void TreeOrganizer::InitBoundingBoxes() {
         const Vector3d point = GlobalToLocal(Vector3d(points[v], points[v + 1], points[v + 2]));
         for (int a = 0; a < 3; ++a) {
           object_configurations[room][object].bounding_box.min_xyz[a] =
-            min(object_configurations[room][object].min_xyz[a], point[a]);
+            min(object_configurations[room][object].bounding_box.min_xyz[a], point[a]);
           object_configurations[room][object].bounding_box.max_xyz[a] =
-            max(object_configurations[room][object].max_xyz[a], point[a]);
+            max(object_configurations[room][object].bounding_box.max_xyz[a], point[a]);
         }
       }
     }
@@ -247,7 +246,7 @@ Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
   Vector3d local = GlobalToLocal(global);
   local = local + room_configurations[room].scale * rotation * (local - room_configurations[room].center);
 
-  return global_displacement + LocalToGlobal(local)
+  return global_displacement + LocalToGlobal(local);
 }
 
 Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
@@ -269,11 +268,11 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
     
   const Vector3d global_displacement =
     progress *
-    LocalToGlobal(room_configurations[room].displacement + object_configurations[room][object] + Vector3d(0, 0, max_vertical_shift));
+    LocalToGlobal(room_configurations[room].displacement + object_configurations[room][object].displacement + Vector3d(0, 0, max_vertical_shift));
 
   Vector3d local = GlobalToLocal(global);
   local = local + object_configurations[room][object].scale * rotation * (local - object_configurations[room][object].center);
 
-  return global_displacement + LocalToGlobal(local)
+  return global_displacement + LocalToGlobal(local);
 }
 }  // namespace structured_indoor_modeling

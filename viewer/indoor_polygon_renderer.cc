@@ -138,8 +138,6 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
         cerr << "Invalid" << endl;
         exit (1);
       }
-      const BoundingBox& bounding_box = tree_organizer.GetIndoorPolygonDeformation().room_bounding_boxes[room];
-      const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
 
       for (const auto& triangle : segment.triangles) {
         if (triangle.image_index != texture)
