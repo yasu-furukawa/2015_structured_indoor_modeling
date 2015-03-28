@@ -26,10 +26,10 @@ DEFINE_int32(end_id,3, "End id");
 DEFINE_bool(recompute, false, "Recompute superpixel");
 
 int main(int argc, char **argv){
-#if 0
-    google::ParseCommandLineFlags(&argc, &argv, true);
+#ifdef __APPLE__
+  google::ParseCommandLineFlags(&argc, &argv, true);
 #else
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
 
     if (argc < 2) {

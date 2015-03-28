@@ -1,5 +1,5 @@
 #include "object_refinement.h"
-#include "../../base/SLIC.h"
+#include "SLIC/SLIC.h"
 #include <numeric>
 #include <iostream>
 #include <iterator>
