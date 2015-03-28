@@ -187,10 +187,8 @@ void TreeOrganizer::SetDisplacements() {
       Vector3d(position * scale, 0, 0) - room_configurations[room].center;
     
     room_configurations[room].scale = kShrinkScale * scale;
-
     accumulated_position += room_sizes[room];
   }
-
   //----------------------------------------------------------------------
   // Floor and Wall displacements are 0 for the moment.
 
@@ -200,8 +198,8 @@ void TreeOrganizer::SetDisplacements() {
     vector<double> object_sizes(object_renderer.GetNumObjects(room));
     vector<pair<double, int> > object_offsets(object_renderer.GetNumObjects(room));
     const Eigen::Vector3d& reference = room_configurations[room].center;
-    const Vector2d x_range(room_configurations[room].bounding_box.min_xyz[0] - reference[0],
-                           room_configurations[room].bounding_box.max_xyz[0] - reference[0]);
+    const Vector2d x_range(scale * (room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
+                           scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
 
     for (int object = 0; object < object_renderer.GetNumObjects(room); ++object) {
       const BoundingBox& bounding_box = object_configurations[room][object].bounding_box;
@@ -213,7 +211,54 @@ void TreeOrganizer::SetDisplacements() {
     sort(object_offsets.begin(), object_offsets.end());
 
     const double object_size_sum = accumulate(object_sizes.begin(), object_sizes.end(), 0.0);
-    const double object_scale = (x_range[1] - x_range[0]) / object_size_sum;
+    const double kDefaultShrink = 0.5;
+    const int num_rows = min(2, static_cast<int>(ceil(kDefaultShrink * object_size_sum / round(x_range[1] - x_range[0]))));
+
+    const int num_items_per_row =
+      static_cast<int>(ceil(object_renderer.GetNumObjects(room) / (double)num_rows));
+    for (int row = 0; row < num_rows; ++row) {
+      const int start_index = num_items_per_row * row;
+      const int end_index = min(object_renderer.GetNumObjects(room), num_items_per_row * (row + 1));
+
+      double object_size_sum_per_row = 0.0;
+      for (int i = start_index; i < end_index; ++i)
+        object_size_sum_per_row += object_sizes[object_offsets[i].second];
+      
+      const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum_per_row);
+      double accumulated_position = - object_size_sum_per_row / 2.0;
+      for (int i = start_index; i < end_index; ++i) {
+        const int object = object_offsets[i].second;
+        const double position = accumulated_position + object_sizes[object] / 2.0;
+        object_configurations[room][object].displacement =
+          Vector3d(position * object_scale, 0.0, 0.0) -
+          (object_configurations[room][object].center - reference);
+        
+        object_configurations[room][object].scale = kShrinkScale * object_scale;
+        object_configurations[room][object].row = row;
+        accumulated_position += object_sizes[object];
+      }
+    }
+  }
+  
+  /*
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    vector<double> object_sizes(object_renderer.GetNumObjects(room));
+    vector<pair<double, int> > object_offsets(object_renderer.GetNumObjects(room));
+    const Eigen::Vector3d& reference = room_configurations[room].center;
+    const Vector2d x_range(scale * (room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
+                           scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
+
+    for (int object = 0; object < object_renderer.GetNumObjects(room); ++object) {
+      const BoundingBox& bounding_box = object_configurations[room][object].bounding_box;
+      object_sizes[object] = Vector2d(bounding_box.max_xyz[0] - bounding_box.min_xyz[0],
+                                      bounding_box.max_xyz[1] - bounding_box.min_xyz[1]).norm();
+      object_offsets[object] =
+        pair<double, int>(object_configurations[room][object].center[0] - reference[0], object);
+    }
+    sort(object_offsets.begin(), object_offsets.end());
+
+    const double object_size_sum = accumulate(object_sizes.begin(), object_sizes.end(), 0.0);
+    const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum);
     
     double accumulated_position = - object_size_sum / 2.0;
     for (int i = 0; i < (int)object_offsets.size(); ++i) {
@@ -227,27 +272,34 @@ void TreeOrganizer::SetDisplacements() {
       accumulated_position += object_sizes[object];
     }
   }
+  */
 }
 
 Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
                                              const int room,
                                              const double progress,
                                              const double animation,
-                                             const double max_vertical_shift) const {
+                                             const Eigen::Vector3d& max_vertical_shift) const {
+  const double angle = 2 * M_PI * animation;
   Matrix3d rotation;
-  rotation(0, 0) = cos(animation * 2 * M_PI);
-  rotation(0, 1) = -sin(animation * 2 * M_PI);
+  rotation(0, 0) = cos(angle);
+  rotation(0, 1) = -sin(angle);
   rotation(0, 2) = 0.0;
-  rotation(1, 0) = sin(animation * 2 * M_PI);
-  rotation(1, 1) = cos(animation * 2 * M_PI);
+  rotation(1, 0) = sin(angle);
+  rotation(1, 1) = cos(angle);
   rotation(1, 2) = 0.0;
   rotation(2, 0) = 0.0;
   rotation(2, 1) = 0.0;
   rotation(2, 2) = 1.0;
 
   const double scale = (1.0 - progress) * 1.0 + progress * room_configurations[room].scale;
+
+  const double room_progress = min(2.0 * progress, 1.0);
+  
   const Vector3d global_displacement =
-    LocalToGlobalNormal(progress * (room_configurations[room].displacement + Vector3d(0, 0, max_vertical_shift)));
+    room_progress * (LocalToGlobalNormal(room_configurations[room].displacement) +
+                     max_vertical_shift);
+
   Vector3d local = GlobalToLocal(global);
   local = room_configurations[room].center +
     scale * rotation * (local - room_configurations[room].center);
@@ -260,27 +312,60 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
                                                const int object,
                                                const double progress,
                                                const double animation,
-                                               const double max_vertical_shift) const {
+                                               const Eigen::Vector3d& room_max_vertical_shift,
+                                               const Eigen::Vector3d& object_max_vertical_shift) const {
+  const double angle = 2 * M_PI * animation;
   Matrix3d rotation;
-  rotation(0, 0) = cos(animation * 2 * M_PI);
-  rotation(0, 1) = -sin(animation * 2 * M_PI);
+  rotation(0, 0) = cos(angle);
+  rotation(0, 1) = -sin(angle);
   rotation(0, 2) = 0.0;
-  rotation(1, 0) = sin(animation * 2 * M_PI);
-  rotation(1, 1) = cos(animation * 2 * M_PI);
+  rotation(1, 0) = sin(angle);
+  rotation(1, 1) = cos(angle);
   rotation(1, 2) = 0.0;
   rotation(2, 0) = 0.0;
   rotation(2, 1) = 0.0;
   rotation(2, 2) = 1.0;
 
-  const double scale = (1.0 - progress) * 1.0 + progress * room_configurations[room].scale;
-  const Vector3d global_displacement =
-    progress *
-    (LocalToGlobalNormal(room_configurations[room].displacement + object_configurations[room][object].displacement + Vector3d(0, 0, max_vertical_shift)));
+  const Vector3d global_as_room = TransformRoom(global, room, progress, animation, room_max_vertical_shift);
+  
+  if (progress < 0.5) {
+    return global_as_room;
+  } else {
+    const Vector3d row_shift = (object_max_vertical_shift - room_max_vertical_shift) / 3.0;
+    const double scale = object_configurations[room][object].scale;
+    const Vector3d global_displacement =
+    (LocalToGlobalNormal(room_configurations[room].displacement +
+                         object_configurations[room][object].displacement) +
+     object_max_vertical_shift + object_configurations[room][object].row * row_shift);
+    Vector3d local = GlobalToLocal(global);
+    local = object_configurations[room][object].center +
+      scale * rotation * (local - object_configurations[room][object].center);
 
+    const Vector3d final_position = global_displacement + LocalToGlobal(local);
+    const double progress2 = 2.0 * (progress - 0.5);
+    return progress2 * final_position + (1.0 - progress2) * global_as_room;
+  }
+    
+
+  
+    /*
+  const double scale = (1.0 - progress) * 1.0 + progress * object_configurations[room][object].scale;
+
+  const double room_progress = min(2.0 * progress, 1.0);
+  const double object_progress = 2.0 * max(0.0, (progress - 0.5));
+  
+  const Vector3d global_displacement =
+    (LocalToGlobalNormal(room_progress * room_configurations[room].displacement +
+                         object_progress * object_configurations[room][object].displacement) +
+     progress * max_vertical_shift);
+  //    progress *
+  //    (LocalToGlobalNormal(room_configurations[room].displacement + object_configurations[room][object].displacement + Vector3d(0, 0, max_vertical_shift)));
+    
   Vector3d local = GlobalToLocal(global);
   local = object_configurations[room][object].center +
     scale * rotation * (local - object_configurations[room][object].center);
 
   return global_displacement + LocalToGlobal(local);
+  */
 }
 }  // namespace structured_indoor_modeling

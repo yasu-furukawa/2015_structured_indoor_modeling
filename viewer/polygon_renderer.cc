@@ -411,7 +411,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                const TreeOrganizer& tree_organizer,
                                                const double air_to_tree_progress,
                                                const double animation,
-                                               const double max_vertical_shift,
+                                               const Eigen::Vector3d& max_vertical_shift,
                                                const double max_shrink_ratio) const {
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
@@ -600,7 +600,7 @@ void PolygonRenderer::RenderDoors(const double alpha,
                                   const TreeOrganizer& tree_organizer,
                                   const double air_to_tree_progress,
                                   const double animation,
-                                  const double max_vertical_shift,
+                                  const Eigen::Vector3d& max_vertical_shift,
                                   const double max_shrink_ratio) const {
   //???
 }

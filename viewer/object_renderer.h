@@ -37,7 +37,8 @@ struct BoundingBox2D {
                  const double building_height,
                  const double air_to_tree_progress,
                  const double animation,
-                 const double max_vertical_shift,
+                 const Eigen::Vector3d& room_max_vertical_shift,
+                 const Eigen::Vector3d& object_max_vertical_shift,
                  const double max_shrink_ratio,
                  const double max_object_shrink_ratio);
 

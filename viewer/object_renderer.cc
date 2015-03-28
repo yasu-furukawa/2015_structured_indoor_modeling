@@ -137,7 +137,8 @@ void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
                                const double building_height,
                                const double air_to_tree_progress,
                                const double animation,
-                               const double max_vertical_shift,
+                               const Eigen::Vector3d& room_max_vertical_shift,
+                               const Eigen::Vector3d& object_max_vertical_shift,
                                const double max_shrink_ratio,
                                const double max_object_shrink_ratio) {
   if (!render)
@@ -166,7 +167,8 @@ void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
         Vector3d position(positions[p], positions[p + 1], positions[p + 2]);
         // Adjust with respect to the object center.
         position = tree_organizer.TransformObject(position, room, object, air_to_tree_progress,
-                                                  animation, max_vertical_shift);
+                                                  animation, room_max_vertical_shift,
+                                                  object_max_vertical_shift);
         for (int a = 0; a < 3; ++a)
           positions[p + a] = position[a];
       }

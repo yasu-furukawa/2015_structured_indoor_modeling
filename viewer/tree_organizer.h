@@ -37,6 +37,9 @@ struct BoundingBox {
    Eigen::Vector3d displacement;
    // Scale.
    double scale;
+   
+   // For object row.
+   int row;
  };
 
 class TreeOrganizer {
@@ -52,14 +55,15 @@ class TreeOrganizer {
                                 const int room,
                                 const double progress,
                                 const double animation,
-                                const double max_vertical_shift) const;
+                                const Eigen::Vector3d& max_vertical_shift) const;
   
   Eigen::Vector3d TransformObject(const Vector3d& global,
                                   const int room,
                                   const int object,
                                   const double progress,
                                   const double animation,
-                                  const double max_vertical_shift) const;
+                                  const Eigen::Vector3d& room_max_vertical_shift,
+                                  const Eigen::Vector3d& object_max_vertical_shift) const;
 
  private:
   void InitCenter();

@@ -641,10 +641,16 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double kMaxShrinkRatio = 0.6;
   const double kMaxObjectShrinkRatio = 0.8;
 
-  const double kVerticalFloorplanRatio = 1.5;
-  const double kVerticalIndoorPolygonRatio = -1.0;
-  const double kVerticalObjectRatio = -4.0;
+  const double kVerticalFloorplanRatio = 1.0;
+  const double kVerticalIndoorPolygonRatio = -0.5;
+  const double kVerticalObjectRatio = -1.75;
 
+  const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  const Vector3d vertical = floorplan_to_global * Vector3d(0, 0, -1);
+  const Vector3d direction = navigation.GetDirection();
+  const Vector3d orthogonal = vertical.cross(direction);
+  const Vector3d offset_direction = (orthogonal.cross(direction)).normalized();
+  
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
 
   {
@@ -665,7 +671,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                                 tree_organizer,
                                                 air_to_tree_progress,
                                                 animation,
-                                                kVerticalFloorplanRatio * building_height,
+                                                kVerticalFloorplanRatio * building_height * offset_direction,
                                                 kMaxShrinkRatio);
     }
     
@@ -677,7 +683,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                                 tree_organizer,
                                                 air_to_tree_progress,
                                                 animation,
-                                                kVerticalFloorplanRatio * building_height,
+                                                kVerticalFloorplanRatio * building_height * offset_direction,
                                                 kMaxShrinkRatio);
     }
     
@@ -689,7 +695,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                    tree_organizer,
                                    air_to_tree_progress,
                                    animation,
-                                   kVerticalFloorplanRatio * building_height,
+                                   kVerticalFloorplanRatio * building_height * offset_direction,
                                    kMaxShrinkRatio);
     }
     glPopAttrib();
@@ -713,7 +719,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                                        tree_organizer,
                                                        air_to_tree_progress,
                                                        animation,
-                                                       kVerticalIndoorPolygonRatio * building_height,
+                                                       kVerticalIndoorPolygonRatio * building_height * offset_direction,
                                                        kMaxShrinkRatio);
     }
     
@@ -724,7 +730,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                                        tree_organizer,
                                                        air_to_tree_progress,
                                                        animation,
-                                                       kVerticalIndoorPolygonRatio * building_height,
+                                                       kVerticalIndoorPolygonRatio * building_height * offset_direction,
                                                        kMaxShrinkRatio);
     }
     
@@ -738,8 +744,8 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                               building_height,
                               air_to_tree_progress,
                               animation,
-                              // kVerticalObjectRatio * building_height,
-                              kVerticalIndoorPolygonRatio * building_height,
+                              kVerticalIndoorPolygonRatio * building_height * offset_direction,
+                              kVerticalObjectRatio * building_height * offset_direction,
                               kMaxShrinkRatio,
                               kMaxObjectShrinkRatio);
     glPopAttrib();
