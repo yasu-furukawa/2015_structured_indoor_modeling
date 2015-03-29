@@ -1,6 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <numeric>
+#include <map>
+#include <set>
 #include <Eigen/Dense>
 
 #include "../base/file_io.h"
@@ -56,8 +58,57 @@ void IndoorPolygonRenderer::Init(const string data_directory, QGLWidget* widget_
       }
     }
   }
-}
 
+  //----------------------------------------------------------------------
+  {
+    map<int, Segment> floor_segments;
+    map<int, Segment> ceiling_segments;
+
+    for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+      const Segment& segment = indoor_polygon.GetSegment(s);
+      if (segment.type == Segment::FLOOR) {
+        floor_segments[segment.floor_info] = segment;
+      } else if (segment.type == Segment::CEILING) {
+        ceiling_segments[segment.ceiling_info] = segment;
+      }
+    }
+
+    for (const auto& item : floor_segments) {
+      const int room = item.first;
+      const Segment& floor_segment = item.second;
+      const Segment& ceiling_segment = ceiling_segments[room];
+      const double ceiling_height = indoor_polygon.GlobalToManhattan(ceiling_segment.vertices[0])[2];
+
+      std::set<pair<int, int> > floor_edges;
+      for (const auto& triangle : floor_segment.triangles) {
+        for (int i = 0; i < 3; ++i) {
+          const int v0 = triangle.indices[i];
+          const int v1 = triangle.indices[(i + 1) % 3];
+          const pair<int, int> target = make_pair(v1, v0);
+          if (floor_edges.find(target) != floor_edges.end())
+            floor_edges.erase(target);
+          else
+            floor_edges.insert(make_pair(v0, v1));
+        }
+      }
+
+      for (const auto& edge : floor_edges) {
+        const Vector3d floor_local_v0 = floor_segment.vertices[edge.first];
+        const Vector3d floor_local_v1 = floor_segment.vertices[edge.second];
+        const Vector3d ceiling_local_v0(floor_local_v0[0], floor_local_v0[1], ceiling_height);
+        const Vector3d ceiling_local_v1(floor_local_v1[0], floor_local_v1[1], ceiling_height);
+
+        vector<Vector3d> wire_frame;
+        wire_frame.push_back(indoor_polygon.ManhattanToGlobal(floor_local_v1));
+        wire_frame.push_back(indoor_polygon.ManhattanToGlobal(floor_local_v0));
+        wire_frame.push_back(indoor_polygon.ManhattanToGlobal(ceiling_local_v1));
+        wire_frame.push_back(indoor_polygon.ManhattanToGlobal(ceiling_local_v0));
+        wire_frames[room].push_back(wire_frame);
+      }
+    }
+  }
+}
+  
 void IndoorPolygonRenderer::InitGL() {
   initializeGLFunctions();
 
@@ -169,6 +220,34 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     }
     glEnd();
   }
+
+  const double kMargin = 0.1;
+  const double diff = min(fabs(animation - 0.25), fabs(animation - 0.75));
+  if (diff < kMargin) {
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    const double alpha = (kMargin - diff) / kMargin;
+    const Vector3i color(0.5, 1.0, 1.0);
+    for (const auto& item : wire_frames) {
+      const int room = item.first;
+      const vector<vector<Vector3d> >& wire_frame = item.second;
+      for (const auto& quad : wire_frame) {
+        glBegin(GL_LINE_STRIP);
+        glColor4f(color[0], color[1], color[2], alpha);
+        for (int i = 0; i < 4; ++i) {
+          const Vector3d point = tree_organizer.TransformRoom(quad[i], room, -1, air_to_tree_progress, animation, max_vertical_shift);
+          glVertex3d(point[0], point[1], point[2]);
+        }
+        glEnd();
+      }
+    }
+    
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+  }
+
   
   /*
   const double shrink_ratio = air_to_tree_progress * max_shrink_ratio + (1.0 - air_to_tree_progress);

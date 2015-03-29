@@ -281,7 +281,14 @@ Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
                                              const double progress,
                                              const double animation,
                                              const Eigen::Vector3d& max_vertical_shift) const {
-  const double angle = 2 * M_PI * animation;
+  double angle;
+  if (animation < 0.25)
+    angle = 2 * M_PI * animation;
+  else if (0.25 <= animation && animation < 0.75)
+    angle = 2 * M_PI * (0.5 - animation);
+  else
+    angle = 2 * M_PI * animation;
+  
   Matrix3d rotation;
   rotation(0, 0) = cos(angle);
   rotation(0, 1) = -sin(angle);
@@ -303,20 +310,8 @@ Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
 
   Vector3d local = GlobalToLocal(global);
 
-  const double kWallShrinkRatio = 0.8;
-  Vector3d local_wall_shrink(0, 0, 0);
-  const int kInvalid = -1;
-  if (wall != kInvalid) {
-    double shrink_ratio = 0.0;
-    const double diff = min(fabs(animation - 0.25), fabs(animation - 0.75));
-    if (diff < 0.1)
-      shrink_ratio = (0.1 - diff) * 10.0 * (1.0 - kWallShrinkRatio);
-    
-    local_wall_shrink = (wall_configurations[room][wall].center - local) * shrink_ratio;
-  }
-  
   local = room_configurations[room].center +
-    scale * rotation * (local - room_configurations[room].center + local_wall_shrink);
+    scale * rotation * (local - room_configurations[room].center);
 
   return global_displacement + LocalToGlobal(local);
 }
@@ -328,7 +323,14 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
                                                const double animation,
                                                const Eigen::Vector3d& room_max_vertical_shift,
                                                const Eigen::Vector3d& object_max_vertical_shift) const {
-  const double angle = 2 * M_PI * animation;
+  double angle;
+  if (animation < 0.25)
+    angle = 2 * M_PI * animation;
+  else if (0.25 <= animation && animation < 0.75)
+    angle = 2 * M_PI * (0.5 - animation);
+  else
+    angle = 2 * M_PI * animation;
+
   Matrix3d rotation;
   rotation(0, 0) = cos(angle);
   rotation(0, 1) = -sin(angle);

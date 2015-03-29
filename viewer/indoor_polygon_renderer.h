@@ -34,6 +34,9 @@ class IndoorPolygonRenderer : protected QGLFunctions {
   std::vector<QImage> texture_images;
   std::vector<GLint> texture_ids;
 
+  // Floor outline.
+  std::map<int, std::vector<std::vector<Eigen::Vector3d> > > wire_frames;
+
   double bottom_z;
   double top_z;
 };
