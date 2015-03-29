@@ -99,8 +99,8 @@ void IndoorPolygonRenderer::Init(const string data_directory, QGLWidget* widget_
         const Vector3d ceiling_local_v1(floor_local_v1[0], floor_local_v1[1], ceiling_height);
 
         vector<Vector3d> wire_frame;
-        wire_frame.push_back(indoor_polygon.ManhattanToGlobal(floor_local_v1));
         wire_frame.push_back(indoor_polygon.ManhattanToGlobal(floor_local_v0));
+        wire_frame.push_back(indoor_polygon.ManhattanToGlobal(floor_local_v1));
         wire_frame.push_back(indoor_polygon.ManhattanToGlobal(ceiling_local_v1));
         wire_frame.push_back(indoor_polygon.ManhattanToGlobal(ceiling_local_v0));
         wire_frames[room].push_back(wire_frame);
@@ -221,15 +221,15 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glEnd();
   }
 
-  const double kMargin = 0.1;
+  const double kMargin = 0.05;
   const double diff = min(fabs(animation - 0.25), fabs(animation - 0.75));
   if (diff < kMargin) {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    glLineWidth(3.0);
     const double alpha = (kMargin - diff) / kMargin;
-    const Vector3i color(0.5, 1.0, 1.0);
+    const Vector3i color(1.0, 1.0, 1.0);
     for (const auto& item : wire_frames) {
       const int room = item.first;
       const vector<vector<Vector3d> >& wire_frame = item.second;
