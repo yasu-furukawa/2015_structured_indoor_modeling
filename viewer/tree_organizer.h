@@ -53,6 +53,7 @@ class TreeOrganizer {
 
   Eigen::Vector3d TransformRoom(const Vector3d& global,
                                 const int room,
+                                const int wall,
                                 const double progress,
                                 const double animation,
                                 const Eigen::Vector3d& max_vertical_shift) const;

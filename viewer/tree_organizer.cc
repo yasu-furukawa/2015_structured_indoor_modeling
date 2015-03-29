@@ -277,6 +277,7 @@ void TreeOrganizer::SetDisplacements() {
 
 Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
                                              const int room,
+                                             const int wall,
                                              const double progress,
                                              const double animation,
                                              const Eigen::Vector3d& max_vertical_shift) const {
@@ -301,8 +302,21 @@ Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
                      max_vertical_shift);
 
   Vector3d local = GlobalToLocal(global);
+
+  const double kWallShrinkRatio = 0.8;
+  Vector3d local_wall_shrink(0, 0, 0);
+  const int kInvalid = -1;
+  if (wall != kInvalid) {
+    double shrink_ratio = 0.0;
+    const double diff = min(fabs(animation - 0.25), fabs(animation - 0.75));
+    if (diff < 0.1)
+      shrink_ratio = (0.1 - diff) * 10.0 * (1.0 - kWallShrinkRatio);
+    
+    local_wall_shrink = (wall_configurations[room][wall].center - local) * shrink_ratio;
+  }
+  
   local = room_configurations[room].center +
-    scale * rotation * (local - room_configurations[room].center);
+    scale * rotation * (local - room_configurations[room].center + local_wall_shrink);
 
   return global_displacement + LocalToGlobal(local);
 }
@@ -326,7 +340,8 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
   rotation(2, 1) = 0.0;
   rotation(2, 2) = 1.0;
 
-  const Vector3d global_as_room = TransformRoom(global, room, progress, animation, room_max_vertical_shift);
+  const int kNoWall = -1;
+  const Vector3d global_as_room = TransformRoom(global, room, kNoWall, progress, animation, room_max_vertical_shift);
   
   if (progress < 0.5) {
     return global_as_room;

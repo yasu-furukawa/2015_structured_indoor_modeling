@@ -82,7 +82,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glBegin(GL_TRIANGLES);
     for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
       const Segment& segment = indoor_polygon.GetSegment(s);
-if (segment.type == Segment::CEILING)
+      if (segment.type == Segment::CEILING)
         continue;
       
       for (const auto& triangle : segment.triangles) {
@@ -126,14 +126,16 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
       const Segment& segment = indoor_polygon.GetSegment(s);
       int room;
+      int wall = -1;
       if (segment.type == Segment::CEILING) {
         continue;
       } else if (segment.type == Segment::DOOR) {
         continue;
       } else if (segment.type == Segment::FLOOR) {
-        continue;
+        room = segment.floor_info;
       } else if (segment.type == Segment::WALL) {
         room = segment.wall_info[0];
+        wall = segment.wall_info[1];
       } else {
         cerr << "Invalid" << endl;
         exit (1);
@@ -156,6 +158,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
 
           global = tree_organizer.TransformRoom(global,
                                                 room,
+                                                wall,
                                                 air_to_tree_progress,
                                                 animation,
                                                 max_vertical_shift);

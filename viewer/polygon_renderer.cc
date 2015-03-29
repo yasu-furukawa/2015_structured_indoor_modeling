@@ -463,6 +463,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
             // Move wall vertex closer to the centers.
             position = tree_organizer.TransformRoom(position,
                                                     room,
+                                                    wall,
                                                     air_to_tree_progress,
                                                     animation,
                                                     max_vertical_shift);
@@ -482,9 +483,11 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
           // Make floor darker ?.
           // glColor4f(alpha / 2.0, alpha / 2.0, alpha / 2.0, 1.0);
           const int index = triangle.indices[i];
+          const int kNotWall = -1;
           Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
           position = tree_organizer.TransformRoom(position,
                                                   room,
+                                                  kNotWall,
                                                   air_to_tree_progress,
                                                   animation,
                                                   max_vertical_shift);
