@@ -227,9 +227,9 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glLineWidth(3.0);
+    glLineWidth(2.0);
     const double alpha = (kMargin - diff) / kMargin;
-    const Vector3i color(1.0, 1.0, 1.0);
+    const Vector3i color(0.0, 1.0, 1.0);
     for (const auto& item : wire_frames) {
       const int room = item.first;
       const vector<vector<Vector3d> >& wire_frame = item.second;
