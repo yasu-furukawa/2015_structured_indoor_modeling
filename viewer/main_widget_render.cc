@@ -665,7 +665,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   }
   {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    const double kAlpha = 1.0; // 0.5;
+    const double kAlpha = 0.8; // 0.5;
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

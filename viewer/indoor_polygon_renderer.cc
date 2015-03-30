@@ -221,6 +221,8 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glEnd();
   }
 
+  // Wire frame animation.
+  /*
   const double kMargin = 0.05;
   const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
   double diff = 1.0;
@@ -233,8 +235,8 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glLineWidth(2.0);
-    const double alpha = (kMargin - diff) / kMargin;
-    const Vector3i color(0.0, 1.0, 1.0);
+    const double alpha = min(1.0, 2.0 * (kMargin - diff) / kMargin);
+    const Vector3i color(1.0, 1.0, 0.0);
     for (const auto& item : wire_frames) {
       const int room = item.first;
       const vector<vector<Vector3d> >& wire_frame = item.second;
@@ -252,7 +254,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
   }
-
+  */
   
   /*
   const double shrink_ratio = air_to_tree_progress * max_shrink_ratio + (1.0 - air_to_tree_progress);

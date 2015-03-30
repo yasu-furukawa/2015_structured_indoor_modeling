@@ -877,8 +877,8 @@ void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shi
   }
   glEnd();
 
-
-
+  // Wire frame animation.
+  /*
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -892,7 +892,8 @@ void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shi
 
 
   if (diff < kMargin) {
-    const double alpha2 = (kMargin - diff) / kMargin;
+    const double alpha2 = min(1.0, 2.0 * (kMargin - diff) / kMargin);
+    const Vector3i color(1.0, 1.0, 0.0);
     
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
       // const LineRoom& line_room = floorplan.line_rooms[room];
@@ -912,7 +913,7 @@ void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shi
         
         glBegin(GL_LINE_STRIP);
         
-        glColor4f(0.0, 1.0, 1.0, alpha2);
+        glColor4f(color[0], color[1], color[2], alpha2);
         glVertex3d(v00[0], v00[1], v00[2]);
         glVertex3d(v10[0], v10[1], v10[2]);
         glVertex3d(v11[0], v11[1], v11[2]);
@@ -924,6 +925,7 @@ void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shi
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
   }
+  */
 }
   
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
