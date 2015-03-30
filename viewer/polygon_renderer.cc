@@ -740,6 +740,144 @@ void PolygonRenderer::AddTrianglesFromCeiling(const double height_adjustment,
   }
 }
 
+void PolygonRenderer::AddTrianglesFromWalls(Triangles* triangles) const {
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  // Add triangles from walls.
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    Vector3d color = GenerateRoomColor(room);
+    const Vector3i colori(0, 0, room + 1);
+    
+    // const LineRoom& line_room = floorplan.line_rooms[room];
+    const int num_walls = floorplan.GetNumWalls(room);
+    for (int w = 0; w < num_walls; ++w) {
+      const int next_w = (w + 1) % num_walls;
+      const Vector2d v0 = floorplan.GetRoomVertexLocal(room, w);
+      const Vector2d v1 = floorplan.GetRoomVertexLocal(room, next_w);
+      
+      const double ceiling_height = floorplan.GetCeilingHeight(room);
+      
+      Triangle2 triangle0, triangle1;
+      triangle0.vertices[0] = floorplan_to_global * Vector3d(v0[0], v0[1], floorplan.GetFloorHeight(room));
+      triangle0.vertices[1] = floorplan_to_global * Vector3d(v1[0], v1[1], floorplan.GetFloorHeight(room));
+      triangle0.vertices[2] = floorplan_to_global * Vector3d(v1[0], v1[1], ceiling_height);
+      
+      triangle1.vertices[0] = floorplan_to_global * Vector3d(v0[0], v0[1], floorplan.GetFloorHeight(room));
+      triangle1.vertices[1] = floorplan_to_global * Vector3d(v1[0], v1[1], ceiling_height);
+      triangle1.vertices[2] = floorplan_to_global * Vector3d(v0[0], v0[1], ceiling_height);
+      
+      triangle0.colors[0] = color / 3;
+      triangle0.colors[1] = color / 3;
+      triangle0.colors[2] = color;
+      triangle0.colori = colori;
+      triangle1.colors[0] = color / 3;
+      triangle1.colors[1] = color;
+      triangle1.colors[2] = color;
+      triangle1.colori = colori;
+      triangles->push_back(triangle0);
+      triangles->push_back(triangle1);
+    }
+  }
+}
+
+void PolygonRenderer::AddTrianglesFromCeiling(Triangles* triangles) const {
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    const double ceiling_height = floorplan.GetCeilingHeight(room);
+    
+    const FloorCeilingTriangulation& ceiling_triangulation = floorplan.GetCeilingTriangulation(room);
+    for (const auto& triangle : ceiling_triangulation.triangles) {
+      Triangle2 triangle2;
+      for (int i = 0; i < 3; ++i) {
+        const Vector2d xy_local = floorplan.GetRoomVertexLocal(room, triangle.indices[i]);
+        triangle2.vertices[2 - i] =
+          floorplan_to_global * Vector3d(xy_local[0], xy_local[1], ceiling_height);
+      }
+      for (int i = 0; i < 3; ++i)
+        triangle2.colors[i] = GenerateRoomColor(room);
+      triangle2.colori = Vector3i(0, 0, room + 1);
+      
+      triangles->push_back(triangle2);
+    }
+  }
+}
+
+void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
+  /*
+  for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
+    {
+      Triangle triangle;
+      triangles.vertices[i] = 
+
+        triangles.vertices[0] =
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);     
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);     
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);     
+
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
+     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);     
+   }
+    glEnd();
+  */
+}    
+  
+void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shift,
+                                         const double max_shrink_scale,
+                                         const double air_to_tree_progress,
+                                         const double animation,
+                                         const double alpha,
+                                         const Eigen::Vector3d& room_center,
+                                         const Eigen::Vector3d& center) {
+  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
+  const double shrink_scale =
+    (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
+  
+  Triangles triangles;
+  AddTrianglesFromWalls(&triangles);
+  AddTrianglesFromCeiling(&triangles);
+  AddTrianglesFromDoors(&triangles);
+
+  for (auto& triangle : triangles) {
+    for (int i = 0; i < 3; ++i) {
+      triangle.vertices[i] = room_center + (triangle.vertices[i] - room_center) * shrink_scale;
+      triangle.vertices[i] += vertical_shift;
+    }
+  }
+  
+  SortTriangles(center, &triangles);
+
+  glBegin(GL_TRIANGLES);
+  for (const auto& triangle : triangles) {
+    for (int i = 0; i < 3; ++i) {
+      glColor4f(triangle.colors[i][0], triangle.colors[i][1], triangle.colors[i][2], alpha);
+      glVertex3d(triangle.vertices[i][0], triangle.vertices[i][1], triangle.vertices[i][2]);
+    }
+  }
+  glEnd();
+}
+  
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
                                     const double alpha,
                                     const double height_adjustment,

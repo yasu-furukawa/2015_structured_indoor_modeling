@@ -46,6 +46,15 @@ class PolygonRenderer : protected QGLFunctions {
                      const int room_not_rendered,
                      const int room_highlighted,
                      const bool render_room_id);
+
+  void RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shift,
+                          const double max_shrink_scale,
+                          const double air_to_tree_progress,
+                          const double animation,
+                          const double alpha,
+                          const Eigen::Vector3d& room_center,
+                          const Eigen::Vector3d& center);
+  
   void RenderWireframeAll(const double alpha);
   void RenderWireframe(const int room, const double alpha);
   void Init(const std::string data_directory, QGLWidget* widget);
@@ -66,6 +75,10 @@ class PolygonRenderer : protected QGLFunctions {
                                const int room_highlighted,
                                const std::vector<double>& target_ceiling_heights,
                                Triangles* triangles);
+
+  void AddTrianglesFromWalls(Triangles* triangles) const;
+  void AddTrianglesFromCeiling(Triangles* triangles) const;
+  void AddTrianglesFromDoors(Triangles* triangles) const;
   
   QGLWidget* widget;
   const Floorplan& floorplan;

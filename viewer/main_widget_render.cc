@@ -634,7 +634,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   else
     animation = air_to_tree_progress * animation + (1.0 - air_to_tree_progress);
   
-    air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
+  // air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
 
   
   const double building_height = navigation.GetAverageCeilingHeight() - navigation.GetAverageFloorHeight();
@@ -660,7 +660,22 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   }
   {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
+    const double kAlpha = 1.0; // 0.5;
+    glEnable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    const double kMaxShrinkScale = 0.8;
+    polygon_renderer.RenderColoredBoxes(kVerticalFloorplanRatio * building_height * offset_direction,
+                                        kMaxShrinkScale,
+                                        air_to_tree_progress,
+                                        animation,
+                                        kAlpha,
+                                        tree_organizer.GetCenter(),
+                                        navigation.GetCenter());
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    /*
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
     {
@@ -689,7 +704,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     
     glDisable(GL_CULL_FACE);
     glDisable(GL_TEXTURE_2D);
-    
+
     {
       polygon_renderer.RenderDoors(kAlpha * 0.2,
                                    tree_organizer,
@@ -698,6 +713,9 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                    kVerticalFloorplanRatio * building_height * offset_direction,
                                    kMaxShrinkRatio);
     }
+    */
+
+    
     glPopAttrib();
   }
   

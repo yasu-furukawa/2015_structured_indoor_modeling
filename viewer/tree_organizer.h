@@ -66,6 +66,8 @@ class TreeOrganizer {
                                   const Eigen::Vector3d& room_max_vertical_shift,
                                   const Eigen::Vector3d& object_max_vertical_shift) const;
 
+  const Eigen::Vector3d& GetCenter() const { return center; }
+  
  private:
   void InitCenter();
   void InitBoundingBoxes();
