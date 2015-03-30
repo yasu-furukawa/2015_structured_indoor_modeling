@@ -222,7 +222,12 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
   }
 
   const double kMargin = 0.05;
-  const double diff = min(fabs(animation - 0.25), fabs(animation - 0.75));
+  const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
+  double diff = 1.0;
+  for (int i = 0; i < 4; ++i)
+    diff = min(diff, fabs(animation - pivots[i]));
+  // const double kMargin = 0.05;
+  // const double diff = min(fabs(animation - 0.25), fabs(animation - 0.75));
   if (diff < kMargin) {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);

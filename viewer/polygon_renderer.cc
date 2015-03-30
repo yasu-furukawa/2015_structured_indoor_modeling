@@ -876,6 +876,54 @@ void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shi
     }
   }
   glEnd();
+
+
+
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glLineWidth(2.0);
+
+  const double kMargin = 0.05;
+  const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
+  double diff = 1.0;
+  for (int i = 0; i < 4; ++i)
+    diff = min(diff, fabs(animation - pivots[i]));
+
+
+  if (diff < kMargin) {
+    const double alpha2 = (kMargin - diff) / kMargin;
+    
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      // const LineRoom& line_room = floorplan.line_rooms[room];
+      const int num_walls = floorplan.GetNumWalls(room);
+      for (int w = 0; w < num_walls; ++w) {
+        const int next_w = (w + 1) % num_walls;
+        
+        Vector3d v00 = floorplan.GetFloorVertexGlobal(room, w);
+        Vector3d v10 = floorplan.GetFloorVertexGlobal(room, next_w);
+        Vector3d v01 = floorplan.GetCeilingVertexGlobal(room, w);
+        Vector3d v11 = floorplan.GetCeilingVertexGlobal(room, next_w);
+        
+        v00 = room_center + (v00 - room_center) * shrink_scale + vertical_shift;
+        v10 = room_center + (v10 - room_center) * shrink_scale + vertical_shift;
+        v01 = room_center + (v01 - room_center) * shrink_scale + vertical_shift;
+        v11 = room_center + (v11 - room_center) * shrink_scale + vertical_shift;
+        
+        glBegin(GL_LINE_STRIP);
+        
+        glColor4f(0.0, 1.0, 1.0, alpha2);
+        glVertex3d(v00[0], v00[1], v00[2]);
+        glVertex3d(v10[0], v10[1], v10[2]);
+        glVertex3d(v11[0], v11[1], v11[2]);
+        glVertex3d(v01[0], v01[1], v01[2]);
+        
+        glEnd();
+      }
+    }
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+  }
 }
   
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,

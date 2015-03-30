@@ -307,6 +307,11 @@ void MainWidget::RenderPolygon(const int room_not_rendered,
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_POLYGON_SMOOTH);
+  glEnable(GL_LINE_SMOOTH);
+  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+  
   glDisable(GL_CULL_FACE);
   glDisable(GL_DEPTH_TEST);
 
@@ -665,7 +670,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     glDisable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    const double kMaxShrinkScale = 0.8;
+    const double kMaxShrinkScale = 0.7;
     polygon_renderer.RenderColoredBoxes(kVerticalFloorplanRatio * building_height * offset_direction,
                                         kMaxShrinkScale,
                                         air_to_tree_progress,
