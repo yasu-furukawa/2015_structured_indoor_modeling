@@ -14,6 +14,10 @@
 
 void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&labels, const int expected_num, std::vector<int>&numlabels,std::vector<structured_indoor_modeling::DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid, const bool recompute = false);
 
+void AllRange(std::vector<int>&array, std::vector<std::vector<int> >&result, int k, int m);
+
+
+void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, std::vector<structured_indoor_modeling::Panorama>&panorama, std::vector<std::vector<int> >&objectgroup);
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
 
@@ -42,8 +46,6 @@ inline double sigmaFunc(double x, double offset, double maxv, double scale){
 }
 
 bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);
-
-void getInputObjectlist(const std::vector<structured_indoor_modeling::Panorama>& panorama, const std::vector<structured_indoor_modeling::Panorama>& objectcloud, std::vector<std::vector<std::list<structured_indoor_modeling::PointCloud> > >& input_objectlist);
 
 int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup, std::vector<double>&objectVolume);    //objectVolume: volume of the boundingbox of each object
 

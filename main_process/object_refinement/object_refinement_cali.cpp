@@ -19,6 +19,7 @@ using namespace cv;
 using namespace Eigen;
 using namespace structured_indoor_modeling;
 
+
 DEFINE_int32(label_num,20000,"Number of superpixel");
 DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
 DEFINE_int32(start_id, 0,"Start id");
@@ -26,7 +27,7 @@ DEFINE_int32(end_id,3, "End id");
 DEFINE_bool(recompute, false, "Recompute superpixel");
 
 int main(int argc, char **argv){
-#ifdef __APPLE__
+#if 0
   google::ParseCommandLineFlags(&argc, &argv, true);
 #else
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -67,7 +68,30 @@ int main(int argc, char **argv){
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid, FLAGS_recompute);
-//     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
+    ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
+
+    for(int roomid=0; roomid<objectcloud.size(); roomid++){
+	 // for(int objid=0; objid<objectgroup[roomid].size(); objid++){
+	 //      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
+	 //      objectcloud[roomid].WriteObject(string(buffer), objid);
+	 // }
+	 getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid]);
+	 sprintf(buffer,"temp/object_colored_room%03d.ply",roomid);
+	 objectcloud[roomid].Write(string(buffer));
+    }
+
+    //debug for Allrange
+    // cout<<endl;
+    // vector<vector<int> >allrange(1);
+    // for(int i=0; i<5; i++)
+    // 	 allrange[0].push_back(i);
+    // AllRange(allrange[0], allrange, 0, 4);
+    // for(int i=0; i<allrange.size(); i++){
+    // 	 for(int j=0; j<allrange[i].size(); j++){
+    // 	      cout<<allrange[i][j]<<' ';
+    // 	 }
+    // 	 cout<<endl;
+    // }
 
 //     objectlist.resize(objectcloud.size());
 //     input_objectlist.resize(objectcloud.size());
@@ -138,7 +162,7 @@ int main(int argc, char **argv){
 //     	cout<<"Saving "<<savepath<<endl;
 //     	resultCloud[roomid].Write(savepath);
 //     }
-//     end = clock();
+    end = clock();
     cout<<"Total time usage: "<<(end - start) / 1000000<<"s"<<endl;
 
     return 0;

@@ -86,10 +86,134 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
     }
 }
 
-void getInputObjectlist(const vector<Panorama>& panorama, const vector<PointCloud>& objectcloud, vector<vector<list<PointCloud> > >&input_objectlist){
-    
-} 
+void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
+     if(k==m){
+	  result.push_back(array);
+     }
+     else{
+	  for(int i=k; i<=m; i++){
+	       swap(array[k],array[i]);
+	       AllRange(array, result, k+1, m);
+	       swap(array[k], array[i]);
+	  }
+     }
+}
+void getObjectColor(PointCloud &objectcloud, vector<Panorama>&panorama, vector<vector<int> >&objectgroup){
+     const double depth_margin = 30.0;
+     const int min_overlap_points = 100;
+     const int pansize = panorama.size();
+     const int min_point_num = 1000;
+     const double min_assigned_ratio = 0.95;
+     
+     vector<bool>assigned(objectcloud.GetNumPoints());
+     vector<bool>is_used(pansize);
+     vector<double>averagedis(pansize);
+     
+     for(int objid=0; objid<objectgroup.size(); objid++){
+	  if(objectgroup[objid].size() < min_point_num)
+	       continue;
+	  for(const auto&v: objectgroup[objid])
+	       assigned[v] = false;
+	  for(auto &v: averagedis)
+	       v = 0.0;
+	  vector<vector<int> >point_list(pansize);
+	  //Get list of visible points of each panorama
+	  for(int panid=0; panid<pansize; panid++){
+	       for(const auto& ptid: objectgroup[objid]){
+		    Vector3d curpt = objectcloud.GetPoint(ptid).position;
+		    double ptdepth = (curpt - panorama[panid].GetCenter()).norm();
+		    Vector2d RGB_pix = panorama[panid].Project(curpt);
+		    if(!panorama[panid].IsInsideRGB(RGB_pix))
+			 continue;
+		    if(panorama[panid].GetRGB(RGB_pix).norm() == 0)
+			 continue;
+		    Vector2d depth_pix = panorama[panid].RGBToDepth(RGB_pix);
+		    if(ptdepth < panorama[panid].GetDepth(depth_pix) + depth_margin){
+			 point_list[panid].push_back(ptid);
+			 averagedis[panid] += ptdepth;
+		    }
+	       }
+	       if(point_list[panid].size() != 0)
+		    averagedis[panid] /= (double)point_list[panid].size();
+	       else
+		    averagedis[panid] = -1;
+	  }
+	  //Geeadily search for smallest set of panorama
+	  vector<int>pan_selected;
+	  for(int i=0; i<pansize; i++)
+	       is_used[i] = false;
+	  while(true){
+	       double totalcoverage = 0;
+	       for(const auto&v: objectgroup[objid]){
+		    if(assigned[v])
+			 totalcoverage += 1.0;
+	       }
+	       if(totalcoverage >= min_assigned_ratio * (double)objectgroup[objid].size())
+		    break;
+	       
+	       double max_score = 0;
+	       int max_panid = -1;
+	       for(int panid=0; panid<pansize; panid++){
+		    if(is_used[panid] || (averagedis[panid] == 0))
+			 continue;
+		    double curcoveragegain = 0;
+		    for(const auto &ptid: point_list[panid]){
+			 if(!assigned[ptid])
+			      curcoveragegain += 1.0;
+		    }
+		    if(curcoveragegain * 10.0 / averagedis[panid] > max_score){
+			 max_score = curcoveragegain * 10 / averagedis[panid];
+			 max_panid = panid;
+		    }
+	       }
+	       if(max_panid == -1)
+		    break;
+	       for(const auto&v: point_list[max_panid])
+		    assigned[v] = true;
+	       is_used[max_panid] = true;
+	       pan_selected.push_back(max_panid);
+	  }//while
+#if 1
+	  cout<<"object "<<objid<<",used panorama: ";
+	  for(const auto&v: pan_selected)
+	       cout<<v<<' ';
+	  cout<<endl;
+#endif
 
+	  //assign color
+	  for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
+	       assigned[ptid] = false;
+	  for(const auto& panid: pan_selected){
+	       vector<Vector3f>color_src;
+	       vector<Vector3f>color_tgt;
+	       for(const auto& ptid: point_list[panid]){
+		    Vector3d curpt = objectcloud.GetPoint(ptid).position;
+		    Vector2d RGB_pix = panorama[panid].Project(curpt);
+		    Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
+		    if(assigned[ptid]){
+			 color_src.push_back(curColor);
+			 color_tgt.push_back(objectcloud.GetPoint(ptid).color);
+		    }
+	       }
+	       Matrix3f colorTransform = Matrix3f::Identity();
+	       if(color_src.size() > 3)
+		    computeColorTransform(color_src, color_tgt, colorTransform);
+	       for(const auto& ptid: point_list[panid]){
+		    if(assigned[ptid])
+			 continue;
+		    Vector3d curpt = objectcloud.GetPoint(ptid).position;
+		    Vector2d RGB_pix = panorama[panid].Project(curpt);
+		    Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
+		    Vector3f color_to_assigned = colorTransform * curColor;
+#ifdef __APPLE__
+		    swap(color_to_assigned[0], color_to_assigned[2]);
+#endif
+		    objectcloud.SetColor(ptid, color_to_assigned);
+		    assigned[ptid] = true;
+	       }
+	  }
+     }//for objid
+}
 
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
     if(!image.data){
@@ -392,7 +516,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 7;
+     int roomid = 4;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -405,13 +529,13 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	PointCloud curob, curwall;
 	cout<< "Reading " << filename<<endl;
 	curob.Init(filename);
-	cout<< "Reading " << filename_wall<<endl;
-	curwall.Init(filename_wall);
-	for(int i=0;i<curwall.GetNumPoints();i++){
-	    curwall.GetPoint(i).object_id = 0 ;
-	}
+//	cout<< "Reading " << filename_wall<<endl;
+//	curwall.Init(filename_wall);
+//	for(int i=0;i<curwall.GetNumPoints();i++){
+//	    curwall.GetPoint(i).object_id = 0 ;
+//	}
 
-	curob.AddPoints(curwall);
+//	curob.AddPoints(curwall);
 
 	objectCloud.push_back(curob);
 	vector <vector <int> > curgroup;
