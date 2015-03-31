@@ -177,7 +177,7 @@ private:
     void RenderTree(const double air_to_tree_progress);
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);
 
-    void SetTreeRenderingParameters()
+    //void SetTreeRenderingParameters();
 
     double ObjectAnimationPosition() const;
     bool ObjectAnimation() const;
