@@ -98,7 +98,7 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
 	}
     }
 }
-void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup){
+void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, const int roomid){
     const double depth_margin = 50;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
@@ -184,6 +184,8 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	for(const auto&v: pan_selected)
 	    cout<<v<<' ';
 	cout<<endl;
+	
+	
 #endif
 
 	//assign color
@@ -200,13 +202,10 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		    color_src.push_back(curColor);
 		    color_tgt.push_back(objectcloud.GetPoint(ptid).color);
 		}
-		assigned[ptid] = true;
 	    }
-	    for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
-		assigned[ptid] = false;
 	    Matrix3f colorTransform = Matrix3f::Identity();
-	    if(color_src.size() > min_overlap_points)
-		computeColorTransform(color_src, color_tgt, colorTransform);
+//	    if(color_src.size() > min_overlap_points)
+//		computeColorTransform(color_src, color_tgt, colorTransform);
 	    for(const auto& ptid: point_list[panid]){
 		if(assigned[ptid])
 		    continue;
@@ -219,6 +218,18 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		assigned[ptid] = true;
 	    }
 	}
+
+	for(const auto& panid:pan_selected){
+	     PointCloud curout;
+	     vector<structured_indoor_modeling::Point>point_to_add;
+	     for(const auto& ptid: point_list[panid])
+		  point_to_add.push_back(objectcloud.GetPoint(ptid));
+	     curout.AddPoints(point_to_add);
+	     char buffer[100];
+	     sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_2.ply",roomid, objid, panid);
+	     curout.Write(string(buffer));
+	}
+
 	//remove unassigned points
 	for(const auto& ptid: objectgroup[objid]){
 	    if(assigned[ptid] == false)
@@ -529,7 +540,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-    int roomid = 0;
+    int roomid = 4;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -565,6 +576,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
+	break;
     }
 }
 

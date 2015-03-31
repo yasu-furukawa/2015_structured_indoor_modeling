@@ -77,7 +77,7 @@ int main(int argc, char **argv){
 	 // }
 	cout<<"---------------------"<<endl;
 	cout<<"Room "<<roomid<<endl;
-	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid]);
+	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid], roomid);
 	sprintf(buffer,"temp/object_colored_room%03d.ply",roomid);
 	objectcloud[roomid].Write(string(buffer));
     }
