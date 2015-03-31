@@ -170,6 +170,10 @@ class FileIO {
     return buffer;
   }
 
+  std::string GetPoissonInput() const {
+    sprintf(buffer, "%s/evaluation/poisson_input.npts", data_directory.c_str());
+    return buffer;
+  }
   std::string GetPoissonMesh() const {
     sprintf(buffer, "%s/evaluation/poisson_mesh.ply", data_directory.c_str());
     return buffer;
@@ -193,6 +197,7 @@ class FileIO {
     sprintf(buffer, "%s/evaluation/error_histogram_%s.txt", data_directory.c_str(), prefix.c_str());
     return buffer;
   }
+  
   
  private:
   const std::string data_directory;

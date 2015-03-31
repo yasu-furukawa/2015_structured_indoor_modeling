@@ -22,3 +22,7 @@ endif (WIN32)
 add_executable( evaluate_cli evaluate_cli.cc evaluate.cc ../../base/floorplan.cc ../../base/indoor_polygon.cc ../../base/panorama.cc ../../base/point_cloud.cc )
 target_link_libraries( evaluate_cli ${OpenCV_LIBS} )
 target_link_libraries( evaluate_cli gflags )
+
+add_executable( prepare_poisson_cli prepare_poisson_cli.cc ../../base/point_cloud.cc )
+target_link_libraries( prepare_poisson_cli ${OpenCV_LIBS} )
+target_link_libraries( prepare_poisson_cli gflags )
