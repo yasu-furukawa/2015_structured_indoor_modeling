@@ -55,164 +55,177 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	// depth[curid].SaveDepthmap(string(buffer));
 
 	
-	labels[curid].resize(imgwidth*imgheight);
+	// labels[curid].resize(imgwidth*imgheight);
 
-	ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
-	if(!labelin.is_open() || recompute){
-	    cout<<"Performing SLICO Superpixel..."<<endl;
-	    Mat pan = panorama[curid].GetRGBImage().clone();
-	    SLIC slic;
-	    vector<unsigned int>imagebuffer;
-	    MatToImagebuffer(pan, imagebuffer);
-	    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
-	    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
-	    sprintf(buffer,"superpixel/SLIC%03d",id);
-	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
-	    cout<<"numlabels: "<<numlabels[curid]<<endl;
-	    Mat out;
-	    ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
-	    sprintf(buffer,"superpixel/SLIC%03d.png",id); 
-	    imwrite(buffer,out);
-	    waitKey(10);
-	}else{
-	    cout <<"Reading superpixel from file"<<endl;
-	    labelin.read((char*)&numlabels[curid], sizeof(int));
-	    for(int i=0;i<labels[curid].size();i++){
-		labelin.read((char*)&labels[curid][i], sizeof(int));
-	    }
-	    labelin.close();
-	}
-	cout<<endl;
+	// ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
+	// if(!labelin.is_open() || recompute){
+	//     cout<<"Performing SLICO Superpixel..."<<endl;
+	//     Mat pan = panorama[curid].GetRGBImage().clone();
+	//     SLIC slic;
+	//     vector<unsigned int>imagebuffer;
+	//     MatToImagebuffer(pan, imagebuffer);
+	//     slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
+	//     slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
+	//     sprintf(buffer,"superpixel/SLIC%03d",id);
+	//     slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
+	//     cout<<"numlabels: "<<numlabels[curid]<<endl;
+	//     Mat out;
+	//     ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
+	//     sprintf(buffer,"superpixel/SLIC%03d.png",id); 
+	//     imwrite(buffer,out);
+	//     waitKey(10);
+	// }else{
+	//     cout <<"Reading superpixel from file"<<endl;
+	//     labelin.read((char*)&numlabels[curid], sizeof(int));
+	//     for(int i=0;i<labels[curid].size();i++){
+	// 	labelin.read((char*)&labels[curid][i], sizeof(int));
+	//     }
+	//     labelin.close();
+	// }
+	// cout<<endl;
     }
 }
 
 void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
-     if(k==m){
-	  result.push_back(array);
-     }
-     else{
-	  for(int i=k; i<=m; i++){
-	       swap(array[k],array[i]);
-	       AllRange(array, result, k+1, m);
-	       swap(array[k], array[i]);
-	  }
-     }
+    if(k==m){
+	result.push_back(array);
+    }
+    else{
+	for(int i=k; i<=m; i++){
+	    swap(array[k],array[i]);
+	    AllRange(array, result, k+1, m);
+	    swap(array[k], array[i]);
+	}
+    }
 }
-void getObjectColor(PointCloud &objectcloud, vector<Panorama>&panorama, vector<vector<int> >&objectgroup){
-     const double depth_margin = 30.0;
-     const int min_overlap_points = 100;
-     const int pansize = panorama.size();
-     const int min_point_num = 1000;
-     const double min_assigned_ratio = 0.95;
-     
-     vector<bool>assigned(objectcloud.GetNumPoints());
-     vector<bool>is_used(pansize);
-     vector<double>averagedis(pansize);
-     
-     for(int objid=0; objid<objectgroup.size(); objid++){
-	  if(objectgroup[objid].size() < min_point_num)
-	       continue;
-	  for(const auto&v: objectgroup[objid])
-	       assigned[v] = false;
-	  for(auto &v: averagedis)
-	       v = 0.0;
-	  vector<vector<int> >point_list(pansize);
-	  //Get list of visible points of each panorama
-	  for(int panid=0; panid<pansize; panid++){
-	       for(const auto& ptid: objectgroup[objid]){
-		    Vector3d curpt = objectcloud.GetPoint(ptid).position;
-		    double ptdepth = (curpt - panorama[panid].GetCenter()).norm();
-		    Vector2d RGB_pix = panorama[panid].Project(curpt);
-		    if(!panorama[panid].IsInsideRGB(RGB_pix))
-			 continue;
-		    if(panorama[panid].GetRGB(RGB_pix).norm() == 0)
-			 continue;
-		    Vector2d depth_pix = panorama[panid].RGBToDepth(RGB_pix);
-		    if(ptdepth < panorama[panid].GetDepth(depth_pix) + depth_margin){
-			 point_list[panid].push_back(ptid);
-			 averagedis[panid] += ptdepth;
-		    }
-	       }
-	       if(point_list[panid].size() != 0)
-		    averagedis[panid] /= (double)point_list[panid].size();
-	       else
-		    averagedis[panid] = -1;
-	  }
-	  //Geeadily search for smallest set of panorama
-	  vector<int>pan_selected;
-	  for(int i=0; i<pansize; i++)
-	       is_used[i] = false;
-	  while(true){
-	       double totalcoverage = 0;
-	       for(const auto&v: objectgroup[objid]){
-		    if(assigned[v])
-			 totalcoverage += 1.0;
-	       }
-	       if(totalcoverage >= min_assigned_ratio * (double)objectgroup[objid].size())
-		    break;
+void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup){
+    const double depth_margin = 50;
+    const int min_overlap_points = 10;
+    const int pansize = panorama.size();
+    const int min_point_num = 100;
+    const double min_assigned_ratio = 0.95;
+
+    vector<bool>assigned(objectcloud.GetNumPoints());
+    vector<bool>is_used(pansize);
+    vector<double>averagedis(pansize);
+
+    vector<int>point_to_remove;
+
+    for(int objid=0; objid<objectgroup.size(); objid++){
+	//remove small objects
+	if(objectgroup[objid].size() < min_point_num){
+	    for(const auto& ptid: objectgroup[objid])
+		point_to_remove.push_back(ptid);
+	    continue;
+	}
+	for(const auto&v: objectgroup[objid])
+	    assigned[v] = false;
+	for(auto &v: averagedis)
+	    v = 0.0;
+	vector<vector<int> >point_list(pansize);
+	//Get list of visible points of each panorama
+	for(int panid=0; panid<pansize; panid++){
+	    for(const auto& ptid: objectgroup[objid]){
+		Vector3d curpt = objectcloud.GetPoint(ptid).position;
+		double ptdepth = (curpt - panorama[panid].GetCenter()).norm();
+		Vector2d RGB_pix = panorama[panid].Project(curpt);
+		if(!panorama[panid].IsInsideRGB(RGB_pix))
+		    continue;
+		if(panorama[panid].GetRGB(RGB_pix).norm() == 0)
+		    continue;
+		Vector2d depth_pix = panorama[panid].RGBToDepth(RGB_pix);
+		if(ptdepth < panorama[panid].GetDepth(depth_pix) + depth_margin){
+		    point_list[panid].push_back(ptid);
+		    averagedis[panid] += ptdepth;
+		}
+	    }
+	    if(point_list[panid].size() != 0)
+		averagedis[panid] /= (double)point_list[panid].size();
+	    else
+		averagedis[panid] = -1;
+	}
+	//Geeadily search for smallest set of panorama
+	vector<int>pan_selected;
+	for(int i=0; i<pansize; i++)
+	    is_used[i] = false;
+	while(true){
+	    double totalcoverage = 0;
+	    for(const auto&v: objectgroup[objid]){
+		if(assigned[v])
+		    totalcoverage += 1.0;
+	    }
+	    if(totalcoverage >= min_assigned_ratio * (double)objectgroup[objid].size())
+		break;
 	       
-	       double max_score = 0;
-	       int max_panid = -1;
-	       for(int panid=0; panid<pansize; panid++){
-		    if(is_used[panid] || (averagedis[panid] == 0))
-			 continue;
-		    double curcoveragegain = 0;
-		    for(const auto &ptid: point_list[panid]){
-			 if(!assigned[ptid])
-			      curcoveragegain += 1.0;
-		    }
-		    if(curcoveragegain * 10.0 / averagedis[panid] > max_score){
-			 max_score = curcoveragegain * 10 / averagedis[panid];
-			 max_panid = panid;
-		    }
-	       }
-	       if(max_panid == -1)
-		    break;
-	       for(const auto&v: point_list[max_panid])
-		    assigned[v] = true;
-	       is_used[max_panid] = true;
-	       pan_selected.push_back(max_panid);
-	  }//while
+	    double max_score = 0;
+	    int max_panid = -1;
+	    for(int panid=0; panid<pansize; panid++){
+		if(is_used[panid] || (averagedis[panid] == 0))
+		    continue;
+		double curcoveragegain = 0;
+		for(const auto &ptid: point_list[panid]){
+		    if(!assigned[ptid])
+			curcoveragegain += 1.0;
+		}
+		if(curcoveragegain * 1000.0 / averagedis[panid] > max_score){
+		    max_score = curcoveragegain * 1000.0 / averagedis[panid];
+		    max_panid = panid;
+		}
+	    }
+	    if(max_panid == -1)
+		break;
+	    for(const auto&v: point_list[max_panid])
+		assigned[v] = true;
+	    is_used[max_panid] = true;
+	    pan_selected.push_back(max_panid);
+	}//while
 #if 1
-	  cout<<"object "<<objid<<",used panorama: ";
-	  for(const auto&v: pan_selected)
-	       cout<<v<<' ';
-	  cout<<endl;
+	cout<<"object "<<objid<<",used panorama: ";
+	for(const auto&v: pan_selected)
+	    cout<<v<<' ';
+	cout<<endl;
 #endif
 
-	  //assign color
-	  for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
-	       assigned[ptid] = false;
-	  for(const auto& panid: pan_selected){
-	       vector<Vector3f>color_src;
-	       vector<Vector3f>color_tgt;
-	       for(const auto& ptid: point_list[panid]){
-		    Vector3d curpt = objectcloud.GetPoint(ptid).position;
-		    Vector2d RGB_pix = panorama[panid].Project(curpt);
-		    Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
-		    if(assigned[ptid]){
-			 color_src.push_back(curColor);
-			 color_tgt.push_back(objectcloud.GetPoint(ptid).color);
-		    }
-	       }
-	       Matrix3f colorTransform = Matrix3f::Identity();
-	       if(color_src.size() > 3)
-		    computeColorTransform(color_src, color_tgt, colorTransform);
-	       for(const auto& ptid: point_list[panid]){
-		    if(assigned[ptid])
-			 continue;
-		    Vector3d curpt = objectcloud.GetPoint(ptid).position;
-		    Vector2d RGB_pix = panorama[panid].Project(curpt);
-		    Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
-		    Vector3f color_to_assigned = colorTransform * curColor;
-#ifdef __APPLE__
-		    swap(color_to_assigned[0], color_to_assigned[2]);
-#endif
-		    objectcloud.SetColor(ptid, color_to_assigned);
-		    assigned[ptid] = true;
-	       }
-	  }
-     }//for objid
+	//assign color
+	for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
+	    assigned[ptid] = false;
+	for(const auto& panid: pan_selected){
+	    vector<Vector3f>color_src;
+	    vector<Vector3f>color_tgt;
+	    for(const auto& ptid: point_list[panid]){
+		Vector3d curpt = objectcloud.GetPoint(ptid).position;
+		Vector2d RGB_pix = panorama[panid].Project(curpt);
+		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
+		if(assigned[ptid]){
+		    color_src.push_back(curColor);
+		    color_tgt.push_back(objectcloud.GetPoint(ptid).color);
+		}
+		assigned[ptid] = true;
+	    }
+	    for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
+		assigned[ptid] = false;
+	    Matrix3f colorTransform = Matrix3f::Identity();
+	    if(color_src.size() > min_overlap_points)
+		computeColorTransform(color_src, color_tgt, colorTransform);
+	    for(const auto& ptid: point_list[panid]){
+		if(assigned[ptid])
+		    continue;
+		Vector3d curpt = objectcloud.GetPoint(ptid).position;
+		Vector2d RGB_pix = panorama[panid].Project(curpt);
+		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
+		Vector3f color_to_assigned =  colorTransform*curColor;
+		swap(color_to_assigned[0], color_to_assigned[2]);
+		objectcloud.SetColor(ptid, color_to_assigned);
+		assigned[ptid] = true;
+	    }
+	}
+	//remove unassigned points
+	for(const auto& ptid: objectgroup[objid]){
+	    if(assigned[ptid] == false)
+		point_to_remove.push_back(ptid);
+	}
+    }//for objid
+//     objectcloud.RemovePoints(point_to_remove);
 }
 
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
@@ -267,7 +280,7 @@ void saveConfidence(const vector< vector<double> >&superpixelConfidence, const v
     }
     Mat outmask(imgheight,imgwidth,CV_8UC3, Scalar(0,0,0));
     for(int groupid = 0;groupid<superpixelConfidence.size();groupid++){
-	 int colorid = groupid % COLORTABLE_LENGTH;
+	int colorid = groupid % COLORTABLE_LENGTH;
 	for(int i=0;i<imgwidth*imgheight;++i){
 	    int x = i % imgwidth;
 	    int y = i / imgwidth;
@@ -438,7 +451,7 @@ int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup
 
 void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &objectgroup,  const Panorama &panorama, const vector<int> &superpixel,const vector< vector<int> >&labelgroup, const map<pair<int,int>,int>&pairmap, const DepthFilling& depthmap,  vector <double> &superpixelConfidence, const int superpixelnum, const int erodeiter){
     if(superpixelConfidence.size() > 0)
-	  superpixelConfidence.clear();
+	superpixelConfidence.clear();
     superpixelConfidence.resize(superpixelnum);
     
     for(int i=0;i<superpixelConfidence.size();++i)
@@ -471,13 +484,13 @@ void getSuperpixelConfidence(const PointCloud &point_cloud,const vector<int> &ob
     
     //perform erosion, to avoid conflicts on the border
     for(int iter=0; iter<erodeiter; iter++){
-	 for(const auto& curmap: pairmap){
-	      pair<int,int> curpair = curmap.first;
-	      if(curpair.first < ERODE_THRES || superpixelConfidence[curpair.second] < ERODE_THRES){
-		   superpixelConfidence[curpair.first] = 0;
-		   superpixelConfidence[curpair.second] = 0;
-	      }
-	 }
+	for(const auto& curmap: pairmap){
+	    pair<int,int> curpair = curmap.first;
+	    if(curpair.first < ERODE_THRES || superpixelConfidence[curpair.second] < ERODE_THRES){
+		superpixelConfidence[curpair.first] = 0;
+		superpixelConfidence[curpair.second] = 0;
+	    }
+	}
 	 
     }
 }
@@ -516,7 +529,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-     int roomid = 4;
+    int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -537,13 +550,21 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 
 //	curob.AddPoints(curwall);
 
+	//remove roof
+	const vector <double> bounding_box  = curob.GetBoundingbox();
+	const double max_z = bounding_box[4] + (bounding_box[5] - bounding_box[4]) * 0.7; //remove ceil points
+	vector<int>roofpoint;
+	for(int ptid=0; ptid<curob.GetNumPoints(); ptid++){
+	    if(curob.GetPoint(ptid).position[2] > max_z)
+		roofpoint.push_back(ptid);
+	}
+	curob.RemovePoints(roofpoint);
 	objectCloud.push_back(curob);
 	vector <vector <int> > curgroup;
 	vector <double> curvolume;
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	break;
     }
 }
 
@@ -551,7 +572,7 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 double unaryDiffFunc(double confidence){
 //     const double offset = 3.0;
 //     const double maxv = 1.0;
-     return max(gaussianFunc(confidence, 1.0),0.01);
+    return max(gaussianFunc(confidence, 1.0),0.01);
 }
 
 double colorDiffFunc(int pix1,int pix2, const vector <Vector3d>&averageRGB){
@@ -839,10 +860,10 @@ void mergeObject(vector<vector<list<PointCloud> > >&objectlist, const vector<Poi
 	    //voxel grid approach
 	    //init voxel grid
 	    for(auto &v:grid){
-		 for(auto &u: v){
-		      for(auto &w: u)
-			   w = -1;
-		 }
+		for(auto &u: v){
+		    for(auto &w: u)
+			w = -1;
+		}
 	    }
 	    vector<double>bbox;
 	    objectcloud[roomid].GetObjectBoundingbox(objid, bbox);
@@ -914,7 +935,7 @@ void mergeObject(vector<vector<list<PointCloud> > >&objectlist, const vector<Poi
 		    Vector3f curcolor = iter->GetPoint(ptid).color;
 		    Vector3f newcolor = transform * curcolor;
 		    if(newcolor[0]<0 || newcolor[1] >255 || newcolor[1]<0 || newcolor[1]>255 || newcolor[2]<0 || newcolor[2]>255)
-			 continue;
+			continue;
 		    iter->SetColor(ptid, transform * curcolor);
 		}
 		objectlist[roomid][objid].front().AddPoints(*iter, true);
@@ -923,7 +944,7 @@ void mergeObject(vector<vector<list<PointCloud> > >&objectlist, const vector<Poi
 	    double object_volume = objectlist[roomid][objid].front().GetBoundingboxVolume();
 	    int object_point_num = objectlist[roomid][objid].front().GetNumPoints();
 	    if(object_volume > min_object_volume && object_point_num > min_object_points_num)
-		 resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
+		resultcloud[roomid].AddPoints(objectlist[roomid][objid].front(), true);
 	}
     }
 }
@@ -954,82 +975,82 @@ void cleanObjects(PointCloud &pc, const double min_volume){
 }
 
 void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter, const int downsample){
-     cout<<"ICP..."<<endl;
-     const int srcnum = src.GetNumPoints();
-     const float max_dist = 100;
+    cout<<"ICP..."<<endl;
+    const int srcnum = src.GetNumPoints();
+    const float max_dist = 100;
      
-     //building kd-tree for target
+    //building kd-tree for target
 //     cout<<"Building KD tree"<<endl;
-     flann::KDTreeIndexParams indexParams(4);
+    flann::KDTreeIndexParams indexParams(4);
 
-     Mat featurepoints(tgt.GetNumPoints(), 3, CV_32F);
-     Mat query(srcnum/downsample,3,CV_32F);
-     for(int i=0; i<tgt.GetNumPoints(); i+=downsample){
-	  structured_indoor_modeling::Point curpt = tgt.GetPoint(i);
-	  featurepoints.at<float>(i/downsample,0) = (float)curpt.position[0];
-	  featurepoints.at<float>(i/downsample,1) = (float)curpt.position[1];
-	  featurepoints.at<float>(i/downsample,2) = (float)curpt.position[2];
+    Mat featurepoints(tgt.GetNumPoints(), 3, CV_32F);
+    Mat query(srcnum/downsample,3,CV_32F);
+    for(int i=0; i<tgt.GetNumPoints(); i+=downsample){
+	structured_indoor_modeling::Point curpt = tgt.GetPoint(i);
+	featurepoints.at<float>(i/downsample,0) = (float)curpt.position[0];
+	featurepoints.at<float>(i/downsample,1) = (float)curpt.position[1];
+	featurepoints.at<float>(i/downsample,2) = (float)curpt.position[2];
 
-     }
-     flann::Index searchtree(featurepoints, indexParams);
+    }
+    flann::Index searchtree(featurepoints, indexParams);
 
-     typedef Matrix<double, 3,Dynamic> Matrix3;
+    typedef Matrix<double, 3,Dynamic> Matrix3;
 
-     for(int iter=1; iter<=num_iter; iter++){
+    for(int iter=1; iter<=num_iter; iter++){
 //	  cout<<"---------------"<<endl;
 //	  cout<<"Iteration "<<iter<<endl;
 	  
-	  for(int i=0; i<srcnum; i+=downsample){
-	       query.at<float>(i/downsample,0) = (float)src.GetPoint(i).position[0];
-	       query.at<float>(i/downsample,1) = (float)src.GetPoint(i).position[1];
-	       query.at<float>(i/downsample,2) = (float)src.GetPoint(i).position[2];
-	  }
+	for(int i=0; i<srcnum; i+=downsample){
+	    query.at<float>(i/downsample,0) = (float)src.GetPoint(i).position[0];
+	    query.at<float>(i/downsample,1) = (float)src.GetPoint(i).position[1];
+	    query.at<float>(i/downsample,2) = (float)src.GetPoint(i).position[2];
+	}
 	  
-	  Mat searchres(srcnum/downsample, 1, CV_32S, Scalar::all(-1));
-	  Mat dists(srcnum/downsample, 1, CV_32F);
+	Mat searchres(srcnum/downsample, 1, CV_32S, Scalar::all(-1));
+	Mat dists(srcnum/downsample, 1, CV_32F);
 
-	  searchtree.knnSearch(query, searchres, dists, 1, flann::SearchParams(32));
+	searchtree.knnSearch(query, searchres, dists, 1, flann::SearchParams(32));
 	  
-	  Vector3d center_tgt(0,0,0);
-	  Vector3d center_src = src.GetCenter();
+	Vector3d center_tgt(0,0,0);
+	Vector3d center_src = src.GetCenter();
 
-	  int count = 0;
-	  for(int i=0; i<srcnum/downsample; i++){
+	int count = 0;
+	for(int i=0; i<srcnum/downsample; i++){
 //	      if(dists.at<float>(0,i) > max_dist)
 //		  continue;
-	       structured_indoor_modeling::Point curpt = tgt.GetPoint(searchres.at<int>(0,i));
-	       center_tgt += curpt.position;
-	       count++;
-	  }
-	  if(count > 0)
-	       center_tgt /= (double)count;
-	  else
-	       return;
+	    structured_indoor_modeling::Point curpt = tgt.GetPoint(searchres.at<int>(0,i));
+	    center_tgt += curpt.position;
+	    count++;
+	}
+	if(count > 0)
+	    center_tgt /= (double)count;
+	else
+	    return;
 
-	  // for(int i=0; i<srcnum; i+=downsample){
-	  //      P(0,i/downsample) = src.GetPoint(i).position[0] - center_src[0];
-	  //      P(1,i/downsample) = src.GetPoint(i).position[1] - center_src[1];
-	  //      P(2,i/downsample) = src.GetPoint(i).position[2] - center_src[2];
+	// for(int i=0; i<srcnum; i+=downsample){
+	//      P(0,i/downsample) = src.GetPoint(i).position[0] - center_src[0];
+	//      P(1,i/downsample) = src.GetPoint(i).position[1] - center_src[1];
+	//      P(2,i/downsample) = src.GetPoint(i).position[2] - center_src[2];
 
-	  //      Q(0,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[0] - center_tgt[0];
-	  //      Q(1,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[1] - center_tgt[1];
-	  //      Q(2,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[2] - center_tgt[2];
-	  // }
-	  // M = P * Q.transpose();
-	  // JacobiSVD<Matrix<double,3,3>>svd(M,ComputeFullU|ComputeFullV);
-	  // R = svd.matrixV().transpose() * svd.matrixU();
+	//      Q(0,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[0] - center_tgt[0];
+	//      Q(1,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[1] - center_tgt[1];
+	//      Q(2,i/downsample) = tgt.GetPoint(searchres.at<int>(0,i/downsample)).position[2] - center_tgt[2];
+	// }
+	// M = P * Q.transpose();
+	// JacobiSVD<Matrix<double,3,3>>svd(M,ComputeFullU|ComputeFullV);
+	// R = svd.matrixV().transpose() * svd.matrixU();
 
 //	  cout<<"Translation:"<<endl;
-	  Vector3d trans = center_tgt - center_src;
+	Vector3d trans = center_tgt - center_src;
 //	  cout<<trans.transpose()<<endl;
 //	  cout<<"Rotation:"<<endl;
 //	  cout<<R<<endl;
-	  src.Translate(center_tgt - center_src);
+	src.Translate(center_tgt - center_src);
 //	  src.Rotate(R);
 //	  src.Translate(center_tgt);
 
-     } //iteration
-     cout<<"ICP done"<<endl;
+    } //iteration
+    cout<<"ICP done"<<endl;
 }
 
 void radiusRemovalFilter(PointCloud &pc, const double radius, const int min_count){

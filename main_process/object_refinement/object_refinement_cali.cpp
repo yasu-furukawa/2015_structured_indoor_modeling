@@ -75,9 +75,11 @@ int main(int argc, char **argv){
 	 //      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
 	 //      objectcloud[roomid].WriteObject(string(buffer), objid);
 	 // }
-	 getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid]);
-	 sprintf(buffer,"temp/object_colored_room%03d.ply",roomid);
-	 objectcloud[roomid].Write(string(buffer));
+	cout<<"---------------------"<<endl;
+	cout<<"Room "<<roomid<<endl;
+	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid]);
+	sprintf(buffer,"temp/object_colored_room%03d.ply",roomid);
+	objectcloud[roomid].Write(string(buffer));
     }
 
     //debug for Allrange
