@@ -103,7 +103,8 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
     const int min_point_num = 100;
-    const double min_assigned_ratio = 0.95;
+    const double min_assigned_ratio = 0.98;
+    const double num_weight = 10000;
 
     vector<bool>assigned(objectcloud.GetNumPoints());
     vector<bool>is_used(pansize);
@@ -167,8 +168,8 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		    if(!assigned[ptid])
 			curcoveragegain += 1.0;
 		}
-		if(curcoveragegain * 1000.0 / averagedis[panid] > max_score){
-		    max_score = curcoveragegain * 1000.0 / averagedis[panid];
+		if(curcoveragegain * num_weight / averagedis[panid] > max_score){
+		    max_score = curcoveragegain * num_weight / averagedis[panid];
 		    max_panid = panid;
 		}
 	    }
@@ -198,36 +199,40 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		Vector3d curpt = objectcloud.GetPoint(ptid).position;
 		Vector2d RGB_pix = panorama[panid].Project(curpt);
 		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
+		swap(curColor[0],curColor[2]);
 		if(assigned[ptid]){
 		    color_src.push_back(curColor);
 		    color_tgt.push_back(objectcloud.GetPoint(ptid).color);
 		}
 	    }
 	    Matrix3f colorTransform = Matrix3f::Identity();
-//	    if(color_src.size() > min_overlap_points)
-//		computeColorTransform(color_src, color_tgt, colorTransform);
+	    if(color_src.size() > min_overlap_points)
+		computeColorTransform(color_src, color_tgt, colorTransform);
 	    for(const auto& ptid: point_list[panid]){
 		if(assigned[ptid])
 		    continue;
 		Vector3d curpt = objectcloud.GetPoint(ptid).position;
 		Vector2d RGB_pix = panorama[panid].Project(curpt);
 		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
+		swap(curColor[0], curColor[2]);
 		Vector3f color_to_assigned =  colorTransform*curColor;
-		swap(color_to_assigned[0], color_to_assigned[2]);
+		
+		if(color_to_assigned[0]<0||color_to_assigned[0]>255||
+		   color_to_assigned[1]<0||color_to_assigned[1]>255||
+		   color_to_assigned[2]<0||color_to_assigned[2]>255)
+		    color_to_assigned = curColor;
+		  
 		objectcloud.SetColor(ptid, color_to_assigned);
 		assigned[ptid] = true;
 	    }
-	}
-
-	for(const auto& panid:pan_selected){
-	     PointCloud curout;
-	     vector<structured_indoor_modeling::Point>point_to_add;
-	     for(const auto& ptid: point_list[panid])
-		  point_to_add.push_back(objectcloud.GetPoint(ptid));
-	     curout.AddPoints(point_to_add);
-	     char buffer[100];
-	     sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_2.ply",roomid, objid, panid);
-	     curout.Write(string(buffer));
+	    PointCloud curout;
+	    vector<structured_indoor_modeling::Point>point_to_add;
+	    for(const auto& ptid: point_list[panid])
+		point_to_add.push_back(objectcloud.GetPoint(ptid));
+	    curout.AddPoints(point_to_add);
+	    char buffer[100];
+	    sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_2.ply",roomid, objid, panid);
+	    curout.Write(string(buffer));
 	}
 
 	//remove unassigned points
@@ -236,7 +241,7 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		point_to_remove.push_back(ptid);
 	}
     }//for objid
-//     objectcloud.RemovePoints(point_to_remove);
+     objectcloud.RemovePoints(point_to_remove);
 }
 
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
@@ -540,7 +545,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
-    int roomid = 4;
+    int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
 	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
@@ -576,7 +581,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	groupObject(curob, curgroup, curvolume);
 	objectgroup.push_back(curgroup);
 	objectVolume.push_back(curvolume);
-	break;
     }
 }
 
@@ -811,6 +815,41 @@ void backProjectObject(const Panorama &panorama,const PointCloud& objectcloud, c
 
 	//add input point cloud
     }
+}
+
+double evalError(vector<Vector3f>&src, vector<Vector3f>&dst, const Matrix3f &transform){
+    double err = 0.0;
+    for(int i=0; i<src.size(); i++)
+	err += (dst[i] - transform*src[i]).norm();
+    return err;
+}
+
+void colorTransform_RANSAC(vector<Vector3f>&src, vector<Vector3f>&dst, Matrix3f &transform, const int maxiter){
+    const double max_allowed_err = 10.0;
+    const int max_size = src.size();
+    Matrix3f temptrans;
+    double min_err = numeric_limits<double>::max();
+    int i;
+    for(i=0; i<maxiter; i++){
+	vector<Vector3f>src_ran;
+	vector<Vector3f>dst_ran;
+	vector<int>ran;
+	srand((unsigned)time(NULL));
+	for(int j=0; j<3; j++){
+	    int id = rand()%max_size;
+	    src_ran.push_back(src[id]);
+	    dst_ran.push_back(dst[id]);
+	}
+	computeColorTransform(src_ran, dst_ran, temptrans);
+	double curerr = evalError(src, dst, temptrans);
+	if(curerr < min_err){
+	    min_err = curerr;
+	    transform = temptrans;
+	}
+	if(curerr < max_allowed_err)
+	    break;
+    }
+    cout<<"RANSAC complete, iteration:" << i<<endl;
 }
 
 void computeColorTransform(vector<Vector3f>&src, vector<Vector3f>&dst, Matrix3f &transform){
