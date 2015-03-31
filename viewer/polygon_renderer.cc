@@ -799,44 +799,42 @@ void PolygonRenderer::AddTrianglesFromCeiling(Triangles* triangles) const {
 }
 
 void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
-  /*
+  // Avoid z-fight.
+  const double kShrink = 0.99;
   for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
-    {
-      Triangle triangle;
-      triangles.vertices[i] = 
+    Vector3d center(0, 0, 0);
+    for (int i = 0; i < floorplan.GetNumDoorVertices(door); ++i)
+      center += floorplan.GetDoorVertexGlobal(door, i);
+    center /= floorplan.GetNumDoorVertices(door);
+    
+    vector<Vector3i> indexes;
+    indexes.push_back(Vector3i(0, 1, 2));
+    indexes.push_back(Vector3i(2, 3, 0));
+    indexes.push_back(Vector3i(4, 5, 6));
+    indexes.push_back(Vector3i(6, 7, 4));
+    indexes.push_back(Vector3i(0, 3, 6));
+    indexes.push_back(Vector3i(6, 5, 0));
+    indexes.push_back(Vector3i(4, 7, 2));
+    indexes.push_back(Vector3i(2, 1, 4));
+    indexes.push_back(Vector3i(3, 2, 7));
+    indexes.push_back(Vector3i(7, 6, 3));
 
-        triangles.vertices[0] =
-
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);     
-
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);     
-
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);     
-
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 6)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 3)[0]);     
-   }
-    glEnd();
-  */
+    for (const auto& index : indexes) {
+      Triangle2 triangle;
+      for (int i = 0; i < 3; ++i) {
+        triangle.vertices[i] = floorplan.GetDoorVertexGlobal(door, index[i]);
+        triangle.vertices[i] = center + (triangle.vertices[i] - center) * kShrink;
+        
+        double color_scale = 1.0;
+        if (index[i] == 0 || index[i] == 1 || index[i] == 4 || index[i] == 5)
+          color_scale /= 3.0;
+        triangle.colors[i][0] = color_scale * 1.0;
+        triangle.colors[i][1] = color_scale * 1.0;
+        triangle.colors[i][2] = color_scale * 1.0;
+      }
+      triangles->push_back(triangle);
+    }
+  }
 }    
   
 void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
@@ -853,8 +851,8 @@ void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
   // (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
   
   Triangles triangles;
-  AddTrianglesFromWalls(&triangles);
-  AddTrianglesFromCeiling(&triangles);
+  //AddTrianglesFromWalls(&triangles);
+  //AddTrianglesFromCeiling(&triangles);
   AddTrianglesFromDoors(&triangles);
 
   for (auto& triangle : triangles) {
