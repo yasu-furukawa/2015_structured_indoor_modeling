@@ -47,7 +47,7 @@ void ObjectRenderer::Init(const string data_directory) {
     point_cloud.Init(file_io.GetRefinedObjectClouds(room));
 
     //?????
-    point_cloud.RandomSampleScale(0.03);
+//    point_cloud.RandomSampleScale(0.03);
 
     vertices[room].resize(point_cloud.GetNumObjects());
     colors[room].resize(point_cloud.GetNumObjects());

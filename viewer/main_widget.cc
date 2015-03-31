@@ -730,7 +730,8 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       break;
     }
     case kAir:
-    case kFloorplan: {
+    case kFloorplan:
+    case kTree: {
       diff /= 100.0;
       Vector3d direction = navigation.GetDirection();
       direction[2] = 0.0;

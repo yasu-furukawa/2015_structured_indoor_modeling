@@ -209,7 +209,6 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
 
           global = tree_organizer.TransformRoom(global,
                                                 room,
-                                                wall,
                                                 air_to_tree_progress,
                                                 animation,
                                                 max_vertical_shift);

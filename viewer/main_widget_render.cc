@@ -630,8 +630,6 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   const double kAlpha = 1.0;
 
   const int kInterval = 20 * 1000;
-  // const double animation = air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
-
   const int kNoAnimationPeriod = 1000;
   double animation = (max(0, object_animation_time.elapsed() - tree_entry_time - kNoAnimationPeriod) % kInterval) / static_cast<double>(kInterval);
   if (animation < 0.5)
@@ -639,22 +637,98 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   else
     animation = air_to_tree_progress * animation + (1.0 - air_to_tree_progress);
   
-  // air_to_tree_progress * ((object_animation_time.elapsed() - tree_entry_time) % kInterval) / static_cast<double>(kInterval);
-
-  
   const double building_height = navigation.GetAverageCeilingHeight() - navigation.GetAverageFloorHeight();
   const double kMaxShrinkRatio = 0.6;
   const double kMaxObjectShrinkRatio = 0.8;
-
-  const double kVerticalFloorplanRatio = 1.0;
-  const double kVerticalIndoorPolygonRatio = -0.5;
-  const double kVerticalObjectRatio = -1.75;
 
   const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   const Vector3d vertical = floorplan_to_global * Vector3d(0, 0, -1);
   const Vector3d direction = navigation.GetDirection();
   const Vector3d orthogonal = vertical.cross(direction);
   const Vector3d offset_direction = (orthogonal.cross(direction)).normalized();
+
+  const double kMaxShrinkScale = 0.7;
+  const Eigen::Vector3d vertical_floorplan       = 1.0   * building_height * offset_direction;
+  const Eigen::Vector3d vertical_top_line0       = 0.75  * building_height * offset_direction;
+  const Eigen::Vector3d vertical_top_line1       = -0.5 * building_height * offset_direction;
+  const Eigen::Vector3d vertical_indoor_polygon  = -0.5  * building_height * offset_direction;
+  const Eigen::Vector3d vertical_object          = -1.75 * building_height * offset_direction;
+  const Eigen::Vector3d vertical_bottom_line0    = -1.9  * building_height * offset_direction;
+  const Eigen::Vector3d vertical_boundary_top    = -1.5  * building_height * offset_direction;
+  const Eigen::Vector3d vertical_boundary_bottom = -2.4  * building_height * offset_direction;
+
+  // Lines for each room.
+  vector<pair<Vector3d, Vector3d> > top_lines, bottom_lines;
+
+  //SetTreeRenderingParameters();
+
+
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    const Vector2d local = floorplan.GetRoomCenterLocal(room);
+    const Vector3d floor_local(local[0], local[1], floorplan.GetFloorHeight(room));
+    const Vector3d ceiling_local(local[0], local[1], floorplan.GetCeilingHeight(room));
+    const Vector3d floor_global = floorplan.GetFloorplanToGlobal() * floor_local;
+    const Vector3d ceiling_global = floorplan.GetFloorplanToGlobal() * ceiling_local;
+    const Vector3d room_global = (floor_global + ceiling_global) / 2.0;
+
+    top_lines.push_back(make_pair(tree_organizer.TransformFloorplan(room_global,
+                                                                    air_to_tree_progress,
+                                                                    animation,
+                                                                    vertical_top_line0,
+                                                                    kMaxShrinkScale),
+                                  tree_organizer.TransformRoom(ceiling_global,
+                                                               room,
+                                                               air_to_tree_progress,
+                                                               animation,
+                                                               vertical_top_line1)));
+    bottom_lines.push_back(make_pair(tree_organizer.TransformRoom(floor_global,
+                                                                  room,
+                                                                  air_to_tree_progress,
+                                                                  animation,
+                                                                  vertical_indoor_polygon),
+                                     tree_organizer.TransformRoom(floor_global,
+                                                                  room,
+                                                                  air_to_tree_progress,
+                                                                  animation,
+                                                                  vertical_bottom_line0)));
+  }
+  vector<vector<Vector3d> > boundaries(floorplan.GetNumRooms());
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    double min_x = tree_organizer.room_configurations[room].bounding_box.min_xyz[0];
+    double max_x = tree_organizer.room_configurations[room].bounding_box.max_xyz[0];
+    const double center_x = tree_organizer.room_configurations[room].center[0];
+    const double kEnlarge = 1.1;
+    min_x = center_x + (min_x - center_x) * tree_organizer.room_configurations[room].scale * kEnlarge;
+    max_x = center_x + (max_x - center_x) * tree_organizer.room_configurations[room].scale * kEnlarge;
+    
+    Vector3d left(min_x,
+                  tree_organizer.room_configurations[room].center[1],
+                  tree_organizer.room_configurations[room].center[2]);
+    Vector3d right(max_x,
+                   tree_organizer.room_configurations[room].center[1],
+                   tree_organizer.room_configurations[room].center[2]);
+    
+    left += tree_organizer.room_configurations[room].displacement;
+    right += tree_organizer.room_configurations[room].displacement;
+
+    boundaries[room].push_back(tree_organizer.LocalToGlobal(left) + vertical_boundary_top);
+    boundaries[room].push_back(tree_organizer.LocalToGlobal(right) + vertical_boundary_top);
+    boundaries[room].push_back(tree_organizer.LocalToGlobal(right) + vertical_boundary_bottom);
+    boundaries[room].push_back(tree_organizer.LocalToGlobal(left) + vertical_boundary_bottom);
+
+    bottom_lines[room].second = (boundaries[room][0] + boundaries[room][1]) / 2.0;
+  }
+
+
+  double animation_alpha;
+  {
+    const double kMargin = 0.05;
+    const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
+    double diff = 1.0;
+    for (int i = 0; i < 4; ++i)
+      diff = min(diff, fabs(animation - pivots[i]));
+    animation_alpha = max(0.0, min(1.0, 2.0 * (kMargin - diff) / kMargin));
+  }
   
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
 
@@ -665,61 +739,43 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   }
   {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    const double kAlpha = 0.8; // 0.5;
+
+    // Draw lines first, because behind everything.
+    if (animation_alpha != 0.0) {
+      glEnable(GL_LINE_SMOOTH);
+      glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+      glLineWidth(2.0);
+      glDisable(GL_DEPTH_TEST);
+      glBegin(GL_LINES);
+      glColor4f(1.0, 1.0, 1.0, animation_alpha);
+      for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+        const Vector3d& start = top_lines[room].first;
+        const Vector3d& end = top_lines[room].second;
+        
+        glVertex3d(start[0], start[1], start[2]);
+        glVertex3d(end[0], end[1], end[2]);
+      }
+      glEnd();
+      glEnable(GL_DEPTH_TEST);
+    }
+    
+    const double kAlpha = 0.5;
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    const double kMaxShrinkScale = 0.7;
-    polygon_renderer.RenderColoredBoxes(kVerticalFloorplanRatio * building_height * offset_direction,
+    polygon_renderer.RenderColoredBoxes(tree_organizer,
+                                        vertical_floorplan,
                                         kMaxShrinkScale,
                                         air_to_tree_progress,
                                         animation,
                                         kAlpha,
-                                        tree_organizer.GetCenter(),
                                         navigation.GetCenter());
+    glEnable(GL_DEPTH_TEST);
+    
     glEnable(GL_CULL_FACE);
     glDisable(GL_BLEND);
-    /*
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_CULL_FACE);
-    {
-      glCullFace(GL_FRONT);
-      glDisable(GL_TEXTURE_2D);
-      polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5,
-                                                kAlpha * 0.2,
-                                                tree_organizer,
-                                                air_to_tree_progress,
-                                                animation,
-                                                kVerticalFloorplanRatio * building_height * offset_direction,
-                                                kMaxShrinkRatio);
-    }
-    
-    {
-      glCullFace(GL_BACK);
-      glEnable(GL_TEXTURE_2D);
-      polygon_renderer.RenderTextureMappedRooms(kAlpha,
-                                                kAlpha,
-                                                tree_organizer,
-                                                air_to_tree_progress,
-                                                animation,
-                                                kVerticalFloorplanRatio * building_height * offset_direction,
-                                                kMaxShrinkRatio);
-    }
-    
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_TEXTURE_2D);
-
-    {
-      polygon_renderer.RenderDoors(kAlpha * 0.2,
-                                   tree_organizer,
-                                   air_to_tree_progress,
-                                   animation,
-                                   kVerticalFloorplanRatio * building_height * offset_direction,
-                                   kMaxShrinkRatio);
-    }
-    */
-
     
     glPopAttrib();
   }
@@ -732,6 +788,36 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   }
   {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+    if (animation_alpha != 0.0) {
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glEnable(GL_LINE_SMOOTH);
+      glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+      glLineWidth(2.0);
+      glDisable(GL_DEPTH_TEST);
+      glBegin(GL_LINES);
+      glColor4f(1.0, 1.0, 1.0, animation_alpha);
+      for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+        const Vector3d& start = bottom_lines[room].first;
+        const Vector3d& end = bottom_lines[room].second;
+        glVertex3d(start[0], start[1], start[2]);
+        glVertex3d(end[0], end[1], end[2]);
+      }
+      glEnd();
+
+      for (const auto& boundary : boundaries) {
+        glBegin(GL_LINE_LOOP);
+        glColor4f(1.0, 1.0, 1.0, animation_alpha);
+        for (const auto& position : boundary)
+          glVertex3d(position[0], position[1], position[2]);
+        glEnd();
+      }
+      
+      glDisable(GL_BLEND);
+      glEnable(GL_DEPTH_TEST);
+    }
+    
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
     {
@@ -742,7 +828,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                                        tree_organizer,
                                                        air_to_tree_progress,
                                                        animation,
-                                                       kVerticalIndoorPolygonRatio * building_height * offset_direction,
+                                                       vertical_indoor_polygon,
                                                        kMaxShrinkRatio);
     }
     
@@ -753,7 +839,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                                        tree_organizer,
                                                        air_to_tree_progress,
                                                        animation,
-                                                       kVerticalIndoorPolygonRatio * building_height * offset_direction,
+                                                       vertical_indoor_polygon,
                                                        kMaxShrinkRatio);
     }
     
@@ -767,10 +853,11 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                               building_height,
                               air_to_tree_progress,
                               animation,
-                              kVerticalIndoorPolygonRatio * building_height * offset_direction,
-                              kVerticalObjectRatio * building_height * offset_direction,
+                              vertical_indoor_polygon,
+                              vertical_object,
                               kMaxShrinkRatio,
                               kMaxObjectShrinkRatio);
+  
     glPopAttrib();
   }
 

@@ -32,12 +32,14 @@ class PolygonRenderer : protected QGLFunctions {
                                 const Eigen::Vector3d& max_vertical_shift,
                                 const double max_shrink_ratio) const;
   void RenderDoors(const double alpha) const;
+  /*
   void RenderDoors(const double alpha,
                    const TreeOrganizer& tree_organizer,
                    const double air_to_tree_progress,
                    const double animation,
                    const Eigen::Vector3d& max_vertical_shift,
                    const double max_shrink_ratio) const;
+  */
   
   void RenderWallAll(const Eigen::Vector3d& center,
                      const double alpha,
@@ -47,12 +49,12 @@ class PolygonRenderer : protected QGLFunctions {
                      const int room_highlighted,
                      const bool render_room_id);
 
-  void RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shift,
+  void RenderColoredBoxes(const TreeOrganizer& tree_organizer,
+                          const Eigen::Vector3d& max_vertical_shift,
                           const double max_shrink_scale,
                           const double air_to_tree_progress,
                           const double animation,
                           const double alpha,
-                          const Eigen::Vector3d& room_center,
                           const Eigen::Vector3d& center);
   
   void RenderWireframeAll(const double alpha);

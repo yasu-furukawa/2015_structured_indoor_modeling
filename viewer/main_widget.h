@@ -175,7 +175,9 @@ private:
     void RenderPanoramaToFloorplanTransition(const bool flip = false);
     void RenderAirToFloorplanTransition(const bool flip = false);
     void RenderTree(const double air_to_tree_progress);
-    int FindRoomHighlighted(const Eigen::Vector2i& pixel);    
+    int FindRoomHighlighted(const Eigen::Vector2i& pixel);
+
+    //void SetTreeRenderingParameters();
 
     double ObjectAnimationPosition() const;
     bool ObjectAnimation() const;

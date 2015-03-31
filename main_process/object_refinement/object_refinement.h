@@ -17,7 +17,7 @@ void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector
 void AllRange(std::vector<int>&array, std::vector<std::vector<int> >&result, int k, int m);
 
 
-void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup);
+void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup, const int roomid);
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
 
@@ -58,6 +58,8 @@ void MRFOptimizeLabels(const std::vector<int>&superpixelConfidence,  const std::
 
 void MRFOptimizeLabels_multiLayer(const std::vector< std::vector<double> >&superpixelConfidence, const std::map<std::pair<int,int>,int> &pairmap, const std::vector< Eigen::Vector3d> &averageRGB,  float smoothweight, int numlabels, std::vector <int> &superpixelLabel);
 
+void colorTransform_RANSAC(std::vector<Eigen::Vector3f>&src, std::vector<Eigen::Vector3f>&dst, Eigen::Matrix3f& transform, const int maxiter = 1000);
+    
 void computeColorTransform(std::vector<Eigen::Vector3f>&src, std::vector<Eigen::Vector3f>&dst, Eigen::Matrix3f& transform);
 
 void mergeObject(std::vector<std::vector<std::list<structured_indoor_modeling::PointCloud> > >&objectlist , const std::vector<structured_indoor_modeling::PointCloud> &objectcloud, std::vector<structured_indoor_modeling::PointCloud> &resultcloud);

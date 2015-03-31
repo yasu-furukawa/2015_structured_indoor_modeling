@@ -277,7 +277,6 @@ void TreeOrganizer::SetDisplacements() {
 
 Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
                                              const int room,
-                                             const int wall,
                                              const double progress,
                                              const double animation,
                                              const Eigen::Vector3d& max_vertical_shift) const {
@@ -342,8 +341,7 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
   rotation(2, 1) = 0.0;
   rotation(2, 2) = 1.0;
 
-  const int kNoWall = -1;
-  const Vector3d global_as_room = TransformRoom(global, room, kNoWall, progress, animation, room_max_vertical_shift);
+  const Vector3d global_as_room = TransformRoom(global, room, progress, animation, room_max_vertical_shift);
   
   if (progress < 0.5) {
     return global_as_room;
@@ -362,8 +360,6 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
     const double progress2 = 2.0 * (progress - 0.5);
     return progress2 * final_position + (1.0 - progress2) * global_as_room;
   }
-    
-
   
     /*
   const double scale = (1.0 - progress) * 1.0 + progress * object_configurations[room][object].scale;
@@ -385,4 +381,22 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
   return global_displacement + LocalToGlobal(local);
   */
 }
+
+
+Eigen::Vector3d TreeOrganizer::TransformFloorplan(const Vector3d& global,
+                                                  const double air_to_tree_progress,
+                                                  const double animation,
+                                                  const Eigen::Vector3d& max_vertical_shift,
+                                                  const double max_shrink_scale) const {
+  const double shrink_scale =
+    (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
+  const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
+
+  return center + (global - center) * shrink_scale + vertical_shift;
+}
+
+const Eigen::Vector3d TreeOrganizer::GetObjectCenter(const int room, const int object) const {
+  return LocalToGlobal(object_configurations[room][object].center);
+}
+  
 }  // namespace structured_indoor_modeling
