@@ -802,21 +802,28 @@ void PolygonRenderer::AddTrianglesFromCeiling(Triangles* triangles) const {
 }
 
 void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
-  /*
   for (int door = 0; door < floorplan.GetNumDoors(); ++door) {
     {
-      Triangle triangle;
-      triangles.vertices[i] = 
+      Triangle2 triangle;
+      triangle.vertices[0] = floorplan.GetDoorVertexGlobal(door, );
+      triangle.vertices[1] = floorplan.GetDoorVertexGlobal(door, );
+      triangle.vertices[2] = floorplan.GetDoorVertexGlobal(door, );
 
-        triangles.vertices[0] =
+      triangle.colors[0] = 0.5;
+      triangle.colors[1] = 0.5;
+      triangle.colors[2] = 0.5;
+      triangles->push_back(triangle2);
+    }
 
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 4)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 5)[0]);
-     glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 0)[0]);     
+    
+        4 7 2 1
+        0 3 6 5
+        0 1 2 3
+        4 5 6 7
+        2 3 6 7
+        
 
+        
      glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 1)[0]);
      glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 2)[0]);
      glVertex3dv(&floorplan.GetDoorVertexGlobal(door, 7)[0]);
