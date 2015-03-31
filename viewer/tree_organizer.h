@@ -73,8 +73,9 @@ class TreeOrganizer {
   
   const Eigen::Vector3d& GetCenter() const { return center; }
   const Eigen::Vector3d GetObjectCenter(const int room, const int object) const;
-  
- private:
+
+  //???
+  // private:
   void InitCenter();
   void InitBoundingBoxes();
   void InitTreeConfigurationCenter();
