@@ -71,15 +71,14 @@ int main(int argc, char **argv){
     ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
 
     for(int roomid=0; roomid<objectcloud.size(); roomid++){
-	 // for(int objid=0; objid<objectgroup[roomid].size(); objid++){
-	 //      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
-	 //      objectcloud[roomid].WriteObject(string(buffer), objid);
-	 // }
+	 for(int objid=0; objid<objectgroup[roomid].size(); objid++){
+	      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
+	      objectcloud[roomid].WriteObject(string(buffer), objid);
+	 }
 	cout<<"---------------------"<<endl;
 	cout<<"Room "<<roomid<<endl;
 	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid], roomid);
-	sprintf(buffer,"temp/object_colored_room%03d.ply",roomid);
-	objectcloud[roomid].Write(string(buffer));
+	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
     }
 
     //debug for Allrange
