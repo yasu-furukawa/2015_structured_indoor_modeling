@@ -463,7 +463,6 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
             // Move wall vertex closer to the centers.
             position = tree_organizer.TransformRoom(position,
                                                     room,
-                                                    wall,
                                                     air_to_tree_progress,
                                                     animation,
                                                     max_vertical_shift);
@@ -483,11 +482,9 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
           // Make floor darker ?.
           // glColor4f(alpha / 2.0, alpha / 2.0, alpha / 2.0, 1.0);
           const int index = triangle.indices[i];
-          const int kNotWall = -1;
           Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
           position = tree_organizer.TransformRoom(position,
                                                   room,
-                                                  kNotWall,
                                                   air_to_tree_progress,
                                                   animation,
                                                   max_vertical_shift);
@@ -842,17 +839,18 @@ void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
   */
 }    
   
-void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shift,
+void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
+                                         const Eigen::Vector3d& max_vertical_shift,
                                          const double max_shrink_scale,
                                          const double air_to_tree_progress,
                                          const double animation,
                                          const double alpha,
                                          const Eigen::Vector3d& room_center,
                                          const Eigen::Vector3d& center) {
-  const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-  const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
-  const double shrink_scale =
-    (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
+  // const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  // const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
+  // const double shrink_scale =
+  // (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
   
   Triangles triangles;
   AddTrianglesFromWalls(&triangles);
@@ -861,8 +859,13 @@ void PolygonRenderer::RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shi
 
   for (auto& triangle : triangles) {
     for (int i = 0; i < 3; ++i) {
-      triangle.vertices[i] = room_center + (triangle.vertices[i] - room_center) * shrink_scale;
-      triangle.vertices[i] += vertical_shift;
+      triangle.vertices[i] = tree_organizer.TransformFloorplan(triangle.vertices[i],
+                                                               air_to_tree_progress,
+                                                               animation,
+                                                               max_vertical_shift,
+                                                               max_shrink_scale);
+      // triangle.vertices[i] = room_center + (triangle.vertices[i] - room_center) * shrink_scale;
+      // triangle.vertices[i] += vertical_shift;
     }
   }
   

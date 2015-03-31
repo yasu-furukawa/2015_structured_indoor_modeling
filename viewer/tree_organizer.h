@@ -53,7 +53,6 @@ class TreeOrganizer {
 
   Eigen::Vector3d TransformRoom(const Vector3d& global,
                                 const int room,
-                                const int wall,
                                 const double progress,
                                 const double animation,
                                 const Eigen::Vector3d& max_vertical_shift) const;
@@ -66,7 +65,14 @@ class TreeOrganizer {
                                   const Eigen::Vector3d& room_max_vertical_shift,
                                   const Eigen::Vector3d& object_max_vertical_shift) const;
 
+  Eigen::Vector3d TransformFloorplan(const Vector3d& global,
+                                     const double air_to_tree_progress,
+                                     const double animation,
+                                     const Eigen::Vector3d& max_vertical_shift,
+                                     const double max_shrink_scale) const;
+  
   const Eigen::Vector3d& GetCenter() const { return center; }
+  const Eigen::Vector3d GetObjectCenter(const int room, const int object) const;
   
  private:
   void InitCenter();

@@ -515,15 +515,20 @@ void ReportErrors(const FileIO& file_io,
   {
     ofstream ofstr;
     ofstr.open(file_io.GetErrorHistogram(prefix).c_str());
-    ofstr << "# Histogram of errors (floor, ceiling, wall, door, object, hole)." << endl;
-    for (const auto& type : all_geometry_types) {
-      for (int p = 0; p < (int)panoramas.size(); ++p) {
+    ofstr << "#_Histogram_of_errors_(floor,ceiling,wall,door,object,hole)." << endl
+          << "For_each_panorama,_the_file_contains_a_histogram." << endl
+          << (int)panoramas.size() << " panoramas." << endl
+          << (int)all_geometry_types.size() << " types." << endl;
+    for (int p = 0; p < (int)panoramas.size(); ++p) {
+      for (const auto& type : all_geometry_types) {
 	const auto& histogram = error_histograms[p][type];
+        ofstr << (int)histogram.size() << endl;
 	for (const auto& value : histogram) {
 	  ofstr << value << ' ';
 	}
+        ofstr << endl;
       }
-      ofstr << endl << endl;
+      ofstr << endl;
     }
     ofstr.close();
   }

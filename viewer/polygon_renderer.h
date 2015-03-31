@@ -47,7 +47,8 @@ class PolygonRenderer : protected QGLFunctions {
                      const int room_highlighted,
                      const bool render_room_id);
 
-  void RenderColoredBoxes(const Eigen::Vector3d& max_vertical_shift,
+  void RenderColoredBoxes(const TreeOrganizer& tree_organizer,
+                          const Eigen::Vector3d& max_vertical_shift,
                           const double max_shrink_scale,
                           const double air_to_tree_progress,
                           const double animation,
