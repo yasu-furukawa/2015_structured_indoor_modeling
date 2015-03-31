@@ -742,6 +742,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     const double kAlpha = 0.5;
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     polygon_renderer.RenderColoredBoxes(tree_organizer,
@@ -750,8 +751,8 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
                                         air_to_tree_progress,
                                         animation,
                                         kAlpha,
-                                        tree_organizer.GetCenter(),
                                         navigation.GetCenter());
+    glEnable(GL_DEPTH_TEST);
 
     // Draw lines first, because behind everything.
     if (animation_alpha != 0.0) {

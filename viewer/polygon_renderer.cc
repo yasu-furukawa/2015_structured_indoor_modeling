@@ -127,17 +127,20 @@ void SortTriangles(const Eigen::Vector3d& center, Triangles* triangles) {
   // This is not exact, but should be fine.
   Triangles new_triangles;
   vector<pair<double, int> > weight_triangle_id(triangles->size());
+  
   for (int t = 0; t < (int)triangles->size(); ++t) {
     const Vector3d triangle_center = (triangles->at(t).vertices[0] +
                                       triangles->at(t).vertices[1] +
                                       triangles->at(t).vertices[2]) / 3.0;
     weight_triangle_id[t] = make_pair((center - triangle_center).norm(), t);
   }
+
   sort(weight_triangle_id.rbegin(), weight_triangle_id.rend());
 
   new_triangles.resize(triangles->size());
-  for (int t = 0; t < (int)triangles->size(); ++t)
+  for (int t = 0; t < (int)triangles->size(); ++t) {
     new_triangles[t] = triangles->at(weight_triangle_id[t].second);
+  }
 
   triangles->swap(new_triangles);
 }
@@ -412,7 +415,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                const double air_to_tree_progress,
                                                const double animation,
                                                const Eigen::Vector3d& max_vertical_shift,
-                                               const double max_shrink_ratio) const {
+                                               const double /*max_shrink_ratio*/) const {
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
     glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
@@ -596,6 +599,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
   */
 }
 
+  /*
 void PolygonRenderer::RenderDoors(const double alpha,
                                   const TreeOrganizer& tree_organizer,
                                   const double air_to_tree_progress,
@@ -604,6 +608,7 @@ void PolygonRenderer::RenderDoors(const double alpha,
                                   const double max_shrink_ratio) const {
   //???
 }
+  */
   
 void PolygonRenderer::SetTargetCeilingHeights(const Eigen::Vector3d& center,
                                               const bool depth_order_height_adjustment,
@@ -814,6 +819,7 @@ void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
     indexes.push_back(Vector3i(6, 7, 4));
     indexes.push_back(Vector3i(0, 3, 6));
     indexes.push_back(Vector3i(6, 5, 0));
+
     indexes.push_back(Vector3i(4, 7, 2));
     indexes.push_back(Vector3i(2, 1, 4));
     indexes.push_back(Vector3i(3, 2, 7));
@@ -835,7 +841,7 @@ void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
       triangles->push_back(triangle);
     }
   }
-}    
+}
   
 void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
                                          const Eigen::Vector3d& max_vertical_shift,
@@ -843,7 +849,6 @@ void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
                                          const double air_to_tree_progress,
                                          const double animation,
                                          const double alpha,
-                                         const Eigen::Vector3d& room_center,
                                          const Eigen::Vector3d& center) {
   // const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
   // const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
@@ -851,9 +856,9 @@ void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
   // (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
   
   Triangles triangles;
-  //AddTrianglesFromWalls(&triangles);
-  //AddTrianglesFromCeiling(&triangles);
-  AddTrianglesFromDoors(&triangles);
+  AddTrianglesFromWalls(&triangles);
+  AddTrianglesFromCeiling(&triangles);
+  // AddTrianglesFromDoors(&triangles);
 
   for (auto& triangle : triangles) {
     for (int i = 0; i < 3; ++i) {
@@ -862,8 +867,6 @@ void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
                                                                animation,
                                                                max_vertical_shift,
                                                                max_shrink_scale);
-      // triangle.vertices[i] = room_center + (triangle.vertices[i] - room_center) * shrink_scale;
-      // triangle.vertices[i] += vertical_shift;
     }
   }
   
