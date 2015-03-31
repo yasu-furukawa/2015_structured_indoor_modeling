@@ -79,6 +79,7 @@ int main(int argc, char **argv){
 	cout<<"Room "<<roomid<<endl;
 	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid], roomid);
 	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
+	cleanObjects(objectcloud[roomid],1e5);
     }
 
     //debug for Allrange

@@ -104,6 +104,7 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
     const int pansize = panorama.size();
     const int min_point_num = 100;
     const double min_assigned_ratio = 0.98;
+    const double num_weight = 10000;
 
     vector<bool>assigned(objectcloud.GetNumPoints());
     vector<bool>is_used(pansize);
@@ -167,8 +168,8 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		    if(!assigned[ptid])
 			curcoveragegain += 1.0;
 		}
-		if(curcoveragegain * 1000.0 / averagedis[panid] > max_score){
-		    max_score = curcoveragegain * 1000.0 / averagedis[panid];
+		if(curcoveragegain * num_weight / averagedis[panid] > max_score){
+		    max_score = curcoveragegain * num_weight / averagedis[panid];
 		    max_panid = panid;
 		}
 	    }
@@ -215,6 +216,12 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
 		swap(curColor[0], curColor[2]);
 		Vector3f color_to_assigned =  colorTransform*curColor;
+		
+		if(color_to_assigned[0]<0||color_to_assigned[0]>255||
+		   color_to_assigned[1]<0||color_to_assigned[1]>255||
+		   color_to_assigned[2]<0||color_to_assigned[2]>255)
+		    color_to_assigned = curColor;
+		  
 		objectcloud.SetColor(ptid, color_to_assigned);
 		assigned[ptid] = true;
 	    }
