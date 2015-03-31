@@ -360,7 +360,8 @@ void ShrinkTexture(const int shrink_pixels, Patch* patch) {
   }
 }
 
-void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
+void SynthesizePatch(const int patch_size_for_synthesis,
+                     const std::vector<cv::Mat>& projected_textures,
                      const bool vertical_constraint,
                      Patch* patch) {
   SynthesisData synthesis_data(projected_textures);
@@ -368,7 +369,9 @@ void SynthesizePatch(const std::vector<cv::Mat>& projected_textures,
   const int kMinPatchSize = 4;
   synthesis_data.num_cg_iterations = 50;
   synthesis_data.texture_size = patch->texture_size;
-  synthesis_data.patch_size = max(kMinPatchSize, min(80, min(patch->texture_size[0], patch->texture_size[1])));
+  synthesis_data.patch_size =
+    max(kMinPatchSize, min(80, min(patch_size_for_synthesis, min(patch->texture_size[0], patch->texture_size[1]))));
+  
   synthesis_data.margin = synthesis_data.patch_size / 4;
   synthesis_data.mask.resize(patch->texture_size[0] * patch->texture_size[1], true);
 
@@ -637,7 +640,7 @@ void SetPatch(const TextureInput& texture_input,
       }
     } else {
       const bool kNoVerticalConstraint = false;     
-      SynthesizePatch(projected_textures, kNoVerticalConstraint, patch);
+      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, kNoVerticalConstraint, patch);
     }    
   } else {
     // Pick the best one and inpaint.
@@ -674,7 +677,7 @@ void SetPatch(const TextureInput& texture_input,
       
       projected_textures.push_back(projected_texture);
       
-      SynthesizePatch(projected_textures, kVerticalConstraint, patch);
+      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, kVerticalConstraint, patch);
     }
   }  
 }
