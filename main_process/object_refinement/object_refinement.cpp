@@ -99,12 +99,11 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
     }
 }
 void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, const int roomid){
-    const double depth_margin = 50;
+    const double depth_margin = 60.0;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
-    const int min_point_num = 100;
     const double min_assigned_ratio = 0.98;
-    const double num_weight = 10000;
+    const double max_averagedis = 5000.0;
 
     vector<bool>assigned(objectcloud.GetNumPoints());
     vector<bool>is_used(pansize);
@@ -113,12 +112,6 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
     vector<int>point_to_remove;
 
     for(int objid=0; objid<objectgroup.size(); objid++){
-	//remove small objects
-	if(objectgroup[objid].size() < min_point_num){
-	    for(const auto& ptid: objectgroup[objid])
-		point_to_remove.push_back(ptid);
-	    continue;
-	}
 	for(const auto&v: objectgroup[objid])
 	    assigned[v] = false;
 	for(auto &v: averagedis)
@@ -168,8 +161,8 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		    if(!assigned[ptid])
 			curcoveragegain += 1.0;
 		}
-		if(curcoveragegain * num_weight / averagedis[panid] > max_score){
-		    max_score = curcoveragegain * num_weight / averagedis[panid];
+		if(curcoveragegain > max_score && averagedis[panid] < max_averagedis){
+		    max_score = curcoveragegain;
 		    max_panid = panid;
 		}
 	    }
@@ -185,8 +178,6 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	for(const auto&v: pan_selected)
 	    cout<<v<<' ';
 	cout<<endl;
-	
-	
 #endif
 
 	//assign color
@@ -225,14 +216,14 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		objectcloud.SetColor(ptid, color_to_assigned);
 		assigned[ptid] = true;
 	    }
-	    PointCloud curout;
-	    vector<structured_indoor_modeling::Point>point_to_add;
-	    for(const auto& ptid: point_list[panid])
-		point_to_add.push_back(objectcloud.GetPoint(ptid));
-	    curout.AddPoints(point_to_add);
-	    char buffer[100];
-	    sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_2.ply",roomid, objid, panid);
-	    curout.Write(string(buffer));
+	    // PointCloud curout;
+	    // vector<structured_indoor_modeling::Point>point_to_add;
+	    // for(const auto& ptid: point_list[panid])
+	    // 	point_to_add.push_back(objectcloud.GetPoint(ptid));
+	    // curout.AddPoints(point_to_add);
+	    // char buffer[100];
+	    // sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_ori.ply",roomid, objid, panid);
+	    // curout.Write(string(buffer));
 	}
 
 	//remove unassigned points
@@ -433,33 +424,13 @@ bool visibilityTest(const structured_indoor_modeling::Point &pt, const structure
 }
 
 
-int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup, vector<double>&objectVolume){
-
+int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup){
     objectgroup.resize(point_cloud.GetNumObjects());
-    objectVolume.resize(point_cloud.GetNumObjects());
-
-    vector <vector <double> >boundingbox(objectgroup.size());
-    for(int i=0;i<boundingbox.size();i++){
-	boundingbox[i].resize(6);
-	boundingbox[i][0] = 1e100; boundingbox[i][1] = -1e100;
-	boundingbox[i][2] = 1e100; boundingbox[i][3] = -1e100;
-	boundingbox[i][4] = 1e100; boundingbox[i][5] = -1e100;
-    }
     for(int i=0;i<point_cloud.GetNumPoints();++i){
 	structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
 	int curid = curpt.object_id;
-	boundingbox[curid][0] = min(boundingbox[curid][0],curpt.position[0]);
-	boundingbox[curid][1] = max(boundingbox[curid][1],curpt.position[0]);
-	boundingbox[curid][2] = min(boundingbox[curid][2],curpt.position[1]);
-	boundingbox[curid][3] = max(boundingbox[curid][3],curpt.position[1]);
-	boundingbox[curid][4] = min(boundingbox[curid][4],curpt.position[2]);
-	boundingbox[curid][5] = max(boundingbox[curid][5],curpt.position[2]);
 	objectgroup[curid].push_back(i);
     }
-    for(int i=0;i<boundingbox.size();i++){
-	objectVolume[i] = (boundingbox[i][1] - boundingbox[i][0])*(boundingbox[i][3] - boundingbox[i][2]) * (boundingbox[i][5] - boundingbox[i][4]);
-    }
-  
     return (int)objectgroup.size();
 }
 
@@ -544,11 +515,11 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 
-void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup, vector <vector <double> >&objectVolume){
+void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup){
     int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
-	string filename_wall = file_io.GetFloorWallPointClouds(roomid++);
+	string filename_wall = file_io.GetFloorWallPointClouds(roomid);
 
 	ifstream fin(filename_wall.c_str());
 	if(!fin.is_open())
@@ -558,29 +529,50 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	PointCloud curob, curwall;
 	cout<< "Reading " << filename<<endl;
 	curob.Init(filename);
-//	cout<< "Reading " << filename_wall<<endl;
-//	curwall.Init(filename_wall);
-//	for(int i=0;i<curwall.GetNumPoints();i++){
-//	    curwall.GetPoint(i).object_id = 0 ;
-//	}
+	// cout<< "Reading " << filename_wall<<endl;
+	// curwall.Init(filename_wall);
+	// const vector<double> room_bbox = curwall.GetBoundingbox();
+	
+	//perform cleaning, remove floating objects and small objects
+	Floorplan plan(file_io.GetFloorplan());
+	const double floorheight = plan.GetFloorHeight(roomid);
+	const double ceilingheight = plan.GetCeilingHeight(roomid);
+	const double max_z = floorheight + (ceilingheight - floorheight) * 0.5;
+//	const double max_z = room_bbox[4] + (room_bbox[5] - room_bbox[4]) * 0.5;
+	const double min_points_num = 1000;
+	const double min_points_size = 1e7;
+	const Matrix3d transform_to_floorplan = plan.GetFloorplanToGlobal().transpose();
+	
+	vector <vector <int> >tempgroup;
+	vector <int>points_to_remove;
+	
+	groupObject(curob, tempgroup);
+	for(int objid=0; objid<tempgroup.size(); objid++){
+	    bool isremove = false;
+	    vector<double>object_bbox;
+	    curob.GetObjectBoundingbox(objid, object_bbox);
+	    double curvolume = curob.GetObjectBoundingboxVolume(objid);
+	    if((curvolume < min_points_size) || (tempgroup[objid].size()<min_points_num))
+		isremove = true;
+	    Vector3d lowest(0.0,0.0,object_bbox[4]);
+	    Vector3d lowest_floor = transform_to_floorplan * lowest;
+	    if(lowest_floor[2] > max_z)
+		isremove = true;
+//	    if(object_bbox[4] > max_z)
+//		isremove = true;
 
-//	curob.AddPoints(curwall);
-
-	//remove roof
-	const vector <double> bounding_box  = curob.GetBoundingbox();
-	const double max_z = bounding_box[4] + (bounding_box[5] - bounding_box[4]) * 0.7; //remove ceil points
-	vector<int>roofpoint;
-	for(int ptid=0; ptid<curob.GetNumPoints(); ptid++){
-	    if(curob.GetPoint(ptid).position[2] > max_z)
-		roofpoint.push_back(ptid);
+	    if(isremove){
+		vector<int>points_to_remove;
+		curob.GetObjectIndice(objid, points_to_remove);
+		curob.RemovePoints(points_to_remove);
+	    }
 	}
-	curob.RemovePoints(roofpoint);
-	objectCloud.push_back(curob);
+	cleanObjects(curob);
 	vector <vector <int> > curgroup;
-	vector <double> curvolume;
-	groupObject(curob, curgroup, curvolume);
+	groupObject(curob, curgroup);
 	objectgroup.push_back(curgroup);
-	objectVolume.push_back(curvolume);
+	objectCloud.push_back(curob);
+	roomid++;
     }
 }
 
@@ -1001,8 +993,7 @@ void mergeObject(vector<vector<list<PointCloud> > >&objectlist, const vector<Poi
 }
 
 //remove small objects, re-assign object id
-void cleanObjects(PointCloud &pc, const double min_volume){
-
+void cleanObjects(PointCloud &pc){
     //reassign object_id
     vector<int>objectid;
     vector<bool>hash(pc.GetNumObjects());

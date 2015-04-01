@@ -55,7 +55,6 @@ int main(int argc, char **argv){
     vector <PointCloud> objectcloud;
     vector <PointCloud> backgroundCloud;
     vector <vector <vector<int> > >objectgroup;
-    vector <vector <double> > objectvolume;
     vector <Panorama> panorama;
     vector <vector <int> >labels;
     vector <int> numlabels;
@@ -68,7 +67,7 @@ int main(int argc, char **argv){
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid, FLAGS_recompute);
-    ReadObjectCloud(file_io, objectcloud, objectgroup, objectvolume);
+    ReadObjectCloud(file_io, objectcloud, objectgroup);
 
     for(int roomid=0; roomid<objectcloud.size(); roomid++){
 	 for(int objid=0; objid<objectgroup[roomid].size(); objid++){
@@ -79,7 +78,7 @@ int main(int argc, char **argv){
 	cout<<"Room "<<roomid<<endl;
 	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid], roomid);
 	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
-	cleanObjects(objectcloud[roomid],1e5);
+	cleanObjects(objectcloud[roomid]);
     }
 
     //debug for Allrange

@@ -328,7 +328,7 @@ double PointCloud::GetBoundingboxVolume(){
 double PointCloud::GetObjectBoundingboxVolume(const int objectid){
     vector<double>bbox;
     GetObjectBoundingbox(objectid, bbox);
-    if(bbox[1] < bbox[0] || bbox[3] > bbox[2] || bbox[5] < bbox[4])
+    if(bbox[1] <= bbox[0] || bbox[3] <= bbox[2] || bbox[5] <= bbox[4])
 	return 0;
     return (bbox[1]-bbox[0]) * (bbox[3] - bbox[2]) * (bbox[5] - bbox[4]);
 }
