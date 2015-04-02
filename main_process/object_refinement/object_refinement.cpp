@@ -55,34 +55,34 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	// depth[curid].SaveDepthmap(string(buffer));
 
 	
-	// labels[curid].resize(imgwidth*imgheight);
+	labels[curid].resize(imgwidth*imgheight);
 
-	// ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
-	// if(!labelin.is_open() || recompute){
-	//     cout<<"Performing SLICO Superpixel..."<<endl;
-	//     Mat pan = panorama[curid].GetRGBImage().clone();
-	//     SLIC slic;
-	//     vector<unsigned int>imagebuffer;
-	//     MatToImagebuffer(pan, imagebuffer);
-	//     slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
-	//     slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
-	//     sprintf(buffer,"superpixel/SLIC%03d",id);
-	//     slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
-	//     cout<<"numlabels: "<<numlabels[curid]<<endl;
-	//     Mat out;
-	//     ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
-	//     sprintf(buffer,"superpixel/SLIC%03d.png",id); 
-	//     imwrite(buffer,out);
-	//     waitKey(10);
-	// }else{
-	//     cout <<"Reading superpixel from file"<<endl;
-	//     labelin.read((char*)&numlabels[curid], sizeof(int));
-	//     for(int i=0;i<labels[curid].size();i++){
-	// 	labelin.read((char*)&labels[curid][i], sizeof(int));
-	//     }
-	//     labelin.close();
-	// }
-	// cout<<endl;
+	ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
+	if(!labelin.is_open() || recompute){
+	    cout<<"Performing SLICO Superpixel..."<<endl;
+	    Mat pan = panorama[curid].GetRGBImage().clone();
+	    SLIC slic;
+	    vector<unsigned int>imagebuffer;
+	    MatToImagebuffer(pan, imagebuffer);
+	    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
+	    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
+	    sprintf(buffer,"superpixel/SLIC%03d",id);
+	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
+	    cout<<"numlabels: "<<numlabels[curid]<<endl;
+	    Mat out;
+	    ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
+	    sprintf(buffer,"superpixel/SLIC%03d.png",id); 
+	    imwrite(buffer,out);
+	    waitKey(10);
+	}else{
+	    cout <<"Reading superpixel from file"<<endl;
+	    labelin.read((char*)&numlabels[curid], sizeof(int));
+	    for(int i=0;i<labels[curid].size();i++){
+		labelin.read((char*)&labels[curid][i], sizeof(int));
+	    }
+	    labelin.close();
+	}
+	cout<<endl;
     }
 }
 
@@ -98,12 +98,14 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
 	}
     }
 }
-void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, const int roomid){
-    const double depth_margin = 60.0;
+
+void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, vector< vector<int> >&object_panorama, const int roomid){
+    const double depth_margin = 50.0;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
     const double min_assigned_ratio = 0.98;
     const double max_averagedis = 5000.0;
+    char buffer[100];
 
     vector<bool>assigned(objectcloud.GetNumPoints());
     vector<bool>is_used(pansize);
@@ -180,15 +182,24 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	cout<<endl;
 #endif
 
+	object_panorama.push_back(pan_selected);
 	//assign color
 	for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
 	    assigned[ptid] = false;
 	for(const auto& panid: pan_selected){
+	    
+	    Mat panout = panorama[panid].GetRGBImage().clone();
+	    
 	    vector<Vector3f>color_src;
 	    vector<Vector3f>color_tgt;
 	    for(const auto& ptid: point_list[panid]){
 		Vector3d curpt = objectcloud.GetPoint(ptid).position;
 		Vector2d RGB_pix = panorama[panid].Project(curpt);
+		
+		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[0] = 255;
+		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[1] /= 2;
+		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[2] /= 2;
+		
 		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
 		swap(curColor[0],curColor[2]);
 		if(assigned[ptid]){
@@ -196,6 +207,12 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		    color_tgt.push_back(objectcloud.GetPoint(ptid).color);
 		}
 	    }
+	    
+	    sprintf(buffer,"temp/room%03d_obj%03d_pan%03d.png", roomid, objid, panid);
+	    imwrite(string(buffer), panout);
+	    waitKey(10);
+
+	    
 	    Matrix3f colorTransform = Matrix3f::Identity();
 	    if(color_src.size() > min_overlap_points)
 		computeColorTransform(color_src, color_tgt, colorTransform);
@@ -216,14 +233,14 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		objectcloud.SetColor(ptid, color_to_assigned);
 		assigned[ptid] = true;
 	    }
-	    // PointCloud curout;
-	    // vector<structured_indoor_modeling::Point>point_to_add;
-	    // for(const auto& ptid: point_list[panid])
-	    // 	point_to_add.push_back(objectcloud.GetPoint(ptid));
-	    // curout.AddPoints(point_to_add);
-	    // char buffer[100];
-	    // sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_ori.ply",roomid, objid, panid);
-	    // curout.Write(string(buffer));
+	    PointCloud curout;
+	    vector<structured_indoor_modeling::Point>point_to_add;
+	    for(const auto& ptid: point_list[panid])
+	    	point_to_add.push_back(objectcloud.GetPoint(ptid));
+	    curout.AddPoints(point_to_add);
+
+	    sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_ori.ply",roomid, objid, panid);
+	    curout.Write(string(buffer));
 	}
 
 	//remove unassigned points

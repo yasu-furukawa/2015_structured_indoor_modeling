@@ -18,7 +18,7 @@ void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector
 void AllRange(std::vector<int>&array, std::vector<std::vector<int> >&result, int k, int m);
 
 
-void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup, const int roomid);
+void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup, std::vector<std::vector<int> >&object_panorama, const int roomid);
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
 

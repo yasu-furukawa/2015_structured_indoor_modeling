@@ -106,7 +106,7 @@ bool ProcessRoom(const FileIO& file_io,
   ReportSegments(segments);
   
   cout << "SmoothObjects..." << flush;
-  const int kSmoothTime = 5;
+  const int kSmoothTime = 0;
   for (int t = 0; t < kSmoothTime; ++t)
     SmoothObjects(neighbors, &points);
   cout << "done." << endl;

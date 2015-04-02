@@ -20,10 +20,10 @@ using namespace Eigen;
 using namespace structured_indoor_modeling;
 
 
-DEFINE_int32(label_num,20000,"Number of superpixel");
+DEFINE_int32(label_num,12000,"Number of superpixel");
 DEFINE_double(smoothness_weight,0.15,"Weight of smoothness term");
 DEFINE_int32(start_id, 0,"Start id");
-DEFINE_int32(end_id,3, "End id");
+DEFINE_int32(end_id,-1, "End id");
 DEFINE_bool(recompute, false, "Recompute superpixel");
 
 int main(int argc, char **argv){
@@ -44,7 +44,7 @@ int main(int argc, char **argv){
     FileIO file_io(argv[1]);
 
     const int &startid = FLAGS_start_id;
-    const int &endid = FLAGS_end_id;
+    const int &endid = GetNumPanoramas(file_io) - 1;
 
     clock_t start,end;
     start = clock();
@@ -62,83 +62,73 @@ int main(int argc, char **argv){
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
     vector < vector<list<PointCloud> > > objectlist; //room->object->object part
     vector<DepthFilling> depth(endid - startid + 1);
-    vector <vector<list<PointCloud> > > input_objectlist;
+    vector< vector< vector <int> > > object_panorama;  // room->object->list_of_panoramaid
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid, FLAGS_recompute);
     ReadObjectCloud(file_io, objectcloud, objectgroup);
+    object_panorama.resize(objectcloud.size());
 
-    for(int roomid=0; roomid<objectcloud.size(); roomid++){
-	 for(int objid=0; objid<objectgroup[roomid].size(); objid++){
-	      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
-	      objectcloud[roomid].WriteObject(string(buffer), objid);
-	 }
-	cout<<"---------------------"<<endl;
-	cout<<"Room "<<roomid<<endl;
-	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid], roomid);
-	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
-	cleanObjects(objectcloud[roomid]);
-    }
-
-    //debug for Allrange
-    // cout<<endl;
-    // vector<vector<int> >allrange(1);
-    // for(int i=0; i<5; i++)
-    // 	 allrange[0].push_back(i);
-    // AllRange(allrange[0], allrange, 0, 4);
-    // for(int i=0; i<allrange.size(); i++){
-    // 	 for(int j=0; j<allrange[i].size(); j++){
-    // 	      cout<<allrange[i][j]<<' ';
-    // 	 }
-    // 	 cout<<endl;
+    // for(int roomid=0; roomid<objectcloud.size(); roomid++){
+    // 	 // for(int objid=0; objid<objectgroup[roomid].size(); objid++){
+    // 	 //      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
+    // 	 //      objectcloud[roomid].WriteObject(string(buffer), objid);
+    // 	 // }
+    // 	cout<<"---------------------"<<endl;
+    // 	cout<<"Room "<<roomid<<endl;
+    // 	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid] ,object_panorama[roomid],roomid);
+    // 	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
+    // 	cleanObjects(objectcloud[roomid]);
     // }
 
-//     objectlist.resize(objectcloud.size());
-//     input_objectlist.resize(objectcloud.size());
+    
 
+    objectlist.resize(objectcloud.size());
     
  
 //     //////////////////////////////////////
-//     vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
+    vector <PointCloud> resultCloud(objectcloud.size()); //object cloud per-room
 
-//     cout<<endl<<endl;
-//     //////////////////////////////////////
-//     for (int panid=startid; panid<=endid; panid++) {
+    cout<<endl<<endl;
 
-// 	cout<<"==========================="<<endl<<"Panorama "<<panid<<endl;
-// 	int curid = panid - startid;
 
-// 	vector <Vector3d> averageRGB;
-// 	labelTolabelgroup(labels[curid], panorama[curid], labelgroup[curid], averageRGB, numlabels[curid]);
-// 	cout<<"Getting pairwise structure..."<<endl;
-// 	map<pair<int,int>,int> pairmap;
-// 	pairSuperpixel(labels[curid], imgwidth, imgheight, pairmap);
+    //////////////////////////////////////
+    for (int panid=startid; panid<=endid; panid++) {
+
+	cout<<"==========================="<<endl<<"Panorama "<<panid<<endl;
+	int curid = panid - startid;
+
+	vector <Vector3d> averageRGB;
+	labelTolabelgroup(labels[curid], panorama[curid], labelgroup[curid], averageRGB, numlabels[curid]);
+	cout<<"Getting pairwise structure..."<<endl;
+	map<pair<int,int>,int> pairmap;
+	pairSuperpixel(labels[curid], imgwidth, imgheight, pairmap);
     
-// 	////////////////////////////////////////////////////
-// 	//get the superpixel confidence for each object and background
-//     	for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
-// 	    cout<<"--------------------------"<<endl;
-// 	    cout<<"room "<<roomid<<endl;
-// 	    cout<<"Get superpixel confidence"<<endl;
+	////////////////////////////////////////////////////
+	//get the superpixel confidence for each object and background
+    	for(int roomid = 0; roomid < objectcloud.size() ;roomid++){
+	    cout<<"--------------------------"<<endl;
+	    cout<<"room "<<roomid<<endl;
+	    cout<<"Get superpixel confidence"<<endl;
 
-// 	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
-// 	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
-// 		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], labels[curid], labelgroup[curid],pairmap,depth[curid], superpixelConfidence[groupid], numlabels[curid],1);
-// 	    }
-// #if 0
-// 	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
-// #endif
-// 	    DepthFilling objectDepth;
-// 	    cout<<"Optimizing..."<<endl;
-// 	    cout<<"numlabel:"<<objectgroup[roomid].size()<<endl;
-// 	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel[curid]);
-// #if 1
-// 	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
-// #endif
-// 	    backProjectObject(panorama[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
-// 	}
-//     }
+	    vector< vector<double> >superpixelConfidence(objectgroup[roomid].size());  //object->superpixel
+	    for(int groupid = 0;groupid<objectgroup[roomid].size();groupid++){
+		 getSuperpixelConfidence(objectcloud[roomid], objectgroup[roomid][groupid],panorama[curid], labels[curid], labelgroup[curid],pairmap,depth[curid], superpixelConfidence[groupid], numlabels[curid],1);
+	    }
+#if 1
+	    saveConfidence(superpixelConfidence, labels[curid], imgwidth, imgheight, panid, roomid);
+#endif
+	    DepthFilling objectDepth;
+	    cout<<"Optimizing..."<<endl;
+	    cout<<"numlabel:"<<objectgroup[roomid].size()<<endl;
+	    MRFOptimizeLabels_multiLayer(superpixelConfidence, pairmap, averageRGB, FLAGS_smoothness_weight, objectgroup[roomid].size(),superpixelLabel[curid]);
+#if 1
+	    saveOptimizeResult(panorama[curid], superpixelLabel[curid], labels[curid], panid,roomid);
+#endif
+//	    backProjectObject(panorama[curid], objectcloud[roomid], objectgroup[roomid], superpixelLabel[curid], labelgroup[curid], objectlist[roomid], panid, roomid);
+	}
+    }
 //      mergeObject(objectlist, objectcloud, resultCloud);
 //     // /////////////////////////////    
 //      cout<<endl<<"All done! Saving result..."<<endl;

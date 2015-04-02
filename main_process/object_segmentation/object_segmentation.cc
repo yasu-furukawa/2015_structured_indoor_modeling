@@ -445,8 +445,8 @@ void FilterNoisyPoints(std::vector<Point>* points) {
   deviation /= neighbor_distances.size();
   deviation = sqrt(deviation);
 
-  // const double threshold = average + 0.5 * deviation;
-  const double threshold = average + 2.0 * deviation;
+//  const double threshold = average + 0.5 * deviation;
+  const double threshold = average + 4.0 * deviation;
   vector<Point> new_points;
   for (int p = 0; p < neighbor_distances.size(); ++p) {
     if (neighbor_distances[p] <= threshold) {
