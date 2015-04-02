@@ -235,7 +235,11 @@ void MainWidget::SetMatrices() {
   glLoadIdentity();
   const double max_distance = view_parameters.GetFloorplanHeight() * 2.0;
   const double min_distance = max_distance / 10000.0;
-  gluPerspective(navigation.GetFieldOfViewInDegrees(),
+
+  const double x_angle = navigation.GetFieldOfViewInDegrees() * M_PI / 180.0;
+  const double y_angle = 2.0 * atan(tan(x_angle / 2.0) * height() / width());
+
+  gluPerspective(y_angle * 180.0 / M_PI,
                  width() / static_cast<double>(height()), min_distance, max_distance);
 
   glMatrixMode(GL_MODELVIEW);

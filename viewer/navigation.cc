@@ -878,7 +878,7 @@ double Navigation::ProgressInverse() const {
 }
 
 double Navigation::GetFieldOfViewInDegrees() const {
-  const double kPanoramaFieldOfViewDegrees = 100.0;
+  const double kPanoramaFieldOfViewDegrees = 120.0;
   const double scaled_air_field_of_view_degrees =
     view_parameters.air_field_of_view_degrees * air_floorplan_field_of_view_scale;
   const double scaled_floorplan_field_of_view_degrees =

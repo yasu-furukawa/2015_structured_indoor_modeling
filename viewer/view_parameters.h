@@ -88,9 +88,10 @@ class ViewParameters {
 
   //???
   // private:
-  void InitAirFloorplanViewpoints();
+  void InitAxes();
   void InitCenter();
   void InitBoundingBoxes();
+  void InitAirFloorplanViewpoints();
   void InitTreeConfigurationCenter();
   void SetDisplacements();
   
@@ -120,12 +121,6 @@ class ViewParameters {
   const double air_field_of_view_degrees;
   const double floorplan_field_of_view_degrees;
   
-  // global.
-  Eigen::Vector3d center;
-  Eigen::Vector3d x_axis;
-  Eigen::Vector3d y_axis;
-  Eigen::Vector3d z_axis;
-
   double air_height;
   double floorplan_height;
 
@@ -140,8 +135,15 @@ class ViewParameters {
   double average_ceiling_height;
   
   //----------------------------------------------------------------------
-  // For tree mode.
+  // Configurations.
   //----------------------------------------------------------------------
+  // global.
+  Eigen::Vector3d center;
+  Eigen::Vector3d x_axis;
+  Eigen::Vector3d y_axis;
+  Eigen::Vector3d z_axis;
+  BoundingBox bounding_box;
+  
   // Displacement is from the current room location.
   std::vector<TreeConfiguration> room_configurations;
   // Displacement is from the moved room.
