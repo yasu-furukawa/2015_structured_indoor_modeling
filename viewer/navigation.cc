@@ -106,12 +106,13 @@ Navigation::Navigation(const Configuration& configuration,
                        const vector<Panorama>& panoramas,
                        const std::map<int, int>& panorama_to_room,
                        const std::map<int, int>& /* room_to_panorama */)
-  : floorplan(floorplan), panoramas(panoramas),
+  : air_angle(configuration.air_angle),
+    air_field_of_view_degrees(configuration.air_field_of_view_degrees),
+    floorplan_angle(configuration.floorplan_angle),
+    floorplan_field_of_view_degrees(configuration.floorplan_field_of_view_degrees),
+    floorplan(floorplan),
+    panoramas(panoramas),
     panorama_to_room(panorama_to_room) /*, room_to_panorama(room_to_panorama) */ {
-  air_angle = configuration.air_angle;
-  air_field_of_view_degrees = configuration.air_field_of_view_degrees;
-  floorplan_angle = configuration.floorplan_angle;
-  floorplan_field_of_view_degrees = configuration.floorplan_field_of_view_degrees;
 }
 
 Vector3d Navigation::GetCenter() const {
@@ -620,6 +621,7 @@ void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) {
     // floorplan_height *= 0.75;
   }
 
+  
   const Vector2d center_local((x_range[0] + x_range[1]) / 2.0,
                               (y_range[0] + y_range[1]) / 2.0);
 

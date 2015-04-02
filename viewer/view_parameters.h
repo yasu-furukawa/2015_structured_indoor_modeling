@@ -74,6 +74,8 @@ class ViewParameters {
   const Eigen::Vector3d& GetCenter() const { return center; }
   const Eigen::Vector3d GetObjectCenter(const int room, const int object) const;
 
+  // double GetFloorplanHeight() const { return floorplan_height; }
+
   //???
   // private:
   void InitCenter();
@@ -103,7 +105,10 @@ class ViewParameters {
   Eigen::Vector3d x_axis;
   Eigen::Vector3d y_axis;
   Eigen::Vector3d z_axis;
-
+  
+  //----------------------------------------------------------------------
+  // For tree mode.
+  //----------------------------------------------------------------------
   // Displacement is from the current room location.
   std::vector<TreeConfiguration> room_configurations;
   // Displacement is from the moved room.
@@ -111,7 +116,7 @@ class ViewParameters {
   // Displacement is from the moved room.
   std::vector<std::vector<TreeConfiguration> > wall_configurations;
   // Displacement is from the moved room.  
-  std::vector<std::vector<TreeConfiguration> > object_configurations;  
+  std::vector<std::vector<TreeConfiguration> > object_configurations;
 };
   
 }  // namespace structured_indoor_modeling

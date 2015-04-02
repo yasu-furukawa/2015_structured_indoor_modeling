@@ -177,16 +177,16 @@ class Navigation {
 
   double tree_progress;
 
-  // Z coordinate of the camera in the air.
+  // Angle of viewing in the air.
+  const double air_angle;
+  const double floorplan_angle;
+  // Field of view.
+  const double air_field_of_view_degrees;
+  const double floorplan_field_of_view_degrees;
+
   double air_height;
   double floorplan_height;
-  // Angle of viewing in the air.
-  double air_angle;
-  double floorplan_angle;
-  // Field of view.
-  double air_field_of_view_degrees;
-  double floorplan_field_of_view_degrees;
-  
+
   // Best ground_center for air.
   Eigen::Vector3d best_ground_center;
   Eigen::Vector3d best_start_directions_for_air[2];
