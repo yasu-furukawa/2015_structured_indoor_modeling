@@ -26,7 +26,7 @@
 #include "panel_renderer.h"
 #include "panorama_renderer.h"
 #include "polygon_renderer.h"
-#include "tree_organizer.h"
+#include "view_parameters.h"
 
 namespace structured_indoor_modeling {
   
@@ -71,7 +71,7 @@ private:
     // Navigation knows the entire state of the viewer.
     Navigation navigation;
     // Tree organizer.
-    TreeOrganizer tree_organizer;
+    ViewParameters view_parameters;
 
     //----------------------------------------------------------------------
     // GL resources.

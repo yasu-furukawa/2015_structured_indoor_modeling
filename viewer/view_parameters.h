@@ -42,9 +42,9 @@ struct BoundingBox {
    int row;
  };
 
-class TreeOrganizer {
+class ViewParameters {
  public:
-  TreeOrganizer(const Floorplan& floorplan,
+  ViewParameters(const Floorplan& floorplan,
                 const IndoorPolygon& indoor_polygon,
                 const ObjectRenderer& object_renderer);
   void Init(const Eigen::Vector3d& x_axis,

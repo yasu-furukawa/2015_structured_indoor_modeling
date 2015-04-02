@@ -13,7 +13,7 @@ namespace structured_indoor_modeling {
 
 class Floorplan;
 class IndoorPolygon;
-class TreeOrganizer;
+class ViewParameters;
 
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
 typedef std::vector<ColoredPoint> ColoredPointCloud;
@@ -33,7 +33,7 @@ struct BoundingBox2D {
   void InitGL();
 
   void RenderAll(const double position);
-  void RenderAll(const TreeOrganizer& tree_organizer,
+  void RenderAll(const ViewParameters& view_parameters,
                  const double building_height,
                  const double air_to_tree_progress,
                  const double animation,

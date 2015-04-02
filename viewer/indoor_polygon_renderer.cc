@@ -8,7 +8,7 @@
 #include "../base/file_io.h"
 #include "../base/indoor_polygon.h"
 #include "indoor_polygon_renderer.h"
-#include "tree_organizer.h"
+#include "view_parameters.h"
 
 using namespace Eigen;
 using namespace std;
@@ -160,7 +160,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
 
 void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                      const double bottom_alpha,
-                                                     const TreeOrganizer& tree_organizer,
+                                                     const ViewParameters& view_parameters,
                                                      const double air_to_tree_progress,
                                                      const double animation,
                                                      const Eigen::Vector3d& max_vertical_shift,
@@ -207,7 +207,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
           Vector3d global =
             indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);
 
-          global = tree_organizer.TransformRoom(global,
+          global = view_parameters.TransformRoom(global,
                                                 room,
                                                 air_to_tree_progress,
                                                 animation,
@@ -243,7 +243,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
         glBegin(GL_LINE_STRIP);
         glColor4f(color[0], color[1], color[2], alpha);
         for (int i = 0; i < 4; ++i) {
-          const Vector3d point = tree_organizer.TransformRoom(quad[i], room, -1, air_to_tree_progress, animation, max_vertical_shift);
+          const Vector3d point = view_parameters.TransformRoom(quad[i], room, -1, air_to_tree_progress, animation, max_vertical_shift);
           glVertex3d(point[0], point[1], point[2]);
         }
         glEnd();
@@ -293,7 +293,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
         cerr << "Invalid" << endl;
         exit (1);
       }
-      const BoundingBox& bounding_box = tree_organizer.GetIndoorPolygonDeformation().room_bounding_boxes[room];
+      const BoundingBox& bounding_box = view_parameters.GetIndoorPolygonDeformation().room_bounding_boxes[room];
       const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
 
       for (const auto& triangle : segment.triangles) {

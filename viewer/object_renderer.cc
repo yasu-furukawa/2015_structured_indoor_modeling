@@ -1,6 +1,6 @@
 #include <iostream>
 #include "object_renderer.h"
-#include "tree_organizer.h"
+#include "view_parameters.h"
 #include "../base/detection.h"
 #include "../base/file_io.h"
 #include "../base/floorplan.h"
@@ -133,7 +133,7 @@ void ObjectRenderer::RenderAll(const double position) {
   glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
+void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
                                const double building_height,
                                const double air_to_tree_progress,
                                const double animation,
@@ -166,7 +166,7 @@ void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
       for (int p = 0; p < (int)positions.size(); p += 3) {
         Vector3d position(positions[p], positions[p + 1], positions[p + 2]);
         // Adjust with respect to the object center.
-        position = tree_organizer.TransformObject(position, room, object, air_to_tree_progress,
+        position = view_parameters.TransformObject(position, room, object, air_to_tree_progress,
                                                   animation, room_max_vertical_shift,
                                                   object_max_vertical_shift);
         for (int a = 0; a < 3; ++a)
@@ -229,7 +229,7 @@ void ObjectRenderer::RenderAll(const TreeOrganizer& tree_organizer,
 
   vector<float> positions;  
   for (int room = 0; room < (int)vertices.size(); ++room) {
-    const BoundingBox& bounding_box = tree_organizer.GetFloorplanDeformation().room_bounding_boxes[room];
+    const BoundingBox& bounding_box = view_parameters.GetFloorplanDeformation().room_bounding_boxes[room];
     const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
 
     for (int object = 0; object < (int)vertices[room].size(); ++object) {

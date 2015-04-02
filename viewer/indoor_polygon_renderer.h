@@ -9,7 +9,7 @@
 namespace structured_indoor_modeling {
 
 class IndoorPolygon;
-class TreeOrganizer;
+class ViewParameters;
   
 class IndoorPolygonRenderer : protected QGLFunctions {
  public:
@@ -18,7 +18,7 @@ class IndoorPolygonRenderer : protected QGLFunctions {
   void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const;
   void RenderTextureMappedRooms(const double top_alpha,
                                 const double bottom_alpha,
-                                const TreeOrganizer& tree_organizer,
+                                const ViewParameters& view_parameters,
                                 const double air_to_tree_progress,
                                 const double animation,
                                 const Eigen::Vector3d& max_vertical_shift,

@@ -1,19 +1,19 @@
 #include <limits>
 #include <numeric>
-#include "tree_organizer.h"
+#include "view_parameters.h"
 
 using namespace Eigen;
 using namespace std;
 
 namespace structured_indoor_modeling {
 
-TreeOrganizer::TreeOrganizer(const Floorplan& floorplan,
+ViewParameters::ViewParameters(const Floorplan& floorplan,
                              const IndoorPolygon& indoor_polygon,
                              const ObjectRenderer& object_renderer) :
   floorplan(floorplan), indoor_polygon(indoor_polygon), object_renderer(object_renderer) {
 }
 
-void TreeOrganizer::Init(const Eigen::Vector3d& x_axis_tmp,
+void ViewParameters::Init(const Eigen::Vector3d& x_axis_tmp,
                          const Eigen::Vector3d& y_axis_tmp,
                          const Eigen::Vector3d& z_axis_tmp) {
   room_configurations.resize(floorplan.GetNumRooms());
@@ -35,7 +35,7 @@ void TreeOrganizer::Init(const Eigen::Vector3d& x_axis_tmp,
   SetDisplacements();
 }
 
-void TreeOrganizer::InitCenter() {
+void ViewParameters::InitCenter() {
   center = Vector3d(0, 0, 0);
   BoundingBox bounding_box;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -56,7 +56,7 @@ void TreeOrganizer::InitCenter() {
   center = LocalToGlobal((bounding_box.min_xyz + bounding_box.max_xyz) / 2.0);
 }
 
-void TreeOrganizer::InitBoundingBoxes() {
+void ViewParameters::InitBoundingBoxes() {
   //----------------------------------------------------------------------
   // room_configurations.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -129,7 +129,7 @@ void TreeOrganizer::InitBoundingBoxes() {
   }
 }
 
-void TreeOrganizer::InitTreeConfigurationCenter() {
+void ViewParameters::InitTreeConfigurationCenter() {
   for (auto& configuration : room_configurations) {
     configuration.center =
       (configuration.bounding_box.min_xyz + configuration.bounding_box.max_xyz) / 2.0;
@@ -155,7 +155,7 @@ void TreeOrganizer::InitTreeConfigurationCenter() {
   }
 }
 
-void TreeOrganizer::SetDisplacements() {
+void ViewParameters::SetDisplacements() {
   // To allow some margin between items.
   const double kShrinkScale = 0.95;
   vector<double> room_sizes(floorplan.GetNumRooms());
@@ -275,7 +275,7 @@ void TreeOrganizer::SetDisplacements() {
   */
 }
 
-Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
+Eigen::Vector3d ViewParameters::TransformRoom(const Vector3d& global,
                                              const int room,
                                              const double progress,
                                              const double animation,
@@ -315,7 +315,7 @@ Eigen::Vector3d TreeOrganizer::TransformRoom(const Vector3d& global,
   return global_displacement + LocalToGlobal(local);
 }
 
-Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
+Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
                                                const int room,
                                                const int object,
                                                const double progress,
@@ -383,7 +383,7 @@ Eigen::Vector3d TreeOrganizer::TransformObject(const Vector3d& global,
 }
 
 
-Eigen::Vector3d TreeOrganizer::TransformFloorplan(const Vector3d& global,
+Eigen::Vector3d ViewParameters::TransformFloorplan(const Vector3d& global,
                                                   const double air_to_tree_progress,
                                                   const double animation,
                                                   const Eigen::Vector3d& max_vertical_shift,
@@ -395,7 +395,7 @@ Eigen::Vector3d TreeOrganizer::TransformFloorplan(const Vector3d& global,
   return center + (global - center) * shrink_scale + vertical_shift;
 }
 
-const Eigen::Vector3d TreeOrganizer::GetObjectCenter(const int room, const int object) const {
+const Eigen::Vector3d ViewParameters::GetObjectCenter(const int room, const int object) const {
   return LocalToGlobal(object_configurations[room][object].center);
 }
   

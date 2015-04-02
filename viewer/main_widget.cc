@@ -57,7 +57,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
              panoramas,
              panorama_to_room,
              room_to_panorama),
-  tree_organizer(floorplan, indoor_polygon, object_renderer)
+  view_parameters(floorplan, indoor_polygon, object_renderer)
 {
 
   // Renderer initialization.
@@ -75,9 +75,9 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   {
     navigation.Init();
-    tree_organizer.Init(navigation.GetTreeXaxis(),
-                        navigation.GetTreeYaxis(),
-                        navigation.GetTreeZaxis());
+    view_parameters.Init(navigation.GetTreeXaxis(),
+                         navigation.GetTreeYaxis(),
+                         navigation.GetTreeZaxis());
   }
 
   SetPanoramaToRoom(floorplan, panorama_renderers, &panorama_to_room);

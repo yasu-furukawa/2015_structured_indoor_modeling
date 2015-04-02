@@ -9,7 +9,7 @@
 
 namespace structured_indoor_modeling {
 
-class TreeOrganizer;
+class ViewParameters;
 
 struct Triangle2 {
   Eigen::Vector3d vertices[3];
@@ -26,7 +26,7 @@ class PolygonRenderer : protected QGLFunctions {
   void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const;
   void RenderTextureMappedRooms(const double top_alpha,
                                 const double bottom_alpha,
-                                const TreeOrganizer& tree_organizer,
+                                const ViewParameters& view_parameters,
                                 const double air_to_tree_progress,
                                 const double animation,
                                 const Eigen::Vector3d& max_vertical_shift,
@@ -34,7 +34,7 @@ class PolygonRenderer : protected QGLFunctions {
   void RenderDoors(const double alpha) const;
   /*
   void RenderDoors(const double alpha,
-                   const TreeOrganizer& tree_organizer,
+                   const ViewParameters& view_parameters,
                    const double air_to_tree_progress,
                    const double animation,
                    const Eigen::Vector3d& max_vertical_shift,
@@ -49,7 +49,7 @@ class PolygonRenderer : protected QGLFunctions {
                      const int room_highlighted,
                      const bool render_room_id);
 
-  void RenderColoredBoxes(const TreeOrganizer& tree_organizer,
+  void RenderColoredBoxes(const ViewParameters& view_parameters,
                           const Eigen::Vector3d& max_vertical_shift,
                           const double max_shrink_scale,
                           const double air_to_tree_progress,

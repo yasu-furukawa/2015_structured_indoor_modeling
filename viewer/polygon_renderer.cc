@@ -5,7 +5,7 @@
 
 #include "../base/file_io.h"
 #include "polygon_renderer.h"
-#include "tree_organizer.h"
+#include "view_parameters.h"
 
 using namespace Eigen;
 using namespace std;
@@ -411,7 +411,7 @@ void PolygonRenderer::RenderDoors(const double alpha) const {
 
 void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                const double bottom_alpha,
-                                               const TreeOrganizer& tree_organizer,
+                                               const ViewParameters& view_parameters,
                                                const double air_to_tree_progress,
                                                const double animation,
                                                const Eigen::Vector3d& max_vertical_shift,
@@ -464,7 +464,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
             glColor4f(alpha, alpha, alpha, 1.0);
 
             // Move wall vertex closer to the centers.
-            position = tree_organizer.TransformRoom(position,
+            position = view_parameters.TransformRoom(position,
                                                     room,
                                                     air_to_tree_progress,
                                                     animation,
@@ -486,7 +486,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
           // glColor4f(alpha / 2.0, alpha / 2.0, alpha / 2.0, 1.0);
           const int index = triangle.indices[i];
           Vector3d position = floorplan.GetFloorVertexGlobal(room, index);
-          position = tree_organizer.TransformRoom(position,
+          position = view_parameters.TransformRoom(position,
                                                   room,
                                                   air_to_tree_progress,
                                                   animation,
@@ -500,7 +500,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
   }
 
   /*
-  const double max_shrink_ratio2 = tree_organizer.GetFloorplanDeformation().shrink_ratio;
+  const double max_shrink_ratio2 = view_parameters.GetFloorplanDeformation().shrink_ratio;
 
   const double shrink_ratio = air_to_tree_progress * max_shrink_ratio2 + (1.0 - air_to_tree_progress);
   const Vector3d vertical_shift(0, 0, air_to_tree_progress * max_vertical_shift);
@@ -516,7 +516,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
   rotation(2, 2) = 1.0;
 
   const std::vector<Eigen::Vector3d>& displacements =
-    tree_organizer.GetFloorplanDeformation().displacements;
+    view_parameters.GetFloorplanDeformation().displacements;
 
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
@@ -529,7 +529,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     glBegin(GL_TRIANGLES);
     
     for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-      const BoundingBox& bounding_box = tree_organizer.GetFloorplanDeformation().room_bounding_boxes[room];
+      const BoundingBox& bounding_box = view_parameters.GetFloorplanDeformation().room_bounding_boxes[room];
       const Vector3d room_center = (bounding_box.min_xyz + bounding_box.max_xyz) / 2.0;
         
       for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
@@ -601,7 +601,7 @@ void PolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
 
   /*
 void PolygonRenderer::RenderDoors(const double alpha,
-                                  const TreeOrganizer& tree_organizer,
+                                  const ViewParameters& view_parameters,
                                   const double air_to_tree_progress,
                                   const double animation,
                                   const Eigen::Vector3d& max_vertical_shift,
@@ -843,7 +843,7 @@ void PolygonRenderer::AddTrianglesFromDoors(Triangles* triangles) const {
   }
 }
   
-void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
+void PolygonRenderer::RenderColoredBoxes(const ViewParameters& view_parameters,
                                          const Eigen::Vector3d& max_vertical_shift,
                                          const double max_shrink_scale,
                                          const double air_to_tree_progress,
@@ -862,7 +862,7 @@ void PolygonRenderer::RenderColoredBoxes(const TreeOrganizer& tree_organizer,
 
   for (auto& triangle : triangles) {
     for (int i = 0; i < 3; ++i) {
-      triangle.vertices[i] = tree_organizer.TransformFloorplan(triangle.vertices[i],
+      triangle.vertices[i] = view_parameters.TransformFloorplan(triangle.vertices[i],
                                                                air_to_tree_progress,
                                                                animation,
                                                                max_vertical_shift,
