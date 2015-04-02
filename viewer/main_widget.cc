@@ -52,12 +52,12 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
   indoor_polygon_renderer(indoor_polygon),
   floorplan_renderer(floorplan, indoor_polygon),
   panel_renderer(floorplan, viewport),  
-  navigation(configuration,
-             floorplan,
+  view_parameters(floorplan, indoor_polygon, object_renderer, panoramas, configuration),
+  navigation(floorplan,
+             view_parameters,
              panoramas,
              panorama_to_room,
-             room_to_panorama),
-  view_parameters(floorplan, indoor_polygon, object_renderer)
+             room_to_panorama)
 {
 
   // Renderer initialization.
@@ -75,9 +75,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   {
     navigation.Init();
-    view_parameters.Init(navigation.GetTreeXaxis(),
-                         navigation.GetTreeYaxis(),
-                         navigation.GetTreeZaxis());
+    view_parameters.Init();
   }
 
   SetPanoramaToRoom(floorplan, panorama_renderers, &panorama_to_room);
@@ -235,7 +233,7 @@ void MainWidget::resizeGL(int w, int h) {
 void MainWidget::SetMatrices() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  const double max_distance = navigation.GetFloorplanHeight() * 2.0;
+  const double max_distance = view_parameters.GetFloorplanHeight() * 2.0;
   const double min_distance = max_distance / 10000.0;
   gluPerspective(navigation.GetFieldOfViewInDegrees(),
                  width() / static_cast<double>(height()), min_distance, max_distance);
@@ -736,7 +734,7 @@ void MainWidget::mouseMoveEvent(QMouseEvent *e) {
       Vector3d direction = navigation.GetDirection();
       direction[2] = 0.0;
       direction.normalize();
-      direction *= navigation.GetAverageDistance();
+      direction *= view_parameters.GetAverageDistance();
       Vector3d orthogonal(-direction[1], direction[0], 0.0);
       navigation.MoveAir(diff[0] * orthogonal + diff[1] * direction);
       navigation.MoveFloorplan(diff[0] * orthogonal + diff[1] * direction);

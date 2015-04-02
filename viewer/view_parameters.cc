@@ -1,6 +1,8 @@
 #include <limits>
 #include <numeric>
 #include "view_parameters.h"
+#include "configuration.h"
+#include "../base/panorama.h"
 
 using namespace Eigen;
 using namespace std;
@@ -8,14 +10,21 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 ViewParameters::ViewParameters(const Floorplan& floorplan,
-                             const IndoorPolygon& indoor_polygon,
-                             const ObjectRenderer& object_renderer) :
-  floorplan(floorplan), indoor_polygon(indoor_polygon), object_renderer(object_renderer) {
+                               const IndoorPolygon& indoor_polygon,
+                               const ObjectRenderer& object_renderer,
+                               const std::vector<Panorama>& panoramas,
+                               const Configuration& configuration) :
+  floorplan(floorplan),
+  indoor_polygon(indoor_polygon),
+  object_renderer(object_renderer),
+  panoramas(panoramas),
+  air_angle(configuration.air_angle),
+  floorplan_angle(configuration.floorplan_angle),
+  air_field_of_view_degrees(configuration.air_field_of_view_degrees),
+  floorplan_field_of_view_degrees(configuration.floorplan_field_of_view_degrees) {
 }
 
-void ViewParameters::Init(const Eigen::Vector3d& x_axis_tmp,
-                         const Eigen::Vector3d& y_axis_tmp,
-                         const Eigen::Vector3d& z_axis_tmp) {
+void ViewParameters::Init() {
   room_configurations.resize(floorplan.GetNumRooms());
   floor_configurations.resize(floorplan.GetNumRooms());
   wall_configurations.resize(floorplan.GetNumRooms());
@@ -25,16 +34,106 @@ void ViewParameters::Init(const Eigen::Vector3d& x_axis_tmp,
   for (int room = 0; room < floorplan.GetNumRooms(); ++room)
     object_configurations[room].resize(object_renderer.GetNumObjects(room));
 
-  x_axis = x_axis_tmp;
-  y_axis = y_axis_tmp;
-  z_axis = z_axis_tmp;
-
+  InitAirFloorplanViewpoints();
+  
   InitCenter();
   InitBoundingBoxes();
   InitTreeConfigurationCenter();
   SetDisplacements();
 }
 
+void ViewParameters::InitAirFloorplanViewpoints() {
+  // Compute best ground_center and start_direction for air.  
+  Eigen::Vector2d x_range, y_range;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
+      const Eigen::Vector2d local = floorplan.GetRoomVertexLocal(room, v);
+      if (room == 0 && v == 0) {
+        x_range[0] = x_range[1] = local[0];
+        y_range[0] = y_range[1] = local[1];
+      } else {
+        x_range[0] = min(x_range[0], local[0]);
+        x_range[1] = max(x_range[1], local[0]);
+        y_range[0] = min(y_range[0], local[1]);
+        y_range[1] = max(y_range[1], local[1]);
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------
+  {
+    // diameter must be visible in the given field-of-view along air_angle.
+    const double diameter = max(x_range[1] - x_range[0], y_range[1] - y_range[0]);
+    //?????
+    air_height = diameter / 2.0 / tan(air_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(air_angle);
+    // air_height *= 0.75;
+
+    floorplan_height = diameter / 2.0 / tan(floorplan_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(floorplan_angle);
+    // floorplan_height *= 0.75;
+  }
+
+  
+  const Vector2d center_local((x_range[0] + x_range[1]) / 2.0,
+                              (y_range[0] + y_range[1]) / 2.0);
+
+  average_floor_height = 0.0;
+  average_ceiling_height = 0.0;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    average_floor_height += floorplan.GetFloorHeight(room);
+    average_ceiling_height += floorplan.GetCeilingHeight(room);
+  }
+  average_floor_height /= floorplan.GetNumRooms();
+  average_ceiling_height /= floorplan.GetNumRooms();
+
+  {
+    average_distance = 0.0;
+    for (const auto& panorama : panoramas) {
+      average_distance += panorama.GetAverageDistance();
+    }
+    average_distance /= static_cast<int>(panoramas.size());
+  }
+  
+  best_ground_center =
+    floorplan.GetFloorplanToGlobal() *
+    Vector3d(center_local[0], center_local[1], average_floor_height);
+
+  for (int i = 0; i < 2; ++i) {
+    // Y axis is the viewing direction.
+    if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
+      if (i == 0)
+        best_start_directions_for_air[i] = 
+          floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
+      else
+        best_start_directions_for_air[i] = 
+          floorplan.GetFloorplanToGlobal() * Vector3d(0, -1, 0);
+    } else {
+      if (i == 0)
+        best_start_directions_for_air[i] = 
+          floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
+      else
+        best_start_directions_for_air[i] = 
+          floorplan.GetFloorplanToGlobal() * Vector3d(-1, 0, 0);
+    }
+    best_start_directions_for_floorplan[i] = best_start_directions_for_air[i];
+        
+    best_start_directions_for_air[i] += -tan(air_angle) * Vector3d(0, 0, 1);
+    best_start_directions_for_air[i] *= air_height / tan(air_angle);
+
+    best_start_directions_for_floorplan[i] += -tan(floorplan_angle) * Vector3d(0, 0, 1);
+    best_start_directions_for_floorplan[i] *= floorplan_height / tan(floorplan_angle);
+  }
+
+  if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
+    x_axis = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
+    y_axis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);    
+    z_axis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 0, 1);
+  } else {
+    x_axis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
+    y_axis = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);    
+    z_axis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 0, 1);
+  }
+}    
+  
 void ViewParameters::InitCenter() {
   center = Vector3d(0, 0, 0);
   BoundingBox bounding_box;

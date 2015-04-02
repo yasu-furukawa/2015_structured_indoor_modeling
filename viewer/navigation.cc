@@ -2,8 +2,8 @@
 #include <iostream>
 #include "../base/floorplan.h"
 #include "../base/panorama.h"
-#include "configuration.h"
 #include "navigation.h"
+#include "view_parameters.h"
 
 using namespace Eigen;
 using namespace std;
@@ -101,16 +101,13 @@ Eigen::Vector3d CameraPanoramaTour::GetDirection(const double progress) const {
   return direction;
 }
 
-Navigation::Navigation(const Configuration& configuration,
-                       const Floorplan& floorplan,
+Navigation::Navigation(const Floorplan& floorplan,
+                       const ViewParameters& view_parameters,
                        const vector<Panorama>& panoramas,
                        const std::map<int, int>& panorama_to_room,
                        const std::map<int, int>& /* room_to_panorama */)
-  : air_angle(configuration.air_angle),
-    air_field_of_view_degrees(configuration.air_field_of_view_degrees),
-    floorplan_angle(configuration.floorplan_angle),
-    floorplan_field_of_view_degrees(configuration.floorplan_field_of_view_degrees),
-    floorplan(floorplan),
+  : floorplan(floorplan),
+    view_parameters(view_parameters),
     panoramas(panoramas),
     panorama_to_room(panorama_to_room) /*, room_to_panorama(room_to_panorama) */ {
 }
@@ -349,6 +346,8 @@ void Navigation::Init() {
     exit (1);
   }
 
+  air_floorplan_field_of_view_scale = 1.0;
+  
   const int kStartIndex = 0;
   camera_status = kPanorama;
   camera_panorama.start_index = kStartIndex;
@@ -359,16 +358,6 @@ void Navigation::Init() {
   camera_panorama.start_direction.normalize();
   camera_panorama.start_direction *= panoramas[kStartIndex].GetAverageDistance();
   camera_panorama.progress = 0.0;
-
-  {
-    average_distance = 0.0;
-    for (const auto& panorama : panoramas) {
-      average_distance += panorama.GetAverageDistance();
-    }
-    average_distance /= static_cast<int>(panoramas.size());
-  }
-
-  SetAirFloorplanViewpoints(floorplan);
 }
 
 void Navigation::Tick() {
@@ -589,92 +578,6 @@ bool Navigation::Collide(const int /*from_index*/, const int /*to_index*/) const
   return false;
 }
 
-void Navigation::SetAirFloorplanViewpoints(const Floorplan& floorplan) { 
-  // Compute best ground_center and start_direction for air.  
-  Eigen::Vector2d x_range, y_range;
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    for (int v = 0; v < floorplan.GetNumRoomVertices(room); ++v) {
-      const Eigen::Vector2d local = floorplan.GetRoomVertexLocal(room, v);
-      if (room == 0 && v == 0) {
-        x_range[0] = x_range[1] = local[0];
-        y_range[0] = y_range[1] = local[1];
-      } else {
-        x_range[0] = min(x_range[0], local[0]);
-        x_range[1] = max(x_range[1], local[0]);
-        y_range[0] = min(y_range[0], local[1]);
-        y_range[1] = max(y_range[1], local[1]);
-      }
-    }
-  }
-
-  //----------------------------------------------------------------------
-  {
-    air_floorplan_field_of_view_scale = 1.0;
-
-    // diameter must be visible in the given field-of-view along air_angle.
-    const double diameter = max(x_range[1] - x_range[0], y_range[1] - y_range[0]);
-    //?????
-    air_height = diameter / 2.0 / tan(air_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(air_angle);
-    // air_height *= 0.75;
-
-    floorplan_height = diameter / 2.0 / tan(floorplan_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(floorplan_angle);
-    // floorplan_height *= 0.75;
-  }
-
-  
-  const Vector2d center_local((x_range[0] + x_range[1]) / 2.0,
-                              (y_range[0] + y_range[1]) / 2.0);
-
-  average_floor_height = 0.0;
-  average_ceiling_height = 0.0;
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    average_floor_height += floorplan.GetFloorHeight(room);
-    average_ceiling_height += floorplan.GetCeilingHeight(room);
-  }
-  average_floor_height /= floorplan.GetNumRooms();
-  average_ceiling_height /= floorplan.GetNumRooms();
-
-  best_ground_center =
-    floorplan.GetFloorplanToGlobal() *
-    Vector3d(center_local[0], center_local[1], average_floor_height);
-
-  for (int i = 0; i < 2; ++i) {
-    // Y axis is the viewing direction.
-    if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
-      if (i == 0)
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
-      else
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(0, -1, 0);
-    } else {
-      if (i == 0)
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
-      else
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(-1, 0, 0);
-    }
-    best_start_directions_for_floorplan[i] = best_start_directions_for_air[i];
-        
-    best_start_directions_for_air[i] += -tan(air_angle) * Vector3d(0, 0, 1);
-    best_start_directions_for_air[i] *= air_height / tan(air_angle);
-
-    best_start_directions_for_floorplan[i] += -tan(floorplan_angle) * Vector3d(0, 0, 1);
-    best_start_directions_for_floorplan[i] *= floorplan_height / tan(floorplan_angle);
-  }
-
-  if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
-    tree_xaxis = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
-    tree_yaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);    
-    tree_zaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 0, 1);
-  } else {
-    tree_xaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
-    tree_yaxis = floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);    
-    tree_zaxis = floorplan.GetFloorplanToGlobal() * Vector3d(0, 0, 1);
-  }
-}  
-
 void Navigation::MoveToPanorama(const int target_panorama_index) {
   cerr << "Move to " << target_panorama_index << endl;
   camera_panorama.end_index = target_panorama_index;
@@ -834,12 +737,12 @@ void Navigation::PanoramaToAir() {
   camera_in_transition.camera_panorama = camera_panorama;
   {
     CameraAir& camera_air      = camera_in_transition.camera_air;
-    camera_air.ground_center = best_ground_center;
-    if (camera_panorama.start_direction.dot(best_start_directions_for_air[0]) >
-        camera_panorama.start_direction.dot(best_start_directions_for_air[1]))
-      camera_air.start_direction = best_start_directions_for_air[0];
+    camera_air.ground_center = view_parameters.best_ground_center;
+    if (camera_panorama.start_direction.dot(view_parameters.best_start_directions_for_air[0]) >
+        camera_panorama.start_direction.dot(view_parameters.best_start_directions_for_air[1]))
+      camera_air.start_direction = view_parameters.best_start_directions_for_air[0];
     else
-      camera_air.start_direction = best_start_directions_for_air[1];
+      camera_air.start_direction = view_parameters.best_start_directions_for_air[1];
   }
   
   camera_in_transition.progress = 0.0;  
@@ -869,12 +772,12 @@ void Navigation::PanoramaToFloorplan() {
   camera_in_transition.camera_panorama = camera_panorama;
   {
     CameraFloorplan& camera_floorplan      = camera_in_transition.camera_floorplan;
-    camera_floorplan.ground_center = best_ground_center;
-    if (camera_panorama.start_direction.dot(best_start_directions_for_floorplan[0]) >
-        camera_panorama.start_direction.dot(best_start_directions_for_floorplan[1]))
-      camera_floorplan.start_direction = best_start_directions_for_floorplan[0];
+    camera_floorplan.ground_center = view_parameters.best_ground_center;
+    if (camera_panorama.start_direction.dot(view_parameters.best_start_directions_for_floorplan[0]) >
+        camera_panorama.start_direction.dot(view_parameters.best_start_directions_for_floorplan[1]))
+      camera_floorplan.start_direction = view_parameters.best_start_directions_for_floorplan[0];
     else
-      camera_floorplan.start_direction = best_start_directions_for_floorplan[1];
+      camera_floorplan.start_direction = view_parameters.best_start_directions_for_floorplan[1];
   }
   
   camera_in_transition.progress = 0.0;  
@@ -903,11 +806,11 @@ void Navigation::AirToFloorplan() {
   {
     CameraFloorplan& camera_floorplan      = camera_in_transition.camera_floorplan;
     camera_floorplan.ground_center = camera_air.ground_center;
-    if (camera_air.start_direction.dot(best_start_directions_for_floorplan[0]) >
-        camera_air.start_direction.dot(best_start_directions_for_floorplan[1]))
-      camera_floorplan.start_direction = best_start_directions_for_floorplan[0];
+    if (camera_air.start_direction.dot(view_parameters.best_start_directions_for_floorplan[0]) >
+        camera_air.start_direction.dot(view_parameters.best_start_directions_for_floorplan[1]))
+      camera_floorplan.start_direction = view_parameters.best_start_directions_for_floorplan[0];
     else
-      camera_floorplan.start_direction = best_start_directions_for_floorplan[1];
+      camera_floorplan.start_direction = view_parameters.best_start_directions_for_floorplan[1];
   }
   
   camera_in_transition.progress = 0.0;  
@@ -920,11 +823,11 @@ void Navigation::FloorplanToAir() {
   {
     CameraAir& camera_air      = camera_in_transition.camera_air;
     camera_air.ground_center = camera_floorplan.ground_center;
-    if (camera_floorplan.start_direction.dot(best_start_directions_for_air[0]) >
-        camera_floorplan.start_direction.dot(best_start_directions_for_air[1]))
-      camera_air.start_direction = best_start_directions_for_air[0];
+    if (camera_floorplan.start_direction.dot(view_parameters.best_start_directions_for_air[0]) >
+        camera_floorplan.start_direction.dot(view_parameters.best_start_directions_for_air[1]))
+      camera_air.start_direction = view_parameters.best_start_directions_for_air[0];
     else
-      camera_air.start_direction = best_start_directions_for_air[1];
+      camera_air.start_direction = view_parameters.best_start_directions_for_air[1];
   }
   
   camera_in_transition.progress = 0.0;  
@@ -977,9 +880,9 @@ double Navigation::ProgressInverse() const {
 double Navigation::GetFieldOfViewInDegrees() const {
   const double kPanoramaFieldOfViewDegrees = 100.0;
   const double scaled_air_field_of_view_degrees =
-    air_field_of_view_degrees * air_floorplan_field_of_view_scale;
+    view_parameters.air_field_of_view_degrees * air_floorplan_field_of_view_scale;
   const double scaled_floorplan_field_of_view_degrees =
-    floorplan_field_of_view_degrees * air_floorplan_field_of_view_scale;
+    view_parameters.floorplan_field_of_view_degrees * air_floorplan_field_of_view_scale;
 
   switch (camera_status) {
   case kPanorama:
@@ -1044,8 +947,8 @@ double Navigation::GetFieldOfViewInTransitionInDegrees(const double start_height
                                                        const double end_height,
                                                        const double start_field_of_view,
                                                        const double end_field_of_view) const {
-  const double start_height_diff = start_height - average_floor_height;
-  const double end_height_diff   = end_height - average_floor_height;
+  const double start_height_diff = start_height - view_parameters.average_floor_height;
+  const double end_height_diff   = end_height - view_parameters.average_floor_height;
 
   const double start_size = 1.0 / tan(start_field_of_view / 2.0) / start_height_diff;
   const double end_size   = 1.0 / tan(end_field_of_view / 2.0) / end_height_diff;
@@ -1053,7 +956,7 @@ double Navigation::GetFieldOfViewInTransitionInDegrees(const double start_height
   const double start_weight = ProgressInverse();
   const double end_weight = 1.0 - start_weight;
 
-  const double current_height_diff = GetCenter()[2] - average_floor_height;
+  const double current_height_diff = GetCenter()[2] - view_parameters.average_floor_height;
   const double current_size = start_weight * start_size + end_weight * end_size;
   const double current_field_of_view = atan(1.0 / current_height_diff / current_size) * 2.0;
 

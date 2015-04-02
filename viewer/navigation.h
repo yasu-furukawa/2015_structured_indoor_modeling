@@ -7,9 +7,9 @@
 
 namespace structured_indoor_modeling {
 
-struct Configuration;
 class Floorplan;
 class Panorama;
+class ViewParameters;
 
 enum CameraStatus {
   // CameraPanorama handles the states.
@@ -102,8 +102,8 @@ struct CameraPanoramaTour {
 
 class Navigation {
  public:
-  Navigation(const Configuration& configuration,
-             const Floorplan& floorplan,
+  Navigation(const Floorplan& floorplan,
+             const ViewParameters& view_parameters,
              const std::vector<Panorama>& panoramas,
              const std::map<int, int>& panorama_to_room,
              const std::map<int, int>& room_to_panorama);
@@ -121,15 +121,7 @@ class Navigation {
   // double Progress() const;
   double ProgressInverse() const;
   double GetFieldOfViewInDegrees() const;
-  double GetAverageDistance() const { return average_distance; }
-  double GetAirHeight() const { return air_height; }
-  double GetFloorplanHeight() const { return floorplan_height; }
   double GetTreeProgress() const { return tree_progress; }
-  double GetAverageFloorHeight() const { return average_floor_height; }
-  double GetAverageCeilingHeight() const { return average_ceiling_height; }
-  Eigen::Vector3d GetTreeXaxis() const { return tree_xaxis; }
-  Eigen::Vector3d GetTreeYaxis() const { return tree_yaxis; }
-  Eigen::Vector3d GetTreeZaxis() const { return tree_zaxis; }
 
   //----------------------------------------------------------------------
   void Init();
@@ -160,7 +152,6 @@ class Navigation {
   
  private:
   bool Collide(const int from_index, const int to_index) const;
-  void SetAirFloorplanViewpoints(const Floorplan& floorplan);
   double GetFieldOfViewInTransitionInDegrees(const double start_height,
                                              const double end_height,
                                              const double start_field_of_view,
@@ -177,34 +168,11 @@ class Navigation {
 
   double tree_progress;
 
-  // Angle of viewing in the air.
-  const double air_angle;
-  const double floorplan_angle;
-  // Field of view.
-  const double air_field_of_view_degrees;
-  const double floorplan_field_of_view_degrees;
-
-  double air_height;
-  double floorplan_height;
-
-  // Best ground_center for air.
-  Eigen::Vector3d best_ground_center;
-  Eigen::Vector3d best_start_directions_for_air[2];
-  Eigen::Vector3d best_start_directions_for_floorplan[2];
-
-  Eigen::Vector3d tree_xaxis;
-  Eigen::Vector3d tree_yaxis;
-  Eigen::Vector3d tree_zaxis;
-
-  // Average distance.
-  double average_distance;
-  double average_floor_height;
-  double average_ceiling_height;
-
   // Scaling in air field of view.
   double air_floorplan_field_of_view_scale;
 
   const Floorplan& floorplan;
+  const ViewParameters& view_parameters;
   const std::vector<Panorama>& panoramas;
   const std::map<int, int>& panorama_to_room;
   // const std::map<int, int>& room_to_panorama;

@@ -637,7 +637,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   else
     animation = air_to_tree_progress * animation + (1.0 - air_to_tree_progress);
   
-  const double building_height = navigation.GetAverageCeilingHeight() - navigation.GetAverageFloorHeight();
+  const double building_height = view_parameters.GetAverageCeilingHeight() - view_parameters.GetAverageFloorHeight();
   const double kMaxShrinkRatio = 0.6;
   const double kMaxObjectShrinkRatio = 0.8;
 

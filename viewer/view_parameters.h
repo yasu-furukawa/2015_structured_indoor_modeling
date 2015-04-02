@@ -12,6 +12,10 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+struct Configuration;
+class Navigation;
+class Panorama;
+
 struct BoundingBox {
   BoundingBox() {
     min_xyz = Eigen::Vector3d(std::numeric_limits<double>::max(),
@@ -45,11 +49,11 @@ struct BoundingBox {
 class ViewParameters {
  public:
   ViewParameters(const Floorplan& floorplan,
-                const IndoorPolygon& indoor_polygon,
-                const ObjectRenderer& object_renderer);
-  void Init(const Eigen::Vector3d& x_axis,
-            const Eigen::Vector3d& y_axis,
-            const Eigen::Vector3d& z_axis);
+                 const IndoorPolygon& indoor_polygon,
+                 const ObjectRenderer& object_renderer,
+                 const std::vector<Panorama>& panoramas,
+                 const Configuration& configuration);
+  void Init();
 
   Eigen::Vector3d TransformRoom(const Vector3d& global,
                                 const int room,
@@ -74,10 +78,17 @@ class ViewParameters {
   const Eigen::Vector3d& GetCenter() const { return center; }
   const Eigen::Vector3d GetObjectCenter(const int room, const int object) const;
 
+  double GetAverageDistance() const { return average_distance; }
+  double GetAirHeight() const { return air_height; }
+  double GetFloorplanHeight() const { return floorplan_height; }
+  double GetAverageFloorHeight() const { return average_floor_height; }
+  double GetAverageCeilingHeight() const { return average_ceiling_height; }
+  
   // double GetFloorplanHeight() const { return floorplan_height; }
 
   //???
   // private:
+  void InitAirFloorplanViewpoints();
   void InitCenter();
   void InitBoundingBoxes();
   void InitTreeConfigurationCenter();
@@ -100,11 +111,33 @@ class ViewParameters {
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   const ObjectRenderer& object_renderer;
+  const std::vector<Panorama>& panoramas;
+
+  // Angle of viewing in the air.
+  const double air_angle;
+  const double floorplan_angle;
+  // Field of view.
+  const double air_field_of_view_degrees;
+  const double floorplan_field_of_view_degrees;
+  
   // global.
   Eigen::Vector3d center;
   Eigen::Vector3d x_axis;
   Eigen::Vector3d y_axis;
   Eigen::Vector3d z_axis;
+
+  double air_height;
+  double floorplan_height;
+
+  // Best ground_center for air.
+  Eigen::Vector3d best_ground_center;
+  Eigen::Vector3d best_start_directions_for_air[2];
+  Eigen::Vector3d best_start_directions_for_floorplan[2];
+  
+  // Average distance.
+  double average_distance;
+  double average_floor_height;
+  double average_ceiling_height;
   
   //----------------------------------------------------------------------
   // For tree mode.
@@ -117,6 +150,8 @@ class ViewParameters {
   std::vector<std::vector<TreeConfiguration> > wall_configurations;
   // Displacement is from the moved room.  
   std::vector<std::vector<TreeConfiguration> > object_configurations;
+
+  friend class Navigation;
 };
   
 }  // namespace structured_indoor_modeling

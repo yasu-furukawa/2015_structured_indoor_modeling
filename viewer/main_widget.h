@@ -68,10 +68,10 @@ private:
     IndoorPolygonRenderer indoor_polygon_renderer;
     FloorplanRenderer floorplan_renderer;
     PanelRenderer panel_renderer;
-    // Navigation knows the entire state of the viewer.
-    Navigation navigation;
     // Tree organizer.
     ViewParameters view_parameters;
+    // Navigation knows the entire state of the viewer.
+    Navigation navigation;
 
     //----------------------------------------------------------------------
     // GL resources.
