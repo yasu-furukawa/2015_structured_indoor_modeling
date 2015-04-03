@@ -41,7 +41,9 @@ void ViewParameters::Init(const double aspect_ratio_tmp) {
   InitBoundingBoxes();
   InitAirFloorplanViewpoints();
   InitTreeConfigurationCenter();
-  SetDisplacements();
+  SetPolygonScale();
+  SetRoomDisplacements();
+  SetObjectDisplacements();
 }
 
 
@@ -78,13 +80,13 @@ void ViewParameters::InitAirFloorplanViewpoints() {
   // diameter must be visible in the given field-of-view along air_angle.
   const double diameter0 = bounding_box.max_xyz[0] - bounding_box.min_xyz[0];
   const double diameter1 = bounding_box.max_xyz[1] - bounding_box.min_xyz[1];
-  const double diameter = max(diameter0, diameter1 * aspect_ratio);
+  diameter = max(diameter0, diameter1 * aspect_ratio);
   
   air_height = diameter / 2.0 / tan(air_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(air_angle);
-  air_height *= 1.1;
+  air_height *= 1.2;
   
   floorplan_height = diameter / 2.0 / tan(floorplan_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(floorplan_angle);
-  floorplan_height *= 1.1;
+  floorplan_height *= 1.2;
   
   average_floor_height = 0.0;
   average_ceiling_height = 0.0;
@@ -244,28 +246,33 @@ void ViewParameters::InitTreeConfigurationCenter() {
   }
 }
 
-void ViewParameters::SetDisplacements() {
+void ViewParameters::SetPolygonScale() {
+  // Make the height occupy only 1/3 of the screen.
+  const double target_height = diameter / aspect_ratio / 3.0;
+  floorplan_scale = target_height / (bounding_box.max_xyz[1] - bounding_box.min_xyz[1]);
+  
+  vertical_floorplan = target_height;
+}
+  
+void ViewParameters::SetRoomDisplacements() {
   // To allow some margin between items.
-  const double kShrinkScale = 0.95;
   vector<double> room_sizes(floorplan.GetNumRooms());
   vector<pair<double, int> > room_offsets(floorplan.GetNumRooms());
-  Vector2d x_range(numeric_limits<double>::max(), - numeric_limits<double>::max());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     const BoundingBox& bounding_box = room_configurations[room].bounding_box;
     room_sizes[room] = Vector2d(bounding_box.max_xyz[0] - bounding_box.min_xyz[0],
                                 bounding_box.max_xyz[1] - bounding_box.min_xyz[1]).norm();
     room_offsets[room] = pair<double, int>(room_configurations[room].center[0], room);
-    
-    x_range[0] = min(x_range[0], bounding_box.min_xyz[0]);
-    x_range[1] = max(x_range[1], bounding_box.max_xyz[0]);
   }
   sort(room_offsets.begin(), room_offsets.end());
 
   //----------------------------------------------------------------------
   // Room displacements.
-  
+  const double kExpandScale = 1.1;
+  const double kShrinkScale = 0.95;
   const double room_size_sum = accumulate(room_sizes.begin(), room_sizes.end(), 0.0);
-  const double scale = (x_range[1] - x_range[0]) / room_size_sum;
+
+  indoor_polygon_scale = kExpandScale * diameter / room_size_sum;
 
   double accumulated_position = - room_size_sum / 2.0;
 
@@ -273,22 +280,23 @@ void ViewParameters::SetDisplacements() {
     const int room = room_offsets[i].second;
     const double position = accumulated_position + room_sizes[room] / 2.0;
     room_configurations[room].displacement =
-      Vector3d(position * scale, 0, 0) - room_configurations[room].center;
+      Vector3d(position * indoor_polygon_scale, 0, 0) - room_configurations[room].center;
     
-    room_configurations[room].scale = kShrinkScale * scale;
+    room_configurations[room].scale = kShrinkScale * indoor_polygon_scale;
     accumulated_position += room_sizes[room];
   }
-  //----------------------------------------------------------------------
-  // Floor and Wall displacements are 0 for the moment.
+}
 
+void ViewParameters::SetObjectDisplacements() {
+  const double kShrinkScale = 0.95;
   //----------------------------------------------------------------------
   // Object displacements.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     vector<double> object_sizes(object_renderer.GetNumObjects(room));
     vector<pair<double, int> > object_offsets(object_renderer.GetNumObjects(room));
     const Eigen::Vector3d& reference = room_configurations[room].center;
-    const Vector2d x_range(scale * (room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
-                           scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
+    const Vector2d x_range(indoor_polygon_scale * (room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
+                           indoor_polygon_scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
 
     for (int object = 0; object < object_renderer.GetNumObjects(room); ++object) {
       const BoundingBox& bounding_box = object_configurations[room][object].bounding_box;

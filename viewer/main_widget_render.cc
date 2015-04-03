@@ -654,10 +654,9 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   // lumber cashew.
   // const double kMaxShrinkScale = 0.7;
   const double kMaxShrinkScale = 0.5;
-  const Eigen::Vector3d vertical_floorplan       = 1.0   * building_height * offset_direction;
   const Eigen::Vector3d vertical_top_line0       = 0.75  * building_height * offset_direction;
   const Eigen::Vector3d vertical_top_line1       = -0.5 * building_height * offset_direction;
-  const Eigen::Vector3d vertical_indoor_polygon  = -0.5  * building_height * offset_direction;
+  const Eigen::Vector3d vertical_indoor_polygon  = 0.0  * building_height * offset_direction;
   const Eigen::Vector3d vertical_object          = -1.75 * building_height * offset_direction;
   const Eigen::Vector3d vertical_bottom_line0    = -1.9  * building_height * offset_direction;
   const Eigen::Vector3d vertical_boundary_top    = -1.5  * building_height * offset_direction;
@@ -772,8 +771,8 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     polygon_renderer.RenderColoredBoxes(view_parameters,
-                                        vertical_floorplan,
-                                        kMaxShrinkScale,
+                                        view_parameters.GetVerticalFloorplan() * offset_direction,
+                                        view_parameters.GetFloorplanScale(),
                                         air_to_tree_progress,
                                         animation,
                                         kAlpha,

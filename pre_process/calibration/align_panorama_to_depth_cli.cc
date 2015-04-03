@@ -425,11 +425,15 @@ void InitializeParameters(const FileIO& file_io, const int p, vector<double>* pa
   for (int i = 0; i < 7; ++i)
     params->at(i) = dtmp[i];
 
+  
+
   // lumber-cashew
   // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.5529;
 
   // equal-sky
-  //params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.4829;
+  // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.4829;
+  // equal-sky first pano
+  // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;
 
   // equal sky (last image).
   // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;

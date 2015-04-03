@@ -83,9 +83,15 @@ class ViewParameters {
   double GetFloorplanHeight() const { return floorplan_height; }
   double GetAverageFloorHeight() const { return average_floor_height; }
   double GetAverageCeilingHeight() const { return average_ceiling_height; }
-  Eigen::Vector3d GetZAxis() const { return z_axis; }
+  const Eigen::Vector3d& GetZAxis() const { return z_axis; }
   
   // double GetFloorplanHeight() const { return floorplan_height; }
+  double GetVerticalFloorplan() const { return vertical_floorplan; }
+  double GetVerticalIndoorPolygon() const { return vertical_indoor_polygon; }
+  double GetVerticalObjectTop() const { return vertical_object_top; }
+  double GetVerticalObjectBottom() const { return vertical_object_bottom; }
+
+  double GetFloorplanScale() const { return floorplan_scale; }
 
   //???
   // private:
@@ -94,7 +100,9 @@ class ViewParameters {
   void InitBoundingBoxes();
   void InitAirFloorplanViewpoints();
   void InitTreeConfigurationCenter();
-  void SetDisplacements();
+  void SetPolygonScale();
+  void SetRoomDisplacements();
+  void SetObjectDisplacements();
   
   Eigen::Vector3d GlobalToLocal(const Eigen::Vector3d& global) const {
     const Eigen::Vector3d& diff = global - center;
@@ -123,6 +131,9 @@ class ViewParameters {
   const double floorplan_field_of_view_degrees;
 
   double aspect_ratio;
+
+  // 3D distance corresponding to the frame width.
+  double diameter;
   
   double air_height;
   double floorplan_height;
@@ -157,13 +168,13 @@ class ViewParameters {
   std::vector<std::vector<TreeConfiguration> > object_configurations;
 
   //----------------------------------------------------------------------
-  Eigen::Vector3d vertical_floorplan;
-  Eigen::Vector3d vertical_indoor_polygon;
-  Eigen::Vector3d vertical_object_top;
-  Eigen::Vector3d vertical_object_bottom;
-  std::vector<std::vector<Eigen::Vector3d> > object_boundaries;
+  double vertical_floorplan;
+  double vertical_indoor_polygon;
+  double vertical_object_top;
+  double vertical_object_bottom;
   int num_rows;
   double floorplan_scale;
+  double indoor_polygon_scale;
   
   friend class Navigation;
 };
