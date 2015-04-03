@@ -53,7 +53,7 @@ class ViewParameters {
                  const ObjectRenderer& object_renderer,
                  const std::vector<Panorama>& panoramas,
                  const Configuration& configuration);
-  void Init();
+  void Init(const double aspect_ratio);
 
   Eigen::Vector3d TransformRoom(const Vector3d& global,
                                 const int room,
@@ -83,6 +83,7 @@ class ViewParameters {
   double GetFloorplanHeight() const { return floorplan_height; }
   double GetAverageFloorHeight() const { return average_floor_height; }
   double GetAverageCeilingHeight() const { return average_ceiling_height; }
+  Eigen::Vector3d GetZAxis() const { return z_axis; }
   
   // double GetFloorplanHeight() const { return floorplan_height; }
 
@@ -120,6 +121,8 @@ class ViewParameters {
   // Field of view.
   const double air_field_of_view_degrees;
   const double floorplan_field_of_view_degrees;
+
+  double aspect_ratio;
   
   double air_height;
   double floorplan_height;
@@ -153,6 +156,15 @@ class ViewParameters {
   // Displacement is from the moved room.  
   std::vector<std::vector<TreeConfiguration> > object_configurations;
 
+  //----------------------------------------------------------------------
+  Eigen::Vector3d vertical_floorplan;
+  Eigen::Vector3d vertical_indoor_polygon;
+  Eigen::Vector3d vertical_object_top;
+  Eigen::Vector3d vertical_object_bottom;
+  std::vector<std::vector<Eigen::Vector3d> > object_boundaries;
+  int num_rows;
+  double floorplan_scale;
+  
   friend class Navigation;
 };
   

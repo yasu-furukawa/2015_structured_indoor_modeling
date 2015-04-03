@@ -75,7 +75,8 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
 
   {
     navigation.Init();
-    view_parameters.Init();
+    const double kDefaultAspectRatio = 1.333;
+    view_parameters.Init(kDefaultAspectRatio);
   }
 
   SetPanoramaToRoom(floorplan, panorama_renderers, &panorama_to_room);
@@ -258,9 +259,10 @@ void MainWidget::SetMatrices() {
          << center << endl
          << direction << endl;
 
+  const Vector3d z_axis = view_parameters.GetZAxis();
   gluLookAt(center[0], center[1], center[2],
             center[0] + direction[0], center[1] + direction[1], center[2] + direction[2],
-            0, 0, 1);
+            z_axis[0], z_axis[1], z_axis[2]);
 
   GLint viewport_old[4];
   GLdouble modelview_old[16];

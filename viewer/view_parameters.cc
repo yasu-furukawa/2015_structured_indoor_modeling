@@ -24,7 +24,9 @@ ViewParameters::ViewParameters(const Floorplan& floorplan,
   floorplan_field_of_view_degrees(configuration.floorplan_field_of_view_degrees) {
 }
 
-void ViewParameters::Init() {
+void ViewParameters::Init(const double aspect_ratio_tmp) {
+  aspect_ratio = aspect_ratio_tmp;
+  
   room_configurations.resize(floorplan.GetNumRooms());
   floor_configurations.resize(floorplan.GetNumRooms());
   wall_configurations.resize(floorplan.GetNumRooms());
@@ -74,18 +76,16 @@ void ViewParameters::InitAxes() {
 
 void ViewParameters::InitAirFloorplanViewpoints() {
   // diameter must be visible in the given field-of-view along air_angle.
-  const double diameter = bounding_box.max_xyz[0] - bounding_box.min_xyz[0];
+  const double diameter0 = bounding_box.max_xyz[0] - bounding_box.min_xyz[0];
+  const double diameter1 = bounding_box.max_xyz[1] - bounding_box.min_xyz[1];
+  const double diameter = max(diameter0, diameter1 * aspect_ratio);
+  
   air_height = diameter / 2.0 / tan(air_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(air_angle);
-  air_height *= 0.9;
+  air_height *= 1.1;
   
   floorplan_height = diameter / 2.0 / tan(floorplan_field_of_view_degrees / 2.0 * M_PI / 180.0) * sin(floorplan_angle);
-  floorplan_height *= 0.9;
-
-
-  //const Vector2d center_local((x_range[0] + x_range[1]) / 2.0,
-  //                              (y_range[0] + y_range[1]) / 2.0);
+  floorplan_height *= 1.1;
   
-
   average_floor_height = 0.0;
   average_ceiling_height = 0.0;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -107,37 +107,20 @@ void ViewParameters::InitAirFloorplanViewpoints() {
   
   best_ground_center =
     floorplan.GetFloorplanToGlobal() *
-    Vector3d(center_local[0], center_local[1], average_floor_height);
+    Vector3d(center_local[0], center_local[1], (average_floor_height + average_ceiling_height) / 2.0);
 
   for (int i = 0; i < 2; ++i) {
     if (i == 0)
       best_start_directions_for_air[i] = y_axis;
     else
       best_start_directions_for_air[i] = -y_axis;
-    /*
-    // Y axis is the viewing direction.
-    if ((x_range[1] - x_range[0]) > (y_range[1] - y_range[0])) {
-      if (i == 0)
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(0, 1, 0);
-      else
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(0, -1, 0);
-    } else {
-      if (i == 0)
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(1, 0, 0);
-      else
-        best_start_directions_for_air[i] = 
-          floorplan.GetFloorplanToGlobal() * Vector3d(-1, 0, 0);
-    }
-    */
+
     best_start_directions_for_floorplan[i] = best_start_directions_for_air[i];
         
     best_start_directions_for_air[i] += -tan(air_angle) * z_axis;
     best_start_directions_for_air[i] *= air_height / tan(air_angle);
 
-    best_start_directions_for_floorplan[i] += -tan(floorplan_angle) * Vector3d(0, 0, 1);
+    best_start_directions_for_floorplan[i] += -tan(floorplan_angle) * z_axis;
     best_start_directions_for_floorplan[i] *= floorplan_height / tan(floorplan_angle);
   }
 }    
@@ -344,41 +327,7 @@ void ViewParameters::SetDisplacements() {
         accumulated_position += object_sizes[object];
       }
     }
-  }
-  
-  /*
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    vector<double> object_sizes(object_renderer.GetNumObjects(room));
-    vector<pair<double, int> > object_offsets(object_renderer.GetNumObjects(room));
-    const Eigen::Vector3d& reference = room_configurations[room].center;
-    const Vector2d x_range(scale * (room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
-                           scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
-
-    for (int object = 0; object < object_renderer.GetNumObjects(room); ++object) {
-      const BoundingBox& bounding_box = object_configurations[room][object].bounding_box;
-      object_sizes[object] = Vector2d(bounding_box.max_xyz[0] - bounding_box.min_xyz[0],
-                                      bounding_box.max_xyz[1] - bounding_box.min_xyz[1]).norm();
-      object_offsets[object] =
-        pair<double, int>(object_configurations[room][object].center[0] - reference[0], object);
-    }
-    sort(object_offsets.begin(), object_offsets.end());
-
-    const double object_size_sum = accumulate(object_sizes.begin(), object_sizes.end(), 0.0);
-    const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum);
-    
-    double accumulated_position = - object_size_sum / 2.0;
-    for (int i = 0; i < (int)object_offsets.size(); ++i) {
-      const int object = object_offsets[i].second;
-      const double position = accumulated_position + object_sizes[object] / 2.0;
-      object_configurations[room][object].displacement =
-        Vector3d(position * object_scale, 0.0, 0.0) -
-        (object_configurations[room][object].center - reference);
-      
-      object_configurations[room][object].scale = kShrinkScale * object_scale;
-      accumulated_position += object_sizes[object];
-    }
-  }
-  */
+  }  
 }
 
 Eigen::Vector3d ViewParameters::TransformRoom(const Vector3d& global,
@@ -466,28 +415,7 @@ Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
     const double progress2 = 2.0 * (progress - 0.5);
     return progress2 * final_position + (1.0 - progress2) * global_as_room;
   }
-  
-    /*
-  const double scale = (1.0 - progress) * 1.0 + progress * object_configurations[room][object].scale;
-
-  const double room_progress = min(2.0 * progress, 1.0);
-  const double object_progress = 2.0 * max(0.0, (progress - 0.5));
-  
-  const Vector3d global_displacement =
-    (LocalToGlobalNormal(room_progress * room_configurations[room].displacement +
-                         object_progress * object_configurations[room][object].displacement) +
-     progress * max_vertical_shift);
-  //    progress *
-  //    (LocalToGlobalNormal(room_configurations[room].displacement + object_configurations[room][object].displacement + Vector3d(0, 0, max_vertical_shift)));
-    
-  Vector3d local = GlobalToLocal(global);
-  local = object_configurations[room][object].center +
-    scale * rotation * (local - object_configurations[room][object].center);
-
-  return global_displacement + LocalToGlobal(local);
-  */
 }
-
 
 Eigen::Vector3d ViewParameters::TransformFloorplan(const Vector3d& global,
                                                   const double air_to_tree_progress,

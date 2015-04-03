@@ -637,15 +637,19 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   else
     animation = air_to_tree_progress * animation + (1.0 - air_to_tree_progress);
   
+
   const double building_height = view_parameters.GetAverageCeilingHeight() - view_parameters.GetAverageFloorHeight();
   const double kMaxShrinkRatio = 0.6;
   const double kMaxObjectShrinkRatio = 0.8;
 
-  const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-  const Vector3d vertical = floorplan_to_global * Vector3d(0, 0, -1);
-  const Vector3d direction = navigation.GetDirection();
-  const Vector3d orthogonal = vertical.cross(direction);
-  const Vector3d offset_direction = (orthogonal.cross(direction)).normalized();
+  Vector3d offset_direction;
+  {
+    const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+    const Vector3d vertical = floorplan_to_global * Vector3d(0, 0, -1);
+    const Vector3d direction = navigation.GetDirection();
+    const Vector3d orthogonal = vertical.cross(direction);
+    offset_direction = (orthogonal.cross(direction)).normalized();
+  }
 
   // lumber cashew.
   // const double kMaxShrinkScale = 0.7;
