@@ -76,6 +76,8 @@ class PointCloud {
   inline int GetNumPoints() const { return points.size(); }
   inline int GetDepthWidth() const { return depth_width; }
   inline int GetDepthHeight() const { return depth_height; }
+  inline const std::vector<Point>& GetPointData() const {return points;}
+  inline std::vector<Point> &GetPointData() {return points;}
   // yasu This should return const reference to speed-up.
   inline const std::vector<double>& GetBoundingbox() const { return bounding_box; }
   inline int GetNumObjects() const { return num_objects; }

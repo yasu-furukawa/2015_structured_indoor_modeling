@@ -5,6 +5,7 @@
 #include "../../base/file_io.h"
 #include "../../base/panorama.h"
 #include "../../base/floorplan.h"
+#include "../../base/kdtree/KDtree.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <algorithm>
@@ -19,6 +20,12 @@ void AllRange(std::vector<int>&array, std::vector<std::vector<int> >&result, int
 
 
 void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup, std::vector<std::vector<int> >&object_panorama, const int roomid);
+
+void SetNeighbors(const std::vector<structured_indoor_modeling::Point>& points,
+                  const int num_neighbors,
+                  std::vector<std::vector<int> >* neighbors);
+     
+void SmoothObjects(const std::vector<std::vector<int> >& neighbors, std::vector<structured_indoor_modeling::Point>* points);
 //convert a Mat image to SLIC image
 void MatToImagebuffer(const cv::Mat image, std::vector <unsigned int> &imagebuffer);
 

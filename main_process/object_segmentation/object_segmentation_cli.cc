@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 #ifdef __APPLE__
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 #else
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif

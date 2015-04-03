@@ -55,34 +55,34 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
 	// depth[curid].SaveDepthmap(string(buffer));
 
 	
-	labels[curid].resize(imgwidth*imgheight);
+    // 	labels[curid].resize(imgwidth*imgheight);
 
-	ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
-	if(!labelin.is_open() || recompute){
-	    cout<<"Performing SLICO Superpixel..."<<endl;
-	    Mat pan = panorama[curid].GetRGBImage().clone();
-	    SLIC slic;
-	    vector<unsigned int>imagebuffer;
-	    MatToImagebuffer(pan, imagebuffer);
-	    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
-	    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
-	    sprintf(buffer,"superpixel/SLIC%03d",id);
-	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
-	    cout<<"numlabels: "<<numlabels[curid]<<endl;
-	    Mat out;
-	    ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
-	    sprintf(buffer,"superpixel/SLIC%03d.png",id); 
-	    imwrite(buffer,out);
-	    waitKey(10);
-	}else{
-	    cout <<"Reading superpixel from file"<<endl;
-	    labelin.read((char*)&numlabels[curid], sizeof(int));
-	    for(int i=0;i<labels[curid].size();i++){
-		labelin.read((char*)&labels[curid][i], sizeof(int));
-	    }
-	    labelin.close();
-	}
-	cout<<endl;
+    // 	ifstream labelin(file_io.GetSuperPixelFile(id).c_str(), ios::binary);
+    // 	if(!labelin.is_open() || recompute){
+    // 	    cout<<"Performing SLICO Superpixel..."<<endl;
+    // 	    Mat pan = panorama[curid].GetRGBImage().clone();
+    // 	    SLIC slic;
+    // 	    vector<unsigned int>imagebuffer;
+    // 	    MatToImagebuffer(pan, imagebuffer);
+    // 	    slic.PerformSLICO_ForGivenK(&imagebuffer[0],imgwidth,imgheight,&labels[curid][0],numlabels[curid],expected_num,0.0);
+    // 	    slic.DrawContoursAroundSegmentsTwoColors(&imagebuffer[0],&labels[curid][0],imgwidth,imgheight);
+    // 	    sprintf(buffer,"superpixel/SLIC%03d",id);
+    // 	    slic.SaveSuperpixelLabels(&labels[curid][0],imgwidth,imgheight,numlabels[curid]," ",file_io.GetSuperPixelFile(id));
+    // 	    cout<<"numlabels: "<<numlabels[curid]<<endl;
+    // 	    Mat out;
+    // 	    ImagebufferToMat(imagebuffer, imgwidth, imgheight, out);
+    // 	    sprintf(buffer,"superpixel/SLIC%03d.png",id); 
+    // 	    imwrite(buffer,out);
+    // 	    waitKey(10);
+    // 	}else{
+    // 	    cout <<"Reading superpixel from file"<<endl;
+    // 	    labelin.read((char*)&numlabels[curid], sizeof(int));
+    // 	    for(int i=0;i<labels[curid].size();i++){
+    // 		labelin.read((char*)&labels[curid][i], sizeof(int));
+    // 	    }
+    // 	    labelin.close();
+    // 	}
+      cout<<endl;
     }
 }
 
@@ -250,6 +250,16 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	}
     }//for objid
      objectcloud.RemovePoints(point_to_remove);
+}
+
+Eigen::Vector3d Intersect(const structured_indoor_modeling::Point& lhs, const structured_indoor_modeling::Point& rhs) {
+     // Ray is point = lhs.position + lhs.normal * d.
+     // rhs.normal * (point - rhs.position)
+
+     const Vector3d diff = lhs.position - rhs.position;
+     const Vector3d diff_along_rhs_normal = rhs.normal.dot(diff) * rhs.normal;
+     const Vector3d final_diff = lhs.normal.dot(diff_along_rhs_normal) * lhs.normal;
+     return lhs.position - final_diff;
 }
 
 void MatToImagebuffer(const Mat image, vector<unsigned int>&imagebuffer){
@@ -584,13 +594,90 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 		curob.RemovePoints(points_to_remove);
 	    }
 	}
-	cleanObjects(curob);
+//	cleanObjects(curob);
 	vector <vector <int> > curgroup;
 	groupObject(curob, curgroup);
 	objectgroup.push_back(curgroup);
 	objectCloud.push_back(curob);
 	roomid++;
     }
+}
+
+
+void SetNeighbors(const std::vector<structured_indoor_modeling::Point>& points,
+                  const int num_neighbors,
+                  std::vector<std::vector<int> >* neighbors) {
+     vector<float> point_data;
+     {
+	  point_data.reserve(3 * points.size());
+	  for (int p = 0; p < points.size(); ++p) {
+	       for (int i = 0; i < 3; ++i)
+		    point_data.push_back(points[p].position[i]);
+	  }
+     }
+     KDtree kdtree(point_data);
+     vector<const float*> knn;
+     vector<float> neighbor_distances(points.size());
+
+     neighbors->clear();
+     neighbors->resize(points.size());
+
+     for (int p = 0; p < points.size(); ++p) {
+	  knn.clear();
+	  const Vector3f ref_point(points[p].position[0],
+				   points[p].position[1],
+				   points[p].position[2]);
+                      
+	  kdtree.find_k_closest_to_pt(knn, num_neighbors, &ref_point[0]);
+
+	  for (int i = 0; i < (int)knn.size(); ++i) {
+	       const int index = (knn[i] - &point_data[0]) / 3;
+	       neighbors->at(p).push_back(index);
+	  }
+     }
+}
+
+
+void SmoothObjects(const std::vector<std::vector<int> >& neighbors,
+                   std::vector<structured_indoor_modeling::Point>* points) {
+     double unit = 0.0;
+     int denom = 0;
+     for (int p = 0; p < points->size(); ++p) {
+	  for (int i = 0; i < neighbors[p].size(); ++i) {
+	       unit += (points->at(p).position - points->at(neighbors[p][i]).position).norm();
+	       ++denom;
+	  }
+     }
+     unit /= denom;
+     const double sigma = 2.0 * unit;
+
+     // Smooth normals.
+     vector<structured_indoor_modeling::Point> new_points = *points;
+     for (int p = 0; p < points->size(); ++p) {
+	  for (int i = 0; i < neighbors[p].size(); ++i) {
+	       const int q = neighbors[p][i];
+	       const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * sigma * sigma));
+	       new_points[p].normal += weight * points->at(q).normal;
+	  }
+	  if (new_points[p].normal != Vector3d(0, 0, 0))
+	       new_points[p].normal.normalize();
+     }
+     *points = new_points;
+
+     // Smooth positions.
+     for (int p = 0; p < points->size(); ++p) {
+	  double total_weight = 1.0;
+	  for (int i = 0; i < neighbors[p].size(); ++i) {
+	       const int q = neighbors[p][i];
+	       // Estimate the position along the normal.
+	       const Vector3d intersection = Intersect(points->at(p), points->at(q));
+	       const double weight = exp(- (points->at(p).position - points->at(q).position).squaredNorm() / (2 * sigma * sigma));
+	       new_points[p].position += weight * intersection;
+	       total_weight += weight;
+	  }
+	  new_points[p].position /= total_weight;
+     }
+     *points = new_points;
 }
 
 
