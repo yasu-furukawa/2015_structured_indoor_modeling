@@ -197,8 +197,8 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		Vector2d RGB_pix = panorama[panid].Project(curpt);
 		
 		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[0] = 255;
-		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[1] /= 2;
-		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[2] /= 2;
+		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[1] = 0;
+		panout.at<Vec3b>((int)RGB_pix[1], (int)RGB_pix[0])[2] = 0;
 		
 		Vector3f curColor = panorama[panid].GetRGB(RGB_pix);
 		swap(curColor[0],curColor[2]);

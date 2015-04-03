@@ -387,5 +387,19 @@ void ReadObjectPointClouds(const FileIO& file_io,
   }
   cout << "done" << endl;
 }
+
+void ReadRefinedObjectPointClouds(const FileIO& file_io,
+			   const int num_rooms,
+			   std::vector<PointCloud>* object_point_clouds) {
+    object_point_clouds->clear();
+    object_point_clouds->resize(num_rooms);
+    cout << "Reading object clouds..." << flush;
+    for (int room = 0; room < num_rooms; ++room) {
+	cout << '.' << flush;
+	//object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
+	object_point_clouds->at(room).Init(file_io.GetObjectPointClouds(room));
+    }
+    cout << "done" << endl;
+}
   
 }  // namespace structured_indoor_modeling

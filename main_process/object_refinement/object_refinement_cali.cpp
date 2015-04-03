@@ -82,17 +82,17 @@ int main(int argc, char **argv){
 	cleanObjects(objectcloud[roomid]);
 
 	//Smoothing
-	cout<<"Smoothing object... "<<endl;
-	const int kNumNeighbors = 8;
-	vector<vector<int> >neighbors;
-	cout<<"Set neighbors...";
-	SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
-	cout<<"done!"<<endl;
-	cout<<"Smoothing...";
-	for(int t=0;t<FLAGS_nsmooth;t++)
-	     SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
-	cout<<"done!"<<endl;
-	cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
+	// cout<<"Smoothing object... "<<endl;
+	// const int kNumNeighbors = 8;
+	// vector<vector<int> >neighbors;
+	// cout<<"Set neighbors...";
+	// SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
+	// cout<<"done!"<<endl;
+	// cout<<"Smoothing...";
+	// for(int t=0;t<FLAGS_nsmooth;t++)
+	//      SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
+	// cout<<"done!"<<endl;
+	// cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
 	
     	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
     }
