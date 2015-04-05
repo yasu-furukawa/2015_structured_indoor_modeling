@@ -627,8 +627,6 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
 }
 
 void MainWidget::RenderTree(const double air_to_tree_progress) {
-  const double kAlpha = 1.0;
-
   const int kInterval = 20 * 1000;
   const int kNoAnimationPeriod = 1000;
   double animation = (max(0, object_animation_time.elapsed() - tree_entry_time - kNoAnimationPeriod) % kInterval) / static_cast<double>(kInterval);
@@ -637,153 +635,27 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   else
     animation = air_to_tree_progress * animation + (1.0 - air_to_tree_progress);
   
-
-  const double building_height = view_parameters.GetAverageCeilingHeight() - view_parameters.GetAverageFloorHeight();
-  const double kMaxShrinkRatio = 0.6;
-  const double kMaxObjectShrinkRatio = 0.8;
-
   Vector3d offset_direction;
-  {
-    const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-    const Vector3d vertical = floorplan_to_global * Vector3d(0, 0, -1);
-    const Vector3d direction = navigation.GetDirection();
-    const Vector3d orthogonal = vertical.cross(direction);
-    offset_direction = (orthogonal.cross(direction)).normalized();
-  }
-
-  // lumber cashew.
-  // const double kMaxShrinkScale = 0.7;
-  const double kMaxShrinkScale = 0.5;
-  const Eigen::Vector3d vertical_top_line0       = 0.75  * building_height * offset_direction;
-  const Eigen::Vector3d vertical_top_line1       = -0.5 * building_height * offset_direction;
-  const Eigen::Vector3d vertical_indoor_polygon  = 0.0  * building_height * offset_direction;
-  const Eigen::Vector3d vertical_object          = -1.75 * building_height * offset_direction;
-  const Eigen::Vector3d vertical_bottom_line0    = -1.9  * building_height * offset_direction;
-  const Eigen::Vector3d vertical_boundary_top    = -1.5  * building_height * offset_direction;
-  const Eigen::Vector3d vertical_boundary_bottom = -2.4  * building_height * offset_direction;
+  view_parameters.SetOffsetDirection(navigation.GetDirection(), &offset_direction);
+  
+  const Vector3d kNoOffset(0.0, 0.0, 0.0);
+  //SetTreeRenderingParameters();
+  vector<vector<Vector3d> > boundaries;
+  view_parameters.SetBoundaries(offset_direction, &boundaries);
 
   // Lines for each room.
   vector<pair<Vector3d, Vector3d> > top_lines, bottom_lines;
-
-  //SetTreeRenderingParameters();
-
-
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    const Vector2d local = floorplan.GetRoomCenterLocal(room);
-    const Vector3d floor_local(local[0], local[1], floorplan.GetFloorHeight(room));
-    const Vector3d ceiling_local(local[0], local[1], floorplan.GetCeilingHeight(room));
-    const Vector3d floor_global = floorplan.GetFloorplanToGlobal() * floor_local;
-    const Vector3d ceiling_global = floorplan.GetFloorplanToGlobal() * ceiling_local;
-    const Vector3d room_global = (floor_global + ceiling_global) / 2.0;
-
-    top_lines.push_back(make_pair(view_parameters.TransformFloorplan(room_global,
-                                                                    air_to_tree_progress,
-                                                                    animation,
-                                                                    vertical_top_line0,
-                                                                    kMaxShrinkScale),
-                                  view_parameters.TransformRoom(ceiling_global,
-                                                               room,
-                                                               air_to_tree_progress,
-                                                               animation,
-                                                               vertical_top_line1)));
-    bottom_lines.push_back(make_pair(view_parameters.TransformRoom(floor_global,
-                                                                  room,
-                                                                  air_to_tree_progress,
-                                                                  animation,
-                                                                  vertical_indoor_polygon),
-                                     view_parameters.TransformRoom(floor_global,
-                                                                  room,
-                                                                  air_to_tree_progress,
-                                                                  animation,
-                                                                  vertical_bottom_line0)));
-  }
-  vector<vector<Vector3d> > boundaries(floorplan.GetNumRooms());
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-    double min_x = view_parameters.room_configurations[room].bounding_box.min_xyz[0];
-    double max_x = view_parameters.room_configurations[room].bounding_box.max_xyz[0];
-    const double center_x = view_parameters.room_configurations[room].center[0];
-    const double kEnlarge = 1.1;
-    min_x = center_x + (min_x - center_x) * view_parameters.room_configurations[room].scale * kEnlarge;
-    max_x = center_x + (max_x - center_x) * view_parameters.room_configurations[room].scale * kEnlarge;
-    
-    Vector3d left(min_x,
-                  view_parameters.room_configurations[room].center[1],
-                  view_parameters.room_configurations[room].center[2]);
-    Vector3d right(max_x,
-                   view_parameters.room_configurations[room].center[1],
-                   view_parameters.room_configurations[room].center[2]);
-    
-    left += view_parameters.room_configurations[room].displacement;
-    right += view_parameters.room_configurations[room].displacement;
-
-    boundaries[room].push_back(view_parameters.LocalToGlobal(left) + vertical_boundary_top);
-    boundaries[room].push_back(view_parameters.LocalToGlobal(right) + vertical_boundary_top);
-    boundaries[room].push_back(view_parameters.LocalToGlobal(right) + vertical_boundary_bottom);
-    boundaries[room].push_back(view_parameters.LocalToGlobal(left) + vertical_boundary_bottom);
-
-    bottom_lines[room].second = (boundaries[room][0] + boundaries[room][1]) / 2.0;
-  }
-
-
-  double animation_alpha;
-  {
-    const double kMargin = 0.05;
-    const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
-    double diff = 1.0;
-    for (int i = 0; i < 4; ++i)
-      diff = min(diff, fabs(animation - pivots[i]));
-    animation_alpha = max(0.0, min(1.0, 2.0 * (kMargin - diff) / kMargin));
-  }
+  view_parameters.SetLines(offset_direction, &top_lines, &bottom_lines);  
+  const double animation_alpha = view_parameters.SetAnimationAlpha(animation);
   
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
-
   {
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
   }
-  {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-    // Draw lines first, because behind everything.
-    if (animation_alpha != 0.0) {
-      glEnable(GL_LINE_SMOOTH);
-      glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-      glLineWidth(2.0);
-      glDisable(GL_DEPTH_TEST);
-      glBegin(GL_LINES);
-      glColor4f(1.0, 1.0, 1.0, animation_alpha);
-      for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-        const Vector3d& start = top_lines[room].first;
-        const Vector3d& end = top_lines[room].second;
-        
-        glVertex3d(start[0], start[1], start[2]);
-        glVertex3d(end[0], end[1], end[2]);
-      }
-      glEnd();
-      glEnable(GL_DEPTH_TEST);
-    }
-    
-    const double kAlpha = 0.5;
-    glEnable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    polygon_renderer.RenderColoredBoxes(view_parameters,
-                                        view_parameters.GetVerticalFloorplan() * offset_direction,
-                                        view_parameters.GetFloorplanScale(),
-                                        air_to_tree_progress,
-                                        animation,
-                                        kAlpha,
-                                        navigation.GetCenter());
-    glEnable(GL_DEPTH_TEST);
-    
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_BLEND);
-    
-    glPopAttrib();
-  }
+  RenderTreeTop(air_to_tree_progress, animation, animation_alpha, offset_direction, top_lines);
   
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   {
@@ -791,84 +663,137 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
   }
-  {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-    if (animation_alpha != 0.0) {
-      glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glEnable(GL_LINE_SMOOTH);
-      glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-      glLineWidth(2.0);
-      glDisable(GL_DEPTH_TEST);
-      glBegin(GL_LINES);
-      glColor4f(1.0, 1.0, 1.0, animation_alpha);
-      for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
-        const Vector3d& start = bottom_lines[room].first;
-        const Vector3d& end = bottom_lines[room].second;
-        glVertex3d(start[0], start[1], start[2]);
-        glVertex3d(end[0], end[1], end[2]);
-      }
-      glEnd();
-
-      for (const auto& boundary : boundaries) {
-        glBegin(GL_LINE_LOOP);
-        glColor4f(1.0, 1.0, 1.0, animation_alpha);
-        for (const auto& position : boundary)
-          glVertex3d(position[0], position[1], position[2]);
-        glEnd();
-      }
-      
-      glDisable(GL_BLEND);
-      glEnable(GL_DEPTH_TEST);
-    }
-    
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_CULL_FACE);
-    {
-      glCullFace(GL_FRONT);
-      glDisable(GL_TEXTURE_2D);
-      indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5,
-                                                       kAlpha * 0.2,
-                                                       view_parameters,
-                                                       air_to_tree_progress,
-                                                       animation,
-                                                       vertical_indoor_polygon,
-                                                       kMaxShrinkRatio);
-    }
-    
-    {
-      glCullFace(GL_BACK);
-      glEnable(GL_TEXTURE_2D);
-      indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha, kAlpha,
-                                                       view_parameters,
-                                                       air_to_tree_progress,
-                                                       animation,
-                                                       vertical_indoor_polygon,
-                                                       kMaxShrinkRatio);
-    }
-    
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_TEXTURE_2D);
-    glPopAttrib();
-  
+  RenderTreeMiddle(air_to_tree_progress, animation, animation_alpha, boundaries, bottom_lines);
+  {  
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    
+    const double building_height = view_parameters.GetAverageCeilingHeight() - view_parameters.GetAverageFloorHeight();
+    const Eigen::Vector3d vertical_object          = -1.75 * building_height * offset_direction;
     object_renderer.RenderAll(view_parameters,
                               building_height,
                               air_to_tree_progress,
                               animation,
-                              vertical_indoor_polygon,
-                              vertical_object,
-                              kMaxShrinkRatio,
-                              kMaxObjectShrinkRatio);
-  
+                              kNoOffset,
+                              vertical_object);
     glPopAttrib();
   }
 
   const int kDivideByAlpha = 1;
   BlendFrames(min(0.5, 1.0 * air_to_tree_progress), kDivideByAlpha);
 }
+
+void MainWidget::RenderTreeMiddle(const double air_to_tree_progress,
+                                  const double animation,
+                                  const double animation_alpha,
+                                  const std::vector<std::vector<Eigen::Vector3d> >& boundaries,
+                                  const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >& bottom_lines) {
+  const Vector3d kNoOffset(0.0, 0.0, 0.0);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  if (animation_alpha != 0.0) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glLineWidth(2.0);
+    glDisable(GL_DEPTH_TEST);
+    glBegin(GL_LINES);
+    glColor4f(1.0, 1.0, 1.0, animation_alpha);
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      const Vector3d& start = bottom_lines[room].first;
+      const Vector3d& end = bottom_lines[room].second;
+      glVertex3d(start[0], start[1], start[2]);
+      glVertex3d(end[0], end[1], end[2]);
+    }
+    glEnd();
+    
+    for (const auto& boundary : boundaries) {
+      glBegin(GL_LINE_LOOP);
+      glColor4f(1.0, 1.0, 1.0, animation_alpha);
+      for (const auto& position : boundary)
+        glVertex3d(position[0], position[1], position[2]);
+      glEnd();
+    }
+    
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+  }
+  
+  const double kAlpha = 1.0;
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_CULL_FACE);
+  {
+    glCullFace(GL_FRONT);
+    glDisable(GL_TEXTURE_2D);
+    indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha * 0.5,
+                                                     kAlpha * 0.2,
+                                                     view_parameters,
+                                                     air_to_tree_progress,
+                                                     animation,
+                                                     kNoOffset);
+  }
+  
+  {
+    glCullFace(GL_BACK);
+    glEnable(GL_TEXTURE_2D);
+    indoor_polygon_renderer.RenderTextureMappedRooms(kAlpha, kAlpha,
+                                                     view_parameters,
+                                                     air_to_tree_progress,
+                                                     animation,
+                                                     kNoOffset);
+  }
+  
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_TEXTURE_2D);
+  glPopAttrib();
+}    
+  
+void MainWidget::RenderTreeTop(const double air_to_tree_progress,
+                               const double animation,
+                               const double animation_alpha,
+                               const Eigen::Vector3d& offset_direction,
+                               const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >& top_lines) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  // Draw lines first, because behind everything.
+  if (animation_alpha != 0.0) {
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glLineWidth(2.0);
+    glDisable(GL_DEPTH_TEST);
+    glBegin(GL_LINES);
+    glColor4f(1.0, 1.0, 1.0, animation_alpha);
+    for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+      const Vector3d& start = top_lines[room].first;
+      const Vector3d& end = top_lines[room].second;
+      
+      glVertex3d(start[0], start[1], start[2]);
+      glVertex3d(end[0], end[1], end[2]);
+    }
+    glEnd();
+    glEnable(GL_DEPTH_TEST);
+  }
+    
+  const double kAlpha = 0.5;
+  glEnable(GL_BLEND);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  
+  polygon_renderer.RenderColoredBoxes(view_parameters,
+                                      view_parameters.GetVerticalFloorplan() * offset_direction,
+                                      view_parameters.GetFloorplanScale(),
+                                      air_to_tree_progress,
+                                      animation,
+                                      kAlpha,
+                                      navigation.GetCenter());
+  glEnable(GL_DEPTH_TEST);
+  
+  glEnable(GL_CULL_FACE);
+  glDisable(GL_BLEND);
+  
+  glPopAttrib();
+}    
   
 int MainWidget::FindRoomHighlighted(const Eigen::Vector2i& pixel) {
   unsigned char red, green, blue;

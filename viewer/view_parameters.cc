@@ -440,5 +440,108 @@ Eigen::Vector3d ViewParameters::TransformFloorplan(const Vector3d& global,
 const Eigen::Vector3d ViewParameters::GetObjectCenter(const int room, const int object) const {
   return LocalToGlobal(object_configurations[room][object].center);
 }
+
+void ViewParameters::SetOffsetDirection(const Eigen::Vector3d& view_direction,
+                                        Eigen::Vector3d* offset_direction) const {
+  const Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  const Vector3d vertical = floorplan_to_global * Vector3d(0, 0, -1);
+  const Vector3d orthogonal = vertical.cross(view_direction);
+  *offset_direction = (orthogonal.cross(view_direction)).normalized();
+}
+  
+void ViewParameters::SetBoundaries(const Eigen::Vector3d& offset_direction,
+                                   std::vector<std::vector<Eigen::Vector3d> >* boundaries) const {
+  boundaries->clear();
+  boundaries->resize(floorplan.GetNumRooms());
+
+  const Vector3d top_offset    = GetVerticalTopBoundary() * offset_direction;
+  const Vector3d bottom_offset = GetVerticalBottomBoundary() * offset_direction;
+  
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    double min_x = room_configurations[room].bounding_box.min_xyz[0];
+    double max_x = room_configurations[room].bounding_box.max_xyz[0];
+    const double center_x = room_configurations[room].center[0];
+    const double kEnlarge = 1.1;
+    min_x = center_x + (min_x - center_x) * room_configurations[room].scale * kEnlarge;
+    max_x = center_x + (max_x - center_x) * room_configurations[room].scale * kEnlarge;
+
+    //?????
+    Vector3d left(min_x,
+                  room_configurations[room].center[1],
+                  //0);
+                  room_configurations[room].center[2]);
+    Vector3d right(max_x,
+                   room_configurations[room].center[1],
+                   //                   0);
+                   room_configurations[room].center[2]);
+    
+    left  += room_configurations[room].displacement;
+    right += room_configurations[room].displacement;
+
+    boundaries->at(room).push_back(LocalToGlobal(left)  + top_offset);
+    boundaries->at(room).push_back(LocalToGlobal(right) + top_offset);
+    boundaries->at(room).push_back(LocalToGlobal(right) + bottom_offset);
+    boundaries->at(room).push_back(LocalToGlobal(left)  + bottom_offset);
+  }
+}
+
+void ViewParameters::SetLines(const Eigen::Vector3d& offset_direction,
+                              std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* top_lines,
+                              std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* bottom_lines) const {
+  const Vector3d top_offset = GetVerticalTopBoundary() * offset_direction;
+
+  const double kProgressIrrelevant = 1.0;
+  const double kAnimationIrrelevant = 0.0;
+  const Vector3d kNoOffset(0.0, 0.0, 0.0);
+  
+  top_lines->clear();
+  bottom_lines->clear();
+  top_lines->resize(floorplan.GetNumRooms());
+  bottom_lines->resize(floorplan.GetNumRooms());
+  
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    const Vector2d local = floorplan.GetRoomCenterLocal(room);
+    const Vector3d floor_local(local[0], local[1], floorplan.GetFloorHeight(room));
+    const Vector3d ceiling_local(local[0], local[1], floorplan.GetCeilingHeight(room));
+    const Vector3d floor_global = floorplan.GetFloorplanToGlobal() * floor_local;
+    const Vector3d ceiling_global = floorplan.GetFloorplanToGlobal() * ceiling_local;
+    const Vector3d room_global = // (floor_global + ceiling_global) / 2.0;
+      LocalToGlobal(Vector3d(room_configurations[room].center[0],
+                             room_configurations[room].center[1],
+                             room_configurations[room].center[2]));
+                    //                             0.0));
+
+    top_lines->at(room) = make_pair(TransformFloorplan(floor_global,
+                                                       kProgressIrrelevant,
+                                                       kAnimationIrrelevant,
+                                                       GetVerticalFloorplan() * offset_direction,
+                                                       GetFloorplanScale()),
+                                    TransformRoom(ceiling_global,
+                                                  room,
+                                                  kProgressIrrelevant,
+                                                  kAnimationIrrelevant,
+                                                  kNoOffset));
+    
+    bottom_lines->at(room) = make_pair(TransformRoom(floor_global,
+                                                     room,
+                                                     kProgressIrrelevant,
+                                                     kAnimationIrrelevant,
+                                                     kNoOffset),
+                                       TransformRoom(room_global,
+                                                     room,
+                                                     kProgressIrrelevant,
+                                                     kAnimationIrrelevant,
+                                                     top_offset));
+  }
+}
+
+double ViewParameters::SetAnimationAlpha(const double animation) {
+  const double kMargin = 0.05;
+  const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
+  double diff = 1.0;
+  for (int i = 0; i < 4; ++i)
+    diff = min(diff, fabs(animation - pivots[i]));
+  return max(0.0, min(1.0, 2.0 * (kMargin - diff) / kMargin));
+}
   
 }  // namespace structured_indoor_modeling

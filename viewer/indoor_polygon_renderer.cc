@@ -163,8 +163,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                      const ViewParameters& view_parameters,
                                                      const double air_to_tree_progress,
                                                      const double animation,
-                                                     const Eigen::Vector3d& max_vertical_shift,
-                                                     const double max_shrink_ratio) const {
+                                                     const Eigen::Vector3d& max_vertical_shift) const {
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
     glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);

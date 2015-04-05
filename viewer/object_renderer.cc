@@ -51,6 +51,8 @@ void ObjectRenderer::Init(const string data_directory) {
 
     vertices[room].resize(point_cloud.GetNumObjects());
     colors[room].resize(point_cloud.GetNumObjects());
+
+    cout << point_cloud.GetNumObjects() << " objects." << endl;
     
     for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
       const Point& point = point_cloud.GetPoint(p);
@@ -138,9 +140,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
                                const double air_to_tree_progress,
                                const double animation,
                                const Eigen::Vector3d& room_max_vertical_shift,
-                               const Eigen::Vector3d& object_max_vertical_shift,
-                               const double max_shrink_ratio,
-                               const double max_object_shrink_ratio) {
+                               const Eigen::Vector3d& object_max_vertical_shift) {
   if (!render)
     return;
   

@@ -90,9 +90,21 @@ class ViewParameters {
   double GetVerticalIndoorPolygon() const { return vertical_indoor_polygon; }
   double GetVerticalObjectTop() const { return vertical_object_top; }
   double GetVerticalObjectBottom() const { return vertical_object_bottom; }
+  double GetVerticalTopBoundary() const { return - diameter / aspect_ratio / 6.0; }
+  double GetVerticalBottomBoundary() const { return - diameter / aspect_ratio / 1.9; }
 
   double GetFloorplanScale() const { return floorplan_scale; }
 
+  void SetOffsetDirection(const Eigen::Vector3d& view_direction,
+                          Eigen::Vector3d* offset_direction) const;
+  void SetBoundaries(const Eigen::Vector3d& offset_direction,
+                     std::vector<std::vector<Eigen::Vector3d> >* boundaries) const;
+  void SetLines(const Eigen::Vector3d& offset_direction,
+                std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* top_lines,
+                std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* bottom_lines) const;
+  static double SetAnimationAlpha(const double animation);
+  
+  
   //???
   // private:
   void InitAxes();
