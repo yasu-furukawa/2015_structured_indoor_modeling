@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
   vector<PointCloud> object_point_clouds;
   {
     Floorplan floorplan(file_io.GetFloorplan());
-    ReadObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
+    ReadRefinedObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
   }
   
   // Compute an object id map for each panorama.

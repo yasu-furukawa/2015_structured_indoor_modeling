@@ -27,6 +27,10 @@ DEFINE_int32(end_id,-1, "End id");
 DEFINE_int32(nsmooth, 3, "Iterations of smoothing");
 DEFINE_bool(recompute, false, "Recompute superpixel");
 
+bool compare_by_z(const structured_indoor_modeling::Point &pt1, const structured_indoor_modeling::Point &pt2){
+     return pt1.position[2] < pt2.position[2];
+}
+
 int main(int argc, char **argv){
 #if 0
   google::ParseCommandLineFlags(&argc, &argv, true);
@@ -79,20 +83,30 @@ int main(int argc, char **argv){
     	cout<<"---------------------"<<endl;
     	cout<<"Room "<<roomid<<endl;
     	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid] ,object_panorama[roomid],roomid);
-	cleanObjects(objectcloud[roomid]);
+	cleanObjects(objectcloud[roomid], objectgroup[roomid]);
+
+	//sort point according to z
+	for(int objid=0; objid<objectgroup[roomid].size(); objid++){
+	     vector<structured_indoor_modeling::Point>sort_array;
+	     for(const auto&ptid :objectgroup[roomid][objid])
+		  sort_array.push_back(objectcloud[roomid].GetPoint(ptid));
+	     sort(sort_array.begin(), sort_array.end(), compare_by_z);
+	     for(int i=0; i<objectgroup[roomid][objid].size(); ++i)
+		  objectcloud[roomid].GetPoint(objectgroup[roomid][objid][i]) = sort_array[i];
+	}
 
 	//Smoothing
-	// cout<<"Smoothing object... "<<endl;
-	// const int kNumNeighbors = 8;
-	// vector<vector<int> >neighbors;
-	// cout<<"Set neighbors...";
-	// SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
-	// cout<<"done!"<<endl;
-	// cout<<"Smoothing...";
-	// for(int t=0;t<FLAGS_nsmooth;t++)
-	//      SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
-	// cout<<"done!"<<endl;
-	// cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
+	cout<<"Smoothing object... "<<flush;
+	const int kNumNeighbors = 8;
+	vector<vector<int> >neighbors;
+	cout<<"Set neighbors...";
+	SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
+	cout<<"done!"<<endl;
+	cout<<"Smoothing..."<<flush;
+	for(int t=0;t<FLAGS_nsmooth;t++)
+	     SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
+	cout<<"done!"<<endl;
+	cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
 	
     	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
     }
