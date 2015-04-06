@@ -638,7 +638,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   Vector3d offset_direction;
   view_parameters.SetOffsetDirection(navigation.GetDirection(), &offset_direction);
   
-  const Vector3d kNoOffset(0.0, 0.0, 0.0);
+  // const Vector3d kNoOffset(0.0, 0.0, 0.0);
   //SetTreeRenderingParameters();
   vector<vector<Vector3d> > boundaries;
   view_parameters.SetBoundaries(offset_direction, &boundaries);
@@ -674,16 +674,10 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
 void MainWidget::RenderTreeBottom(const double air_to_tree_progress,
                                   const double animation,
                                   const Eigen::Vector3d& offset_direction) {
-  const Vector3d kNoOffset(0.0, 0.0, 0.0);
   glPushAttrib(GL_ALL_ATTRIB_BITS);
-  const double building_height = view_parameters.GetAverageCeilingHeight() - view_parameters.GetAverageFloorHeight();
-  const Eigen::Vector3d vertical_object          = -1.75 * building_height * offset_direction;
-  object_renderer.RenderAll(view_parameters,
-                            building_height,
-                            air_to_tree_progress,
-                            animation,
-                            kNoOffset,
-                            vertical_object);
+
+  object_renderer.RenderAll(view_parameters, air_to_tree_progress,
+                            animation, offset_direction);
   glPopAttrib();
 }
   

@@ -136,15 +136,14 @@ void ObjectRenderer::RenderAll(const double position) {
 }
 
 void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
-                               const double building_height,
                                const double air_to_tree_progress,
                                const double animation,
-                               const Eigen::Vector3d& room_max_vertical_shift,
-                               const Eigen::Vector3d& object_max_vertical_shift) {
+                               const Eigen::Vector3d& offset_direction) {
   if (!render)
     return;
   
   const bool kBlend = true; // ??? false
+  const Vector3d kNoOffset(0.0, 0.0, 0.0);
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
@@ -155,8 +154,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
   }
   glEnable(GL_POINT_SMOOTH);
 
-  const double kDurationPerObject = 0.4;
-
+  // const double kDurationPerObject = 0.4;
   vector<float> positions;  
   for (int room = 0; room < (int)vertices.size(); ++room) {
     for (int object = 0; object < (int)vertices[room].size(); ++object) {
@@ -167,8 +165,10 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
         Vector3d position(positions[p], positions[p + 1], positions[p + 2]);
         // Adjust with respect to the object center.
         position = view_parameters.TransformObject(position, room, object, air_to_tree_progress,
-                                                  animation, room_max_vertical_shift,
-                                                  object_max_vertical_shift);
+                                                   animation, kNoOffset,
+                                                   view_parameters.GetVerticalTopBoundary() * offset_direction,
+                                                   view_parameters.GetVerticalBottomBoundary() * offset_direction);
+        
         for (int a = 0; a < 3; ++a)
           positions[p + a] = position[a];
       }

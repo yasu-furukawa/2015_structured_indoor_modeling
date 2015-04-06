@@ -9,6 +9,8 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
+const int ViewParameters::kMaxNumRows = 3;
+  
 ViewParameters::ViewParameters(const Floorplan& floorplan,
                                const IndoorPolygon& indoor_polygon,
                                const ObjectRenderer& object_renderer,
@@ -33,8 +35,10 @@ void ViewParameters::Init(const double aspect_ratio_tmp) {
   for (int room = 0; room < floorplan.GetNumRooms(); ++room)
     wall_configurations[room].resize(floorplan.GetNumWalls(room));
   object_configurations.resize(floorplan.GetNumRooms());
-  for (int room = 0; room < floorplan.GetNumRooms(); ++room)
-    object_configurations[room].resize(object_renderer.GetNumObjects(room));
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    if (object_renderer.GetNumObjects(room) != 0)
+      object_configurations[room].resize(object_renderer.GetNumObjects(room));
+  }
 
   InitAxes();
   InitCenter();
@@ -292,6 +296,9 @@ void ViewParameters::SetObjectDisplacements() {
   //----------------------------------------------------------------------
   // Object displacements.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    if (object_renderer.GetNumObjects(room) == 0)
+      continue;
+    
     vector<double> object_sizes(object_renderer.GetNumObjects(room));
     vector<pair<double, int> > object_offsets(object_renderer.GetNumObjects(room));
     const Eigen::Vector3d& reference = room_configurations[room].center;
@@ -302,14 +309,16 @@ void ViewParameters::SetObjectDisplacements() {
       const BoundingBox& bounding_box = object_configurations[room][object].bounding_box;
       object_sizes[object] = Vector2d(bounding_box.max_xyz[0] - bounding_box.min_xyz[0],
                                       bounding_box.max_xyz[1] - bounding_box.min_xyz[1]).norm();
+
       object_offsets[object] =
         pair<double, int>(object_configurations[room][object].center[0] - reference[0], object);
     }
     sort(object_offsets.begin(), object_offsets.end());
 
     const double object_size_sum = accumulate(object_sizes.begin(), object_sizes.end(), 0.0);
-    const double kDefaultShrink = 0.5;
-    const int num_rows = min(2, static_cast<int>(ceil(kDefaultShrink * object_size_sum / round(x_range[1] - x_range[0]))));
+    const double kDefaultShrink = 1.0;
+    const int num_rows = min(kMaxNumRows,
+                             static_cast<int>(ceil(kDefaultShrink * object_size_sum / round(x_range[1] - x_range[0]))));
 
     const int num_items_per_row =
       static_cast<int>(ceil(object_renderer.GetNumObjects(room) / (double)num_rows));
@@ -318,14 +327,16 @@ void ViewParameters::SetObjectDisplacements() {
       const int end_index = min(object_renderer.GetNumObjects(room), num_items_per_row * (row + 1));
 
       double object_size_sum_per_row = 0.0;
-      for (int i = start_index; i < end_index; ++i)
+      for (int i = start_index; i < end_index; ++i) {
         object_size_sum_per_row += object_sizes[object_offsets[i].second];
+      }
       
       const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum_per_row);
       double accumulated_position = - object_size_sum_per_row / 2.0;
       for (int i = start_index; i < end_index; ++i) {
         const int object = object_offsets[i].second;
         const double position = accumulated_position + object_sizes[object] / 2.0;
+
         object_configurations[room][object].displacement =
           Vector3d(position * object_scale, 0.0, 0.0) -
           (object_configurations[room][object].center - reference);
@@ -383,8 +394,9 @@ Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
                                                const int object,
                                                const double progress,
                                                const double animation,
-                                               const Eigen::Vector3d& room_max_vertical_shift,
-                                               const Eigen::Vector3d& object_max_vertical_shift) const {
+                                                const Eigen::Vector3d& room_max_vertical_shift,
+                                                const Eigen::Vector3d& vertical_object_top,
+                                                const Eigen::Vector3d& vertical_object_bottom) const {
   double angle;
   if (animation < 0.25)
     angle = 2 * M_PI * animation;
@@ -409,12 +421,12 @@ Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
   if (progress < 0.5) {
     return global_as_room;
   } else {
-    const Vector3d row_shift = (object_max_vertical_shift - room_max_vertical_shift) / 3.0;
+    const Vector3d row_shift = (vertical_object_bottom - vertical_object_top) / kMaxNumRows;
     const double scale = object_configurations[room][object].scale;
     const Vector3d global_displacement =
     (LocalToGlobalNormal(room_configurations[room].displacement +
                          object_configurations[room][object].displacement) +
-     object_max_vertical_shift + object_configurations[room][object].row * row_shift);
+     vertical_object_top + (0.5 + object_configurations[room][object].row) * row_shift);
     Vector3d local = GlobalToLocal(global);
     local = object_configurations[room][object].center +
       scale * rotation * (local - object_configurations[room][object].center);
@@ -427,7 +439,7 @@ Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
 
 Eigen::Vector3d ViewParameters::TransformFloorplan(const Vector3d& global,
                                                   const double air_to_tree_progress,
-                                                  const double animation,
+                                                   const double /* animation */,
                                                   const Eigen::Vector3d& max_vertical_shift,
                                                   const double max_shrink_scale) const {
   const double shrink_scale =
