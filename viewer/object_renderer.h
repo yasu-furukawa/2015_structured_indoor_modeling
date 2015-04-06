@@ -34,11 +34,9 @@ struct BoundingBox2D {
 
   void RenderAll(const double position);
   void RenderAll(const ViewParameters& view_parameters,
-                 const double building_height,
                  const double air_to_tree_progress,
                  const double animation,
-                 const Eigen::Vector3d& room_max_vertical_shift,
-                 const Eigen::Vector3d& object_max_vertical_shift);
+                 const Eigen::Vector3d& offset_direction);
 
   void RenderIcons(const double alpha, const double animation);
 

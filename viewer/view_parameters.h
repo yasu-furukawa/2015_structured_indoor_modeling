@@ -67,7 +67,8 @@ class ViewParameters {
                                   const double progress,
                                   const double animation,
                                   const Eigen::Vector3d& room_max_vertical_shift,
-                                  const Eigen::Vector3d& object_max_vertical_shift) const;
+                                  const Eigen::Vector3d& vertical_object_top,
+                                  const Eigen::Vector3d& vertical_object_bottom) const;
 
   Eigen::Vector3d TransformFloorplan(const Vector3d& global,
                                      const double air_to_tree_progress,
@@ -88,8 +89,6 @@ class ViewParameters {
   // double GetFloorplanHeight() const { return floorplan_height; }
   double GetVerticalFloorplan() const { return vertical_floorplan; }
   double GetVerticalIndoorPolygon() const { return vertical_indoor_polygon; }
-  double GetVerticalObjectTop() const { return vertical_object_top; }
-  double GetVerticalObjectBottom() const { return vertical_object_bottom; }
   double GetVerticalTopBoundary() const { return - diameter / aspect_ratio / 6.0; }
   double GetVerticalBottomBoundary() const { return - diameter / aspect_ratio / 1.9; }
 
@@ -102,7 +101,11 @@ class ViewParameters {
   void SetLines(const Eigen::Vector3d& offset_direction,
                 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* top_lines,
                 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* bottom_lines) const;
+
+  int GetObjectRow(const int room,
+                   const int object) const { return object_configurations[room][object].row; }
   static double SetAnimationAlpha(const double animation);
+  const static int kMaxNumRows;
   
   
   //???
@@ -182,12 +185,10 @@ class ViewParameters {
   //----------------------------------------------------------------------
   double vertical_floorplan;
   double vertical_indoor_polygon;
-  double vertical_object_top;
-  double vertical_object_bottom;
   int num_rows;
   double floorplan_scale;
   double indoor_polygon_scale;
-  
+
   friend class Navigation;
 };
   

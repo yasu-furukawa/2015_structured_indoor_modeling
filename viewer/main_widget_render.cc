@@ -638,7 +638,7 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   Vector3d offset_direction;
   view_parameters.SetOffsetDirection(navigation.GetDirection(), &offset_direction);
   
-  const Vector3d kNoOffset(0.0, 0.0, 0.0);
+  // const Vector3d kNoOffset(0.0, 0.0, 0.0);
   //SetTreeRenderingParameters();
   vector<vector<Vector3d> > boundaries;
   view_parameters.SetBoundaries(offset_direction, &boundaries);
@@ -665,23 +665,22 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   }
 
   RenderTreeMiddle(air_to_tree_progress, animation, animation_alpha, boundaries, bottom_lines);
-  {  
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    const double building_height = view_parameters.GetAverageCeilingHeight() - view_parameters.GetAverageFloorHeight();
-    const Eigen::Vector3d vertical_object          = -1.75 * building_height * offset_direction;
-    object_renderer.RenderAll(view_parameters,
-                              building_height,
-                              air_to_tree_progress,
-                              animation,
-                              kNoOffset,
-                              vertical_object);
-    glPopAttrib();
-  }
+  RenderTreeBottom(air_to_tree_progress, animation, offset_direction);
 
   const int kDivideByAlpha = 1;
   BlendFrames(min(0.5, 1.0 * air_to_tree_progress), kDivideByAlpha);
 }
 
+void MainWidget::RenderTreeBottom(const double air_to_tree_progress,
+                                  const double animation,
+                                  const Eigen::Vector3d& offset_direction) {
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  object_renderer.RenderAll(view_parameters, air_to_tree_progress,
+                            animation, offset_direction);
+  glPopAttrib();
+}
+  
 void MainWidget::RenderTreeMiddle(const double air_to_tree_progress,
                                   const double animation,
                                   const double animation_alpha,

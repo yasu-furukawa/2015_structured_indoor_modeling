@@ -185,7 +185,9 @@ private:
                           const double animation_alpha,
                           const std::vector<std::vector<Eigen::Vector3d> >& boundaries,
                           const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >& bottom_lines);
-    void RenderTreeBottom(const double air_to_tree_progress);
+    void RenderTreeBottom(const double air_to_tree_progress,
+                          const double animation,
+                          const Eigen::Vector3d& offset_direction);
     
     int FindRoomHighlighted(const Eigen::Vector2i& pixel);
 
