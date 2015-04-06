@@ -299,7 +299,7 @@ void PointCloud::SetColor(int ind, float r,float g,float b){
 // Note that num_object is not changed, to avoid confusing.
 void PointCloud::Update(){
   InitializeMembers();
-  
+
   for (const auto& point : points) {
     center += point.position;
 
@@ -397,7 +397,7 @@ void ReadRefinedObjectPointClouds(const FileIO& file_io,
     for (int room = 0; room < num_rooms; ++room) {
 	cout << '.' << flush;
 	//object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
-	object_point_clouds->at(room).Init(file_io.GetObjectPointClouds(room));
+	object_point_clouds->at(room).Init(file_io.GetRefinedObjectClouds(room));
     }
     cout << "done" << endl;
 }
