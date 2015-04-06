@@ -292,7 +292,7 @@ void ViewParameters::SetRoomDisplacements() {
 }
 
 void ViewParameters::SetObjectDisplacements() {
-  const double kShrinkScale = 0.95;
+  // const double kShrinkScale = 0.95;
   //----------------------------------------------------------------------
   // Object displacements.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
@@ -302,8 +302,17 @@ void ViewParameters::SetObjectDisplacements() {
     vector<double> object_sizes(object_renderer.GetNumObjects(room));
     vector<pair<double, int> > object_offsets(object_renderer.GetNumObjects(room));
     const Eigen::Vector3d& reference = room_configurations[room].center;
-    const Vector2d x_range(indoor_polygon_scale * (room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
-                           indoor_polygon_scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
+
+    Vector3d diff = room_configurations[room].bounding_box.min_xyz -
+      room_configurations[room].bounding_box.max_xyz;
+    diff[2] = 0.0;
+    const double radius = diff.norm();
+    
+    const Vector2d x_range(- indoor_polygon_scale * radius / 2,
+                           indoor_polygon_scale * radius / 2);
+
+    //(room_configurations[room].bounding_box.min_xyz[0] - reference[0]),
+    //indoor_polygon_scale * (room_configurations[room].bounding_box.max_xyz[0] - reference[0]));
 
     for (int object = 0; object < object_renderer.GetNumObjects(room); ++object) {
       const BoundingBox& bounding_box = object_configurations[room][object].bounding_box;
@@ -330,8 +339,36 @@ void ViewParameters::SetObjectDisplacements() {
       for (int i = start_index; i < end_index; ++i) {
         object_size_sum_per_row += object_sizes[object_offsets[i].second];
       }
+
+      const int num_objects_per_row = end_index - start_index;
+      // const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum_per_row);
+      const double object_scale = min(1.25, (x_range[1] - x_range[0]) / object_size_sum_per_row);
+
+      const double total_size = object_scale * object_size_sum_per_row;
+      const double margin = ((x_range[1] - x_range[0]) - total_size) / num_objects_per_row;
+
+      cout << "row " << row << ' ' << margin << ' ' << object_scale << endl;
+      cout << "  " << x_range[0] << ' ' << x_range[1] << endl;
       
-      const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum_per_row);
+      double accumulated_position = - (x_range[1] - x_range[0]) / 2.0 + margin / 2.0;
+      for (int i = start_index; i < end_index; ++i) {
+        const int object = object_offsets[i].second;
+        const double position = accumulated_position + object_scale * object_sizes[object] / 2.0;
+        cout << "    " << accumulated_position << ' ' << position << ' '
+             << position + object_scale * object_sizes[object] / 2.0;
+        
+        object_configurations[room][object].displacement =
+          Vector3d(position, 0.0, 0.0) -
+          (object_configurations[room][object].center - reference);
+        
+        object_configurations[room][object].scale = object_scale;
+        object_configurations[room][object].row = row;
+        accumulated_position += object_scale * object_sizes[object] + margin;
+      }
+      cout << endl;
+
+      
+      /*
       double accumulated_position = - object_size_sum_per_row / 2.0;
       for (int i = start_index; i < end_index; ++i) {
         const int object = object_offsets[i].second;
@@ -345,6 +382,7 @@ void ViewParameters::SetObjectDisplacements() {
         object_configurations[room][object].row = row;
         accumulated_position += object_sizes[object];
       }
+      */
     }
   }  
 }
@@ -470,6 +508,7 @@ void ViewParameters::SetBoundaries(const Eigen::Vector3d& offset_direction,
   const Vector3d bottom_offset = GetVerticalBottomBoundary() * offset_direction;
   
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    /*
     double min_x = room_configurations[room].bounding_box.min_xyz[0];
     double max_x = room_configurations[room].bounding_box.max_xyz[0];
     const double center_x = room_configurations[room].center[0];
@@ -486,7 +525,23 @@ void ViewParameters::SetBoundaries(const Eigen::Vector3d& offset_direction,
                    room_configurations[room].center[1],
                    //                   0);
                    room_configurations[room].center[2]);
-    
+    */
+    Vector3d diff = room_configurations[room].bounding_box.min_xyz -
+      room_configurations[room].bounding_box.max_xyz;
+    diff[2] = 0.0;
+    const double radius = diff.norm();
+
+    const double kShrink = 0.95;
+    const double min_x = room_configurations[room].center[0] - kShrink * room_configurations[room].scale * radius / 2.0;
+    const double max_x = room_configurations[room].center[0] + kShrink * room_configurations[room].scale * radius / 2.0;
+
+    Vector3d left(min_x,
+                  room_configurations[room].center[1],
+                  room_configurations[room].center[2]);
+    Vector3d right(max_x,
+                   room_configurations[room].center[1],
+                   room_configurations[room].center[2]);
+                   
     left  += room_configurations[room].displacement;
     right += room_configurations[room].displacement;
 

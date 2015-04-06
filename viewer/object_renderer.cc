@@ -111,7 +111,7 @@ void ObjectRenderer::RenderAll(const double position) {
       
       glColorPointer(3, GL_FLOAT, 0, &colors[room][object][0]);
       glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);
-
+      
       if (kBlend) {
         glBlendColor(0, 0, 0, 0.5);
         //glBlendColor(0, 0, 0, 1.0);
@@ -157,32 +157,37 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
   // const double kDurationPerObject = 0.4;
   vector<float> positions;  
   for (int room = 0; room < (int)vertices.size(); ++room) {
-    for (int object = 0; object < (int)vertices[room].size(); ++object) {
-      glColorPointer(3, GL_FLOAT, 0, &colors_org[room][object][0]);
+    for (int row = ViewParameters::kMaxNumRows - 1; row >= 0; --row) {
+      for (int object = 0; object < (int)vertices[room].size(); ++object) {
+        if (view_parameters.GetObjectRow(room, object) != row)
+          continue;
 
-      positions = vertices[room][object];
-      for (int p = 0; p < (int)positions.size(); p += 3) {
-        Vector3d position(positions[p], positions[p + 1], positions[p + 2]);
-        // Adjust with respect to the object center.
-        position = view_parameters.TransformObject(position, room, object, air_to_tree_progress,
-                                                   animation, kNoOffset,
-                                                   view_parameters.GetVerticalTopBoundary() * offset_direction,
-                                                   view_parameters.GetVerticalBottomBoundary() * offset_direction);
+        glColorPointer(3, GL_FLOAT, 0, &colors_org[room][object][0]);
+
+        positions = vertices[room][object];
+        for (int p = 0; p < (int)positions.size(); p += 3) {
+          Vector3d position(positions[p], positions[p + 1], positions[p + 2]);
+          // Adjust with respect to the object center.
+          position = view_parameters.TransformObject(position, room, object, air_to_tree_progress,
+                                                     animation, kNoOffset,
+                                                     view_parameters.GetVerticalTopBoundary() * offset_direction,
+                                                     view_parameters.GetVerticalBottomBoundary() * offset_direction);
+          
+          for (int a = 0; a < 3; ++a)
+            positions[p + a] = position[a];
+        }
+        glVertexPointer(3, GL_FLOAT, 0, &positions[0]);
         
-        for (int a = 0; a < 3; ++a)
-          positions[p + a] = position[a];
+        if (kBlend) {
+          glBlendColor(0, 0, 0, 0.5);
+          //glBlendColor(0, 0, 0, 1.0);
+          // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+          glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+        }
+        glPointSize(1.0);
+        
+        glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
       }
-      glVertexPointer(3, GL_FLOAT, 0, &positions[0]);
-
-      if (kBlend) {
-        glBlendColor(0, 0, 0, 0.5);
-        //glBlendColor(0, 0, 0, 1.0);
-        // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-        glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-      }
-      glPointSize(1.0);
-      
-      glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
     }
   }
   

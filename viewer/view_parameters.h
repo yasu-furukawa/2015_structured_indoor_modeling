@@ -101,7 +101,11 @@ class ViewParameters {
   void SetLines(const Eigen::Vector3d& offset_direction,
                 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* top_lines,
                 std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d> >* bottom_lines) const;
+
+  int GetObjectRow(const int room,
+                   const int object) const { return object_configurations[room][object].row; }
   static double SetAnimationAlpha(const double animation);
+  const static int kMaxNumRows;
   
   
   //???
@@ -185,7 +189,6 @@ class ViewParameters {
   double floorplan_scale;
   double indoor_polygon_scale;
 
-  const static int kMaxNumRows;
   friend class Navigation;
 };
   
