@@ -30,7 +30,6 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
     
     for(int id=startid; id<=endid; id++){
 	int curid = id - startid;
-	cout<<"Panorama "<<id<<endl;
 	panorama[curid].Init(file_io, id);
 	panorama[curid].MakeOnlyBackgroundBlack();
            	
@@ -82,7 +81,6 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
     // 	    }
     // 	    labelin.close();
     // 	}
-      cout<<endl;
     }
 }
 
@@ -101,7 +99,7 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
 
 
 void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, vector< vector<int> >&object_panorama, const int roomid){
-    const double depth_margin = 50.0;
+    const double kDepthMarginRatio = 0.03;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
     const double min_assigned_ratio = 0.98;
@@ -122,6 +120,7 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	vector<vector<int> >point_list(pansize);
 	//Get list of visible points of each panorama
 	for(int panid=0; panid<pansize; panid++){
+	    const double depth_margin = panorama[panid].GetAverageDistance() * kDepthMarginRatio;
 	    for(const auto& ptid: objectgroup[objid]){
 		Vector3d curpt = objectcloud.GetPoint(ptid).position;
 		double ptdepth = (curpt - panorama[panid].GetCenter()).norm();
@@ -190,7 +189,6 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	for(const auto& panid: pan_selected){
 	    
 	    Mat panout = panorama[panid].GetRGBImage().clone();
-	    
 	    vector<Vector3f>color_src;
 	    vector<Vector3f>color_tgt;
 	    for(const auto& ptid: point_list[panid]){
