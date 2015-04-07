@@ -345,7 +345,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      	  }
      }
      // Expand occupancy.
-     const int kExpandMargin = 2;
+     const int kExpandMargin = 1;
      {
      	  vector<bool> vbtmp;
 
@@ -372,17 +372,17 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      }
 
      vector<structured_indoor_modeling::Point>gridpt;
-     for(int x=0; x<size[0]; x+=10){
-     	  for(int y=0; y<size[1]; y+=10){
-     	       for(int z=0; z<size[2]; z+=10){
-		    const int index =
-			 z * (size[0]*size[1]) + y*size[0] + x;
-		    if(!occupancy[index])
-			 continue;
+     for(int x=0; x<size[0]; x+=5){
+     	  for(int y=0; y<size[1]; y+=5){
+     	       for(int z=0; z<size[2]; z+=5){
+     		    const int index =
+     			 z * (size[0]*size[1]) + y*size[0] + x;
+     		    if(!occupancy[index])
+     			 continue;
      		    structured_indoor_modeling::Point curpt;
      		    Vector3d cellcoord((double)x, (double)y, (double)z);
      		    curpt.position = cellcoord * voxel_unit + min_xyz;
-		    curpt.position = indoor_polygon.ManhattanToGlobal(curpt.position);
+     		    curpt.position = indoor_polygon.ManhattanToGlobal(curpt.position);
      		    curpt.object_id = 0;
      		    curpt.color = Vector3f(255,255,255);
      		    gridpt.push_back(curpt);
@@ -392,8 +392,8 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      objectcloud.AddPoints(gridpt);
 
 
-     // //if 95% points are too near to a wall, remove
-     // const double removeRatio = 0.95;
+     //if 95% points are too near to a wall, remove
+     // const double removeRatio = 0.99;
      // for(int objid=0; objid<objectcloud.GetNumObjects(); objid++){
      // 	  vector<structured_indoor_modeling::Point> objpt;
      // 	  objectcloud.GetObjectPoints(objid, objpt);
@@ -401,7 +401,8 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      // 	       continue;
      // 	  double removecount = 0.0;
      // 	  for(const auto& pt:objpt){
-     // 	       Vector3d cell_coord = (pt.position - min_xyz) / voxel_unit;
+     // 	      Vector3d curposition = indoor_polygon.GlobalToManhattan(pt.position);
+     // 	       Vector3d cell_coord = (curposition - min_xyz) / voxel_unit;
      // 	       Vector3d cell_coord_int;
      // 	       for(int a=0; a<3; ++a){
      // 		    cell_coord_int[a] =
@@ -412,11 +413,11 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      // 			 removecount += 1.0;
      // 	       }
      // 	  }
-     // 	  if(removecount / (double)objpt.size() > removeRatio){
-     // 	       vector<int>point_to_remove;
-     // 	       objectcloud.GetObjectIndice(objid, point_to_remove);
-     // 	       objectcloud.RemovePoints(point_to_remove);
-     // 	  }
+     // 	  // if(removecount / (double)objpt.size() > removeRatio){
+     // 	  //      vector<int>point_to_remove;
+     // 	  //      objectcloud.GetObjectIndice(objid, point_to_remove);
+     // 	  //      objectcloud.RemovePoints(point_to_remove);
+     // 	  // }
      // }
 }
 
