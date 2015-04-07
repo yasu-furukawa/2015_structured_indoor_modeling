@@ -334,13 +334,13 @@ void Panorama::Resize(const Eigen::Vector2i& size) {
 }
 
 void Panorama::AdjustCenter(const Eigen::Vector3d& new_center) {
-  const Vector3d translation = center - new_center;
+  const Vector3d translation = new_center - center;
   Matrix4d adjustment;
   adjustment.setIdentity();
   for (int i = 0; i < 3; ++i)
     adjustment(i, 3) = translation[i];
   
-  global_to_local = global_to_local * adjustment;
+  local_to_global = local_to_global * adjustment;
   
   SetGlobalToLocalFromLocalToGlobal();
 }
