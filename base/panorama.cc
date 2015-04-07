@@ -334,13 +334,13 @@ void Panorama::Resize(const Eigen::Vector2i& size) {
 }
 
 void Panorama::AdjustCenter(const Eigen::Vector3d& new_center) {
-  const Vector3d translation = center - new_center;
+  const Vector3d translation = new_center - center;
   Matrix4d adjustment;
   adjustment.setIdentity();
   for (int i = 0; i < 3; ++i)
     adjustment(i, 3) = translation[i];
   
-  global_to_local = global_to_local * adjustment;
+  local_to_global = local_to_global * adjustment;
   
   SetGlobalToLocalFromLocalToGlobal();
 }
@@ -425,6 +425,7 @@ void Panorama::MakeOnlyBackgroundBlack() {
 
   const int top_height = static_cast<int>(round(height * kTopRatio));
   const int bottom_height = static_cast<int>(round(height * kBottomRatio));
+  const int bottom_margin = 20;
 
   // Starting from the top most or the bottom most pixel, identify the black pixels.
   for (int x = 0; x < width; ++x) {
@@ -442,6 +443,10 @@ void Panorama::MakeOnlyBackgroundBlack() {
         break;
     }
 
+    for(; bottom_index > bottom_height - bottom_margin; --bottom_index){
+	 rgb_image.at<cv::Vec3b>(bottom_index, x) = cv::Vec3b(0,0,0);
+    }
+    
     // Make black pixels between top_index and bottom_index to (1, 1, 1).
     for (int y = top_index; y < bottom_index; ++y) {
       if (rgb_image.at<cv::Vec3b>(y, x) == cv::Vec3b(0, 0, 0))

@@ -709,8 +709,9 @@ void MainWidget::RenderTreeMiddle(const double air_to_tree_progress,
     for (const auto& boundary : boundaries) {
       glBegin(GL_LINE_LOOP);
       glColor4f(1.0, 1.0, 1.0, animation_alpha);
-      for (const auto& position : boundary)
+      for (const auto& position : boundary) {
         glVertex3d(position[0], position[1], position[2]);
+      }
       glEnd();
     }
     

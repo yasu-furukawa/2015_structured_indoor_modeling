@@ -6,9 +6,10 @@
 
 # Objects.
 ./main_process/object_segmentation/object_segmentation_cli $1
-./main_process/object_refinement/Object_hole_filling $1
+./main_process/object_refinement/Object_refinement $1
 ./main_process/object_detection/generate_object_icons_cli $1
 
 # Misc.
 ./post_process/collada/indoor_polygon_to_dae_cli $1
 ./post_process/evaluation/evaluate_cli $1
+./post_process/evaluation/prepare_poisson_cli $1

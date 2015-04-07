@@ -6,6 +6,7 @@
 #include "../../base/panorama.h"
 #include "../../base/floorplan.h"
 #include "../../base/kdtree/KDtree.h"
+#include "../../base/indoor_polygon.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <algorithm>
@@ -19,7 +20,13 @@ void initPanorama(const structured_indoor_modeling::FileIO &file_io, std::vector
 void AllRange(std::vector<int>&array, std::vector<std::vector<int> >&result, int k, int m);
 
 
-void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup, std::vector<std::vector<int> >&object_panorama, const int roomid);
+void getObjectColor(structured_indoor_modeling::PointCloud &objectcloud, const std::vector<structured_indoor_modeling::Panorama>&panorama, const std::vector<std::vector<int> >&objectgroup, const int roomid);
+
+
+void removeNearWallObjects(const structured_indoor_modeling::IndoorPolygon& indoor_polygon,
+			   const structured_indoor_modeling::Floorplan& floorplan,
+			   const int room,
+			   structured_indoor_modeling::PointCloud& objectcloud);
 
 void SetNeighbors(const std::vector<structured_indoor_modeling::Point>& points,
                   const int num_neighbors,
@@ -40,7 +47,10 @@ void RGB2HSV(double r,double g, double b, double &h, double &s, double &v);
 
 void HSV2RGB(double h, double s, double v, double r, double &g, double &b);
 //this funtion will read the object cloud and floor_wall cloud. It'll treat floor_wall as another object
-void ReadObjectCloud(const structured_indoor_modeling::FileIO& file_io, std::vector< structured_indoor_modeling::PointCloud>&objectCloud, std::vector< std::vector< std::vector<int> > >&objectgroup);
+void ReadObjectCloud(const structured_indoor_modeling::FileIO& file_io,
+		     const structured_indoor_modeling::Floorplan& plan,
+		     std::vector< structured_indoor_modeling::PointCloud>&objectCloud,
+		     std::vector< std::vector< std::vector<int> > >&objectgroup);
 
 //convert pixel label to label group
 void labelTolabelgroup(const std::vector<int>& labels,const structured_indoor_modeling::Panorama &panorama, std::vector< std::vector<int> >&labelgroup,std::vector< Eigen::Vector3d >&averageRGB, int numgroup);
@@ -55,7 +65,7 @@ inline double sigmaFunc(double x, double offset, double maxv, double scale){
 
 bool visibilityTest(const structured_indoor_modeling::Point &pt, const structured_indoor_modeling::Panorama &panorama, const std::vector<double> &depthmap, int depthwidth);
 
-int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup, std::vector<double>&objectVolume);    //objectVolume: volume of the boundingbox of each object
+int groupObject(const structured_indoor_modeling::PointCloud &point_cloud, std::vector <std::vector <int> >& objectgroup);
 
 void getSuperpixelConfidence(const structured_indoor_modeling::PointCloud &point_cloud, const std::vector<int>&objectgroup, const structured_indoor_modeling::Panorama &panorama, const std::vector<int>& superpixel,const std::vector< std::vector<int> >&labelgroup,const std::map<std::pair<int,int>,int>& pairmap, const structured_indoor_modeling::DepthFilling& depthmap, std::vector<double> &superpixelConfidence, const int superpixelnum, const int erodeiter = 0);
 
@@ -75,7 +85,7 @@ void mergeObject(std::vector<std::vector<std::list<structured_indoor_modeling::P
 void backProjectObject(const structured_indoor_modeling::Panorama &panorama, const structured_indoor_modeling::PointCloud &objectcloud, const std::vector< std::vector<int> >&objectgroup,  const std::vector<int>&segmentation, const std::vector< std::vector<int> >&labelgroup, std::vector <std::list< structured_indoor_modeling::PointCloud> > &objectlist, const int panoramaid, const int roomid);
 
 
-void cleanObjects(structured_indoor_modeling::PointCloud &pc);
+void cleanObjects(structured_indoor_modeling::PointCloud &pc, std::vector<std::vector<int> >&objectgroup);
 
 void ICP(structured_indoor_modeling::PointCloud &src, const structured_indoor_modeling::PointCloud &tgt, const int num_iter = 10, const int downsample = 1);
 

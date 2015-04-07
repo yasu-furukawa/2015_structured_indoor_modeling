@@ -27,8 +27,12 @@ DEFINE_int32(end_id,-1, "End id");
 DEFINE_int32(nsmooth, 3, "Iterations of smoothing");
 DEFINE_bool(recompute, false, "Recompute superpixel");
 
+bool compare_by_z(const structured_indoor_modeling::Point &pt1, const structured_indoor_modeling::Point &pt2){
+     return pt1.position[2] < pt2.position[2];
+}
+
 int main(int argc, char **argv){
-#if 0
+#ifdef __APPLE__
   google::ParseCommandLineFlags(&argc, &argv, true);
 #else
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -63,13 +67,16 @@ int main(int argc, char **argv){
     vector <vector<vector<int> > >labelgroup(endid - startid + 1);
     vector < vector<list<PointCloud> > > objectlist; //room->object->object part
     vector<DepthFilling> depth(endid - startid + 1);
-    vector< vector< vector <int> > > object_panorama;  // room->object->list_of_panoramaid
+
+    IndoorPolygon indoor_polygon(file_io.GetIndoorPolygon());
+    Floorplan floorplan(file_io.GetFloorplan());
+
 
     cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid, FLAGS_recompute);
-    ReadObjectCloud(file_io, objectcloud, objectgroup);
-    object_panorama.resize(objectcloud.size());
+    ReadObjectCloud(file_io, floorplan, objectcloud, objectgroup);
+    
 
     for(int roomid=0; roomid<objectcloud.size(); roomid++){
     	 // for(int objid=0; objid<objectgroup[roomid].size(); objid++){
@@ -78,21 +85,34 @@ int main(int argc, char **argv){
     	 // }
     	cout<<"---------------------"<<endl;
     	cout<<"Room "<<roomid<<endl;
-    	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid] ,object_panorama[roomid],roomid);
-	cleanObjects(objectcloud[roomid]);
+    	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid] ,roomid);
+	removeNearWallObjects(indoor_polygon,
+			      floorplan,
+			      roomid,
+			      objectcloud[roomid]);
+	cleanObjects(objectcloud[roomid], objectgroup[roomid]);
+	//sort point according to z
+	for(int objid=0; objid<objectgroup[roomid].size(); objid++){
+	     vector<structured_indoor_modeling::Point>sort_array;
+	     for(const auto&ptid :objectgroup[roomid][objid])
+		  sort_array.push_back(objectcloud[roomid].GetPoint(ptid));
+	     sort(sort_array.begin(), sort_array.end(), compare_by_z);
+	     for(int i=0; i<objectgroup[roomid][objid].size(); ++i)
+		  objectcloud[roomid].GetPoint(objectgroup[roomid][objid][i]) = sort_array[i];
+	}
 
 	//Smoothing
-	// cout<<"Smoothing object... "<<endl;
+	// cout<<"Smoothing object... "<<endl<<flush;
 	// const int kNumNeighbors = 8;
 	// vector<vector<int> >neighbors;
-	// cout<<"Set neighbors...";
+	// cout<<"Set neighbors..."<<flush;
 	// SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
 	// cout<<"done!"<<endl;
-	// cout<<"Smoothing...";
+	// cout<<"Smoothing..."<<flush;
 	// for(int t=0;t<FLAGS_nsmooth;t++)
 	//      SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
 	// cout<<"done!"<<endl;
-	// cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
+	 cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
 	
     	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
     }
