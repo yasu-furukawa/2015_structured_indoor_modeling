@@ -98,7 +98,7 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
 }
 
 
-void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, vector< vector<int> >&object_panorama, const int roomid){
+void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, const int roomid){
     const double kDepthMarginRatio = 0.03;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
@@ -182,12 +182,10 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	cout<<endl;
 #endif
 
-	object_panorama.push_back(pan_selected);
 	//assign color
 	for(int ptid=0; ptid<objectcloud.GetNumPoints(); ptid++)
 	    assigned[ptid] = false;
 	for(const auto& panid: pan_selected){
-	    
 	    Mat panout = panorama[panid].GetRGBImage().clone();
 	    vector<Vector3f>color_src;
 	    vector<Vector3f>color_tgt;
@@ -207,10 +205,9 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		}
 	    }
 	    
-	    sprintf(buffer,"temp/room%03d_obj%03d_pan%03d.png", roomid, objid, panid);
-	    imwrite(string(buffer), panout);
-	    waitKey(10);
-
+	    // sprintf(buffer,"temp/room%03d_obj%03d_pan%03d.png", roomid, objid, panid);
+	    // imwrite(string(buffer), panout);
+	    // waitKey(10);
 	    
 	    Matrix3f colorTransform = Matrix3f::Identity();
 	    if(color_src.size() > min_overlap_points)
@@ -251,8 +248,179 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	
     }//for objid
      objectcloud.RemovePoints(point_to_remove);
-
 }
+
+
+void FillOccupancy(const Eigen::Vector3d& v0,
+                   const Eigen::Vector3d& v1,
+                   const Eigen::Vector3d& v2,
+                   const Eigen::Vector3d& min_xyz,
+                   const double voxel_unit,
+                   const Eigen::Vector3i& size,
+                   std::vector<bool>* occupancy) {
+     const int kScale = 2;
+     const int samples01 = max(2, kScale * static_cast<int>((v1 - v0).norm() / voxel_unit));
+     const int samples02 = max(2, kScale * static_cast<int>((v2 - v0).norm() / voxel_unit));
+
+     const int along_sample = max(samples01, samples02);
+
+     for (int s = 0; s <= along_sample; ++s) {
+	  Vector3d v01 = v0 + (v1 - v0) * s / along_sample;
+	  Vector3d v02 = v0 + (v2 - v0) * s / along_sample;
+
+	  const int perp_sample = max(2, kScale * static_cast<int>((v02 - v01).norm() / voxel_unit));
+	  for (int t = 0; t <= perp_sample; ++t) {
+	       Vector3d v = v01 + (v02 - v01) * t / perp_sample;
+
+	       Vector3d cell_coord = (v - min_xyz) / voxel_unit;
+	       Vector3d cell_coord_int;
+	       for (int a = 0; a < 3; ++a) {
+		    cell_coord_int[a] = max(0, min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+	       }
+
+	       const int index =
+		    cell_coord_int[2] * (size[0] * size[1]) + cell_coord_int[1] * size[0] + cell_coord_int[0];
+	       occupancy->at(index) = true;
+	  }
+     }
+}
+
+void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
+			   const Floorplan& floorplan,
+			   const int room,
+			   PointCloud& objectcloud){
+     const double kDetailMarginRatio   = 0.1;
+     const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
+
+     const double voxel_unit = room_height / 128;
+     Vector3d min_xyz, max_xyz;
+
+     bool first = true;
+     for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+	  const Segment& segment = indoor_polygon.GetSegment(s);
+	  if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
+	      (segment.type == Segment::CEILING && segment.ceiling_info == room) ||
+	      (segment.type == Segment::WALL    && segment.wall_info[0] == room)) {
+	       for (const auto& vertex : segment.vertices) {
+		    if (first) {
+			 for (int a = 0; a < 3; ++a) {
+			      min_xyz[a] = max_xyz[a] = vertex[a];
+			 }
+			 first = false;
+		    } else {
+			 for (int a = 0; a < 3; ++a) {
+			      min_xyz[a] = min(min_xyz[a], vertex[a]);
+			      max_xyz[a] = max(max_xyz[a], vertex[a]);
+			 }
+		    }
+	       }
+	  }
+     }
+
+     // Allocate a voxel inside a room.
+     Vector3d length = max_xyz - min_xyz;
+     Vector3i size;
+     for (int a = 0; a < 3; ++a) {
+	  size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
+     }
+     cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
+
+
+
+     vector<bool> occupancy(size[0] * size[1] * size[2], false);
+     for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+     	  const Segment& segment = indoor_polygon.GetSegment(s);
+     	  if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
+     	      (segment.type == Segment::CEILING && segment.ceiling_info == room) ||
+     	      (segment.type == Segment::WALL    && segment.wall_info[0] == room)) {
+     	       for (const auto& triangle : segment.triangles) {
+     		    FillOccupancy(segment.vertices[triangle.indices[0]],
+     				  segment.vertices[triangle.indices[1]],
+     				  segment.vertices[triangle.indices[2]],
+     				  min_xyz,
+     				  voxel_unit,
+     				  size,
+     				  &occupancy);
+     	       }
+     	  }
+     }
+     // Expand occupancy.
+     const int kExpandMargin = 2;
+     {
+     	  vector<bool> vbtmp;
+
+     	  for (int t = 0; t < kExpandMargin; ++t) {
+     	       vbtmp = occupancy;
+     	       for (int z = 1; z < size[2] - 1; ++z) {
+     		    for (int y = 1; y < size[1] - 1; ++y) {
+     			 for (int x = 1; x < size[0] - 1; ++x) {
+
+     			      const int index = z * (size[0] * size[1]) + y * size[0] + x;
+     			      if (vbtmp[index] ||
+     				  vbtmp[index - 1] ||
+     				  vbtmp[index + 1] ||
+     				  vbtmp[index - size[0]] ||
+     				  vbtmp[index + size[0]] ||
+     				  vbtmp[index - size[0] * size[1]] ||
+     				  vbtmp[index + size[0] * size[1]]) {
+     				   occupancy[index] = true;
+     			      }
+     			 }
+     		    }
+     	       }
+     	  }
+     }
+
+     vector<structured_indoor_modeling::Point>gridpt;
+     for(int x=0; x<size[0]; x+=10){
+     	  for(int y=0; y<size[1]; y+=10){
+     	       for(int z=0; z<size[2]; z+=10){
+		    const int index =
+			 z * (size[0]*size[1]) + y*size[0] + x;
+		    if(!occupancy[index])
+			 continue;
+     		    structured_indoor_modeling::Point curpt;
+     		    Vector3d cellcoord((double)x, (double)y, (double)z);
+     		    curpt.position = cellcoord * voxel_unit + min_xyz;
+		    curpt.position = indoor_polygon.ManhattanToGlobal(curpt.position);
+     		    curpt.object_id = 0;
+     		    curpt.color = Vector3f(255,255,255);
+     		    gridpt.push_back(curpt);
+     	       }
+     	  }
+     }
+     objectcloud.AddPoints(gridpt);
+
+
+     // //if 95% points are too near to a wall, remove
+     // const double removeRatio = 0.95;
+     // for(int objid=0; objid<objectcloud.GetNumObjects(); objid++){
+     // 	  vector<structured_indoor_modeling::Point> objpt;
+     // 	  objectcloud.GetObjectPoints(objid, objpt);
+     // 	  if(objpt.size() == 0)
+     // 	       continue;
+     // 	  double removecount = 0.0;
+     // 	  for(const auto& pt:objpt){
+     // 	       Vector3d cell_coord = (pt.position - min_xyz) / voxel_unit;
+     // 	       Vector3d cell_coord_int;
+     // 	       for(int a=0; a<3; ++a){
+     // 		    cell_coord_int[a] =
+     // 			 max(0,min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+     // 		    const int index =
+     // 			 cell_coord_int[2] * (size[0]*size[1]) + cell_coord_int[1]*size[0] + cell_coord_int[0];
+     // 		    if(occupancy[index])
+     // 			 removecount += 1.0;
+     // 	       }
+     // 	  }
+     // 	  if(removecount / (double)objpt.size() > removeRatio){
+     // 	       vector<int>point_to_remove;
+     // 	       objectcloud.GetObjectIndice(objid, point_to_remove);
+     // 	       objectcloud.RemovePoints(point_to_remove);
+     // 	  }
+     // }
+}
+
+
 
 Eigen::Vector3d Intersect(const structured_indoor_modeling::Point& lhs, const structured_indoor_modeling::Point& rhs) {
      // Ray is point = lhs.position + lhs.normal * d.
@@ -546,7 +714,7 @@ void pairSuperpixel(const vector <int> &labels, int width, int height, map<pair<
 
 
 
-void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup){
+void ReadObjectCloud(const FileIO &file_io, const Floorplan& plan, vector<PointCloud>&objectCloud, vector <vector< vector<int> > >&objectgroup){
     int roomid = 0;
     while(1){
 	string filename = file_io.GetObjectPointClouds(roomid);
@@ -565,7 +733,6 @@ void ReadObjectCloud(const FileIO &file_io, vector<PointCloud>&objectCloud, vect
 	// const vector<double> room_bbox = curwall.GetBoundingbox();
 	
 	//perform cleaning, remove floating objects and small objects
-	Floorplan plan(file_io.GetFloorplan());
 	const double floorheight = plan.GetFloorHeight(roomid);
 	const double ceilingheight = plan.GetCeilingHeight(roomid);
 	const double max_z = floorheight + (ceilingheight - floorheight) * 0.5;

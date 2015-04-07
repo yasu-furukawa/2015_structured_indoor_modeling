@@ -341,6 +341,7 @@ void IdentifyDetails(const std::vector<Point>& points,
     size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
   }
   cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
+  
 
   vector<bool> occupancy(size[0] * size[1] * size[2], false);
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
