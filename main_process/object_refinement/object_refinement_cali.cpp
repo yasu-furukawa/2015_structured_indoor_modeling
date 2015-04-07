@@ -33,7 +33,7 @@ bool compare_by_z(const structured_indoor_modeling::Point &pt1, const structured
 
 int main(int argc, char **argv){
 #ifdef __APPLE__
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::ParseCommandLineFlags(&argc, &argv, true);
 #else
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
