@@ -30,7 +30,6 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
     
     for(int id=startid; id<=endid; id++){
 	int curid = id - startid;
-	cout<<"Panorama "<<id<<endl;
 	panorama[curid].Init(file_io, id);
 	panorama[curid].MakeOnlyBackgroundBlack();
            	
@@ -82,7 +81,6 @@ void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vect
     // 	    }
     // 	    labelin.close();
     // 	}
-      cout<<endl;
     }
 }
 
@@ -99,8 +97,9 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
     }
 }
 
+
 void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, vector< vector<int> >&object_panorama, const int roomid){
-    const double depth_margin = 50.0;
+    const double kDepthMarginRatio = 0.03;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
     const double min_assigned_ratio = 0.98;
@@ -121,6 +120,7 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	vector<vector<int> >point_list(pansize);
 	//Get list of visible points of each panorama
 	for(int panid=0; panid<pansize; panid++){
+	    const double depth_margin = panorama[panid].GetAverageDistance() * kDepthMarginRatio;
 	    for(const auto& ptid: objectgroup[objid]){
 		Vector3d curpt = objectcloud.GetPoint(ptid).position;
 		double ptdepth = (curpt - panorama[panid].GetCenter()).norm();
@@ -189,7 +189,6 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	for(const auto& panid: pan_selected){
 	    
 	    Mat panout = panorama[panid].GetRGBImage().clone();
-	    
 	    vector<Vector3f>color_src;
 	    vector<Vector3f>color_tgt;
 	    for(const auto& ptid: point_list[panid]){
@@ -233,14 +232,14 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		objectcloud.SetColor(ptid, color_to_assigned);
 		assigned[ptid] = true;
 	    }
-	    PointCloud curout;
-	    vector<structured_indoor_modeling::Point>point_to_add;
-	    for(const auto& ptid: point_list[panid])
-	    	point_to_add.push_back(objectcloud.GetPoint(ptid));
-	    curout.AddPoints(point_to_add);
+	    // PointCloud curout;
+	    // vector<structured_indoor_modeling::Point>point_to_add;
+	    // for(const auto& ptid: point_list[panid])
+	    // 	point_to_add.push_back(objectcloud.GetPoint(ptid));
+	    // curout.AddPoints(point_to_add);
 
-	    sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_ori.ply",roomid, objid, panid);
-	    curout.Write(string(buffer));
+	    // sprintf(buffer,"panoramacloud/object_room%03d_obj%03d_pan%03d_ori.ply",roomid, objid, panid);
+	    // curout.Write(string(buffer));
 	}
 
 	//remove unassigned points
@@ -248,8 +247,11 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	    if(assigned[ptid] == false)
 		point_to_remove.push_back(ptid);
 	}
+
+	
     }//for objid
      objectcloud.RemovePoints(point_to_remove);
+
 }
 
 Eigen::Vector3d Intersect(const structured_indoor_modeling::Point& lhs, const structured_indoor_modeling::Point& rhs) {
@@ -452,6 +454,8 @@ bool visibilityTest(const structured_indoor_modeling::Point &pt, const structure
 
 
 int groupObject(const PointCloud &point_cloud, vector <vector<int> >&objectgroup){
+     if(objectgroup.size() != 0)
+	  objectgroup.clear();
     objectgroup.resize(point_cloud.GetNumObjects());
     for(int i=0;i<point_cloud.GetNumPoints();++i){
 	structured_indoor_modeling::Point curpt = point_cloud.GetPoint(i);
@@ -1097,27 +1101,21 @@ void mergeObject(vector<vector<list<PointCloud> > >&objectlist, const vector<Poi
 }
 
 //remove small objects, re-assign object id
-void cleanObjects(PointCloud &pc){
+void cleanObjects(PointCloud &pc, vector<vector<int> >&objectgroup){
     //reassign object_id
-    vector<int>objectid;
-    vector<bool>hash(pc.GetNumObjects());
-    for(int i=0; i<hash.size(); i++)
-	hash[i] = false;
-    for(int ptid=0; ptid<pc.GetNumPoints(); ptid++){
-	int curid = pc.GetPoint(ptid).object_id;
-	if(!hash[curid]){
-	    hash[curid] = true;
-	    objectid.push_back(curid);
-	}
-    }
-    
-    for(int ptid=0; ptid<pc.GetNumPoints(); ptid++){
-	for(int i=0;i<objectid.size(); i++){
-	    if(pc.GetPoint(ptid).object_id == objectid[i])
-		pc.GetPoint(ptid).object_id = i;
-	}
-    }
+     vector<int>accid(pc.GetNumObjects());
+     for(auto &v:accid)
+	  v = 0;
+     for(int i=0; i<pc.GetNumPoints(); i++)
+	  accid[pc.GetPoint(i).object_id] = 1;
+     for(int i=1;i<accid.size(); i++){
+	  accid[i] += accid[i-1];
+     }
+     for(int i=0; i<pc.GetNumPoints(); i++){
+	  pc.GetPoint(i).object_id = accid[pc.GetPoint(i).object_id] - 1;
+     }
     pc.Update();
+    groupObject(pc, objectgroup);
 }
 
 void ICP(PointCloud &src, const PointCloud &tgt, const int num_iter, const int downsample){
