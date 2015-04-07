@@ -345,7 +345,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      	  }
      }
      // Expand occupancy.
-     const int kExpandMargin = 1;
+     const int kExpandMargin = 3;
      {
      	  vector<bool> vbtmp;
 
