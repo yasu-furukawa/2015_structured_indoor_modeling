@@ -325,8 +325,9 @@ void ViewParameters::SetObjectDisplacements() {
     sort(object_offsets.begin(), object_offsets.end());
 
     const double object_size_sum = accumulate(object_sizes.begin(), object_sizes.end(), 0.0);
+    const double kDefaultShrink = 1.0;
     const int num_rows = min(kMaxNumRows,
-                             static_cast<int>(ceil(object_size_sum / round(scaled_x_range[1] - scaled_x_range[0]))));
+                             static_cast<int>(ceil(kDefaultShrink * object_size_sum / round(x_range[1] - x_range[0]))));
 
     const int num_items_per_row =
       static_cast<int>(ceil(object_renderer.GetNumObjects(room) / (double)num_rows));
@@ -342,8 +343,8 @@ void ViewParameters::SetObjectDisplacements() {
       const int num_objects_per_row = end_index - start_index;
       const double object_scale = min(1.0, (x_range[1] - x_range[0]) / object_size_sum_per_row);
 
-      const double scaled_total_size = object_scale * object_size_sum_per_row;
-      const double scaled_margin = ((scaled_x_range[1] - scaled_x_range[0]) - scaled_total_size) / num_objects_per_row;
+      const double total_size = object_scale * object_size_sum_per_row;
+      const double margin = ((x_range[1] - x_range[0]) - total_size) / num_objects_per_row;
 
       double accumulated_position = - (x_range[1] - x_range[0]) / 2.0 + margin / 2.0;
       for (int i = start_index; i < end_index; ++i) {
@@ -355,7 +356,7 @@ void ViewParameters::SetObjectDisplacements() {
         
         object_configurations[room][object].scale = object_scale;
         object_configurations[room][object].row = row;
-        accumulated_position += object_scale * object_sizes[object] + scaled_margin;
+        accumulated_position += object_scale * object_sizes[object] + margin;
       }
       
       /*
@@ -452,9 +453,9 @@ Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
     const Vector3d row_shift = (vertical_object_bottom - vertical_object_top) / kMaxNumRows;
     const double scale = object_configurations[room][object].scale;
     const Vector3d global_displacement =
-      (LocalToGlobalNormal(room_configurations[room].displacement +
-                           object_configurations[room][object].displacement) +
-       vertical_object_top + (0.5 + object_configurations[room][object].row) * row_shift);
+    (LocalToGlobalNormal(room_configurations[room].displacement +
+                         object_configurations[room][object].displacement) +
+     vertical_object_top + (0.5 + object_configurations[room][object].row) * row_shift);
     Vector3d local = GlobalToLocal(global);
     local = object_configurations[room][object].center +
       scale * rotation * (local - object_configurations[room][object].center);
