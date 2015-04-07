@@ -52,7 +52,7 @@ void WriteDepthmap(const Panorama& panorama,
       }
     }
   }  
-  
+
   ofstream ofstr;
   ofstr.open(filename.c_str());
   ofstr << "P3" << endl
@@ -67,6 +67,28 @@ void WriteDepthmap(const Panorama& panorama,
     }
   }
   ofstr.close();
+
+  //
+  /*
+  {
+    ofstream ofstr;
+    ofstr.open("test.obj");
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        const int index = y * width + x;
+        
+        if (rasterized_geometry[index].depth == invalid_depth)
+          continue;
+
+        Vector2d depth_pixel(x, y);
+        Vector2d pixel = panorama.DepthToRGB(depth_pixel);
+        Vector3d global = panorama.Unproject(pixel, rasterized_geometry[index].depth);
+        ofstr << "v " << global[0] << ' ' << global[1] << ' ' << global[2] << endl;
+      }
+    }
+    ofstr.close();
+  }
+  */
 }
 
 void WriteDepthErrormap(const PointCloud& input_point_cloud,
