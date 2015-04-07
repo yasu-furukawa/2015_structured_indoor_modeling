@@ -88,7 +88,7 @@ void RasterizeObjectIds(const std::vector<Panorama>& panoramas,
           cerr << "No object id assigned to a point." << endl;
           exit (1);
         }
-        const ObjectId object_id = make_pair<int, int>(room, point.object_id);
+        const ObjectId object_id = pair<int, int>(room, point.object_id);
 
         const Vector2d depth_pixel = panorama.ProjectToDepth(point.position);
         const double depth = panorama.GetDepth(depth_pixel);
@@ -195,11 +195,21 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
                                     const std::vector<PointCloud>& object_point_clouds,
                                     const std::map<ObjectId, int>& object_to_detection,
                                     std::vector<Detection>* detections) {
+    const int num_room = object_point_clouds.size();
+    vector<vector<bool> >isAdded(num_room);
+    for(int roomid=0; roomid<isAdded.size(); roomid++){
+	isAdded[roomid].resize(object_point_clouds[roomid].GetNumObjects());
+	for(int objid=0; objid<isAdded[roomid].size(); objid++)
+	    isAdded[roomid][objid] = false;
+    }
+    
   for (const auto& item : object_to_detection) {
     const ObjectId& object_id = item.first;
     Detection& detection = detections->at(item.second);
     detection.room = object_id.first;
     detection.object = object_id.second;
+
+    isAdded[detection.room][detection.object] = true;
 
     vector<Point> points;
     object_point_clouds[detection.room].GetObjectPoints(detection.object, points);
@@ -225,6 +235,51 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
       detection.ranges[a][1] = *upper_ite;
     }
   }
+
+  //Add non-detected objects
+  const double min_area = 1e5;
+  for(int roomid=0; roomid<num_room; ++roomid){
+      const PointCloud& room_cloud = object_point_clouds[roomid];
+      for(int objid=0; objid<room_cloud.GetNumObjects(); ++objid){
+	  if(isAdded[roomid][objid])
+	      continue;
+
+	  Detection detection;
+	  detection.room = roomid;
+	  detection.object = objid;
+	  detection.names.resize(1);
+	  detection.names[0] = "unknown";
+
+	  vector<Point>objpt;
+	  room_cloud.GetObjectPoints(objid, objpt);
+
+	  vector<double> histograms[3];
+	  for (const auto& point : objpt) {
+	      const Vector3d& manhattan = indoor_polygon.GlobalToManhattan(point.position);
+	      for (int a = 0; a < 3; ++a) {
+		  histograms[a].push_back(manhattan[a]);
+	      }
+	  }
+	  // 5 percentile and 95 percentile.
+	  for (int a = 0; a < 3; ++a) {
+	      vector<double>::iterator lower_ite =
+		  histograms[a].begin() + static_cast<int>(round(histograms[a].size() * 0.05));
+	      vector<double>::iterator upper_ite =
+		  histograms[a].begin() + static_cast<int>(round(histograms[a].size() * 0.95));
+      
+	      nth_element(histograms[a].begin(), lower_ite, histograms[a].end());
+	      detection.ranges[a][0] = *lower_ite;
+	      nth_element(histograms[a].begin(), upper_ite, histograms[a].end());
+	      detection.ranges[a][1] = *upper_ite;
+	  }
+	  
+	  const double area_on_floorplan = (detection.ranges[0][1] - detection.ranges[0][0]) * (detection.ranges[1][1] - detection.ranges[1][0]);
+	  if(area_on_floorplan >= min_area)
+	      detections->push_back(detection);
+
+      }
+  }
+  
 }
 
 }  // namespace structured_indoor_modeling

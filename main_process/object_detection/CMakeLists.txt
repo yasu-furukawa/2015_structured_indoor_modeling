@@ -13,6 +13,11 @@ if(${CMAKE_SYSTEM} MATCHES "Darwin")
    set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
 endif(${CMAKE_SYSTEM} MATCHES "Darwin")
 
+if(${CMAKE_SYSTEM} MATCHES "Linux")
+   include_directories("/usr/include/eigen3")
+endif(${CMAKE_SYSTEM} MATCHES "Linux")
+
+
 if (WIN32)
 	include_directories("C:\\Eigen3.2.2")
 	include_directories("C:\\gflags-2.1.1\\include")
@@ -22,3 +27,8 @@ endif (WIN32)
 add_executable( generate_object_icons_cli generate_object_icons_cli.cc generate_object_icons.cc ../../base/detection.cc ../../base/floorplan.cc ../../base/indoor_polygon.cc ../../base/panorama.cc ../../base/point_cloud.cc )
 target_link_libraries( generate_object_icons_cli ${OpenCV_LIBS} )
 target_link_libraries( generate_object_icons_cli gflags )
+
+if(${CMAKE_SYSTEM} MATCHES "Linux")
+  target_link_libraries(generate_object_icons_cli pthread)
+endif(${CMAKE_SYSTEM} MATCHES "Linux")
+
