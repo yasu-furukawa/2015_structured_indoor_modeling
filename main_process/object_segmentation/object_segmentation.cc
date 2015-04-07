@@ -312,7 +312,7 @@ void IdentifyDetails(const std::vector<Point>& points,
   const double voxel_unit = room_height / 128;
   Vector3d min_xyz, max_xyz;
   
-  bool first = false;
+  bool first = true;
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
     const Segment& segment = indoor_polygon.GetSegment(s);
     if ((segment.type == Segment::FLOOR   && segment.floor_info == room) ||
@@ -341,6 +341,7 @@ void IdentifyDetails(const std::vector<Point>& points,
     size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
   }
   cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
+  
 
   vector<bool> occupancy(size[0] * size[1] * size[2], false);
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
