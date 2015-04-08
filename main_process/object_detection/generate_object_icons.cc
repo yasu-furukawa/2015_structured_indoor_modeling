@@ -237,7 +237,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
   }
 
   //Add non-detected objects
-  const double min_area = 1e5;
+  const double min_area = 1e6;
   for(int roomid=0; roomid<num_room; ++roomid){
       const PointCloud& room_cloud = object_point_clouds[roomid];
       for(int objid=0; objid<room_cloud.GetNumObjects(); ++objid){
