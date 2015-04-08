@@ -849,12 +849,7 @@ void PolygonRenderer::RenderColoredBoxes(const ViewParameters& view_parameters,
                                          const double air_to_tree_progress,
                                          const double animation,
                                          const double alpha,
-                                         const Eigen::Vector3d& center) {
-  // const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
-  // const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
-  // const double shrink_scale =
-  // (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
-  
+                                         const Eigen::Vector3d& center) {  
   Triangles triangles;
   AddTrianglesFromWalls(&triangles);
   AddTrianglesFromCeiling(&triangles);
@@ -882,11 +877,16 @@ void PolygonRenderer::RenderColoredBoxes(const ViewParameters& view_parameters,
   glEnd();
 
   // Wire frame animation.
-  /*
+  // const Eigen::Matrix3d& floorplan_to_global = floorplan.GetFloorplanToGlobal();
+  // const Eigen::Vector3d vertical_shift = air_to_tree_progress * max_vertical_shift;
+  // const double shrink_scale =
+  // (1.0 - air_to_tree_progress) + air_to_tree_progress * max_shrink_scale;
+
+  
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glLineWidth(2.0);
+  glLineWidth(1.5);
 
   const double kMargin = 0.05;
   const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
@@ -909,11 +909,33 @@ void PolygonRenderer::RenderColoredBoxes(const ViewParameters& view_parameters,
         Vector3d v10 = floorplan.GetFloorVertexGlobal(room, next_w);
         Vector3d v01 = floorplan.GetCeilingVertexGlobal(room, w);
         Vector3d v11 = floorplan.GetCeilingVertexGlobal(room, next_w);
-        
+
+        /*
         v00 = room_center + (v00 - room_center) * shrink_scale + vertical_shift;
         v10 = room_center + (v10 - room_center) * shrink_scale + vertical_shift;
         v01 = room_center + (v01 - room_center) * shrink_scale + vertical_shift;
         v11 = room_center + (v11 - room_center) * shrink_scale + vertical_shift;
+        */
+        v00 = view_parameters.TransformFloorplan(v00,
+                                                 air_to_tree_progress,
+                                                 animation,
+                                                 max_vertical_shift,
+                                                 max_shrink_scale);
+        v10 = view_parameters.TransformFloorplan(v10,
+                                                 air_to_tree_progress,
+                                                 animation,
+                                                 max_vertical_shift,
+                                                 max_shrink_scale);
+        v01 = view_parameters.TransformFloorplan(v01,
+                                                 air_to_tree_progress,
+                                                 animation,
+                                                 max_vertical_shift,
+                                                 max_shrink_scale);
+        v11 = view_parameters.TransformFloorplan(v11,
+                                                 air_to_tree_progress,
+                                                 animation,
+                                                 max_vertical_shift,
+                                                 max_shrink_scale);
         
         glBegin(GL_LINE_STRIP);
         
@@ -929,7 +951,6 @@ void PolygonRenderer::RenderColoredBoxes(const ViewParameters& view_parameters,
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
   }
-  */
 }
   
 void PolygonRenderer::RenderWallAll(const Eigen::Vector3d& center,
