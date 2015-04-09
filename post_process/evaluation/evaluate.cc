@@ -380,9 +380,33 @@ void ReadMesh(const std::string& filename, Mesh* mesh) {
   ifstream ifstr;
   ifstr.open(filename.c_str());
 
-  //????
+  string header;
+  int num_vertices;
+  int num_triangles;
+  for (int i = 0; i < 9; ++i)
+    ifstr >> header;
+  ifstr >> num_vertices;
+  for (int i = 0; i < 11; ++i)
+    ifstr >> header;
+  ifstr >> num_triangles;
+  for (int i = 0; i < 6; ++i)
+    ifstr >> header;
   
+  mesh->vertices.resize(num_vertices);
+  mesh->faces.resize(num_triangles);
 
+  for (int v = 0; v < num_vertices; ++v) {
+    ifstr >> mesh->vertices[v][0]
+          >> mesh->vertices[v][1]
+          >> mesh->vertices[v][2];
+  }
+
+  for (int f = 0; f < num_triangles; ++f) {
+    ifstr >> header
+          >> mesh->faces[f][0]
+          >> mesh->faces[f][1]
+          >> mesh->faces[f][2];
+  }      
   ifstr.close();
 
   mesh->geometry_type = kWall;

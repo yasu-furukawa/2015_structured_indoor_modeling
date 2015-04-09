@@ -72,6 +72,8 @@ struct BoundingBox2D {
   // For each room, for each object, a colored point cloud.
   // std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
 
+  double average_floor_height;
+
   std::vector<std::vector<std::vector<float> > > vertices;
   std::vector<std::vector<std::vector<float> > > colors;
 

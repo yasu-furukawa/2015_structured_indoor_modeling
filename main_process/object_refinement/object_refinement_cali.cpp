@@ -14,6 +14,8 @@
 #include <algorithm>
 #include "time.h"
 
+//#define __INCOMPLETE__
+
 using namespace std;
 using namespace cv;
 using namespace Eigen;
@@ -32,6 +34,13 @@ bool compare_by_z(const structured_indoor_modeling::Point &pt1, const structured
 }
 
 int main(int argc, char **argv){
+
+#ifdef __INCOMPLETE__
+     cout<<"=========================================="<<endl;
+     cout<<"Incomplete code, please wait for further push."<<endl;
+     cout<<"=========================================="<<endl;
+     return 0;
+#endif
 #ifdef __APPLE__
   google::ParseCommandLineFlags(&argc, &argv, true);
 #else
