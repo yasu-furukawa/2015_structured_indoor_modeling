@@ -109,7 +109,7 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
     const double min_assigned_ratio = 0.98;
     const double max_averagedis = 5000.0;
     const double max_pt_per_pixel = 0.2;
-    const double weight_depthcoverage = 10.0;
+    const double weight_depthcoverage = 7.0;
     char buffer[100];
 
     vector<bool>assigned(objectcloud.GetNumPoints());

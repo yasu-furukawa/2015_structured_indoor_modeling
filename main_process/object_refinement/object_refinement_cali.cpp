@@ -103,11 +103,12 @@ int main(int argc, char **argv){
 	//sort point according to z
 	for(int objid=0; objid<objectgroup[roomid].size(); objid++){
 	     vector<structured_indoor_modeling::Point>sort_array;
-	     for(const auto&ptid :objectgroup[roomid][objid])
-		  sort_array.push_back(objectcloud[roomid].GetPoint(ptid));
+	     vector<int>objind;
+	     objectcloud[roomid].GetObjectPoints(objid, sort_array);
+	     objectcloud[roomid].GetObjectIndice(objid, objind);
 	     sort(sort_array.begin(), sort_array.end(), compare_by_z);
-	     for(int i=0; i<objectgroup[roomid][objid].size(); ++i)
-		  objectcloud[roomid].GetPoint(objectgroup[roomid][objid][i]) = sort_array[i];
+	     for(int i=0; i<objind.size(); ++i)
+		  objectcloud[roomid].GetPoint(objind[i]) = sort_array[i];
 	}
 
 	//Smoothing
@@ -122,6 +123,15 @@ int main(int argc, char **argv){
 	    SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
 	cout<<"done!"<<endl;
 	cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
+
+	for(int objid=0; objid<objectcloud[roomid].GetNumObjects(); ++objid){
+	    vector<structured_indoor_modeling::Point>objpt;
+	    objectcloud[roomid].GetObjectPoints(objid, objpt);
+	    PointCloud curpt;
+	    curpt.AddPoints(objpt);
+	    sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid, objid);
+	    curpt.Write(string(buffer));
+	}
 	
     	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
     }
