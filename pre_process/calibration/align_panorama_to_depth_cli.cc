@@ -434,6 +434,8 @@ void InitializeParameters(const FileIO& file_io, const int p, vector<double>* pa
   // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.4829;
   // equal-sky first pano
   // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;
+  // pano 9.
+  params->at(2) -= M_PI * 0.04;
 
   // equal sky (last image).
   // params->at(2) = -ReadOffsetTheta(filename) + M_PI * 0.8;

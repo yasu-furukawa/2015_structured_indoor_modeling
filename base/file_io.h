@@ -189,11 +189,29 @@ class FileIO {
     }
     return filenames;
   }
+  std::vector<std::string> GetFilteredPoissonMeshes() const {
+    std::vector<std::string> filenames;
+    const int kNumVersions = 3;
+    for (int i = 0; i < kNumVersions; ++i) {
+      sprintf(buffer, "%s/input/poisson/poisson_filtered%d.ply", data_directory.c_str(), i);
+      filenames.push_back(buffer);
+    }
+    return filenames;
+  }
   std::vector<std::string> GetVgcutMeshes() const {
     std::vector<std::string> filenames;
     const int kNumVersions = 3;
     for (int i = 0; i < kNumVersions; ++i) {
       sprintf(buffer, "%s/input/vgcut/vgcut%d.ply", data_directory.c_str(), i);
+      filenames.push_back(buffer);
+    }
+    return filenames;
+  }
+  std::vector<std::string> GetFilteredVgcutMeshes() const {
+    std::vector<std::string> filenames;
+    const int kNumVersions = 3;
+    for (int i = 0; i < kNumVersions; ++i) {
+      sprintf(buffer, "%s/input/vgcut/vgcut_filtered%d.ply", data_directory.c_str(), i);
       filenames.push_back(buffer);
     }
     return filenames;
