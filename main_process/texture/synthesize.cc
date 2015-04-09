@@ -470,7 +470,7 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
 
   while (true) {
     int best_index = kInvalid;
-    int best_count = 0;
+    double best_count = 0;
     
     for (int i = 0; i < synthesis_data.projected_textures.size(); ++i) {
       if (texture_used[i])
@@ -478,14 +478,15 @@ void InitializeTexture(const SynthesisData& synthesis_data, cv::Mat* floor_textu
       const cv::Mat& image = synthesis_data.projected_textures[i];
 
       // Count the number of non-black pixels that are not used.
-      int count = 0;
+      double count = 0;
       for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
           const int index = y * width + x;
           if (mask[index] && image.at<cv::Vec3b>(y, x) != kHole && !pixel_guarded->at(index))
-            ++count;
+            count += 1.0;
         }
       }
+      count *= synthesis_data.weights[i];
       if (best_index == kInvalid || count > best_count) {
         best_index = i;
         best_count = count;

@@ -121,6 +121,7 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
 void GenerateFloorTexture(const int room,
                           const TextureInput& texture_input,
                           const std::vector<cv::Mat>& projected_textures,
+			  const std::vector<double>& weights,
                           const cv::Mat& room_segments,
                           const Patch& floor_patch,
                           cv::Mat* floor_texture);
@@ -198,6 +199,8 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
   cout << "Compute projected texture..." <<flush;
   ComputeProjectedTextures(texture_input, *floor_patch, floor_heights, ceiling_heights,
                            &projected_textures);
+  vector<double> weights;
+  weights.resize(projected_textures.size(), 1.0);
   cout << "done."<< endl;
 
   // For each room, put texture.
@@ -208,7 +211,7 @@ void SetFloorPatch(const TextureInput& texture_input, Patch* floor_patch) {
   cout << floorplan.GetNumRooms() << " rooms: " << flush;
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     cout << room << '.' << flush;
-    GenerateFloorTexture(room, texture_input, projected_textures, room_segments,
+    GenerateFloorTexture(room, texture_input, projected_textures, weights, room_segments,
                          *floor_patch, &floor_texture);
   }
   cout << "done." << endl;
@@ -888,11 +891,12 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
 void GenerateFloorTexture(const int room,
                           const TextureInput& texture_input,
                           const std::vector<cv::Mat>& projected_textures,
+			  const std::vector<double>& weights,
                           const cv::Mat& room_segments,
                           const Patch& floor_patch,
                           cv::Mat* floor_texture) {
   const int kMinPatchSize = 6;
-  SynthesisData synthesis_data(projected_textures);
+  SynthesisData synthesis_data(projected_textures, weights);
   synthesis_data.num_cg_iterations = texture_input.num_cg_iterations;
   synthesis_data.texture_size = floor_patch.texture_size;
   synthesis_data.patch_size   = max(kMinPatchSize, texture_input.patch_size_for_synthesis);
@@ -956,7 +960,9 @@ void SynthesizePatch(Patch* patch) {
   }
   
   projected_textures.push_back(projected_texture);
-  SynthesisData synthesis_data(projected_textures);
+  vector<double> weights;
+  weights.push_back(1.0);
+  SynthesisData synthesis_data(projected_textures, weights);
 
   synthesis_data.num_cg_iterations = 50;
   synthesis_data.texture_size = patch->texture_size;

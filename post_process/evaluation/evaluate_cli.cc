@@ -319,32 +319,64 @@ int main(int argc, char* argv[]) {
   }
 
   if (FLAGS_evaluate_poisson_mesh) {
-    const vector<string> filenames = file_io.GetPoissonMeshes();
-    for (int i = 0; i < filenames.size(); ++i) {
-      Mesh poisson_mesh;
-      ReadMesh(filenames[i], &poisson_mesh);
-      Initialize(panoramas, kInitial, &rasterized_geometries);
-      RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
-
-      char buffer[1024];
-      sprintf(buffer, "poisson%d", i);
-      VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-      ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    {
+      const vector<string> filenames = file_io.GetPoissonMeshes();
+      for (int i = 0; i < filenames.size(); ++i) {
+	Mesh poisson_mesh;
+	ReadMesh(filenames[i], &poisson_mesh);
+	Initialize(panoramas, kInitial, &rasterized_geometries);
+	RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
+	
+	char buffer[1024];
+	sprintf(buffer, "poisson%d", i);
+	VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+	ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+      }
+    }
+    {
+      const vector<string> filenames = file_io.GetFilteredPoissonMeshes();
+      for (int i = 0; i < filenames.size(); ++i) {
+	Mesh poisson_mesh;
+	ReadMesh(filenames[i], &poisson_mesh);
+	Initialize(panoramas, kInitial, &rasterized_geometries);
+	RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
+	
+	char buffer[1024];
+	sprintf(buffer, "poisson_filtered%d", i);
+	VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+	ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+      }
     }
   }
 
   if (FLAGS_evaluate_vgcut_mesh) {
-    const vector<string> filenames = file_io.GetVgcutMeshes();
-    for (int i = 0; i < filenames.size(); ++i) {
-      Mesh vgcut_mesh;
-      ReadMesh(filenames[i], &vgcut_mesh);
-      Initialize(panoramas, kInitial, &rasterized_geometries);
-      RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
-
-      char buffer[1024];
-      sprintf(buffer, "vgcut%d", i);
-      VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-      ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    {
+      const vector<string> filenames = file_io.GetVgcutMeshes();
+      for (int i = 0; i < filenames.size(); ++i) {
+	Mesh vgcut_mesh;
+	ReadMesh(filenames[i], &vgcut_mesh);
+	Initialize(panoramas, kInitial, &rasterized_geometries);
+	RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
+	
+	char buffer[1024];
+	sprintf(buffer, "vgcut%d", i);
+	VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+	ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+      }
+    }
+    {
+      const vector<string> filenames = file_io.GetFilteredVgcutMeshes();
+      for (int i = 0; i < filenames.size(); ++i) {
+	Mesh vgcut_mesh;
+	ReadMesh(filenames[i], &vgcut_mesh);
+	Initialize(panoramas, kInitial, &rasterized_geometries);
+	RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
+	
+	char buffer[1024];
+	sprintf(buffer, "vgcut_filtered%d", i);
+	VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+	ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+      }
     }
   }
   

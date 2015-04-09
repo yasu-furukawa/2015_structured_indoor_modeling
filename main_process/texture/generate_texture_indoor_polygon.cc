@@ -362,9 +362,10 @@ void ShrinkTexture(const int shrink_pixels, Patch* patch) {
 
 void SynthesizePatch(const int patch_size_for_synthesis,
                      const std::vector<cv::Mat>& projected_textures,
+		     const std::vector<double>& weights,
                      const bool vertical_constraint,
                      Patch* patch) {
-  SynthesisData synthesis_data(projected_textures);
+  SynthesisData synthesis_data(projected_textures, weights);
   // This must be more than 4 for margin.
   const int kMinPatchSize = 4;
   synthesis_data.num_cg_iterations = 50;
@@ -409,7 +410,6 @@ void SynthesizePatch(const int patch_size_for_synthesis,
     SynthesizePoisson(synthesis_data, patches, patch_positions, vertical_constraint,
                       &synthesized_texture);
     cv::imshow("result", synthesized_texture);
-    
     {
       int index = 0;
       for (int y = 0; y < patch->texture_size[1]; ++y) {
@@ -476,7 +476,8 @@ void ShrinkTexture(const int width,
   
 void ComputeProjectedTextures(const TextureInput& texture_input,
                               const Patch& patch,
-                              std::vector<cv::Mat>* projected_textures) {
+                              std::vector<cv::Mat>* projected_textures,
+			      std::vector<double>* weights) {
   const int kFirstLevel = 0;
   const int level = texture_input.pyramid_level;
   const double threshold = texture_input.visibility_margin * 2;
@@ -532,8 +533,26 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
       }
     }
 
-    if (non_hole_exist)
+    if (non_hole_exist) {
       projected_textures->push_back(projected_texture);
+
+      // Compute the distance on the panorama image, along x and y axis of the patch.
+      const Vector3d global00 =
+          texture_input.indoor_polygon.
+	ManhattanToGlobal(patch.UVToManhattan(patch.TextureToUV(Vector2d(0, 0))));
+      const Vector3d global01 =
+	texture_input.indoor_polygon.
+	ManhattanToGlobal(patch.UVToManhattan(patch.TextureToUV(Vector2d(patch.texture_size[0] - 1, 0))));
+      const Vector3d global10 =
+	texture_input.indoor_polygon.
+	ManhattanToGlobal(patch.UVToManhattan(patch.TextureToUV(Vector2d(0, patch.texture_size[1] - 1))));
+
+      const Vector2d pixel00 = panorama_for_depth.Project(global00);
+      const Vector2d pixel01 = panorama_for_depth.Project(global01);
+      const Vector2d pixel10 = panorama_for_depth.Project(global10);
+      
+      weights->push_back(min((pixel00 - pixel01).norm(), (pixel00 - pixel10).norm()));
+    }
   }
 }
 
@@ -623,7 +642,8 @@ void SetPatch(const TextureInput& texture_input,
   if (visibility_check) {
     // Project from all the panoramas, and blend.
     vector<cv::Mat> projected_textures;
-    ComputeProjectedTextures(texture_input, *patch, &projected_textures);
+    vector<double> weights;
+    ComputeProjectedTextures(texture_input, *patch, &projected_textures, &weights);
 
     patch->texture.resize(3 * patch->texture_size[0] * patch->texture_size[1]);
 
@@ -640,7 +660,7 @@ void SetPatch(const TextureInput& texture_input,
       }
     } else {
       const bool kNoVerticalConstraint = false;     
-      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, kNoVerticalConstraint, patch);
+      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, weights, kNoVerticalConstraint, patch);
     }    
   } else {
     // Pick the best one and inpaint.
@@ -664,7 +684,8 @@ void SetPatch(const TextureInput& texture_input,
     if (hole) {
       const bool kVerticalConstraint = true;
 
-      vector<cv::Mat> projected_textures;
+      vector<cv::Mat> projected_textures_empty;
+      vector<double> weights;
       cv::Mat projected_texture(patch->texture_size[1],
                                 patch->texture_size[0],
                                 CV_8UC3);
@@ -675,9 +696,10 @@ void SetPatch(const TextureInput& texture_input,
                                                             patch->texture[3 * index + 1],
                                                             patch->texture[3 * index + 2]);
       
-      projected_textures.push_back(projected_texture);
+      projected_textures_empty.push_back(projected_texture);
+      weights.push_back(1.0);
       
-      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, kVerticalConstraint, patch);
+      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures_empty, weights, kVerticalConstraint, patch);
     }
   }  
 }
