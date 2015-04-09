@@ -8,11 +8,13 @@
 namespace structured_indoor_modeling {
 
 struct SynthesisData {
-  SynthesisData(const std::vector<cv::Mat>& projected_textures) :
-    projected_textures(projected_textures) {
+SynthesisData(const std::vector<cv::Mat>& projected_textures,
+	      const std::vector<double>& weights) :
+  projected_textures(projected_textures), weights(weights) {
   }
   
   const std::vector<cv::Mat>& projected_textures;
+  const std::vector<double>& weights;
   
   int num_cg_iterations;
   Eigen::Vector2i texture_size;
