@@ -102,6 +102,10 @@ class FileIO {
     sprintf(buffer, "%s/input/floorplan_detailed.txt", data_directory.c_str());
     return buffer;
   }
+  std::string GetIndoorPolygonWithCeiling() const {
+    sprintf(buffer, "%s/input/floorplan_detailed_ceil.txt", data_directory.c_str());
+    return buffer;
+  }
   std::string GetFloorplanFinal() const {
     sprintf(buffer, "%s/floorplan/floorplan_final.txt", data_directory.c_str());
     return buffer;
@@ -185,6 +189,10 @@ class FileIO {
 
   std::string GetCollada() const {
     sprintf(buffer, "%s/evaluation/floorplan_detailed.dae", data_directory.c_str());
+    return buffer;
+  }
+  std::string GetColladaWithCeiling() const {
+    sprintf(buffer, "%s/evaluation/floorplan_detailed_ceil.dae", data_directory.c_str());
     return buffer;
   }
 

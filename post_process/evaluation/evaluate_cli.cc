@@ -244,7 +244,7 @@ void Initialize(const FileIO& file_io, Floorplan* floorplan, IndoorPolygon* indo
 
   string indoor_polygon_file;
   if (FLAGS_indoor_polygon_file == "") {
-    indoor_polygon_file = file_io.GetIndoorPolygon();
+    indoor_polygon_file = file_io.GetIndoorPolygonWithCeiling();
   } else {
     char buffer[1024];
     sprintf(buffer, "%s/%s", file_io.GetDataDirectory().c_str(), FLAGS_indoor_polygon_file.c_str());
