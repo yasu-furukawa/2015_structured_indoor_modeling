@@ -14,7 +14,7 @@
 #include <algorithm>
 #include "time.h"
 
-#define __INCOMPLETE__
+//#define __INCOMPLETE__
 
 using namespace std;
 using namespace cv;
@@ -42,7 +42,7 @@ int main(int argc, char **argv){
      return 0;
 #endif
 #ifdef __APPLE__
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::ParseCommandLineFlags(&argc, &argv, true);
 #else
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
