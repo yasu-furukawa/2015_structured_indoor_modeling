@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
 
 #include <gflags/gflags.h>
 
@@ -247,92 +248,103 @@ int main(int argc, char* argv[]) {
 #endif
 
   FileIO file_io(argv[1]);
-  IndoorPolygon indoor_polygon(file_io.GetIndoorPolygon());
+  vector<string> indoor_polygon_files;
+  indoor_polygon_files.push_back(file_io.GetIndoorPolygon());
+  indoor_polygon_files.push_back(file_io.GetIndoorPolygonWithCeiling());
+  vector<string> collada_files;
+  collada_files.push_back(file_io.GetCollada());
+  collada_files.push_back(file_io.GetColladaWithCeiling());
 
-  vector<Vector3d> vertices;
-  vector<Polygon> polygons;
+  const int kNumFiles = 2;
+  for (int i = 0; i < kNumFiles; ++i) {
+    IndoorPolygon indoor_polygon(indoor_polygon_files[i]);
 
-  for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
-    const Segment& segment = indoor_polygon.GetSegment(s);
-    if (segment.type == Segment::CEILING)
-      continue;
+    vector<Vector3d> vertices;
+    vector<Polygon> polygons;
     
-    const int offset = vertices.size();
-    for (const auto& vertex : segment.vertices)
-      vertices.push_back(vertex);
-
-    SetPolygon(segment, offset, &polygons);
-  }
-  
-  ofstream ofstr;
-  ofstr.open(file_io.GetCollada().c_str());
-
-  ofstr << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>" << endl
-        << "<COLLADA xmlns=\"http://www.collada.org/2005/11/COLLADASchema\" version=\"1.4.1\">" << endl
-        << "<asset>" << endl
-        << "<up_axis>Z_UP</up_axis>" << endl
-        << "</asset>" << endl
-        << "<library_visual_scenes>" << endl
-        << "<visual_scene id=\"ID1\">" << endl
-        << "<node name=\"SketchUp\">" << endl
-        << "<instance_geometry url=\"#ID10\">" << endl
-        << "</instance_geometry>" << endl
-        << "</node>" << endl
-        << "</visual_scene>" << endl
-        << "</library_visual_scenes>" << endl
-        << "<library_geometries>" << endl
-        << "<geometry id=\"ID10\">" << endl
-        << "<mesh>" << endl
-        << "<source id=\"ID11\">" << endl
-        << "<float_array id=\"ID14\" count=\"" << (int)vertices.size() * 3 << "\">";
-  for (const auto& vertex : vertices) {
-    ofstr << vertex[0] << ' ' << vertex[1] << ' ' << vertex[2] << ' ';
-  }
-  ofstr << "</float_array>" << endl
-        << "<technique_common>" << endl
-        << "<accessor count=\"" << (int)vertices.size() << "\" source=\"#ID14\" stride=\"3\">" << endl
-        << "<param name=\"X\" type=\"float\" />" << endl
-        << "<param name=\"Y\" type=\"float\" />" << endl
-        << "<param name=\"Z\" type=\"float\" />" << endl
-        << "</accessor>" << endl
-        << "</technique_common>" << endl
-        << "</source>" << endl
-        << "<vertices id=\"ID13\">" << endl
-        << "<input semantic=\"POSITION\" source=\"#ID11\" />" << endl
-        << "</vertices>" << endl
-        << "<polygons count=\"" << (int)polygons.size() << "\" material=\"Material2\">" << endl
-        << "<input offset=\"0\" semantic=\"VERTEX\" source=\"#ID13\" />" << endl;
-  for (const auto& polygon : polygons) {
-    if (polygon.holes.empty()) {
-      ofstr << "<p>";
-      for (const auto& index : polygon.boundary)
-        ofstr << index << ' ';
-      ofstr << "</p>" << endl;
-    } else {
-      ofstr << "<ph>" << endl
-            << "<p>";
-      for (const auto& index : polygon.boundary)
-        ofstr << index << ' ';
-      ofstr << "</p>" << endl;
-      for (const auto& hole : polygon.holes) {
-        ofstr << "<h>";
-        for (const auto& index : hole)
-          ofstr << index << ' ';
-        ofstr << "</h>" << endl;
-      }
-      ofstr << "</ph>" << endl;
+    for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+      const Segment& segment = indoor_polygon.GetSegment(s);
+      // Do not include ceiling for the first type.
+      if (i == 0 && segment.type == Segment::CEILING)
+        continue;
+      
+      const int offset = vertices.size();
+      for (const auto& vertex : segment.vertices)
+        vertices.push_back(vertex);
+      
+      SetPolygon(segment, offset, &polygons);
     }
+    
+    ofstream ofstr;
+    ofstr.open(collada_files[i]);
+    
+    ofstr << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>" << endl
+          << "<COLLADA xmlns=\"http://www.collada.org/2005/11/COLLADASchema\" version=\"1.4.1\">" << endl
+          << "<asset>" << endl
+          << "<up_axis>Z_UP</up_axis>" << endl
+          << "</asset>" << endl
+          << "<library_visual_scenes>" << endl
+          << "<visual_scene id=\"ID1\">" << endl
+          << "<node name=\"SketchUp\">" << endl
+          << "<instance_geometry url=\"#ID10\">" << endl
+          << "</instance_geometry>" << endl
+          << "</node>" << endl
+          << "</visual_scene>" << endl
+          << "</library_visual_scenes>" << endl
+          << "<library_geometries>" << endl
+          << "<geometry id=\"ID10\">" << endl
+          << "<mesh>" << endl
+          << "<source id=\"ID11\">" << endl
+          << "<float_array id=\"ID14\" count=\"" << (int)vertices.size() * 3 << "\">";
+    for (const auto& vertex : vertices) {
+      ofstr << vertex[0] << ' ' << vertex[1] << ' ' << vertex[2] << ' ';
+    }
+    ofstr << "</float_array>" << endl
+          << "<technique_common>" << endl
+          << "<accessor count=\"" << (int)vertices.size() << "\" source=\"#ID14\" stride=\"3\">" << endl
+          << "<param name=\"X\" type=\"float\" />" << endl
+          << "<param name=\"Y\" type=\"float\" />" << endl
+          << "<param name=\"Z\" type=\"float\" />" << endl
+          << "</accessor>" << endl
+          << "</technique_common>" << endl
+          << "</source>" << endl
+          << "<vertices id=\"ID13\">" << endl
+          << "<input semantic=\"POSITION\" source=\"#ID11\" />" << endl
+          << "</vertices>" << endl
+          << "<polygons count=\"" << (int)polygons.size() << "\" material=\"Material2\">" << endl
+          << "<input offset=\"0\" semantic=\"VERTEX\" source=\"#ID13\" />" << endl;
+    for (const auto& polygon : polygons) {
+      if (polygon.holes.empty()) {
+        ofstr << "<p>";
+        for (const auto& index : polygon.boundary)
+          ofstr << index << ' ';
+        ofstr << "</p>" << endl;
+      } else {
+        ofstr << "<ph>" << endl
+              << "<p>";
+        for (const auto& index : polygon.boundary)
+          ofstr << index << ' ';
+        ofstr << "</p>" << endl;
+        for (const auto& hole : polygon.holes) {
+          ofstr << "<h>";
+          for (const auto& index : hole)
+            ofstr << index << ' ';
+          ofstr << "</h>" << endl;
+        }
+        ofstr << "</ph>" << endl;
+      }
+    }
+    ofstr << "</polygons>" << endl
+          << "</mesh>" << endl
+          << "</geometry>" << endl
+          << "</library_geometries>" << endl
+          << "<scene>" << endl
+          << "<instance_visual_scene url=\"#ID1\" />" << endl
+          << "</scene>" << endl
+          << "</COLLADA>" << endl;
+    
+    ofstr.close();
   }
-  ofstr << "</polygons>" << endl
-        << "</mesh>" << endl
-        << "</geometry>" << endl
-        << "</library_geometries>" << endl
-        << "<scene>" << endl
-        << "<instance_visual_scene url=\"#ID1\" />" << endl
-        << "</scene>" << endl
-        << "</COLLADA>" << endl;
-  
-  ofstr.close();
   
   /*
   Floorplan floorplan(floorplan_file);

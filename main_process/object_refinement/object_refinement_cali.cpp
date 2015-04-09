@@ -14,6 +14,8 @@
 #include <algorithm>
 #include "time.h"
 
+//#define __INCOMPLETE__
+
 using namespace std;
 using namespace cv;
 using namespace Eigen;
@@ -32,6 +34,13 @@ bool compare_by_z(const structured_indoor_modeling::Point &pt1, const structured
 }
 
 int main(int argc, char **argv){
+
+#ifdef __INCOMPLETE__
+     cout<<"=========================================="<<endl;
+     cout<<"Incomplete code, please wait for further push."<<endl;
+     cout<<"=========================================="<<endl;
+     return 0;
+#endif
 #ifdef __APPLE__
   google::ParseCommandLineFlags(&argc, &argv, true);
 #else
@@ -102,17 +111,17 @@ int main(int argc, char **argv){
 	}
 
 	//Smoothing
-	// cout<<"Smoothing object... "<<endl<<flush;
-	// const int kNumNeighbors = 8;
-	// vector<vector<int> >neighbors;
-	// cout<<"Set neighbors..."<<flush;
-	// SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
-	// cout<<"done!"<<endl;
-	// cout<<"Smoothing..."<<flush;
-	// for(int t=0;t<FLAGS_nsmooth;t++)
-	//      SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
-	// cout<<"done!"<<endl;
-	 cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
+	cout<<"Smoothing object... "<<endl<<flush;
+	const int kNumNeighbors = 8;
+	vector<vector<int> >neighbors;
+	cout<<"Set neighbors..."<<flush;
+	SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
+	cout<<"done!"<<endl;
+	cout<<"Smoothing..."<<flush;
+	for(int t=0;t<FLAGS_nsmooth;t++)
+	    SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
+	cout<<"done!"<<endl;
+	cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
 	
     	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
     }

@@ -156,6 +156,9 @@ class Navigation {
                                              const double end_height,
                                              const double start_field_of_view,
                                              const double end_field_of_view) const;
+
+  Eigen::Vector3d RotateInFloorplan(const Eigen::Matrix3d& rotation,
+                                    const Eigen::Vector3d& rhs) const;
   
   // Camera is at (center) and looks along (direction).
   CameraStatus camera_status;

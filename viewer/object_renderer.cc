@@ -24,6 +24,12 @@ ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
     ifstr >> detections;
     ifstr.close();
   }
+
+  average_floor_height = 0.0;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    average_floor_height += floorplan.GetFloorHeight(room);
+  }
+  average_floor_height /= max(1, floorplan.GetNumRooms());
 }
 
 ObjectRenderer::~ObjectRenderer() {
@@ -67,7 +73,7 @@ void ObjectRenderer::Init(const string data_directory) {
   vertices_org = vertices;
   colors_org = colors;
 
-  ComputeBoundingBoxes2D();
+  // ComputeBoundingBoxes2D();
 }
 
 void ObjectRenderer::InitGL() {
@@ -637,11 +643,12 @@ void ObjectRenderer::RenderIcons(const double /* alpha */, const double animatio
     if (detection.room == -1)
       continue;
     
-    const double z = (detection.ranges[2][0] + detection.ranges[2][1]) / 2.0;
-    Vector3d vs[4] = { Vector3d(detection.ranges[0][0], detection.ranges[1][0], z),
-                       Vector3d(detection.ranges[0][1], detection.ranges[1][0], z),
-                       Vector3d(detection.ranges[0][1], detection.ranges[1][1], z),
-                       Vector3d(detection.ranges[0][0], detection.ranges[1][1], z) };
+    // const double z = (detection.ranges[2][0] + detection.ranges[2][1]) / 2.0;
+    
+    Vector3d vs[4] = { Vector3d(detection.ranges[0][0], detection.ranges[1][0], average_floor_height),
+                       Vector3d(detection.ranges[0][1], detection.ranges[1][0], average_floor_height),
+                       Vector3d(detection.ranges[0][1], detection.ranges[1][1], average_floor_height),
+                       Vector3d(detection.ranges[0][0], detection.ranges[1][1], average_floor_height) };
     for (int i = 0; i < 4; ++i)
       vs[i] = indoor_polygon.ManhattanToGlobal(vs[i]);
 

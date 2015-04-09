@@ -244,7 +244,7 @@ void Initialize(const FileIO& file_io, Floorplan* floorplan, IndoorPolygon* indo
 
   string indoor_polygon_file;
   if (FLAGS_indoor_polygon_file == "") {
-    indoor_polygon_file = file_io.GetIndoorPolygon();
+    indoor_polygon_file = file_io.GetIndoorPolygonWithCeiling();
   } else {
     char buffer[1024];
     sprintf(buffer, "%s/%s", file_io.GetDataDirectory().c_str(), FLAGS_indoor_polygon_file.c_str());
@@ -319,21 +319,33 @@ int main(int argc, char* argv[]) {
   }
 
   if (FLAGS_evaluate_poisson_mesh) {
-    Mesh poisson_mesh;
-    ReadMesh(file_io.GetPoissonMesh(), &poisson_mesh);
-    Initialize(panoramas, kInitial, &rasterized_geometries);
-    RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
-    VisualizeResults(file_io, "poisson_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(file_io, "poisson_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    const vector<string> filenames = file_io.GetPoissonMeshes();
+    for (int i = 0; i < filenames.size(); ++i) {
+      Mesh poisson_mesh;
+      ReadMesh(filenames[i], &poisson_mesh);
+      Initialize(panoramas, kInitial, &rasterized_geometries);
+      RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
+
+      char buffer[1024];
+      sprintf(buffer, "poisson%d", i);
+      VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+      ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    }
   }
 
   if (FLAGS_evaluate_vgcut_mesh) {
-    Mesh vgcut_mesh;
-    ReadMesh(file_io.GetVgcutMesh(), &vgcut_mesh);
-    Initialize(panoramas, kInitial, &rasterized_geometries);
-    RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
-    VisualizeResults(file_io, "vgcut_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
-    ReportErrors(file_io, "vgcut_mesh", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    const vector<string> filenames = file_io.GetVgcutMeshes();
+    for (int i = 0; i < filenames.size(); ++i) {
+      Mesh vgcut_mesh;
+      ReadMesh(filenames[i], &vgcut_mesh);
+      Initialize(panoramas, kInitial, &rasterized_geometries);
+      RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
+
+      char buffer[1024];
+      sprintf(buffer, "vgcut%d", i);
+      VisualizeResults(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
+      ReportErrors(file_io, buffer, input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
+    }
   }
   
   return 0;

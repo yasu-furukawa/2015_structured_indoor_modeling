@@ -99,11 +99,17 @@ void AllRange(vector<int>&array, vector<vector<int> >&result, int k, int m){
 
 
 void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,const vector<vector<int> >&objectgroup, const int roomid){
+     if(panorama.size() == 0 || objectgroup.size() == 0 || objectcloud.GetNumPoints() == 0)
+	  return;
+     const int depthwidth = panorama[0].DepthWidth();
+     const int depthheight = panorama[0].DepthHeight();
     const double kDepthMarginRatio = 0.03;
     const int min_overlap_points = 10;
     const int pansize = panorama.size();
     const double min_assigned_ratio = 0.98;
     const double max_averagedis = 5000.0;
+    const double max_pt_per_pixel = 0.2;
+    const double weight_depthcoverage = 10.0;
     char buffer[100];
 
     vector<bool>assigned(objectcloud.GetNumPoints());
@@ -155,16 +161,34 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	       
 	    double max_score = 0;
 	    int max_panid = -1;
+	    vector<vector<bool> >depth_occupicy(depthwidth);
+	    for(int x=0; x<depthwidth; ++x)
+		 depth_occupicy[x].resize(depthheight);
 	    for(int panid=0; panid<pansize; panid++){
 		if(is_used[panid] || (averagedis[panid] == 0))
 		    continue;
 		double curcoveragegain = 0;
+		double depthcoverage = 0;
+		for(int x=0;x<depthwidth;++x){
+		     for(int y=0;y<depthheight;++y)
+			  depth_occupicy[x][y] = false;
+		}
+
 		for(const auto &ptid: point_list[panid]){
 		    if(!assigned[ptid])
 			curcoveragegain += 1.0;
+		    structured_indoor_modeling::Point curpt = objectcloud.GetPoint(ptid);
+		    Vector2d RGB_pix = panorama[panid].Project(curpt.position);
+		    Vector2d depth_pixel = panorama[panid].RGBToDepth(RGB_pix);
+		    if(panorama[panid].IsInsideDepth(depth_pixel) == false)
+			 continue;
+		    if(depth_occupicy[floor(depth_pixel[0])][floor(depth_pixel[1])] == false)
+			 depthcoverage += 1.0;
+		    depth_occupicy[floor(depth_pixel[0])][floor(depth_pixel[1])] = true;
 		}
-		if(curcoveragegain > max_score && averagedis[panid] < max_averagedis){
-		    max_score = curcoveragegain;
+		double curscore = curcoveragegain + depthcoverage * weight_depthcoverage;
+		if(curscore > max_score && averagedis[panid] < max_averagedis){
+		    max_score = curscore;
 		    max_panid = panid;
 		}
 	    }
@@ -205,9 +229,9 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 		}
 	    }
 	    
-	    // sprintf(buffer,"temp/room%03d_obj%03d_pan%03d.png", roomid, objid, panid);
-	    // imwrite(string(buffer), panout);
-	    // waitKey(10);
+	    sprintf(buffer,"temp/room%03d_obj%03d_pan%03d.png", roomid, objid, panid);
+	    imwrite(string(buffer), panout);
+	    waitKey(10);
 	    
 	    Matrix3f colorTransform = Matrix3f::Identity();
 	    if(color_src.size() > min_overlap_points)
@@ -325,8 +349,6 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      }
      cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
 
-
-
      vector<bool> occupancy(size[0] * size[1] * size[2], false);
      for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
      	  const Segment& segment = indoor_polygon.GetSegment(s);
@@ -345,7 +367,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      	  }
      }
      // Expand occupancy.
-     const int kExpandMargin = 3;
+     const int kExpandMargin = 1;
      {
      	  vector<bool> vbtmp;
 
@@ -402,21 +424,20 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      	  double removecount = 0.0;
      	  for(const auto& pt:objpt){
      	      Vector3d curposition = indoor_polygon.GlobalToManhattan(pt.position);
-     	       Vector3d cell_coord = (curposition - min_xyz) / voxel_unit;
-     	       Vector3d cell_coord_int;
-     	       for(int a=0; a<3; ++a){
-     		    cell_coord_int[a] =
-     			 max(0,min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
-     		    const int index =
-     			 cell_coord_int[2] * (size[0]*size[1]) + cell_coord_int[1]*size[0] + cell_coord_int[0];
-     		    if(occupancy[index])
-     			 removecount += 1.0;
-     	       }
+	      Vector3d cell_coord = (curposition - min_xyz) / voxel_unit;
+	      Vector3d cell_coord_int;
+	      for(int a=0; a<3; ++a)
+		  cell_coord_int[a] =
+		      max(0,min(size[a] - 1, static_cast<int>(round(cell_coord[a]))));
+	      const int index =
+		  cell_coord_int[2] * (size[0]*size[1]) + cell_coord_int[1]*size[0] + cell_coord_int[0];
+	      if(occupancy[index])
+		  removecount += 1.0;
      	  }
      	  if(removecount / (double)objpt.size() > removeRatio){
-     	       vector<int>point_to_remove;
-     	       objectcloud.GetObjectIndice(objid, point_to_remove);
-     	       objectcloud.RemovePoints(point_to_remove);
+	      vector<int>point_to_remove;
+	      objectcloud.GetObjectIndice(objid, point_to_remove);
+	      objectcloud.RemovePoints(point_to_remove);
      	  }
      }
 }
@@ -779,6 +800,8 @@ void ReadObjectCloud(const FileIO &file_io, const Floorplan& plan, vector<PointC
 void SetNeighbors(const std::vector<structured_indoor_modeling::Point>& points,
                   const int num_neighbors,
                   std::vector<std::vector<int> >* neighbors) {
+    if(points.size() == 0)
+	return;
      vector<float> point_data;
      {
 	  point_data.reserve(3 * points.size());
@@ -820,6 +843,8 @@ void SmoothObjects(const std::vector<std::vector<int> >& neighbors,
 	       ++denom;
 	  }
      }
+     if(denom == 0)
+	  return;
      unit /= denom;
      const double sigma = 2.0 * unit;
 
