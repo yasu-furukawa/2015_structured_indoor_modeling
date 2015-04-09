@@ -629,7 +629,7 @@ void MainWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 }
 
 void MainWidget::keyPressEvent(QKeyEvent* e) {
-  const double kRotationDegrees = 45.0 * M_PI / 180.0;
+  const double kRotationAngle = 45.0 * M_PI / 180.0;
   //----------------------------------------------------------------------
   // Arrows.
   if (e->key() == Qt::Key_Up) {
@@ -642,22 +642,22 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     }
   } else if (e->key() == Qt::Key_Left) {
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.RotatePanorama(kRotationDegrees);
+      navigation.RotatePanorama(kRotationAngle);
     } else if (navigation.GetCameraStatus() == kAir ||
                navigation.GetCameraStatus() == kTree) {
-      navigation.RotateAir(-kRotationDegrees);
+      navigation.RotateAir(-kRotationAngle);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
-      navigation.RotateFloorplan(-kRotationDegrees);
+      navigation.RotateFloorplan(-kRotationAngle);
     }
   }
   else if (e->key() == Qt::Key_Right) {
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.RotatePanorama(-kRotationDegrees);
+      navigation.RotatePanorama(-kRotationAngle);
     } else if (navigation.GetCameraStatus() == kAir ||
                navigation.GetCameraStatus() == kTree) {
-      navigation.RotateAir(kRotationDegrees);
+      navigation.RotateAir(kRotationAngle);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
-      navigation.RotateFloorplan(kRotationDegrees);
+      navigation.RotateFloorplan(kRotationAngle);
     }
   }
   //----------------------------------------------------------------------

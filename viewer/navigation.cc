@@ -226,7 +226,8 @@ Vector3d Navigation::GetDirection() const {
   }
   case kAirTransition:
   case kTreeTransition: {
-    Vector3d horizontal_direction = camera_air.start_direction;
+    Vector3d horizontal_direction =
+      floorplan.GetFloorplanToGlobal().transpose() * camera_air.start_direction;
     const double vertical_distance = horizontal_direction[2];
     horizontal_direction[2] = 0.0;
     const double horizontal_distance = horizontal_direction.norm();
@@ -235,17 +236,23 @@ Vector3d Navigation::GetDirection() const {
     const double weight_end = 1.0 - weight_start;
     Vector3d direction = weight_start * camera_air.start_direction +
       weight_end * camera_air.end_direction;
+
+    direction = floorplan.GetFloorplanToGlobal().transpose() * direction;
+    
     direction[2] = 0.0;
     direction.normalize();
     direction *= horizontal_distance;
     direction[2] = vertical_distance;
+
+    direction = floorplan.GetFloorplanToGlobal() * direction;
     return direction;
   }
   case kFloorplan: {
     return camera_floorplan.start_direction;
   }
   case kFloorplanTransition: {
-    Vector3d horizontal_direction = camera_floorplan.start_direction;
+    Vector3d horizontal_direction =
+      floorplan.GetFloorplanToGlobal().transpose() * camera_floorplan.start_direction;
     const double vertical_distance = horizontal_direction[2];
     horizontal_direction[2] = 0.0;
     const double horizontal_distance = horizontal_direction.norm();
@@ -254,10 +261,15 @@ Vector3d Navigation::GetDirection() const {
     const double weight_end = 1.0 - weight_start;
     Vector3d direction = weight_start * camera_floorplan.start_direction +
       weight_end * camera_floorplan.end_direction;
+
+    direction = floorplan.GetFloorplanToGlobal().transpose() * direction;
+    
     direction[2] = 0.0;
     direction.normalize();
     direction *= horizontal_distance;
     direction[2] = vertical_distance;
+
+    direction = floorplan.GetFloorplanToGlobal() * direction;
     return direction;
   }
     
@@ -686,7 +698,8 @@ void Navigation::RotatePanorama(const double radian) {
 
   camera_panorama.end_index = camera_panorama.start_index;
   camera_panorama.end_center = camera_panorama.start_center;
-  camera_panorama.end_direction = rotation * camera_panorama.start_direction;
+  // camera_panorama.end_direction = rotation * camera_panorama.start_direction;
+  camera_panorama.end_direction = RotateInFloorplan(rotation, camera_panorama.start_direction);
   camera_panorama.progress = 0.0;
   camera_status = kPanoramaTransition;
 
@@ -699,7 +712,8 @@ void Navigation::RotateAir(const double radian) {
     sin(radian), cos(radian), 0.0,
     0.0, 0.0, 1.0;
 
-  camera_air.end_direction = rotation * camera_air.start_direction;
+  // camera_air.end_direction = rotation * camera_air.start_direction;
+  camera_air.end_direction = RotateInFloorplan(rotation, camera_air.start_direction);
   camera_air.progress = 0.0;
   if (camera_status == kAir) {
     camera_status = kAirTransition;
@@ -711,13 +725,20 @@ void Navigation::RotateAir(const double radian) {
   }
 }
 
+Eigen::Vector3d Navigation::RotateInFloorplan(const Eigen::Matrix3d& rotation,
+                                              const Eigen::Vector3d& rhs) const {
+  return floorplan.GetFloorplanToGlobal() * rotation * floorplan.GetFloorplanToGlobal().transpose() * rhs;
+}
+  
 void Navigation::RotateFloorplan(const double radian) {
   Matrix3d rotation;
   rotation << cos(radian), -sin(radian), 0.0,
     sin(radian), cos(radian), 0.0,
     0.0, 0.0, 1.0;
 
-  camera_floorplan.end_direction = rotation * camera_floorplan.start_direction;
+  // camera_floorplan.end_direction = rotation * camera_floorplan.start_direction;
+  camera_floorplan.end_direction = RotateInFloorplan(rotation, camera_floorplan.start_direction);
+  
   camera_floorplan.progress = 0.0;
   camera_status = kFloorplanTransition;  
 }
