@@ -1,4 +1,5 @@
 #include <iostream>
+#include "navigation.h"
 #include "object_renderer.h"
 #include "view_parameters.h"
 #include "../base/detection.h"
@@ -23,8 +24,9 @@ namespace structured_indoor_modeling {
 
 ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
                                const IndoorPolygon& indoor_polygon,
+			       const Navigation& navigation,
                                const std::string& detection_file)
-  : floorplan(floorplan), indoor_polygon(indoor_polygon) {
+    : floorplan(floorplan), indoor_polygon(indoor_polygon), navigation(navigation) {
   render = true;
 
   ifstream ifstr;
@@ -57,6 +59,7 @@ void ObjectRenderer::Init(const string data_directory) {
 
   vertices.resize(floorplan.GetNumRooms());
   colors.resize(floorplan.GetNumRooms());
+  centers.resize(floorplan.GetNumRooms());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     PointCloud point_cloud;
     point_cloud.Init(file_io.GetRefinedObjectClouds(room));
@@ -66,16 +69,30 @@ void ObjectRenderer::Init(const string data_directory) {
 
     vertices[room].resize(point_cloud.GetNumObjects());
     colors[room].resize(point_cloud.GetNumObjects());
+    centers[room].resize(point_cloud.GetNumObjects());
 
     cout << point_cloud.GetNumObjects() << " objects." << endl;
+
+    vector<vector<int> >object_pt_num(point_cloud.GetNumObjects());
+    
+    for(int objid=0; objid<centers[room].size(); ++objid){
+	centers[room][objid] = Vector3d(0,0,0);
+	point_cloud.GetObjectIndice(objid, object_pt_num[objid]);
+    }
     
     for (int p = 0; p < point_cloud.GetNumPoints(); ++p) {
       const Point& point = point_cloud.GetPoint(p);
+      centers[room][point.object_id] += point.position;
       for (int i = 0; i < 3; ++i)
         vertices[room][point.object_id].push_back(point.position[i]);
       for (int i = 0; i < 3; ++i) {
         colors[room][point.object_id].push_back(point.color[i] / 255.0f);
       }
+    }
+
+    for(int objid=0; objid<point_cloud.GetNumObjects(); ++objid){
+	if(object_pt_num[objid].size() != 0)
+	    centers[room][objid] /= (double)object_pt_num[objid].size();
     }
   }
 
@@ -107,6 +124,20 @@ void ObjectRenderer::RenderAll(const double position) {
   const double kDurationPerObject = 0.4;
   
   for (int room = 0; room < (int)vertices.size(); ++room) {
+      vector<pair<double, int> > distances_objects;
+      for (int object_id = 0; object_id < (int)vertices[room].size(); ++object_id) {
+	  // compute distance to the center of an object.
+	  double distance_object = 0.0;//navigation.GetDirection.dot(centers[room][object_id]);
+	  distances_objects.push_back(pair<double, int>(distance_object, object_id));
+      }
+      sort(distances_objects.rbegin(), distances_objects.rend());
+
+//      for (int i = 0; i < (int)vertices[room].size(); ++i) {
+//	  const int object_id = distances_objects[i].second;
+	  
+      
+
+
     const double offset = (1.0 - kDurationPerObject) / max(1, (int)vertices[room].size() - 1);
     for (int object = 0; object < (int)vertices[room].size(); ++object) {
       // [object * offset, object * offset + kDurationPerObject].

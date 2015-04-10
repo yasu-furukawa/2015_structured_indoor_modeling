@@ -14,6 +14,7 @@ namespace structured_indoor_modeling {
 
 class Floorplan;
 class IndoorPolygon;
+class Navigation;
 class ViewParameters;
 
 typedef std::pair<Eigen::Vector3d, Eigen::Vector3d> ColoredPoint;
@@ -23,10 +24,11 @@ struct BoundingBox2D {
   Eigen::Vector3d corners[4];
 };
 
- class ObjectRenderer : protected QGLFunctions {
+class ObjectRenderer : protected QGLFunctions {
  public:
    ObjectRenderer(const Floorplan& floorplan,
                   const IndoorPolygon& indoor_polygon,
+		  const Navigation& navigation,
                   const std::string& detection_file);
   virtual ~ObjectRenderer();
 
@@ -52,7 +54,7 @@ struct BoundingBox2D {
 
   bool Toggle();
   
- private:
+private:
   void ComputeBoundingBoxes2D();
   void RenderDesk(const Detection& detection,
                   const Eigen::Vector3d bounding_boxes[4],
@@ -66,11 +68,11 @@ struct BoundingBox2D {
   void RenderDefault(const Detection& detection,
                      const Eigen::Vector3d vs[4],
                      const double animation) const;
-
+  
   void RotateToFrontal(const Detection& detection,
                        const Eigen::Vector3d vs[4],
                        Eigen::Vector3d rotated_vs[4]) const;
-
+  
   void RenderName(const Detection& detection,
                   const Eigen::Vector3d vs[4],
                   const double animation,
@@ -81,6 +83,7 @@ struct BoundingBox2D {
   
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
+  const Navigation& navigation;
   // private:
   bool render;
   // For each room, for each object, a colored point cloud.
@@ -90,6 +93,8 @@ struct BoundingBox2D {
 
   std::vector<std::vector<std::vector<float> > > vertices;
   std::vector<std::vector<std::vector<float> > > colors;
+  //object center
+  std::vector<std::vector<Eigen::Vector3d> > centers;
 
   std::vector<std::vector<std::vector<float> > > vertices_org;
   std::vector<std::vector<std::vector<float> > > colors_org;
