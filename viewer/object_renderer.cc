@@ -7,6 +7,15 @@
 #include "../base/indoor_polygon.h"
 #include "../base/point_cloud.h"
 
+#ifdef __linux__
+#include <GL/glu.h>
+#elif _WIN32
+#include <windows.h>
+#include <GL/glu.h>
+#else
+#include <OpenGL/glu.h>
+#endif
+
 using namespace Eigen;
 using namespace std;
 
@@ -597,6 +606,41 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
   
   glDisable(GL_BLEND);
 }
+
+void ObjectRenderer::RenderName(const Detection& detection,
+                                const Eigen::Vector3d vs[4],
+                                const double animation,
+                                const GLint viewport[],
+                                const GLdouble modelview[],
+                                const GLdouble projection[],                                
+                                QGLWidget* widget) const {
+  if (animation < 0.5)
+    return;
+
+  if (detection.names.size() == 0)
+    return;
+
+  if (detection.names[0] == "unknown")
+    return;
+  
+  string full_name("");
+  for (const auto& word : detection.names) {
+    full_name = full_name + string(" ") + word;
+  }
+
+  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
+  
+  GLdouble u, v, w;
+  gluProject(center[0], center[1], center[2], modelview, projection, viewport, &u, &v, &w);
+  
+  const QFont font("Times", 14);
+  const double kCharacterWidth = 7.25;
+  widget->renderText(u - full_name.length() * kCharacterWidth / 2.0,
+                     viewport[3] - v,
+                     full_name.c_str(),
+                     font);
+  }
+
   
 void ObjectRenderer::RenderDefault(const Detection& /* detection */,
                                    const Eigen::Vector3d /* vs */ [4],
@@ -637,7 +681,12 @@ void ObjectRenderer::RotateToFrontal(const Detection& detection,
     rotated_vs[(i + shift) % 4] = vs[i];
 }
   
-void ObjectRenderer::RenderIcons(const double /* alpha */, const double animation) {
+void ObjectRenderer::RenderIcons(const double /* alpha */,
+                                 const double animation,
+                                 const GLint viewport[],
+                                 const GLdouble modelview[],
+                                 const GLdouble projection[],
+                                 QGLWidget* widget) {
   // Depending on detection.name, change.
   for (const auto& detection : detections) {
     if (detection.room == -1)
@@ -665,6 +714,8 @@ void ObjectRenderer::RenderIcons(const double /* alpha */, const double animatio
       // RenderDefault(detection, rotated_vs);
       RenderDesk(detection, rotated_vs, animation);
     }
+
+    RenderName(detection, rotated_vs, animation, viewport, modelview, projection, widget);
   }
   
   /*

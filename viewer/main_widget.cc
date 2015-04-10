@@ -384,7 +384,7 @@ void MainWidget::PaintFloorplan() {
   if (RightAfterSimpleClick(0.0)) {
     const bool kEmphasize = true;
     RenderFloorplan(1.0, kEmphasize, AnimationTrapezoid());    
-    RenderAllRoomNames(1.0, this);
+    // RenderAllRoomNames(1.0, this);
     
     int room_highlighted = -1;
     if (!mouse_down)

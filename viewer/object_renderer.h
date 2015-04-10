@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <QGLFunctions>
 
 #include "../base/detection.h"
 
@@ -38,7 +39,12 @@ struct BoundingBox2D {
                  const double animation,
                  const Eigen::Vector3d& offset_direction);
 
-  void RenderIcons(const double alpha, const double animation);
+  void RenderIcons(const double alpha,
+                   const double animation,
+                   const GLint viewport[],
+                   const GLdouble modelview[],
+                   const GLdouble projection[],
+                   QGLWidget* widget);
 
   int GetNumRooms() const;
   int GetNumObjects(const int room) const;
@@ -64,7 +70,15 @@ struct BoundingBox2D {
   void RotateToFrontal(const Detection& detection,
                        const Eigen::Vector3d vs[4],
                        Eigen::Vector3d rotated_vs[4]) const;
-    
+
+  void RenderName(const Detection& detection,
+                  const Eigen::Vector3d vs[4],
+                  const double animation,
+                  const GLint viewport[],
+                  const GLdouble modelview[],
+                  const GLdouble projection[],                  
+                  QGLWidget* widget) const;
+  
   const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
   // private:
