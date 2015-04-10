@@ -376,14 +376,16 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
   }
 }
 
-void ReadMesh(const std::string& filename, Mesh* mesh) {
+bool ReadMeshAscii(const std::string& filename, Mesh* mesh) {
   ifstream ifstr;
   ifstr.open(filename.c_str());
+  if (!ifstr.is_open())
+    return false;
 
   string header;
   int num_vertices;
   int num_triangles;
-  for (int i = 0; i < 9; ++i)
+  for (int i = 0; i < 6; ++i)
     ifstr >> header;
   ifstr >> num_vertices;
   for (int i = 0; i < 11; ++i)
@@ -410,8 +412,56 @@ void ReadMesh(const std::string& filename, Mesh* mesh) {
   ifstr.close();
 
   mesh->geometry_type = kWall;
+
+  return true;
 }
 
+bool ReadMeshBinary(const std::string& filename, Mesh* mesh) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+  if (!ifstr.is_open())
+    return false;
+
+  string header;
+  int num_vertices;
+  int num_triangles;
+  for (int i = 0; i < 9; ++i)
+    ifstr >> header;
+  ifstr >> num_vertices;
+  for (int i = 0; i < 11; ++i)
+    ifstr >> header;
+  ifstr >> num_triangles;
+  for (int i = 0; i < 6; ++i)
+    ifstr >> header;
+  
+  mesh->vertices.resize(num_vertices);
+  mesh->faces.resize(num_triangles);
+
+  char buffer[1024];
+  // Read end of line.
+   ifstr.read(buffer, 1);
+  
+  for (int v = 0; v < num_vertices; ++v) {
+    for (int i = 0; i < 3; ++i) {
+      float ftmp;
+      ifstr.read(reinterpret_cast<char*>(&ftmp), sizeof(float));
+      mesh->vertices[v][i] = ftmp;
+    }
+  }
+
+  for (int f = 0; f < num_triangles; ++f) {
+    ifstr.read(buffer, 1);
+    for (int i = 0; i < 3; ++i) {
+      ifstr.read(reinterpret_cast<char*>(&mesh->faces[f][i]), sizeof(int));
+    }
+  }
+  ifstr.close();
+
+  mesh->geometry_type = kWall;
+
+  return true;
+}
+  
 void RasterizeMesh(const Mesh& mesh,
                    const std::vector<Panorama>& panoramas,
                    std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries) {

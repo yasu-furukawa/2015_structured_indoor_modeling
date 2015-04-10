@@ -20,11 +20,13 @@
 DEFINE_string(floorplan_file, "", "Floorplan filename.");
 DEFINE_string(indoor_polygon_file, "", "Indoor_polygon filename.");
 
-DEFINE_bool(evaluate_floorplan, true, "Evaluate floorplan.");
-DEFINE_bool(evaluate_indoor_polygon, true, "Evaluate indoor_polygon.");
-DEFINE_bool(evaluate_indoor_polygon_and_object_point_clouds, true, "Evaluate indoor_polygon.");
-DEFINE_bool(evaluate_poisson_mesh, true, "Evaluate poisson mesh.");
-DEFINE_bool(evaluate_vgcut_mesh, true, "Evaluate poisson mesh.");
+DEFINE_bool(evaluate_floorplan, false, "Evaluate floorplan.");
+DEFINE_bool(evaluate_indoor_polygon, false, "Evaluate indoor_polygon.");
+DEFINE_bool(evaluate_indoor_polygon_and_object_point_clouds, false, "Evaluate indoor_polygon.");
+DEFINE_bool(evaluate_poisson_mesh, false, "Evaluate poisson mesh.");
+DEFINE_bool(evaluate_vgcut_mesh, false, "Evaluate poisson mesh.");
+
+DEFINE_bool(evaluate_all, false, "Evaluate all.");
 
 using namespace Eigen;
 using namespace std;
@@ -175,17 +177,17 @@ void VisualizeResults(const FileIO& file_io, const string prefix,
     {
       char depth_filename[1024];
       sprintf(depth_filename,
-              "%s/%03d_depth_%s.ppm",
+              "%s/images/%03d_depth_%s.ppm",
               file_io.GetEvaluationDirectory().c_str(), p, prefix.c_str());
       WriteDepthmap(panoramas[p], rasterized_geometries[p], invalid_depth, depth_filename);
     }
     {
       char depth_error_filename[1024], normal_error_filename[1024];
       sprintf(depth_error_filename,
-              "%s/%03d_depth_error_%s.ppm",
+              "%s/images/%03d_depth_error_%s.ppm",
               file_io.GetEvaluationDirectory().c_str(), p, prefix.c_str());
       sprintf(normal_error_filename,
-              "%s/%03d_normal_error_%s.ppm",
+              "%s/images/%03d_normal_error_%s.ppm",
               file_io.GetEvaluationDirectory().c_str(), p, prefix.c_str());
       WriteDepthErrormap(input_point_clouds[p], rasterized_geometries[p], panoramas[p],
                          invalid_depth, depth_unit, depth_error_filename, normal_error_filename);
@@ -292,9 +294,9 @@ int main(int argc, char* argv[]) {
   for (int p = 0; p < panoramas.size(); ++p)
     depth_unit += panoramas[p].GetAverageDistance();
   depth_unit /= panoramas.size();
-  
+
   //----------------------------------------------------------------------
-  if (FLAGS_evaluate_floorplan) {
+  if (FLAGS_evaluate_all || FLAGS_evaluate_floorplan) {
     // Floorplan only.
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeFloorplan(floorplan, panoramas, &rasterized_geometries);
@@ -303,14 +305,14 @@ int main(int argc, char* argv[]) {
   }
   
   // Indoor polygon only.
-  if (FLAGS_evaluate_indoor_polygon) {
+  if (FLAGS_evaluate_all || FLAGS_evaluate_indoor_polygon) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     VisualizeResults(file_io, "indoor_polygon", input_point_clouds, rasterized_geometries, panoramas, kInitial.depth, depth_unit);
     ReportErrors(file_io, "indoor_polygon", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
-  if (FLAGS_evaluate_indoor_polygon_and_object_point_clouds) {
+  if (FLAGS_evaluate_all || FLAGS_evaluate_indoor_polygon_and_object_point_clouds) {
     Initialize(panoramas, kInitial, &rasterized_geometries);
     RasterizeIndoorPolygon(indoor_polygon, panoramas, &rasterized_geometries);
     RasterizeObjectPointClouds(object_point_clouds, panoramas, &rasterized_geometries);
@@ -318,12 +320,13 @@ int main(int argc, char* argv[]) {
     ReportErrors(file_io, "indoor_polygon_and_object_point_clouds", input_point_clouds, rasterized_geometries, panoramas, kInitial, depth_unit);
   }
 
-  if (FLAGS_evaluate_poisson_mesh) {
+  if (FLAGS_evaluate_all || FLAGS_evaluate_poisson_mesh) {
     {
       const vector<string> filenames = file_io.GetPoissonMeshes();
-      for (int i = 0; i < filenames.size(); ++i) {
+      for (int i = 1; i < filenames.size(); ++i) {
 	Mesh poisson_mesh;
-	ReadMesh(filenames[i], &poisson_mesh);
+	if (!ReadMeshBinary(filenames[i], &poisson_mesh))
+          continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
 	
@@ -335,9 +338,10 @@ int main(int argc, char* argv[]) {
     }
     {
       const vector<string> filenames = file_io.GetFilteredPoissonMeshes();
-      for (int i = 0; i < filenames.size(); ++i) {
+      for (int i = 1; i < filenames.size(); ++i) {
 	Mesh poisson_mesh;
-	ReadMesh(filenames[i], &poisson_mesh);
+	if (!ReadMeshBinary(filenames[i], &poisson_mesh))
+          continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
 	
@@ -349,12 +353,13 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if (FLAGS_evaluate_vgcut_mesh) {
+  if (FLAGS_evaluate_all || FLAGS_evaluate_vgcut_mesh) {
     {
       const vector<string> filenames = file_io.GetVgcutMeshes();
-      for (int i = 0; i < filenames.size(); ++i) {
+      for (int i = 1; i < filenames.size(); ++i) {
 	Mesh vgcut_mesh;
-	ReadMesh(filenames[i], &vgcut_mesh);
+	if (!ReadMeshAscii(filenames[i], &vgcut_mesh))
+          continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
 	
@@ -366,9 +371,10 @@ int main(int argc, char* argv[]) {
     }
     {
       const vector<string> filenames = file_io.GetFilteredVgcutMeshes();
-      for (int i = 0; i < filenames.size(); ++i) {
+      for (int i = 1; i < filenames.size(); ++i) {
 	Mesh vgcut_mesh;
-	ReadMesh(filenames[i], &vgcut_mesh);
+	if (!ReadMeshAscii(filenames[i], &vgcut_mesh))
+          continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
 	

@@ -11,5 +11,5 @@
 
 # Misc.
 ./post_process/collada/indoor_polygon_to_dae_cli $1
-./post_process/evaluation/evaluate_cli $1
+./post_process/evaluation/evaluate_cli $1 --evalaute_all='true'
 ./post_process/evaluation/prepare_poisson_cli $1
