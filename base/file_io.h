@@ -182,7 +182,7 @@ class FileIO {
   }
   std::vector<std::string> GetPoissonMeshes() const {
     std::vector<std::string> filenames;
-    const int kNumVersions = 3;
+    const int kNumVersions = 4;
     for (int i = 0; i < kNumVersions; ++i) {
       sprintf(buffer, "%s/input/poisson/poisson%d.ply", data_directory.c_str(), i);
       filenames.push_back(buffer);
@@ -191,7 +191,7 @@ class FileIO {
   }
   std::vector<std::string> GetFilteredPoissonMeshes() const {
     std::vector<std::string> filenames;
-    const int kNumVersions = 3;
+    const int kNumVersions = 4;
     for (int i = 0; i < kNumVersions; ++i) {
       sprintf(buffer, "%s/input/poisson/poisson_filtered%d.ply", data_directory.c_str(), i);
       filenames.push_back(buffer);
