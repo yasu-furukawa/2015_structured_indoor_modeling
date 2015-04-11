@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
     ifstr.close();
   } else {
     char buffer[1024];
-    sprintf("%s%s", argv[1], FLAGS_binary_ply.c_str());
+    sprintf(buffer, "%s%s", argv[1], FLAGS_binary_ply.c_str());
     texture_input.indoor_polygon.InitFromBinaryPly(buffer);
   }
 

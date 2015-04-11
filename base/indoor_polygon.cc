@@ -140,6 +140,8 @@ std::istream& operator>>(std::istream& istr, Segment& segment) {
       segment.normal = Segment::PositiveZ;
     } else if (header == "-Z") {
       segment.normal = Segment::NegativeZ;
+    } else if (header == "OTHER") {
+      segment.normal = Segment::Other;
     } else {
       cerr << "Invalid normal: " << header << endl;
       exit (1);
@@ -220,6 +222,10 @@ std::ostream& operator<<(std::ostream& ostr, const Segment& segment) {
   case Segment::NegativeZ: {
     ostr << "-Z" << endl;
     break;
+  }
+  case Segment::Other: {
+    ostr << "OTHER" << endl;
+      break;
   }
   default: {
     cerr << "Invalid segment normal." << endl;

@@ -6,8 +6,10 @@
 #include <Eigen/Dense>
 
 #include "../base/file_io.h"
+#include "../base/floorplan.h"
 #include "../base/indoor_polygon.h"
 #include "indoor_polygon_renderer.h"
+#include "navigation.h"
 #include "view_parameters.h"
 
 using namespace Eigen;
@@ -15,8 +17,11 @@ using namespace std;
 
 namespace structured_indoor_modeling {
 
-IndoorPolygonRenderer::IndoorPolygonRenderer(const IndoorPolygon& indoor_polygon)
-  : indoor_polygon(indoor_polygon) {
+IndoorPolygonRenderer::IndoorPolygonRenderer(const Floorplan& floorplan,
+                                             const IndoorPolygon& indoor_polygon,
+                                             const Navigation& navigation)
+  : floorplan(floorplan), indoor_polygon(indoor_polygon), navigation(navigation) {
+  render_mode = kFull;
 }
 
 IndoorPolygonRenderer::~IndoorPolygonRenderer() {
@@ -122,8 +127,42 @@ void IndoorPolygonRenderer::InitGL() {
   }
 }
 
+void IndoorPolygonRenderer::ToggleRenderMode() {
+  vector<RenderMode> render_modes;
+  render_modes.push_back(kFull);
+  render_modes.push_back(kBackWallFaceCulling);
+  render_modes.push_back(kBackWallFaceTransparent);
+
+  for (int r = 0; r < (int)render_modes.size(); ++r) {
+    if (render_modes[r] == render_mode) {
+      render_mode = render_modes[(r + 1) % render_modes.size()];
+      break;
+    }
+  }
+}  
+
 void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
                                                      const double bottom_alpha) const {
+  vector<vector<bool> > render_for_room_wall;
+  render_for_room_wall.resize(floorplan.GetNumRooms());
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    render_for_room_wall[room].resize(floorplan.GetNumWalls(room), true);
+
+    if (render_mode == kBackWallFaceCulling) {
+      const Vector3d& direction = navigation.GetDirection();
+      for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+        const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
+        const Vector3d diff0 = floorplan.GetFloorVertexGlobal(room, next_wall) -
+          floorplan.GetFloorVertexGlobal(room, wall);
+        const Vector3d diff1 = floorplan.GetCeilingVertexGlobal(room, wall) -
+          floorplan.GetFloorVertexGlobal(room, wall);
+        const Vector3d normal = diff0.cross(diff1);
+        if (normal.dot(direction) < 0.0)
+          render_for_room_wall[room][wall] = false;
+      }
+    }
+  }
+  
   // For each texture.
   for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
     glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
@@ -136,6 +175,10 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
     for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
       const Segment& segment = indoor_polygon.GetSegment(s);
       if (segment.type == Segment::CEILING)
+        continue;
+
+      if (segment.type == Segment::WALL &&
+          !render_for_room_wall[segment.wall_info[0]][segment.wall_info[1]])
         continue;
       
       for (const auto& triangle : segment.triangles) {

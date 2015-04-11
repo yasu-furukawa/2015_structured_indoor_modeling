@@ -124,7 +124,7 @@ class FileIO {
   }
 
   std::string GetTextureImageIndoorPolygon(const int index, const std::string& suffix) const {
-    sprintf(buffer, "%s/texture_atlas/texture_image_detailed%s%03d.png", data_directory.c_str(), suffix.c_str(), index);
+    sprintf(buffer, "%s/texture_atlas/texture_image_detailed%s_%03d.png", data_directory.c_str(), suffix.c_str(), index);
     return buffer;
   }
   

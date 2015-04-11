@@ -49,7 +49,7 @@ MainWidget::MainWidget(const Configuration& configuration, const std::string& su
   indoor_polygon(file_io.GetIndoorPolygonFinal(suffix)),
   object_renderer(floorplan, indoor_polygon, navigation, file_io.GetObjectDetectionsFinal()),
   polygon_renderer(floorplan),
-  indoor_polygon_renderer(indoor_polygon),
+  indoor_polygon_renderer(floorplan, indoor_polygon, navigation),
   floorplan_renderer(floorplan, indoor_polygon),
   panel_renderer(floorplan, viewport),  
   view_parameters(floorplan, indoor_polygon, object_renderer, panoramas, configuration),
@@ -59,7 +59,6 @@ MainWidget::MainWidget(const Configuration& configuration, const std::string& su
              panorama_to_room,
              room_to_panorama)
 {
-
   // Renderer initialization.
   {
     InitPanoramasPanoramaRenderers();
@@ -687,7 +686,10 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   }
   //----------------------------------------------------------------------
   // Toggle switch.
-  else if (e->key() == Qt::Key_O) {
+  else if (e->key() == Qt::Key_R) {
+    indoor_polygon_renderer.ToggleRenderMode();
+    updateGL();
+  } else if (e->key() == Qt::Key_O) {
     object_renderer.Toggle();
     updateGL();
   } else if (e->key() == Qt::Key_P) {

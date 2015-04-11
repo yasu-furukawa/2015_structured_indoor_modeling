@@ -4,16 +4,18 @@
 #include <QGLFunctions>
 #include <QImage>
 
-#include "../base/floorplan.h"
-
 namespace structured_indoor_modeling {
 
+class Floorplan;
 class IndoorPolygon;
+class Navigation;
 class ViewParameters;
   
 class IndoorPolygonRenderer : protected QGLFunctions {
  public:
-  IndoorPolygonRenderer(const IndoorPolygon& indoor_polygon);
+  IndoorPolygonRenderer(const Floorplan& floorplan,
+                        const IndoorPolygon& indoor_polygon,
+                        const Navigation& navigation);
   virtual ~IndoorPolygonRenderer();
   void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const;
   void RenderTextureMappedRooms(const double top_alpha,
@@ -27,10 +29,13 @@ class IndoorPolygonRenderer : protected QGLFunctions {
             const std::string& suffix,
             QGLWidget* widget);
   void InitGL();
+  void ToggleRenderMode();
   
  private:
   QGLWidget* widget;
+  const Floorplan& floorplan;
   const IndoorPolygon& indoor_polygon;
+  const Navigation& navigation;
 
   std::vector<QImage> texture_images;
   std::vector<GLint> texture_ids;
@@ -38,6 +43,13 @@ class IndoorPolygonRenderer : protected QGLFunctions {
   // Floor outline.
   std::map<int, std::vector<std::vector<Eigen::Vector3d> > > wire_frames;
 
+  enum RenderMode {
+    kFull,
+    kBackWallFaceCulling,
+    kBackWallFaceTransparent
+  };
+  RenderMode render_mode;
+  
   double bottom_z;
   double top_z;
 };

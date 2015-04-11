@@ -75,7 +75,7 @@ void ObjectRenderer::Init(const string data_directory) {
 
     vector<vector<int> >object_pt_num(point_cloud.GetNumObjects());
     
-    for(int objid=0; objid<centers[room].size(); ++objid){
+    for(int objid = 0; objid < (int)centers[room].size(); ++objid){
 	centers[room][objid] = Vector3d(0,0,0);
 	point_cloud.GetObjectIndice(objid, object_pt_num[objid]);
     }
