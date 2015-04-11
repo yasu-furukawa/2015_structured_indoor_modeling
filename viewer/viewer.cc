@@ -17,11 +17,15 @@ using namespace structured_indoor_modeling;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " data_directory" << endl;
+    cerr << "Usage: " << argv[0] << " data_directory [suffix]" << endl;
     exit (1);
   }
   QApplication app(argc, argv);
   app.setApplicationName("viewer");
+
+  string suffix("");
+  if (argc > 2)
+    suffix = argv[2];
 
 #ifndef QT_NO_OPENGL
   QWidget window;
@@ -50,7 +54,7 @@ int main(int argc, char *argv[]) {
     configuration.floorplan_field_of_view_degrees = kFloorplanFieldOfViewDegrees;
   }
   
-  MainWidget* main_widget = new MainWidget(configuration);
+  MainWidget* main_widget = new MainWidget(configuration, suffix);
 
   QHBoxLayout* layout = new QHBoxLayout();
   layout->addWidget(main_widget);

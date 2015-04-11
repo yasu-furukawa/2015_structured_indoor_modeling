@@ -43,6 +43,8 @@ class IndoorPolygon {
   IndoorPolygon();
   IndoorPolygon(const std::string& filename);
 
+  void InitFromBinaryPly(const std::string& filename);
+
   int GetNumSegments() const { return segments.size(); }
   const Segment& GetSegment(const int segment) const { return segments[segment]; }
   Segment& GetSegment(const int segment) { return segments[segment]; }

@@ -23,7 +23,9 @@ class IndoorPolygonRenderer : protected QGLFunctions {
                                 const double animation,
                                 const Eigen::Vector3d& max_vertical_shift) const;
   
-  void Init(const std::string data_directory, QGLWidget* widget);
+  void Init(const std::string& data_directory,
+            const std::string& suffix,
+            QGLWidget* widget);
   void InitGL();
   
  private:

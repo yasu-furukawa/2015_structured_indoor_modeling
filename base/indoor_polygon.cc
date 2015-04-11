@@ -16,6 +16,11 @@ IndoorPolygon::IndoorPolygon(const std::string& filename) {
   ifstr >> *this;
   ifstr.close();
 }
+
+void IndoorPolygon::InitFromBinaryPly(const std::string& filename) {
+  
+
+}  
   
 Eigen::Vector3d IndoorPolygon::ManhattanToGlobal(const Eigen::Vector3d& manhattan) const {
   Eigen::Vector4d coord(manhattan[0],

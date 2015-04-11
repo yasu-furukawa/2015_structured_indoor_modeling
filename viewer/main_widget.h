@@ -34,7 +34,8 @@ class MainWidget : public QGLWidget, protected QOpenGLFunctions {
 Q_OBJECT
 public:
     explicit MainWidget(const Configuration& configuration,
-                      QWidget *parent = 0);
+                        const std::string& suffix,
+                        QWidget *parent = 0);
     ~MainWidget();
 
 protected:

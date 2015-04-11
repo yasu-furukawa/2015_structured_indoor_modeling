@@ -69,6 +69,7 @@ void PackTexture(const Patch& patch,
 
 void WriteTextureImages(const FileIO& file_io,
                         const int texture_image_size,
-                        const std::vector<std::vector<unsigned char> >& texture_images);
+                        const std::vector<std::vector<unsigned char> >& texture_images,
+                        const std::string& suffix);
 
 }  // namespace structured_indoor_modeling

@@ -42,11 +42,11 @@ const double MainWidget::kFadeOutSeconds = 1.5;
 // background color to be intensity 1 (avoid pure black).
 const Eigen::Vector3f MainWidget::kBackgroundColor = Eigen::Vector3f(0.005, 0.005, 0.005);
 
-MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
+MainWidget::MainWidget(const Configuration& configuration, const std::string& suffix, QWidget *parent) :
   QGLWidget(parent),
   file_io(configuration.data_directory),
   floorplan(file_io.GetFloorplanFinal()),
-  indoor_polygon(file_io.GetIndoorPolygonFinal()),
+  indoor_polygon(file_io.GetIndoorPolygonFinal(suffix)),
   object_renderer(floorplan, indoor_polygon, navigation, file_io.GetObjectDetectionsFinal()),
   polygon_renderer(floorplan),
   indoor_polygon_renderer(indoor_polygon),
@@ -65,7 +65,7 @@ MainWidget::MainWidget(const Configuration& configuration, QWidget *parent) :
     InitPanoramasPanoramaRenderers();
     object_renderer.Init(configuration.data_directory);
     polygon_renderer.Init(configuration.data_directory, this);
-    indoor_polygon_renderer.Init(configuration.data_directory, this);
+    indoor_polygon_renderer.Init(configuration.data_directory, suffix, this);
     floorplan_renderer.Init();
     panel_renderer.Init(configuration.data_directory);
   }

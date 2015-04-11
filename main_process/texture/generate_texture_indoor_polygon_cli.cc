@@ -31,6 +31,8 @@ DEFINE_int32(num_cg_iterations, 40, "Number of CG iterations.");
 
 DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 
+DEFINE_string(binary_ply, "", "A file name under directory.");
+
 using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
@@ -57,13 +59,19 @@ int main(int argc, char* argv[]) {
   {
     ReadPointClouds(file_io, &texture_input.point_clouds);
   }
-  {
+
+  if (FLAGS_binary_ply == "") {
     const string filename = file_io.GetIndoorPolygon();
     ifstream ifstr;
     ifstr.open(filename.c_str());
     ifstr >> texture_input.indoor_polygon;
     ifstr.close();
+  } else {
+    char buffer[1024];
+    sprintf("%s%s", argv[1], FLAGS_binary_ply.c_str());
+    texture_input.indoor_polygon.InitFromBinaryPly(buffer);
   }
+
   {
     texture_input.pyramid_level            = FLAGS_pyramid_level;
     texture_input.max_texture_size_per_floor_patch     = FLAGS_max_texture_size_per_floor_patch;
@@ -108,10 +116,14 @@ int main(int argc, char* argv[]) {
                 &max_texture_height);
   }
 
-  WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images);
+  string suffix("");
+  if (FLAGS_binary_ply != "")
+    suffix = "_other_";
+  
+  WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images, suffix);
   {
     ofstream ofstr;
-    ofstr.open(file_io.GetIndoorPolygonFinal().c_str());
+    ofstr.open(file_io.GetIndoorPolygonFinal(suffix).c_str());
     ofstr << texture_input.indoor_polygon;
     ofstr.close();
   }

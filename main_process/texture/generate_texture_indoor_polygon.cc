@@ -721,7 +721,8 @@ void PackTexture(const Patch& patch,
 
 void WriteTextureImages(const FileIO& file_io,
                         const int texture_image_size,
-                        const std::vector<std::vector<unsigned char> >& texture_images) {
+                        const std::vector<std::vector<unsigned char> >& texture_images,
+                        const std::string& suffix) {
   for (int t = 0; t < texture_images.size(); ++t) {
     cv::Mat image(texture_image_size, texture_image_size, CV_8UC3);
     int index = 0;
@@ -733,7 +734,7 @@ void WriteTextureImages(const FileIO& file_io,
       }
     }
 
-    imwrite(file_io.GetTextureImageIndoorPolygon(t), image);
+    imwrite(file_io.GetTextureImageIndoorPolygon(t, suffix), image);
   }
 }
 

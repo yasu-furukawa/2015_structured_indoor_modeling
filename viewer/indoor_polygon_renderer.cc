@@ -25,7 +25,9 @@ IndoorPolygonRenderer::~IndoorPolygonRenderer() {
 }
 
 
-void IndoorPolygonRenderer::Init(const string data_directory, QGLWidget* widget_tmp) {
+void IndoorPolygonRenderer::Init(const string& data_directory,
+                                 const std::string& suffix,
+                                 QGLWidget* widget_tmp) {
   widget = widget_tmp;
   
   FileIO file_io(data_directory);
@@ -33,13 +35,13 @@ void IndoorPolygonRenderer::Init(const string data_directory, QGLWidget* widget_
   int num_texture_images;
   for (num_texture_images = 0; ; ++num_texture_images) {
     ifstream ifstr;
-    ifstr.open(file_io.GetTextureImageIndoorPolygon(num_texture_images).c_str());
+    ifstr.open(file_io.GetTextureImageIndoorPolygon(num_texture_images, suffix).c_str());
     if (!ifstr.is_open())
       break;
   }
   texture_images.resize(num_texture_images);
   for (int t = 0; t < num_texture_images; ++t) {
-    texture_images[t].load(file_io.GetTextureImageIndoorPolygon(t).c_str());
+    texture_images[t].load(file_io.GetTextureImageIndoorPolygon(t, suffix).c_str());
   }
 
   //----------------------------------------------------------------------
