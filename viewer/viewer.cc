@@ -17,7 +17,7 @@ using namespace structured_indoor_modeling;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " data_directory [suffix]" << endl;
+    cerr << "Usage: " << argv[0] << " data_directory [suffix=_other]" << endl;
     exit (1);
   }
   QApplication app(argc, argv);

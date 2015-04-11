@@ -21,7 +21,8 @@ struct Segment {
     PositiveY,
     NegativeY,
     PositiveZ,
-    NegativeZ
+    NegativeZ,
+    Other
   };
   
   Type type;

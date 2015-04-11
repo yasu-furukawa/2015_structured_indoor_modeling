@@ -83,6 +83,20 @@ void PreparePatch(const TextureInput& texture_input,
     patch->axes[1] = Vector3d(1, 0, 0);
     break;
   }
+  case Segment::Other: {
+    if (segment.triangles.empty()) {
+      cerr << "Empty trangles in a segment." << endl;
+      exit (1);
+    }
+    const int kFirstTriangle = 0;
+    Vector3d diff1 = segment.vertices[segment.triangles[kFirstTriangle].indices[1]] -
+      segment.vertices[segment.triangles[kFirstTriangle].indices[0]];
+    Vector3d diff2 = segment.vertices[segment.triangles[kFirstTriangle].indices[2]] -
+      segment.vertices[segment.triangles[kFirstTriangle].indices[0]];
+    
+    patch->axes[2] = diff1.cross(diff2).normalized();
+    patch->axes[1] = diff2.normalized();
+  }
   }
   patch->axes[0] = patch->axes[1].cross(patch->axes[2]);  
 

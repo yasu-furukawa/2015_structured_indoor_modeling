@@ -18,9 +18,70 @@ IndoorPolygon::IndoorPolygon(const std::string& filename) {
 }
 
 void IndoorPolygon::InitFromBinaryPly(const std::string& filename) {
-  
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+  if (!ifstr.is_open()) {
+    cerr << "Cannot open a mesh file." << endl;
+    exit (1);
+  }
 
-}  
+  string header;
+  int num_vertices;
+  int num_triangles;
+  for (int i = 0; i < 9; ++i)
+    ifstr >> header;
+  ifstr >> num_vertices;
+  for (int i = 0; i < 11; ++i)
+    ifstr >> header;
+  ifstr >> num_triangles;
+  for (int i = 0; i < 6; ++i)
+    ifstr >> header;
+
+  vector<Vector3d> vertices;
+  vector<Vector3i> triangles;
+  vertices.resize(num_vertices);
+  triangles.resize(num_triangles);
+
+  char buffer[1024];
+  // Read end of line.
+  ifstr.read(buffer, 1);
+  
+  for (int v = 0; v < num_vertices; ++v) {
+    for (int i = 0; i < 3; ++i) {
+      float ftmp;
+      ifstr.read(reinterpret_cast<char*>(&ftmp), sizeof(float));
+      vertices[v][i] = ftmp;
+    }
+  }
+
+  for (int f = 0; f < num_triangles; ++f) {
+    ifstr.read(buffer, 1);
+    for (int i = 0; i < 3; ++i) {
+      ifstr.read(reinterpret_cast<char*>(&triangles[f][i]), sizeof(int));
+    }
+  }
+  ifstr.close();
+
+
+  manhattan_to_global.setIdentity();
+  global_to_manhattan.setIdentity();
+  segments.clear();
+
+  for (const auto& triangle : triangles) {
+    Segment segment;
+
+    segment.type = Segment::WALL;
+    segment.wall_info = Vector2i(0, 0);
+    segment.normal = Segment::Other;
+    for (int i = 0; i < 3; ++i)
+      segment.vertices.push_back(vertices[triangle[i]]);
+    Triangle ttmp;
+    ttmp.indices = Vector3i(0, 1, 2);
+    segment.triangles.push_back(ttmp);
+
+    segments.push_back(segment);
+  }
+}
   
 Eigen::Vector3d IndoorPolygon::ManhattanToGlobal(const Eigen::Vector3d& manhattan) const {
   Eigen::Vector4d coord(manhattan[0],

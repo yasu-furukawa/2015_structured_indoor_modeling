@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 
   string suffix("");
   if (FLAGS_binary_ply != "")
-    suffix = "_other_";
+    suffix = "_other";
   
   WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images, suffix);
   {
