@@ -127,23 +127,18 @@ void ObjectRenderer::RenderAll(const double position) {
       vector<pair<double, int> > distances_objects;
       for (int object_id = 0; object_id < (int)vertices[room].size(); ++object_id) {
 	  // compute distance to the center of an object.
-	  double distance_object = 0.0;//navigation.GetDirection.dot(centers[room][object_id]);
+	  double distance_object = navigation.GetDirection().dot(centers[room][object_id]);
 	  distances_objects.push_back(pair<double, int>(distance_object, object_id));
       }
       sort(distances_objects.rbegin(), distances_objects.rend());
 
-//      for (int i = 0; i < (int)vertices[room].size(); ++i) {
-//	  const int object_id = distances_objects[i].second;
-	  
-      
-
-
     const double offset = (1.0 - kDurationPerObject) / max(1, (int)vertices[room].size() - 1);
     for (int object = 0; object < (int)vertices[room].size(); ++object) {
-      // [object * offset, object * offset + kDurationPerObject].
-      double scale;
+	const int object_id = distances_objects[object].second;
+	// [object * offset, object * offset + kDurationPerObject].
+	double scale;
       {
-        const double start = object * offset;
+        const double start = object_id * offset;
         const double end = start + kDurationPerObject;
         if (position <= start || end <= position)
           scale = 1.0;
@@ -151,12 +146,12 @@ void ObjectRenderer::RenderAll(const double position) {
           scale = sin(M_PI * (position - start) / kDurationPerObject) * 0.5 + 1.0;
       }
       
-      for (int i = 0; i < (int)colors[room][object].size(); ++i) {
-        colors[room][object][i] = min(1.0, scale * colors_org[room][object][i]);
-      }
+     for (int i = 0; i < (int)colors[room][object_id].size(); ++i) {
+           colors[room][object_id][i] = min(1.0, scale * colors_org[room][object_id][i]);
+     }
       
-      glColorPointer(3, GL_FLOAT, 0, &colors[room][object][0]);
-      glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);
+      glColorPointer(3, GL_FLOAT, 0, &colors[room][object_id][0]);
+      glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object_id][0]);
       
       if (kBlend) {
         glBlendColor(0, 0, 0, 0.5);
@@ -166,7 +161,7 @@ void ObjectRenderer::RenderAll(const double position) {
       }
       glPointSize(1.0);
       
-      glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
+      glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object_id].size()) / 3);
     }
   }
   
