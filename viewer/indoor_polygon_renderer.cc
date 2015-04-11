@@ -248,7 +248,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_intensity,
     glEnable(GL_BLEND);
     //glBlendColor(0.8, 0.8, 0.8, 1.0);
     // glBlendColor(0.5, 0.5, 0.5, 0.5);
-    glBlendColor(0, 0, 0, 0.5);
+    glBlendColor(0, 0, 0, 0.3);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
     
