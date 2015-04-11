@@ -360,23 +360,35 @@ void MainWidget::RenderTexturedPolygon(const double alpha) {
       polygon_renderer.RenderDoors(alpha * 0.2);
     }
   } else {
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_CULL_FACE);
-    
-    {
-      glCullFace(GL_FRONT);
-      glDisable(GL_TEXTURE_2D);
-      indoor_polygon_renderer.RenderTextureMappedRooms(alpha * 0.5, alpha * 0.2);
-    }
-    
-    {
-      glCullFace(GL_BACK);
+    if (indoor_polygon_renderer.GetRenderMode() != IndoorPolygonRenderer::kBackWallFaceTransparent) {
       glEnable(GL_TEXTURE_2D);
-      indoor_polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
+      glEnable(GL_CULL_FACE);
+      
+      if (render_backface) {
+        glCullFace(GL_FRONT);
+        glDisable(GL_TEXTURE_2D);
+        indoor_polygon_renderer.RenderTextureMappedRooms(alpha * 0.5, alpha * 0.2);
+      }
+      {
+        glCullFace(GL_BACK);
+        glEnable(GL_TEXTURE_2D);
+        indoor_polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
+      }
+      
+      glDisable(GL_CULL_FACE);
+      glDisable(GL_TEXTURE_2D);
+    } else {
+      glEnable(GL_TEXTURE_2D);
+      glDisable(GL_CULL_FACE);
+      
+      {
+        glEnable(GL_TEXTURE_2D);
+        indoor_polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
+      }
+      
+      glEnable(GL_CULL_FACE);
+      glDisable(GL_TEXTURE_2D);
     }
-    
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_TEXTURE_2D);
   }
 
   glPopAttrib();  

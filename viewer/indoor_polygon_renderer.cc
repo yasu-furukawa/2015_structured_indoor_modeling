@@ -141,14 +141,15 @@ void IndoorPolygonRenderer::ToggleRenderMode() {
   }
 }  
 
-void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
-                                                     const double bottom_alpha) const {
+void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_intensity,
+                                                     const double bottom_intensity) {
   vector<vector<bool> > render_for_room_wall;
   render_for_room_wall.resize(floorplan.GetNumRooms());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     render_for_room_wall[room].resize(floorplan.GetNumWalls(room), true);
 
-    if (render_mode == kBackWallFaceCulling) {
+    if (render_mode == kBackWallFaceCulling ||
+        render_mode == kBackWallFaceTransparent) {
       const Vector3d& direction = navigation.GetDirection();
       for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
         const int next_wall = (wall + 1) % floorplan.GetNumWalls(room);
@@ -157,54 +158,142 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
         const Vector3d diff1 = floorplan.GetCeilingVertexGlobal(room, wall) -
           floorplan.GetFloorVertexGlobal(room, wall);
         const Vector3d normal = diff0.cross(diff1);
-        if (normal.dot(direction) < 0.0)
+        if (normal.dot(direction) > 0.0)
           render_for_room_wall[room][wall] = false;
       }
     }
   }
-  
-  // For each texture.
-  for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
-    glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glBegin(GL_TRIANGLES);
-    for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
-      const Segment& segment = indoor_polygon.GetSegment(s);
-      if (segment.type == Segment::CEILING)
-        continue;
-
-      if (segment.type == Segment::WALL &&
-          !render_for_room_wall[segment.wall_info[0]][segment.wall_info[1]])
-        continue;
+  if (render_mode == kFull || render_mode == kBackWallFaceCulling) {
+    // For each texture.
+    for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
+      glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
       
-      for (const auto& triangle : segment.triangles) {
-        if (triangle.image_index != texture)
+      glBegin(GL_TRIANGLES);
+      for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+        const Segment& segment = indoor_polygon.GetSegment(s);
+        if (segment.type == Segment::CEILING)
           continue;
-
-        for (int i = 0; i < 3; ++i) {
-          glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
-
-          const double z_position =
-            max(0.0, min(1.0, (segment.vertices[triangle.indices[i]][2] - bottom_z) / (top_z - bottom_z)));
-          const double alpha = z_position * (top_alpha - bottom_alpha) + bottom_alpha;
-          glColor4f(alpha, alpha, alpha, 1.0);
+        
+        if (segment.type == Segment::WALL &&
+            !render_for_room_wall[segment.wall_info[0]][segment.wall_info[1]])
+          continue;
+        
+        for (const auto& triangle : segment.triangles) {
+          if (triangle.image_index != texture)
+            continue;
           
-          const Vector3d global =
-            indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);
-          glVertex3d(global[0], global[1], global[2]);
+          for (int i = 0; i < 3; ++i) {
+            glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+            
+            const double z_position =
+              max(0.0, min(1.0, (segment.vertices[triangle.indices[i]][2] - bottom_z) / (top_z - bottom_z)));
+            const double intensity = z_position * (top_intensity - bottom_intensity) + bottom_intensity;
+            glColor4f(intensity, intensity, intensity, 1.0);
+            
+            const Vector3d global =
+              indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);
+            glVertex3d(global[0], global[1], global[2]);
+          }
         }
       }
+      glEnd();
     }
-    glEnd();
+  } else if (render_mode == kBackWallFaceTransparent) {
+    // Sort rooms.
+    // vector<int> sorted_rooms;
+    
+    for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
+      glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      
+      glBegin(GL_TRIANGLES);
+      for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+        const Segment& segment = indoor_polygon.GetSegment(s);
+        if (segment.type == Segment::CEILING)
+          continue;
+
+        if (segment.type == Segment::WALL &&
+            !render_for_room_wall[segment.wall_info[0]][segment.wall_info[1]])
+          continue;                
+        
+        for (const auto& triangle : segment.triangles) {
+          if (triangle.image_index != texture)
+            continue;
+          
+          for (int i = 0; i < 3; ++i) {
+            glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+            
+            const double z_position =
+              max(0.0, min(1.0, (segment.vertices[triangle.indices[i]][2] - bottom_z) / (top_z - bottom_z)));
+            const double intensity = z_position * (top_intensity - bottom_intensity) + bottom_intensity;
+            glColor4f(intensity, intensity, intensity, 1.0);
+            
+            const Vector3d global =
+              indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);
+            glVertex3d(global[0], global[1], global[2]);
+          }
+        }
+      }
+      glEnd();
+    }
+    //----------------------------------------------------------------------
+    glEnable(GL_BLEND);
+    //glBlendColor(0.8, 0.8, 0.8, 1.0);
+    // glBlendColor(0.5, 0.5, 0.5, 0.5);
+    glBlendColor(0, 0, 0, 0.5);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    
+    for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
+      glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      
+      glBegin(GL_TRIANGLES);
+      for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
+        const Segment& segment = indoor_polygon.GetSegment(s);
+
+        if (!(segment.type == Segment::WALL &&
+              !render_for_room_wall[segment.wall_info[0]][segment.wall_info[1]]))
+          continue;
+        
+        for (const auto& triangle : segment.triangles) {
+          if (triangle.image_index != texture)
+            continue;
+          
+          for (int i = 0; i < 3; ++i) {
+            glTexCoord2d(triangle.uvs[i][0], 1.0 - triangle.uvs[i][1]);
+            
+            const double z_position =
+              max(0.0, min(1.0, (segment.vertices[triangle.indices[i]][2] - bottom_z) / (top_z - bottom_z)));
+            const double intensity = z_position * (top_intensity - bottom_intensity) + bottom_intensity;
+            glColor4f(intensity, intensity, intensity, 1.0);
+            
+            const Vector3d global =
+              indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);
+            glVertex3d(global[0], global[1], global[2]);
+          }
+        }
+      }
+      glEnd();
+    }
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
   }
 }
 
-void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
-                                                     const double bottom_alpha,
+void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_intensity,
+                                                     const double bottom_intensity,
                                                      const ViewParameters& view_parameters,
                                                      const double air_to_tree_progress,
                                                      const double animation,
@@ -245,8 +334,8 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_alpha,
 
           const double z_position =
             max(0.0, min(1.0, (segment.vertices[triangle.indices[i]][2] - bottom_z) / (top_z - bottom_z)));
-          const double alpha = z_position * (top_alpha - bottom_alpha) + bottom_alpha;
-          glColor4f(alpha, alpha, alpha, 1.0);
+          const double intensity = z_position * (top_intensity - bottom_intensity) + bottom_intensity;
+          glColor4f(intensity, intensity, intensity, 1.0);
           
           Vector3d global =
             indoor_polygon.ManhattanToGlobal(segment.vertices[triangle.indices[i]]);

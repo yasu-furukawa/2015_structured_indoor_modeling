@@ -98,6 +98,8 @@ MainWidget::MainWidget(const Configuration& configuration, const std::string& su
   mouse_down = false;
 
   polygon_or_indoor_polygon = false;
+
+  render_backface = true;
 }
 
 MainWidget::~MainWidget() {
@@ -151,9 +153,10 @@ void MainWidget::InitPanoramasPanoramaRenderers() {
   for (int p = 0; p < kMaxPanoramaId; ++p) {
     ifstream ifstr;
     ifstr.open(file_io.GetPanoramaImage(p).c_str());
+
     if (!ifstr.is_open())
       continue;
-    panorama_ids.push_back(p);
+    panorama_ids.push_back(p);    
   }
   if (panorama_ids.empty()) {
     cerr << "No panorama." << endl;
@@ -695,7 +698,10 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   } else if (e->key() == Qt::Key_P) {
     polygon_or_indoor_polygon = !polygon_or_indoor_polygon;
     updateGL();
-  }  
+  } else if (e->key() == Qt::Key_T) {
+    render_backface = !render_backface;
+    updateGL();
+  }
 }
 
 void MainWidget::keyReleaseEvent(QKeyEvent *) {  

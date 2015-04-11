@@ -128,6 +128,7 @@ private:
     std::map<int, int> panorama_to_room;
     std::map<int, int> room_to_panorama;
     std::vector<std::vector<double> > panorama_distance_table;
+    bool render_backface;
     
     static const double kRenderMargin;
     static const double kFadeInSeconds;

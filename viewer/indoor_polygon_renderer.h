@@ -10,16 +10,22 @@ class Floorplan;
 class IndoorPolygon;
 class Navigation;
 class ViewParameters;
-  
+ 
 class IndoorPolygonRenderer : protected QGLFunctions {
  public:
+  enum RenderMode {
+    kFull,
+    kBackWallFaceCulling,
+    kBackWallFaceTransparent
+  };
+  
   IndoorPolygonRenderer(const Floorplan& floorplan,
                         const IndoorPolygon& indoor_polygon,
                         const Navigation& navigation);
   virtual ~IndoorPolygonRenderer();
-  void RenderTextureMappedRooms(const double top_alpha, const double bottom_alpha) const;
-  void RenderTextureMappedRooms(const double top_alpha,
-                                const double bottom_alpha,
+  void RenderTextureMappedRooms(const double top_intensity, const double bottom_intensity);
+  void RenderTextureMappedRooms(const double top_intensity,
+                                const double bottom_intensity,
                                 const ViewParameters& view_parameters,
                                 const double air_to_tree_progress,
                                 const double animation,
@@ -30,6 +36,7 @@ class IndoorPolygonRenderer : protected QGLFunctions {
             QGLWidget* widget);
   void InitGL();
   void ToggleRenderMode();
+  RenderMode GetRenderMode() const { return render_mode; }
   
  private:
   QGLWidget* widget;
@@ -43,11 +50,6 @@ class IndoorPolygonRenderer : protected QGLFunctions {
   // Floor outline.
   std::map<int, std::vector<std::vector<Eigen::Vector3d> > > wire_frames;
 
-  enum RenderMode {
-    kFull,
-    kBackWallFaceCulling,
-    kBackWallFaceTransparent
-  };
   RenderMode render_mode;
   
   double bottom_z;

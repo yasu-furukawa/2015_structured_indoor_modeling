@@ -23,23 +23,28 @@ int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
   app.setApplicationName("viewer");
 
-  string suffix("");
-  if (argc > 2)
-    suffix = argv[2];
-
 #ifndef QT_NO_OPENGL
   QWidget window;
   window.resize(1024, 720);
   // window.resize(1280, 720);
   // window.resize(1000, 600);
 
+  string data_directory = argv[1];
+
+  /*
   string data_directory;
   for (int i = 1; i < argc; ++i) {
     string word = argv[i];
-    data_directory = data_directory + word;    
+    data_directory = data_directory + word;
+    
     if (i != argc - 1)
       data_directory = data_directory + string(" ");
   }
+  */
+
+  string suffix("");
+  if (argc > 2)
+    suffix = argv[2];
   
   Configuration configuration;
   {
@@ -53,7 +58,7 @@ int main(int argc, char *argv[]) {
     configuration.floorplan_angle = kFloorplanAngle;
     configuration.floorplan_field_of_view_degrees = kFloorplanFieldOfViewDegrees;
   }
-  
+
   MainWidget* main_widget = new MainWidget(configuration, suffix);
 
   QHBoxLayout* layout = new QHBoxLayout();
