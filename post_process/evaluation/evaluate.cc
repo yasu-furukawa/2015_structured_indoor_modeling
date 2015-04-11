@@ -550,62 +550,52 @@ void ReportErrors(const FileIO& file_io,
     ofstream ofstr;
     ofstr.open(file_io.GetErrorReport(prefix).c_str());
     ofstr.precision(3);
-    const double numer =
-      total_errors[kFloor].first[0] + total_errors[kCeiling].first[0] +
-      total_errors[kWall].first[0] + total_errors[kDoor].first[0] +
-      total_errors[kObject].first[0];
-    const double denom =
-      max(1, total_errors[kFloor].second + total_errors[kCeiling].second +
-          total_errors[kWall].second + total_errors[kDoor].second +
-          total_errors[kObject].second);
-    
-    ofstr << "Position" << endl
-	  << "Total\tFloor\tCeiling\tWall\tDoor\tObject" << endl
-	  << numer / denom << '\t'
-          << total_errors[kFloor].first[0] / max(1, total_errors[kFloor].second) << '\t'
-	  << total_errors[kCeiling].first[0] / max(1, total_errors[kCeiling].second) << '\t'
-	  << total_errors[kWall].first[0] / max(1, total_errors[kWall].second) << '\t'
-	  << total_errors[kDoor].first[0] / max(1, total_errors[kDoor].second) << '\t'
-	  << total_errors[kObject].first[0] / max(1, total_errors[kObject].second) << endl << endl;
-
-    /*
-    ofstr << "Normal" << endl
-	  << "Total\tFloor\tCeiling\tWall\tDoor\tObject" << endl
-	  << total_errors[kFloor].first[1] / max(1, total_errors[kFloor].second) << '\t'
-	  << total_errors[kCeiling].first[1] / max(1, total_errors[kCeiling].second) << '\t'
-	  << total_errors[kWall].first[1] / max(1, total_errors[kWall].second) << '\t'
-	  << total_errors[kDoor].first[1] / max(1, total_errors[kDoor].second) << '\t'
-	  << total_errors[kObject].first[1] / max(1, total_errors[kObject].second) << endl << endl;
-    */
-    
-    for (int p = 0; p < panoramas.size(); ++p) {
+    for (int i = 0; i < 2; ++i) {
       const double numer =
-        errors[p][kFloor].first[0] + errors[p][kCeiling].first[0] + errors[p][kWall].first[0] +
-        errors[p][kDoor].first[0] + errors[p][kObject].first[0];
+        total_errors[kFloor].first[i] + total_errors[kCeiling].first[i] +
+        total_errors[kWall].first[i] + total_errors[kDoor].first[i] +
+        total_errors[kObject].first[i];
       const double denom =
-        max(1, errors[p][kFloor].second + errors[p][kCeiling].second + errors[p][kWall].second +
-            errors[p][kDoor].second + errors[p][kObject].second);
+        max(1, total_errors[kFloor].second + total_errors[kCeiling].second +
+            total_errors[kWall].second + total_errors[kDoor].second +
+            total_errors[kObject].second);
 
-      ofstr << "Panorama Position " << p << endl
-	    << "Total\tFloor\tCeiling\tWall\tDoor\tObject" << endl
-	    << numer / denom << '\t'
-            << errors[p][kFloor].first[0] / max(1, errors[p][kFloor].second) << '\t'
-	    << errors[p][kCeiling].first[0] / max(1, errors[p][kCeiling].second) << '\t'
-	    << errors[p][kWall].first[0] / max(1, errors[p][kWall].second) << '\t'
-	    << errors[p][kDoor].first[0] / max(1, errors[p][kDoor].second) << '\t'
-	    << errors[p][kObject].first[0] / max(1, errors[p][kObject].second) << endl;
+      if (i == 0)
+        ofstr << "Position" << endl;
+      else
+        ofstr << "Normal" << endl;
+      
+      ofstr << "Total\tFloor\tCeiling\tWall\tDoor\tObject" << endl
+            << numer / denom << '\t'
+            << total_errors[kFloor].first[i] / max(1, total_errors[kFloor].second) << '\t'
+            << total_errors[kCeiling].first[i] / max(1, total_errors[kCeiling].second) << '\t'
+            << total_errors[kWall].first[i] / max(1, total_errors[kWall].second) << '\t'
+            << total_errors[kDoor].first[i] / max(1, total_errors[kDoor].second) << '\t'
+            << total_errors[kObject].first[i] / max(1, total_errors[kObject].second) << endl << endl;
     }
-    /*
-    for (int p = 0; p < panoramas.size(); ++p) {
-      ofstr << "Panorama Normal " << p << endl
-	    << "Total\tFloor\tCeiling\tWall\tDoor\tObject" << endl
-	    << errors[p][kFloor].first[1] / max(1, errors[p][kFloor].second) << '\t'
-	    << errors[p][kCeiling].first[1] / max(1, errors[p][kCeiling].second) << '\t'
-	    << errors[p][kWall].first[1] / max(1, errors[p][kWall].second) << '\t'
-	    << errors[p][kDoor].first[1] / max(1, errors[p][kDoor].second) << '\t'
-	    << errors[p][kObject].first[1] / max(1, errors[p][kObject].second) << endl;
+
+    for (int i = 0; i < 2; ++i) {
+      for (int p = 0; p < panoramas.size(); ++p) {
+        const double numer =
+          errors[p][kFloor].first[i] + errors[p][kCeiling].first[i] + errors[p][kWall].first[i] +
+          errors[p][kDoor].first[i] + errors[p][kObject].first[i];
+        const double denom =
+          max(1, errors[p][kFloor].second + errors[p][kCeiling].second + errors[p][kWall].second +
+              errors[p][kDoor].second + errors[p][kObject].second);
+        
+        if (i == 0)
+          ofstr << "Panorama Position " << p << endl;
+        else
+          ofstr << "Panorama Normal " << p << endl;
+        ofstr << "Total\tFloor\tCeiling\tWall\tDoor\tObject" << endl
+              << numer / denom << '\t'
+              << errors[p][kFloor].first[i] / max(1, errors[p][kFloor].second) << '\t'
+              << errors[p][kCeiling].first[i] / max(1, errors[p][kCeiling].second) << '\t'
+              << errors[p][kWall].first[i] / max(1, errors[p][kWall].second) << '\t'
+              << errors[p][kDoor].first[i] / max(1, errors[p][kDoor].second) << '\t'
+              << errors[p][kObject].first[i] / max(1, errors[p][kObject].second) << endl;
+      }
     }
-    */
   }
 
   {
