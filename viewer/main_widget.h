@@ -133,7 +133,9 @@ private:
     static const double kRenderMargin;
     static const double kFadeInSeconds;
     static const double kFadeOutSeconds;
-    static const Eigen::Vector3f kBackgroundColor;
+    static const Eigen::Vector3f kBackgroundBlack;
+    static const Eigen::Vector3f kBackgroundWhite;
+    Eigen::Vector3f background;
 
     //----------------------------------------------------------------------
     // Paint functions.

@@ -40,7 +40,8 @@ const double MainWidget::kFadeOutSeconds = 1.5;
 // pure black pixel in panorama images as holes. Fragment shader
 // handles the pure black pixel in a special way, and we want the
 // background color to be intensity 1 (avoid pure black).
-const Eigen::Vector3f MainWidget::kBackgroundColor = Eigen::Vector3f(0.005, 0.005, 0.005);
+const Eigen::Vector3f MainWidget::kBackgroundBlack = Eigen::Vector3f(0.005, 0.005, 0.005);
+const Eigen::Vector3f MainWidget::kBackgroundWhite = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
 
 MainWidget::MainWidget(const Configuration& configuration, const std::string& suffix, QWidget *parent) :
   QGLWidget(parent),
@@ -100,6 +101,8 @@ MainWidget::MainWidget(const Configuration& configuration, const std::string& su
   polygon_or_indoor_polygon = false;
 
   render_backface = true;
+
+  background = kBackgroundBlack;
 }
 
 MainWidget::~MainWidget() {
@@ -208,7 +211,7 @@ void MainWidget::InitializeShaders() {
 void MainWidget::initializeGL() {
   initializeOpenGLFunctions();
   InitializeShaders();
-  glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+  glClearColor(background[0], background[1], background[2], 0);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
@@ -634,7 +637,20 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   const double kRotationAngle = 45.0 * M_PI / 180.0;
   //----------------------------------------------------------------------
   // Arrows.
-  if (e->key() == Qt::Key_Up) {
+  if (e->key() == Qt::Key_H) {
+    cerr << "There are 4 different viewing modes." << endl
+         << "  A: Switch to panorama mode." << endl
+         << "  S: Switch to aerial mode." << endl
+         << "  D: Switch to floorplan mode." << endl
+         << "  F: Switch to tree-view mode." << endl
+         << endl
+         << "R: Change the rendering style for the back-facing walls." << endl
+         << "T: Toggle on/off rendering the back side of the wall." << endl
+         << "U: Change the background color between black and white." << endl
+         << "I: Save a screenshot." << endl
+         << "O: Toggle on/off rendering the object points." << endl
+         << "P: Change the mesh in the aerial mode (floorplan.txt or floorplan_detailed.txt)." << endl;
+  } else if (e->key() == Qt::Key_Up) {
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.MoveForwardPanorama();
     }
@@ -702,6 +718,31 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   } else if (e->key() == Qt::Key_T) {
     render_backface = !render_backface;
     updateGL();
+  } else if (e->key() == Qt::Key_U) {
+    if (background == kBackgroundBlack)
+      background = kBackgroundWhite;
+    else
+      background = kBackgroundBlack;
+
+    glClearColor(background[0], background[1], background[2], 0);
+    updateGL();
+  } else if (e->key() == Qt::Key_I) {
+    cerr << "filename > " << flush;
+    string filename;
+    cin >> filename;
+    
+    glReadBuffer(GL_BACK);
+    vector<unsigned char> buffer(width() * height() * 3);
+    glReadPixels(0, 0, width(), height(), GL_RGB, GL_UNSIGNED_BYTE, &buffer[0]);
+    cv::Mat image(height(), width(), CV_8UC3);
+    for (int y = 0; y < height(); ++y) {
+      for (int x = 0; x < width(); ++x) {
+        image.at<cv::Vec3b>(height() - 1 - y, x) = cv::Vec3b(buffer[3 * (y * width() + x) + 2],
+                                                             buffer[3 * (y * width() + x) + 1],
+                                                             buffer[3 * (y * width() + x) + 0]);
+      }
+    }
+    cv::imwrite(filename, image);
   }
 }
 
@@ -848,7 +889,7 @@ double MainWidget::ObjectAnimationPosition() const {
   if (!ObjectAnimation())
     return 0.0;
 
-  const int kInterval = 6000;  
+  const int kInterval = 4000;
   const int kDuration = 1000;
   const int msec = object_animation_time.elapsed();
   return (msec % kInterval) / (double)kDuration;
@@ -856,7 +897,7 @@ double MainWidget::ObjectAnimationPosition() const {
   
 bool MainWidget::ObjectAnimation() const {
   // Once in 6 seconds.
-  const int kInterval = 6000;
+  const int kInterval = 4000;
   const int kDuration = 1000;
   const int msec = object_animation_time.elapsed();
   if (msec % kInterval < kDuration)

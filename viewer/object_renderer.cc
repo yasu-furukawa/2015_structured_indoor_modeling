@@ -98,9 +98,6 @@ void ObjectRenderer::Init(const string data_directory) {
     PointCloud point_cloud;
     point_cloud.Init(file_io.GetRefinedObjectClouds(room));
 
-    //?????
-    //point_cloud.RandomSampleScale(0.5);
-    
     vertices[room].resize(point_cloud.GetNumObjects());
     colors[room].resize(point_cloud.GetNumObjects());
     centers[room].resize(point_cloud.GetNumObjects());
@@ -196,7 +193,7 @@ void ObjectRenderer::RenderAll(const double position) {
         // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
         glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
       }
-      glPointSize(1.0);
+      glPointSize(0.5);
       
       glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object_id].size()) / 3);
     }
@@ -220,7 +217,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
   if (!render)
     return;
 
-  const bool kBlend = true; // ??? false
+  const bool kBlend = true;
   const Vector3d kNoOffset(0.0, 0.0, 0.0);
   if (air_to_tree_progress < 1.0) {
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -262,7 +259,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
             // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
             glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
           }
-          glPointSize(1.0);
+          glPointSize(0.5);
           
           glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
         }
@@ -358,7 +355,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
             // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
             glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
           }
-          glPointSize(1.0);
+          glPointSize(0.5);
           
           glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
 

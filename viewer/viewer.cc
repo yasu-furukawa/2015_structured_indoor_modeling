@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   Configuration configuration;
   {
     configuration.data_directory = data_directory;
-    const double kAirAngle = 60.0 * M_PI / 180.0;
+    const double kAirAngle = 50.0 * M_PI / 180.0; // 60.0 * M_PI / 180.0;
     const double kAirFieldOfViewDegrees = 10.0;
     const double kFloorplanAngle = 80.0 * M_PI / 180.0;
     const double kFloorplanFieldOfViewDegrees = 10.0;

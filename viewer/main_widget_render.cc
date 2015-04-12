@@ -663,18 +663,26 @@ void MainWidget::RenderTree(const double air_to_tree_progress) {
   
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[0]);
   {
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    if (background == kBackgroundBlack)
+      glClearColor(0.0, 0.0, 0.0, 0.0);
+    else
+      glClearColor(background[0], background[1], background[2], 0);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+    glClearColor(background[0], background[1], background[2], 0);
   }
 
   RenderTreeTop(air_to_tree_progress, animation, animation_alpha, offset_direction, top_lines);
   
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   {
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    if (background == kBackgroundBlack)
+      glClearColor(0.0, 0.0, 0.0, 0.0);
+    else
+      glClearColor(background[0], background[1], background[2], 0);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+    glClearColor(background[0], background[1], background[2], 0);
   }
 
   RenderTreeMiddle(air_to_tree_progress, animation, animation_alpha, boundaries, bottom_lines);
@@ -841,7 +849,7 @@ void MainWidget::ClearDisplay() {
 void MainWidget::ClearDisplayWithWhite() {
   glClearColor(1.0, 1.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glClearColor(kBackgroundColor[0], kBackgroundColor[1], kBackgroundColor[2], 0);
+  glClearColor(background[0], background[1], background[2], 0);
 }    
   
 }  // namespace structured_indoor_modeling
