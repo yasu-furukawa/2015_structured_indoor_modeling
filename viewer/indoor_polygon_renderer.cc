@@ -206,14 +206,14 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_intensity,
   } else if (render_mode == kBackWallFaceTransparent) {
     // Sort rooms.
     // vector<int> sorted_rooms;
-    
+
     for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
       glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-      
+
       glBegin(GL_TRIANGLES);
       for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
         const Segment& segment = indoor_polygon.GetSegment(s);
@@ -223,7 +223,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_intensity,
         if (segment.type == Segment::WALL &&
             !render_for_room_wall[segment.wall_info[0]][segment.wall_info[1]])
           continue;                
-        
+
         for (const auto& triangle : segment.triangles) {
           if (triangle.image_index != texture)
             continue;
@@ -251,7 +251,7 @@ void IndoorPolygonRenderer::RenderTextureMappedRooms(const double top_intensity,
     glBlendColor(0, 0, 0, 0.5);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-    
+
     for (int texture = 0; texture < (int)texture_ids.size(); ++texture) {
       glBindTexture(GL_TEXTURE_2D, texture_ids[texture]);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

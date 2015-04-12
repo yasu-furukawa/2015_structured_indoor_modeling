@@ -58,7 +58,7 @@ void MainWidget::RenderFloorplan(const double alpha,
 
 void MainWidget::RenderPanorama(const double alpha) {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
-   
+
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_CULL_FACE);
 
@@ -363,7 +363,7 @@ void MainWidget::RenderTexturedPolygon(const double alpha) {
     if (indoor_polygon_renderer.GetRenderMode() != IndoorPolygonRenderer::kBackWallFaceTransparent) {
       glEnable(GL_TEXTURE_2D);
       glEnable(GL_CULL_FACE);
-      
+
       if (render_backface) {
         glCullFace(GL_FRONT);
         glDisable(GL_TEXTURE_2D);
@@ -380,7 +380,7 @@ void MainWidget::RenderTexturedPolygon(const double alpha) {
     } else {
       glEnable(GL_TEXTURE_2D);
       glDisable(GL_CULL_FACE);
-      
+
       {
         glEnable(GL_TEXTURE_2D);
         indoor_polygon_renderer.RenderTextureMappedRooms(alpha, alpha);
@@ -565,12 +565,13 @@ void MainWidget::RenderPanoramaToAirTransition(const bool flip) {
   glEnable(GL_TEXTURE_2D);
   const double kFullOpacity = 1.0;
   RenderPanorama(kFullOpacity);
-  
+
   // Render the target pano.
   glBindFramebuffer(GL_FRAMEBUFFER, frameids[1]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
   RenderTexturedPolygon(kFullOpacity);
+
   RenderObjects(kFullOpacity);
 
   // Blend the two.

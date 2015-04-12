@@ -130,7 +130,7 @@ int main(int argc, char **argv){
 	    PointCloud curpt;
 	    curpt.AddPoints(objpt);
 	    sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid, objid);
-	    curpt.Write(string(buffer));
+	    // curpt.Write(string(buffer));
 	}
 	
     	objectcloud[roomid].Write(file_io.GetRefinedObjectClouds(roomid));
