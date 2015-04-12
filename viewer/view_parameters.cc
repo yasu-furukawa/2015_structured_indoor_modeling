@@ -465,7 +465,7 @@ Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
     return progress2 * final_position + (1.0 - progress2) * global_as_room;
   }
 }
-
+  
 Eigen::Vector3d ViewParameters::TransformFloorplan(const Vector3d& global,
                                                   const double air_to_tree_progress,
                                                    const double /* animation */,

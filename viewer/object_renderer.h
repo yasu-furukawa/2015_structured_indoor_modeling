@@ -52,6 +52,7 @@ class ObjectRenderer : protected QGLFunctions {
   int GetNumObjects(const int room) const;
   const std::vector<float>& GetObject(const int room, const int object) const;
 
+  void Precompute();
   bool Toggle();
   
 private:
@@ -98,6 +99,8 @@ private:
 
   std::vector<std::vector<std::vector<float> > > vertices_org;
   std::vector<std::vector<std::vector<float> > > colors_org;
+
+  // Precomputed information.
 
   // Bounding boxes for each object.
   std::vector<std::vector<BoundingBox2D> > bounding_boxes_2D;

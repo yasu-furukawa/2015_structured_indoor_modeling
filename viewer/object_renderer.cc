@@ -51,6 +51,13 @@ bool ObjectRenderer::Toggle() {
   return render;
 }
 
+void ObjectRenderer::Precompute() {
+
+
+
+
+}
+
 void ObjectRenderer::Init(const string data_directory) {
   FileIO file_io(data_directory);
 
