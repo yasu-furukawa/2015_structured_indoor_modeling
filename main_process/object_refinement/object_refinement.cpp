@@ -316,7 +316,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      const double kDetailMarginRatio   = 0.1;
      const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
 
-     const double voxel_unit = room_height / 128;
+     const double voxel_unit = room_height / 64;
      Vector3d min_xyz, max_xyz;
 
      bool first = true;
@@ -367,7 +367,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      	  }
      }
      // Expand occupancy.
-     const int kExpandMargin = 1;
+     const int kExpandMargin = 4;
      {
      	  vector<bool> vbtmp;
 
@@ -388,7 +388,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      				   occupancy[index] = true;
      			      }
      			 }
-     		    }
+     		    }            
      	       }
      	  }
      }
@@ -415,7 +415,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
 
 
 //     if 95% points are too near to a wall, remove
-     const double removeRatio = 0.99;
+     const double removeRatio = 0.70;
      for(int objid=0; objid<objectcloud.GetNumObjects(); objid++){
      	  vector<structured_indoor_modeling::Point> objpt;
      	  objectcloud.GetObjectPoints(objid, objpt);
