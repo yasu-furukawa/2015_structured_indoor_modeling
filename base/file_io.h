@@ -200,7 +200,7 @@ class FileIO {
   }
   std::vector<std::string> GetVgcutMeshes() const {
     std::vector<std::string> filenames;
-    const int kNumVersions = 1;
+    const int kNumVersions = 3;
     for (int i = 0; i < kNumVersions; ++i) {
       sprintf(buffer, "%s/input/vgcut/vgcut%d.ply", data_directory.c_str(), i);
       filenames.push_back(buffer);
@@ -209,7 +209,7 @@ class FileIO {
   }
   std::vector<std::string> GetFilteredVgcutMeshes() const {
     std::vector<std::string> filenames;
-    const int kNumVersions = 1;
+    const int kNumVersions = 3;
     for (int i = 0; i < kNumVersions; ++i) {
       sprintf(buffer, "%s/input/vgcut/vgcut_filtered%d.ply", data_directory.c_str(), i);
       filenames.push_back(buffer);

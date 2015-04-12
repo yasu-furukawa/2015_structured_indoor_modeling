@@ -356,7 +356,7 @@ int main(int argc, char* argv[]) {
   if (FLAGS_evaluate_all || FLAGS_evaluate_vgcut_mesh) {
     {
       const vector<string> filenames = file_io.GetVgcutMeshes();
-      for (int i = 1; i < filenames.size(); ++i) {
+      for (int i = 0; i < filenames.size(); ++i) {
 	Mesh vgcut_mesh;
 	if (!ReadMeshAscii(filenames[i], &vgcut_mesh))
           continue;
@@ -371,7 +371,7 @@ int main(int argc, char* argv[]) {
     }
     {
       const vector<string> filenames = file_io.GetFilteredVgcutMeshes();
-      for (int i = 1; i < filenames.size(); ++i) {
+      for (int i = 0; i < filenames.size(); ++i) {
 	Mesh vgcut_mesh;
 	if (!ReadMeshAscii(filenames[i], &vgcut_mesh))
           continue;
