@@ -419,37 +419,37 @@ Eigen::Vector3d ViewParameters::TransformRoom(const Vector3d& global,
 }
 
 Eigen::Vector3d ViewParameters::TransformObject(const Vector3d& global,
-                                               const int room,
-                                               const int object,
-                                               const double progress,
-                                               const double animation,
+                                                const int room,
+                                                const int object,
+                                                const double progress,
+                                                const double animation,
                                                 const Eigen::Vector3d& room_max_vertical_shift,
                                                 const Eigen::Vector3d& vertical_object_top,
                                                 const Eigen::Vector3d& vertical_object_bottom) const {
-  double angle;
-  if (animation < 0.25)
-    angle = 2 * M_PI * animation;
-  else if (0.25 <= animation && animation < 0.75)
-    angle = 2 * M_PI * (0.5 - animation);
-  else
-    angle = 2 * M_PI * animation;
-
-  Matrix3d rotation;
-  rotation(0, 0) = cos(angle);
-  rotation(0, 1) = -sin(angle);
-  rotation(0, 2) = 0.0;
-  rotation(1, 0) = sin(angle);
-  rotation(1, 1) = cos(angle);
-  rotation(1, 2) = 0.0;
-  rotation(2, 0) = 0.0;
-  rotation(2, 1) = 0.0;
-  rotation(2, 2) = 1.0;
-
   const Vector3d global_as_room = TransformRoom(global, room, progress, animation, room_max_vertical_shift);
   
   if (progress < 0.5) {
     return global_as_room;
   } else {
+    double angle;
+    if (animation < 0.25)
+      angle = 2 * M_PI * animation;
+    else if (0.25 <= animation && animation < 0.75)
+      angle = 2 * M_PI * (0.5 - animation);
+    else
+      angle = 2 * M_PI * animation;
+    
+    Matrix3d rotation;
+    rotation(0, 0) = cos(angle);
+    rotation(0, 1) = -sin(angle);
+    rotation(0, 2) = 0.0;
+    rotation(1, 0) = sin(angle);
+    rotation(1, 1) = cos(angle);
+    rotation(1, 2) = 0.0;
+    rotation(2, 0) = 0.0;
+    rotation(2, 1) = 0.0;
+    rotation(2, 2) = 1.0;
+    
     const Vector3d row_shift = (vertical_object_bottom - vertical_object_top) / kMaxNumRows;
     const double scale = object_configurations[room][object].scale;
     const Vector3d global_displacement =

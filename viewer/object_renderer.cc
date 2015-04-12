@@ -51,11 +51,38 @@ bool ObjectRenderer::Toggle() {
   return render;
 }
 
-void ObjectRenderer::Precompute() {
+void ObjectRenderer::Precompute(const ViewParameters& view_parameters) {
+  // vertices_middle.
+  const double kMiddleProgress = 0.5;
+  const double kBottomProgress = 1.0;
+  const double kAnimation = 0.0;
+  const Vector3d kNoOffset(0.0, 0.0, 0.0);
 
+  Vector3d offset_direction;
+  view_parameters.SetOffsetDirection(navigation.GetDirection(), &offset_direction);
+  
+  const Vector3d top_boundary = view_parameters.GetVerticalTopBoundary() * offset_direction;
+  const Vector3d bottom_boundary = view_parameters.GetVerticalBottomBoundary() * offset_direction;
+  
+  for (int room = 0; room < (int)vertices.size(); ++room) {
+    for (int object = 0; object < (int)vertices[room].size(); ++object) {
+      for (int p = 0; p < (int)vertices[room][object].size(); p += 3) {
+        const Vector3d global(vertices[room][object][p],
+                              vertices[room][object][p + 1],
+                              vertices[room][object][p + 2]);
+        const Vector3d global_middle =
+          view_parameters.TransformRoom(global, room, kMiddleProgress, kAnimation, kNoOffset);
+        for (int i = 0; i < 3; ++i)
+          vertices_middle[room][object][p + i] = global_middle[i];
 
-
-
+        const Vector3d global_bottom =
+          view_parameters.TransformObject(global, room, object, kBottomProgress, kAnimation, kNoOffset,
+                                          top_boundary, bottom_boundary);
+        for (int i = 0; i < 3; ++i)
+          vertices_bottom[room][object][p + i] = global_bottom[i];
+      }
+    }
+  }
 }
 
 void ObjectRenderer::Init(const string data_directory) {
@@ -105,6 +132,9 @@ void ObjectRenderer::Init(const string data_directory) {
 
   vertices_org = vertices;
   colors_org = colors;
+
+  vertices_middle = vertices;
+  vertices_bottom = vertices;
 
   // ComputeBoundingBoxes2D();
 }
@@ -189,6 +219,170 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
                                const Eigen::Vector3d& offset_direction) {
   if (!render)
     return;
+
+  const bool kBlend = true; // ??? false
+  const Vector3d kNoOffset(0.0, 0.0, 0.0);
+  if (air_to_tree_progress < 1.0) {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    if (kBlend) {
+      // glDisable(GL_DEPTH_TEST);
+      glDepthMask(false);
+      glEnable(GL_BLEND);
+    }
+    glEnable(GL_POINT_SMOOTH);
+    
+    // const double kDurationPerObject = 0.4;
+    vector<float> positions;  
+    for (int room = 0; room < (int)vertices.size(); ++room) {
+      for (int row = ViewParameters::kMaxNumRows - 1; row >= 0; --row) {
+        for (int object = 0; object < (int)vertices[room].size(); ++object) {
+          if (view_parameters.GetObjectRow(room, object) != row)
+            continue;
+          
+          glColorPointer(3, GL_FLOAT, 0, &colors_org[room][object][0]);
+          
+          positions.resize(vertices[room][object].size());
+          
+          if (air_to_tree_progress < 0.5) {
+            for (int p = 0; p < (int)vertices[room][object].size(); ++p)
+              positions[p] = 2.0 * (0.5 - air_to_tree_progress) * vertices[room][object][p] +
+                2.0 * air_to_tree_progress * vertices_middle[room][object][p];
+          } else {
+            for (int p = 0; p < (int)vertices[room][object].size(); ++p)
+              positions[p] = 2.0 * (1.0 - air_to_tree_progress) * vertices_middle[room][object][p] +
+                2.0 * (air_to_tree_progress - 0.5) * vertices_bottom[room][object][p];
+          }
+          
+          glVertexPointer(3, GL_FLOAT, 0, &positions[0]);
+          
+          if (kBlend) {
+            glBlendColor(0, 0, 0, 0.5);
+            //glBlendColor(0, 0, 0, 1.0);
+            // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+            glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+          }
+          glPointSize(1.0);
+          
+          glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
+        }
+      }
+    }
+  } else {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    if (kBlend) {
+      // glDisable(GL_DEPTH_TEST);
+      glDepthMask(false);
+      glEnable(GL_BLEND);
+    }
+    glEnable(GL_POINT_SMOOTH);
+    
+    // const double kDurationPerObject = 0.4;
+    for (int room = 0; room < (int)vertices.size(); ++room) {
+      for (int row = ViewParameters::kMaxNumRows - 1; row >= 0; --row) {
+        for (int object = 0; object < (int)vertices[room].size(); ++object) {
+          if (view_parameters.GetObjectRow(room, object) != row)
+            continue;
+          
+          glColorPointer(3, GL_FLOAT, 0, &colors_org[room][object][0]);
+
+          double global_to_local[16], local_to_global[16];
+          for (int y = 0; y < 4; ++y) {
+            for (int x = 0; x < 4; ++x) {
+              const int index = x * 4 + y;
+              if (x == y)
+                global_to_local[index] = local_to_global[index] = 1.0;
+              else
+                global_to_local[index] = local_to_global[index] = 0.0;
+            }
+          }
+          global_to_local[0] = view_parameters.x_axis[0];
+          global_to_local[4] = view_parameters.x_axis[1];
+          global_to_local[8] = view_parameters.x_axis[2];
+          global_to_local[1] = view_parameters.y_axis[0];
+          global_to_local[5] = view_parameters.y_axis[1];
+          global_to_local[9] = view_parameters.y_axis[2];
+          global_to_local[2] = view_parameters.z_axis[0];
+          global_to_local[6] = view_parameters.z_axis[1];
+          global_to_local[10] = view_parameters.z_axis[2];
+
+          local_to_global[0] = view_parameters.x_axis[0];
+          local_to_global[1] = view_parameters.x_axis[1];
+          local_to_global[2] = view_parameters.x_axis[2];
+          local_to_global[4] = view_parameters.y_axis[0];
+          local_to_global[5] = view_parameters.y_axis[1];
+          local_to_global[6] = view_parameters.y_axis[2];
+          local_to_global[8] = view_parameters.z_axis[0];
+          local_to_global[9] = view_parameters.z_axis[1];
+          local_to_global[10] = view_parameters.z_axis[2];
+
+          double angle;
+          if (animation < 0.25)
+            angle = 360.0 * animation;
+          else if (0.25 <= animation && animation < 0.75)
+            angle = 360.0 * (0.5 - animation);
+          else
+            angle = 360.0 * animation;
+          
+          const Vector3d vertical_object_top = view_parameters.GetVerticalTopBoundary() * offset_direction;
+          const Vector3d vertical_object_bottom = view_parameters.GetVerticalBottomBoundary() * offset_direction;
+          const Vector3d row_shift = (vertical_object_bottom - vertical_object_top) / ViewParameters::kMaxNumRows;
+          
+          const double scale = view_parameters.object_configurations[room][object].scale;
+          const Vector3d global_displacement =
+            (view_parameters.LocalToGlobalNormal(view_parameters.room_configurations[room].displacement +
+                                                 view_parameters.object_configurations[room][object].displacement) +
+             vertical_object_top + (0.5 + view_parameters.object_configurations[room][object].row) * row_shift);
+          
+          const Vector3d global_center =
+            view_parameters.LocalToGlobal(view_parameters.object_configurations[room][object].center);
+          
+          glMatrixMode(GL_MODELVIEW);
+          glPushMatrix();
+          glTranslated(global_displacement[0], global_displacement[1], global_displacement[2]);
+          
+          glTranslated(global_center[0], global_center[1], global_center[2]);
+          glMultMatrixd(local_to_global);
+
+          glRotated(angle, 0, 0, 1);
+          glScaled(scale, scale, scale);
+          glMultMatrixd(global_to_local);
+          glTranslated(- global_center[0], - global_center[1], - global_center[2]);
+
+          glVertexPointer(3, GL_FLOAT, 0, &vertices[room][object][0]);
+          
+          if (kBlend) {
+            glBlendColor(0, 0, 0, 0.5);
+            //glBlendColor(0, 0, 0, 1.0);
+            // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+            glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+          }
+          glPointSize(1.0);
+          
+          glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
+
+          glPopMatrix();
+        }
+      }
+    }
+  }
+      
+	
+  glDisable(GL_POINT_SMOOTH);
+  if (kBlend) {
+    glDisable(GL_BLEND);
+    glDepthMask(true);
+    // glEnable(GL_DEPTH_TEST);
+  }
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+
+  
+  /*
+    // Slow
+  if (!render)
+    return;
   
   const bool kBlend = true; // ??? false
   const Vector3d kNoOffset(0.0, 0.0, 0.0);
@@ -248,6 +442,13 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
   }
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
+  */
+
+  
+
+
+
+
 
   /*
   if (!render)

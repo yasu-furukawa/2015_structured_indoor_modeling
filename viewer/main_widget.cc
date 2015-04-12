@@ -684,7 +684,7 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
   } else if (e->key() == Qt::Key_F) {
     if (navigation.GetCameraStatus() == kAir) {
       navigation.AirToTree();
-      object_renderer.Precompute();
+      object_renderer.Precompute(view_parameters);
       tree_entry_time = object_animation_time.elapsed();
     }
   }
