@@ -701,7 +701,7 @@ void MainWidget::RenderTreeMiddle(const double air_to_tree_progress,
   const Vector3d kNoOffset(0.0, 0.0, 0.0);
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  if (animation_alpha != 0.0) {
+  if (air_to_tree_progress == 1.0 && animation_alpha != 0.0) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_LINE_SMOOTH);
@@ -768,7 +768,9 @@ void MainWidget::RenderTreeTop(const double air_to_tree_progress,
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
   // Draw lines first, because behind everything.
-  if (animation_alpha != 0.0) {
+  if (air_to_tree_progress == 1.0 && animation_alpha != 0.0) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glLineWidth(2.0);
@@ -783,6 +785,7 @@ void MainWidget::RenderTreeTop(const double air_to_tree_progress,
       glVertex3d(end[0], end[1], end[2]);
     }
     glEnd();
+    glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
   }
     

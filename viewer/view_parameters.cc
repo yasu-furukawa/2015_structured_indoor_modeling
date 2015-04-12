@@ -594,8 +594,9 @@ void ViewParameters::SetLines(const Eigen::Vector3d& offset_direction,
 }
 
 double ViewParameters::SetAnimationAlpha(const double animation) {
-  const double kMargin = 0.05;
-  const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
+  const double kMargin = 0.075;
+  // const double pivots[4] = { 1.0 / 8, 3.0 / 8, 5.0 / 8, 7.0 / 8};
+  const double pivots[4] = { 0.0 / 8, 2.0 / 8, 4.0 / 8, 6.0 / 8};
   double diff = 1.0;
   for (int i = 0; i < 4; ++i)
     diff = min(diff, fabs(animation - pivots[i]));
