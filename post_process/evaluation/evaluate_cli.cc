@@ -254,7 +254,13 @@ void Initialize(const FileIO& file_io, Floorplan* floorplan, IndoorPolygon* indo
   }
 
   *floorplan      = Floorplan(floorplan_file);
-  *indoor_polygon = IndoorPolygon(indoor_polygon_file);
+
+  ifstream ifstr;
+  ifstr.open(indoor_polygon_file);
+  if (ifstr.is_open()) {
+    ifstr.close();
+    *indoor_polygon = IndoorPolygon(indoor_polygon_file);
+  }
 }
   
 }  // namespace
