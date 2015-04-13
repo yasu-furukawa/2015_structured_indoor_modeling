@@ -1,0 +1,13 @@
+#! /bin/bash
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --binary_ply='input/poisson/poisson1.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --binary_ply='input/poisson/poisson2.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --binary_ply='input/poisson/poisson3.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --binary_ply='input/poisson/poisson_filtered1.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --binary_ply='input/poisson/poisson_filtered2.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --binary_ply='input/poisson/poisson_filtered3.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --ascii_ply='input/vgcut/vgcut0.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --ascii_ply='input/vgcut/vgcut1.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --ascii_ply='input/vgcut/vgcut2.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --ascii_ply='input/vgcut/vgcut_filtered0.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --ascii_ply='input/vgcut/vgcut_filtered1.ply'
+./main_process/texture/generate_texture_indoor_polygon_cli $1 --ascii_ply='input/vgcut/vgcut_filtered2.ply'
