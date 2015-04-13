@@ -32,10 +32,16 @@ DEFINE_int32(num_cg_iterations, 40, "Number of CG iterations.");
 DEFINE_int32(texture_image_size, 2048, "Texture image size to be written.");
 
 DEFINE_string(binary_ply, "", "A file name under directory.");
+DEFINE_string(ascii_ply, "", "A file name under directory.");
 
 using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
+
+string ExtractSuffix(const string filename) {
+  return filename.substr(filename.find_last_of('/') + 1,
+                         filename.find_last_of('.'));
+}
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -50,7 +56,7 @@ int main(int argc, char* argv[]) {
 
   // Read data from the directory.
   FileIO file_io(argv[1]);
-
+  
   TextureInput texture_input;
   {
     ReadPanoramaPyramids(file_io, FLAGS_num_pyramid_levels, &texture_input.panoramas);
@@ -59,17 +65,21 @@ int main(int argc, char* argv[]) {
   {
     ReadPointClouds(file_io, &texture_input.point_clouds);
   }
-
-  if (FLAGS_binary_ply == "") {
+  
+  if (FLAGS_binary_ply == "" && FLAGS_ascii_ply == "") {
     const string filename = file_io.GetIndoorPolygon();
     ifstream ifstr;
     ifstr.open(filename.c_str());
     ifstr >> texture_input.indoor_polygon;
     ifstr.close();
-  } else {
+  } else if (FLAGS_binary_ply != "") {
     char buffer[1024];
     sprintf(buffer, "%s%s", argv[1], FLAGS_binary_ply.c_str());
     texture_input.indoor_polygon.InitFromBinaryPly(buffer);
+  } else if (FLAGS_ascii_ply != "") {
+    char buffer[1024];
+    sprintf(buffer, "%s%s", argv[1], FLAGS_ascii_ply.c_str());
+    texture_input.indoor_polygon.InitFromAsciiPly(buffer);
   }
 
   {
@@ -118,7 +128,9 @@ int main(int argc, char* argv[]) {
 
   string suffix("");
   if (FLAGS_binary_ply != "")
-    suffix = "_other";
+    suffix = ExtractSuffix(FLAGS_binary_ply);
+  else if (FLAGS_ascii_ply != "")
+    suffix = ExtractSuffix(FLAGS_ascii_ply);
   
   WriteTextureImages(file_io, FLAGS_texture_image_size, texture_images, suffix);
   {

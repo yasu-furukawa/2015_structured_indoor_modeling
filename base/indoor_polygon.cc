@@ -62,7 +62,53 @@ void IndoorPolygon::InitFromBinaryPly(const std::string& filename) {
   }
   ifstr.close();
 
+  InitFromRawMeshData(vertices, triangles);
+}
 
+void IndoorPolygon::InitFromAsciiPly(const std::string& filename) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+  if (!ifstr.is_open()) {
+    cerr << "Cannot open a mesh file." << endl;
+    exit (1);
+  }
+
+  string header;
+  int num_vertices;
+  int num_triangles;
+  for (int i = 0; i < 6; ++i)
+    ifstr >> header;
+  ifstr >> num_vertices;
+  for (int i = 0; i < 11; ++i)
+    ifstr >> header;
+  ifstr >> num_triangles;
+  for (int i = 0; i < 6; ++i)
+    ifstr >> header;
+
+  vector<Vector3d> vertices;
+  vector<Vector3i> triangles;
+  vertices.resize(num_vertices);
+  triangles.resize(num_triangles);
+
+  for (int v = 0; v < num_vertices; ++v) {
+    for (int i = 0; i < 3; ++i) {
+      ifstr >> vertices[v][i];
+    }
+  }
+
+  for (int f = 0; f < num_triangles; ++f) {
+    ifstr >> header;
+    for (int i = 0; i < 3; ++i){
+      ifstr >> triangles[f][i];
+    }
+  }
+  ifstr.close();
+
+  InitFromRawMeshData(vertices, triangles);
+}
+  
+void IndoorPolygon::InitFromRawMeshData(const std::vector<Eigen::Vector3d>& vertices,
+                                        const std::vector<Eigen::Vector3i>& triangles) {
   manhattan_to_global.setIdentity();
   global_to_manhattan.setIdentity();
   segments.clear();

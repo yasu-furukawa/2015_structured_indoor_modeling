@@ -45,6 +45,7 @@ class IndoorPolygon {
   IndoorPolygon(const std::string& filename);
 
   void InitFromBinaryPly(const std::string& filename);
+  void InitFromAsciiPly(const std::string& filename);
 
   int GetNumSegments() const { return segments.size(); }
   const Segment& GetSegment(const int segment) const { return segments[segment]; }
@@ -54,6 +55,9 @@ class IndoorPolygon {
   Eigen::Vector3d GlobalToManhattan(const Eigen::Vector3d& global) const;
   
  private:
+  void InitFromRawMeshData(const std::vector<Eigen::Vector3d>& vertices,
+                           const std::vector<Eigen::Vector3i>& triangles);                       
+  
   Eigen::Matrix4d manhattan_to_global;
   Eigen::Matrix4d global_to_manhattan;
   std::vector<Segment> segments;
