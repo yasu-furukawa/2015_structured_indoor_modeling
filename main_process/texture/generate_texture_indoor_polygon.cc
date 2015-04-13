@@ -378,6 +378,7 @@ void SynthesizePatch(const int patch_size_for_synthesis,
                      const std::vector<cv::Mat>& projected_textures,
 		     const std::vector<double>& weights,
                      const bool vertical_constraint,
+                     const int num_patch_half_iterations,
                      Patch* patch) {
   SynthesisData synthesis_data(projected_textures, weights);
   // This must be more than 4 for margin.
@@ -392,8 +393,7 @@ void SynthesizePatch(const int patch_size_for_synthesis,
 
   vector<cv::Mat> patches;
   vector<Eigen::Vector2i> patch_positions;
-  const int kTimes = 3;
-  for (int t = 0; t < kTimes; ++t) {
+  for (int t = 0; t < num_patch_half_iterations; ++t) {
     patches.clear();
     patch_positions.clear();
     CollectCandidatePatches(synthesis_data, &patches, &patch_positions);
@@ -401,7 +401,7 @@ void SynthesizePatch(const int patch_size_for_synthesis,
       break;
     }
     cerr << "No patches! Cut patch size by half." << endl;
-    if (t != kTimes - 1) {
+    if (t != num_patch_half_iterations - 1) {
       synthesis_data.patch_size = max(kMinPatchSize, synthesis_data.patch_size / 2);
       synthesis_data.margin = synthesis_data.patch_size / 4;
     }
@@ -531,9 +531,11 @@ void ComputeProjectedTextures(const TextureInput& texture_input,
       }
     }
 
-    const int kShrinkPixels = 6;
-    ShrinkTexture(patch.texture_size[0], patch.texture_size[1], kShrinkPixels,
-                  &projected_texture);
+    if (texture_input.erode_texture) {
+      const int kShrinkPixels = 6;
+      ShrinkTexture(patch.texture_size[0], patch.texture_size[1], kShrinkPixels,
+                    &projected_texture);
+    }
 
     bool non_hole_exist = false;
     for (int y = 0; y < patch.texture_size[1]; ++y) {
@@ -674,7 +676,7 @@ void SetPatch(const TextureInput& texture_input,
       }
     } else {
       const bool kNoVerticalConstraint = false;     
-      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, weights, kNoVerticalConstraint, patch);
+      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures, weights, kNoVerticalConstraint, texture_input.num_patch_half_iterations, patch);
     }    
   } else {
     // Pick the best one and inpaint.
@@ -683,8 +685,10 @@ void SetPatch(const TextureInput& texture_input,
                 texture_input.panoramas[best_panorama],
                 patch);
 
-    const int kShrinkPixels = 6;
-    ShrinkTexture(kShrinkPixels, patch);
+    if (texture_input.erode_texture) {
+      const int kShrinkPixels = 6;
+      ShrinkTexture(kShrinkPixels, patch);
+    }
 
     bool hole = false;
     for (int i = 0; i < patch->texture.size(); i+=3) {
@@ -713,7 +717,7 @@ void SetPatch(const TextureInput& texture_input,
       projected_textures_empty.push_back(projected_texture);
       weights.push_back(1.0);
       
-      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures_empty, weights, kVerticalConstraint, patch);
+      SynthesizePatch(texture_input.patch_size_for_synthesis, projected_textures_empty, weights, kVerticalConstraint, texture_input.num_patch_half_iterations, patch);
     }
   }  
 }

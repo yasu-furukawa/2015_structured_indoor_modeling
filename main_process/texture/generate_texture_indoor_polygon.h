@@ -48,6 +48,9 @@ struct TextureInput {
 
   double texel_unit;
   double visibility_margin;
+
+  int num_patch_half_iterations;
+  bool erode_texture;
 };
 
 double ComputeTexelUnit(const IndoorPolygon& indoor_polygon,
