@@ -29,4 +29,10 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
                                     const std::map<ObjectId, int>& object_to_detection,
                                     std::vector<Detection>* detections);
 
+void ComputeObjectPolygon(const std::vector<Point>& object_points,
+			  Detection &detection);
+
+void ComputeConvexHull(std::vector<std::pair<double,double> >& ptset,
+		       std::list<Vector2d>& vlist);
+
 }  // namespace structured_indoor_modeling

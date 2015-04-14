@@ -237,7 +237,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
   }
 
   //Add non-detected objects
-  const double min_area = 1e6;
+  const double min_area = 1e5;
   for(int roomid=0; roomid<num_room; ++roomid){
       const PointCloud& room_cloud = object_point_clouds[roomid];
       for(int objid=0; objid<room_cloud.GetNumObjects(); ++objid){
@@ -251,11 +251,13 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  detection.names[0] = "unknown";
 
 	  vector<Point>objpt;
+	  vector<Vector3d>manhattanpoints;
 	  room_cloud.GetObjectPoints(objid, objpt);
-
+	  
 	  vector<double> histograms[3];
 	  for (const auto& point : objpt) {
-	      const Vector3d& manhattan = indoor_polygon.GlobalToManhattan(point.position);
+	      Vector3d manhattan = indoor_polygon.GlobalToManhattan(point.position);
+	      manhattanpoints.push_back(manhattan);
 	      for (int a = 0; a < 3; ++a) {
 		  histograms[a].push_back(manhattan[a]);
 	      }
@@ -274,13 +276,56 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  }
 	  
 	  const double area_on_floorplan = (detection.ranges[0][1] - detection.ranges[0][0]) * (detection.ranges[1][1] - detection.ranges[1][0]);
-	  if(area_on_floorplan >= min_area)
+	  if(area_on_floorplan >= min_area){
 	      detections->push_back(detection);
+	  }
 
       }
   }
   
 }
 
+
+    void ComputeObjectPolygon(const vector<Vector3d>& manhattan,
+			      Detection &detection){
+	static const double grid_size = 10.0;
+	static const int min_num = 3;
+	//asslocate grid
+	const int size_x = ceil((detection.ranges[0][1] - detection.ranges[0][0])/grid_size);
+	const int size_y = ceil((detection.ranges[1][1] - detection.ranges[1][0])/grid_size);
+	vector<vector<int> >grid(size_y);
+	for(auto& v:grid){
+	    v.resize(size_x);
+	    for(auto& vv:v)
+		vv = 0;
+	}
+	for(const auto&point: manhattan){
+	    const double curx = (point[0] - detection.ranges[0][0]) / grid_size;
+	    const double cury = (point[1] - detection.ranges[1][0]) / grid_size;
+	    if(curx >=0 && floor(curx)<size_x &&
+	       cury >=0 && floor(cury)<size_y){
+		grid[floor(cury)][floor(curx)] += 1;
+	    }
+	}
+	vector<pair<double,double> >ptset;
+	for(int y=0; y<size_y; ++y){
+	    for(int x=0; x<size_x; ++x){
+		if(grid[y][x] > min_num){
+		    double curx = (double)x*grid_size + detection.ranges[0][0];
+		    double cury = (double)y*grid_size + detection.ranges[1][0];
+		    ptset.push_back(pair<double,double>(curx, cury));
+		}
+	    }
+	}
+	
+    }
+
+    void ComputeConvexHull(vector<pair<double, double> > &ptset,
+			   list<Vector2d>& vlist){
+	//first sort by x, then by y
+	sort(ptset.begin(), ptset.end());
+	
+	
+    }
 }  // namespace structured_indoor_modeling
   
