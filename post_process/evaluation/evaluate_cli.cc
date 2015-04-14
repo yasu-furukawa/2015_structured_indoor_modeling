@@ -127,7 +127,7 @@ void WriteDepthErrormap(const PointCloud& input_point_cloud,
       acos(min(1.0, max(-1.0, rasterized_geometry[index].normal.dot(point.normal)))) * 180.0 / M_PI;
     
     depth_errors[index] = depth_error;
-    normal_errors[index] = normal_error;
+    normal_errors[index] = normal_error; // min(normal_error, 180.0 - normal_error);
   }
 
   const double alpha = 0.0;
@@ -146,6 +146,41 @@ void WriteDepthErrormap(const PointCloud& input_point_cloud,
           rgb = Vector3f(0, 0, 0);
         } else {
           const double gray = min(1.0, depth_errors[index] / (depth_unit * kMaxDepthError));
+          if (gray < 0.5) {
+            rgb[1] = 255.0 * 2.0 * gray;
+            rgb[2] = 255.0 - rgb[1];
+            rgb[0] = 0.0;
+          } else {
+            rgb[2] = 0;
+            rgb[0] = 255.0 * 2.0 * (gray - 0.5);
+            rgb[1] = 255.0 - rgb[0];
+          }
+        }
+        Vector3f color = small_panorama.GetRGB(Vector2d(x, y));
+        swap(color[0], color[2]);
+        color = color * alpha + rgb * (1.0 - alpha);
+        for (int i = 0; i < 3; ++i)
+          ofstr << static_cast<int>(round(color[i])) << ' ';
+      }
+    }
+    ofstr.close();
+  }
+
+  {
+    const double kMaxNormalError = 4.0;
+    ofstream ofstr;
+    ofstr.open(normal_error_filename.c_str());
+    ofstr << "P3" << endl
+          << width << ' ' << height << endl
+          << 255 << endl;
+    int index = 0;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x, ++index) {
+        Vector3f rgb;
+        if (normal_errors[index] == kInvalid) {
+          rgb = Vector3f(0, 0, 0);
+        } else {
+          const double gray = min(1.0, normal_errors[index] / kMaxNormalError);
           if (gray < 0.5) {
             rgb[1] = 255.0 * 2.0 * gray;
             rgb[2] = 255.0 - rgb[1];
