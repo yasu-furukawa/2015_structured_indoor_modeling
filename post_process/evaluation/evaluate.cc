@@ -527,7 +527,7 @@ void ReportErrors(const FileIO& file_io,
 
       const auto& type = rasterized_geometry[index].geometry_type;
       errors[p][type].first[0] += depth_error;
-      errors[p][type].first[1] += normal_error;
+      errors[p][type].first[1] += normal_error; // min(normal_error, 180.0 - normal_error);
       errors[p][type].second += 1;
 
       error_histograms[p][type].push_back(depth_error);
