@@ -114,7 +114,7 @@ class FileIO {
   }
   std::string GetIndoorPolygonFinal(const std::string& suffix) const {
     // sprintf(buffer, "%s/indoor_polygon_final.txt", data_directory.c_str());
-    sprintf(buffer, "%s/floorplan/floorplan_detailed_final%s.txt", data_directory.c_str(), suffix.c_str());
+    sprintf(buffer, "%s/floorplan/floorplan_detailed_final_%s.txt", data_directory.c_str(), suffix.c_str());
     return buffer;
   }  
 
@@ -124,7 +124,7 @@ class FileIO {
   }
 
   std::string GetTextureImageIndoorPolygon(const int index, const std::string& suffix) const {
-    sprintf(buffer, "%s/texture_atlas/texture_image_detailed%s_%03d.png", data_directory.c_str(), suffix.c_str(), index);
+    sprintf(buffer, "%s/texture_atlas/texture_image_detailed_%s_%03d.png", data_directory.c_str(), suffix.c_str(), index);
     return buffer;
   }
   

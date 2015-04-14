@@ -40,7 +40,8 @@ using namespace structured_indoor_modeling;
 
 string ExtractSuffix(const string filename) {
   return filename.substr(filename.find_last_of('/') + 1,
-                         filename.find_last_of('.'));
+                         filename.length());
+  // filename.find_last_of('.'));
 }
 
 int main(int argc, char* argv[]) {
@@ -56,7 +57,7 @@ int main(int argc, char* argv[]) {
 
   // Read data from the directory.
   FileIO file_io(argv[1]);
-  
+
   TextureInput texture_input;
   {
     ReadPanoramaPyramids(file_io, FLAGS_num_pyramid_levels, &texture_input.panoramas);
@@ -72,14 +73,26 @@ int main(int argc, char* argv[]) {
     ifstr.open(filename.c_str());
     ifstr >> texture_input.indoor_polygon;
     ifstr.close();
+
+    texture_input.num_patch_half_iterations = 3;
+    texture_input.erode_texture = true;
   } else if (FLAGS_binary_ply != "") {
     char buffer[1024];
     sprintf(buffer, "%s%s", argv[1], FLAGS_binary_ply.c_str());
     texture_input.indoor_polygon.InitFromBinaryPly(buffer);
+
+    texture_input.num_patch_half_iterations = 12;
+    texture_input.erode_texture = false;
   } else if (FLAGS_ascii_ply != "") {
     char buffer[1024];
     sprintf(buffer, "%s%s", argv[1], FLAGS_ascii_ply.c_str());
     texture_input.indoor_polygon.InitFromAsciiPly(buffer);
+
+    texture_input.num_patch_half_iterations = 3;
+    texture_input.erode_texture = true;
+  } else {
+    cerr << "Impossible." << endl;
+    exit (1);
   }
 
   {
