@@ -41,6 +41,27 @@ ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
     average_floor_height += floorplan.GetFloorHeight(room);
   }
   average_floor_height /= max(1, floorplan.GetNumRooms());
+
+  bool first = true;
+  Vector2d x_range, y_range;
+  for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
+    for (int wall = 0; wall < floorplan.GetNumWalls(room); ++wall) {
+      const Vector2d local = floorplan.GetRoomVertexLocal(room, wall);
+      if (first) {
+        x_range[0] = x_range[1] = local[0];
+        y_range[0] = y_range[1] = local[1];
+        first = false;
+      } else {
+        x_range[0] = min(x_range[0], local[0]);
+        x_range[1] = max(x_range[1], local[0]);
+        y_range[0] = min(y_range[0], local[1]);
+        y_range[1] = max(y_range[1], local[1]);
+      }
+    }
+  }
+  const double x_diff = x_range[1] - x_range[0];
+  const double y_diff = y_range[1] - y_range[0];
+  distance_per_pixel = max(max(x_diff, y_diff) / 1024.0, min(x_diff, y_diff) / 768.0);
 }
 
 ObjectRenderer::~ObjectRenderer() {
@@ -560,66 +581,10 @@ void ObjectRenderer::ComputeBoundingBoxes2D() {
   }
 }
 
-void ObjectRenderer::RenderDesk(const Detection& /* detection */,
+void ObjectRenderer::RenderDesk(const Detection& detection,
                                 const Eigen::Vector3d vs[4],
                                 const double animation) const {
-  const double kAnimationRatio = 0.1;
-
-  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
-  Vector3d new_vs[4];
-  for (int i = 0; i < 4; ++i)
-    new_vs[i] = vs[i] + (vs[i] - center) * animation * kAnimationRatio;
-
-  const double kCornerRatio = 0.1;
-  
-  vector<Vector3d> points;
-  
-  for (int current = 0; current < 4; ++current) {
-    const int prev = (current - 1 + 4) % 4;
-    const int next = (current + 1) % 4;
-
-    Vector3d prev_diff = (new_vs[prev] - new_vs[current]) * kCornerRatio;
-    Vector3d next_diff = (new_vs[next] - new_vs[current]) * kCornerRatio;
-
-    const double prev_length = prev_diff.norm();
-    const double next_length = next_diff.norm();
-    const double min_length = min(prev_length, next_length);
-    prev_diff *= min_length / prev_length;
-    next_diff *= min_length / next_length;    
-
-    const Vector3d internal = new_vs[current] + prev_diff + next_diff;
-    
-    // First line.
-    points.push_back((new_vs[prev] + new_vs[current]) / 2.0);
-    points.push_back(new_vs[current] + prev_diff);
-    // Corner.
-    const int kNumSamples = 6;
-    for (int s = 0; s < kNumSamples; ++s) {
-      const double angle = M_PI / 2.0 * (s + 0.5) / kNumSamples;
-      points.push_back(internal - cos(angle) * next_diff - sin(angle) * prev_diff);
-    }
-    // Second line.
-    points.push_back(new_vs[current] + next_diff);
-  }
-  
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glBegin(GL_TRIANGLE_FAN);
-  glColor4f(0.8f, 1.0f, 0.8f, 0.5f + 0.5f * animation);
-  for (const auto& point : points) {
-    glVertex3d(point[0], point[1], point[2]);
-  }
-  glEnd();
-
-  glLineWidth(1.5f);
-  glBegin(GL_LINE_LOOP);
-  glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-  for (const auto& point : points) {
-    glVertex3d(point[0], point[1], point[2]);
-  }
-  glEnd();
-
-  glDisable(GL_BLEND);
+  RenderRectangle(detection, vs, animation, Vector3f(244 / 255.0f, 164 / 255.0f, 96 / 255.0f));
 }
 
 void ObjectRenderer::RenderSofa(const Detection& /* detection */,
@@ -726,6 +691,82 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */,
   }
 }
 
+  // 0  1
+  // 3  2
+void ObjectRenderer::RenderChair(const Detection& /* detection */,
+                                const Eigen::Vector3d vs[4],
+                                const double animation) const {
+  const Vector3d x_diff = vs[1] - vs[0];
+  const Vector3d y_diff = vs[3] - vs[0];
+  vector<vector<Vector2d> > points_for_lines;
+
+  {
+    const double kCorner = 0.03;
+    const double small_corner = kCorner * 0.4;
+    const double extension = 0.2 * animation;
+    vector<Vector2d> outer_frame;
+    outer_frame.push_back(Vector2d(kCorner, 0));
+    outer_frame.push_back(Vector2d(1.0 + extension - kCorner, 0));
+    outer_frame.push_back(Vector2d(1.0 + extension - small_corner, small_corner));
+    outer_frame.push_back(Vector2d(1.0 + extension, kCorner));
+
+    outer_frame.push_back(Vector2d(1.0 + extension, 1.0 - kCorner));
+    outer_frame.push_back(Vector2d(1.0 + extension - small_corner, 1.0 - small_corner));
+    outer_frame.push_back(Vector2d(1.0 + extension - kCorner, 1.0));
+    outer_frame.push_back(Vector2d(kCorner, 1.0));
+    outer_frame.push_back(Vector2d(small_corner, 1.0 - small_corner));
+    outer_frame.push_back(Vector2d(0.0, 1.0 - kCorner));
+    outer_frame.push_back(Vector2d(0.0, kCorner));
+    outer_frame.push_back(Vector2d(small_corner, small_corner));
+
+    points_for_lines.push_back(outer_frame);
+  }
+  {
+    const double kCorner = 0.03;
+    const double small_corner = kCorner * 0.4;
+    const double support_width = 0.2;
+    vector<Vector2d> outer_frame;
+    outer_frame.push_back(Vector2d(kCorner, 0));
+    outer_frame.push_back(Vector2d(support_width - kCorner, 0));
+    outer_frame.push_back(Vector2d(support_width - small_corner, small_corner));
+    outer_frame.push_back(Vector2d(support_width, kCorner));
+
+    outer_frame.push_back(Vector2d(support_width, 1.0 - kCorner));
+    outer_frame.push_back(Vector2d(support_width - small_corner, 1.0 - small_corner));
+    outer_frame.push_back(Vector2d(support_width - kCorner, 1.0));
+    outer_frame.push_back(Vector2d(kCorner, 1.0));
+    outer_frame.push_back(Vector2d(small_corner, 1.0 - small_corner));
+    outer_frame.push_back(Vector2d(0.0, 1.0 - kCorner));
+    outer_frame.push_back(Vector2d(0.0, kCorner));
+    outer_frame.push_back(Vector2d(small_corner, small_corner));
+
+    points_for_lines.push_back(outer_frame);
+  }
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  for (int p = 0; p < (int)points_for_lines.size(); ++p) {
+    glBegin(GL_TRIANGLE_FAN);
+    glColor4f(0.8f, 0.8f, 0.8f, 0.5f + 0.5f * animation);
+    for (const auto& uv : points_for_lines[p]) {
+      const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+  
+  glLineWidth(1.5f);
+  for (int p = 0; p < (int)points_for_lines.size(); ++p) {
+    glBegin(GL_LINE_LOOP);
+    glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+    for (const auto& uv : points_for_lines[p]) {
+      const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
+      glVertex3d(point[0], point[1], point[2]);
+    }
+    glEnd();
+  }
+}
+  
 void ObjectRenderer::RenderLamp(const Detection& /* detection */,
                                 const Eigen::Vector3d vs[4],
                                 const double animation) const {
@@ -756,7 +797,8 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
 
   const double x_length = x_diff.norm();
   const double y_length = y_diff.norm();
-  const double length = min(x_length, y_length);
+  const double kMinimumSize = 15.0;
+  const double length = max(kMinimumSize * distance_per_pixel, min(x_length, y_length));
   x_diff *= length / x_length;
   y_diff *= length / y_length;
   
@@ -870,19 +912,80 @@ void ObjectRenderer::RenderName(const Detection& detection,
                      viewport[3] - v,
                      full_name.c_str(),
                      font);
+}
+
+  
+void ObjectRenderer::RenderDefault(const Detection& detection,
+                                   const Eigen::Vector3d vs[4],
+                                   const double animation) const {
+  RenderRectangle(detection, vs, animation, Vector3f(0.8f, 1.0f, 0.8f));
+}
+
+void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
+                                     const Eigen::Vector3d vs[4],
+                                     const double animation,
+                                     const Eigen::Vector3f& color) const {
+  const double kAnimationRatio = 0.1;
+
+  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
+  Vector3d new_vs[4];
+  for (int i = 0; i < 4; ++i)
+    new_vs[i] = vs[i] + (vs[i] - center) * animation * kAnimationRatio;
+
+  const double kCornerRatio = 0.1;
+  
+  vector<Vector3d> points;
+  
+  for (int current = 0; current < 4; ++current) {
+    const int prev = (current - 1 + 4) % 4;
+    const int next = (current + 1) % 4;
+
+    Vector3d prev_diff = (new_vs[prev] - new_vs[current]) * kCornerRatio;
+    Vector3d next_diff = (new_vs[next] - new_vs[current]) * kCornerRatio;
+
+    const double prev_length = prev_diff.norm();
+    const double next_length = next_diff.norm();
+    const double min_length = min(prev_length, next_length);
+    prev_diff *= min_length / prev_length;
+    next_diff *= min_length / next_length;    
+
+    const Vector3d internal = new_vs[current] + prev_diff + next_diff;
+    
+    // First line.
+    points.push_back((new_vs[prev] + new_vs[current]) / 2.0);
+    points.push_back(new_vs[current] + prev_diff);
+    // Corner.
+    const int kNumSamples = 6;
+    for (int s = 0; s < kNumSamples; ++s) {
+      const double angle = M_PI / 2.0 * (s + 0.5) / kNumSamples;
+      points.push_back(internal - cos(angle) * next_diff - sin(angle) * prev_diff);
+    }
+    // Second line.
+    points.push_back(new_vs[current] + next_diff);
   }
-
   
-void ObjectRenderer::RenderDefault(const Detection& /* detection */,
-                                   const Eigen::Vector3d /* vs */ [4],
-                                   const double /* animation */) const {
-  
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBegin(GL_TRIANGLE_FAN);
+  glColor4f(color[0], color[1], color[2], 0.5f + 0.5f * animation);
+  for (const auto& point : points) {
+    glVertex3d(point[0], point[1], point[2]);
+  }
+  glEnd();
 
+  glLineWidth(1.5f);
+  glBegin(GL_LINE_LOOP);
+  glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+  for (const auto& point : points) {
+    glVertex3d(point[0], point[1], point[2]);
+  }
+  glEnd();
+
+  glDisable(GL_BLEND);
 }
 
 void ObjectRenderer::RotateToFrontal(const Detection& detection,
-                                     const Eigen::Vector3d vs[4],
-                                     Eigen::Vector3d rotated_vs[4]) const {
+                                     Eigen::Vector3d vs[4]) const {
   const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
   // Identify the longest side.
   const Vector3d x_diff = vs[1] - vs[0];
@@ -908,9 +1011,29 @@ void ObjectRenderer::RotateToFrontal(const Detection& detection,
       shift = 3;
   }
 
+  Eigen::Vector3d rotated_vs[4];
   for (int i = 0; i < 4; ++i)
     rotated_vs[(i + shift) % 4] = vs[i];
+  
+  for (int i = 0; i < 4; ++i)
+    vs[i] = rotated_vs[i];
 }
+
+void ObjectRenderer::MakeSquare(Eigen::Vector3d vs[4]) {
+  Vector3d x_diff = vs[1] - vs[0];
+  Vector3d y_diff = vs[3] - vs[0];
+
+  const double radius = max(x_diff.norm(), y_diff.norm()) / 2.0;
+
+  const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
+  x_diff = x_diff.normalized() * radius;
+  y_diff = y_diff.normalized() * radius;
+
+  vs[0] = center - x_diff - y_diff;
+  vs[1] = center + x_diff - y_diff;
+  vs[2] = center + x_diff + y_diff;
+  vs[3] = center - x_diff + y_diff;
+}  
   
 void ObjectRenderer::RenderIcons(const double /* alpha */,
                                  const double animation,
@@ -932,21 +1055,26 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
     for (int i = 0; i < 4; ++i)
       vs[i] = indoor_polygon.ManhattanToGlobal(vs[i]);
 
-    Vector3d rotated_vs[4];
-    RotateToFrontal(detection, vs, rotated_vs);
+    if (detection.names[0] != "chair") {
+      RotateToFrontal(detection, vs);
+    } else {
+      MakeSquare(vs);
+    }
     
     if (detection.names[0] == "table") {
-      RenderDesk(detection, rotated_vs, animation);
+      RenderDesk(detection, vs, animation);
     } else if (detection.names[0] == "sofa") {
-      RenderSofa(detection, rotated_vs, animation);
+      RenderSofa(detection, vs, animation);
+    } else if (detection.names[0] == "chair") {
+      RenderChair(detection, vs, animation);
     } else if (detection.names[0] == "lamp") {
-      RenderLamp(detection, rotated_vs, animation);
+      RenderLamp(detection, vs, animation);
     } else {
-      // RenderDefault(detection, rotated_vs);
-      RenderDesk(detection, rotated_vs, animation);
+      RenderDefault(detection, vs, animation);
     }
 
-    RenderName(detection, rotated_vs, animation, viewport, modelview, projection, widget);
+    glColor3f(0.0f, 0.0f, 0.0f);
+    RenderName(detection, vs, animation, viewport, modelview, projection, widget);
   }
   
   /*

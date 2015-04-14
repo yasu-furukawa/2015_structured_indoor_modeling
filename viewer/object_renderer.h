@@ -57,12 +57,19 @@ class ObjectRenderer : protected QGLFunctions {
   
 private:
   void ComputeBoundingBoxes2D();
+  void RenderRectangle(const Detection& detection,
+                       const Eigen::Vector3d bounding_boxes[4],
+                       const double animation,
+                       const Eigen::Vector3f& color) const;
   void RenderDesk(const Detection& detection,
                   const Eigen::Vector3d bounding_boxes[4],
                   const double animation) const;
   void RenderSofa(const Detection& detection,
                   const Eigen::Vector3d vs[4],
                   const double animation) const;
+  void RenderChair(const Detection& detection,
+                   const Eigen::Vector3d bounding_boxes[4],
+                   const double animation) const;
   void RenderLamp(const Detection& detection,
                   const Eigen::Vector3d vs[4],
                   const double animation) const;
@@ -71,8 +78,9 @@ private:
                      const double animation) const;
   
   void RotateToFrontal(const Detection& detection,
-                       const Eigen::Vector3d vs[4],
-                       Eigen::Vector3d rotated_vs[4]) const;
+                       Eigen::Vector3d vs[4]) const;
+
+  static void MakeSquare(Eigen::Vector3d vs[4]);
   
   void RenderName(const Detection& detection,
                   const Eigen::Vector3d vs[4],
@@ -91,6 +99,7 @@ private:
   // std::vector<std::vector<ColoredPointCloud> > colored_point_clouds;
 
   double average_floor_height;
+  double distance_per_pixel;
 
   std::vector<std::vector<std::vector<float> > > vertices;
   std::vector<std::vector<std::vector<float> > > colors;
