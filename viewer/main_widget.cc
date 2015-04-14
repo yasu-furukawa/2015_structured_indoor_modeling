@@ -60,6 +60,9 @@ MainWidget::MainWidget(const Configuration& configuration, const std::string& su
              panorama_to_room,
              room_to_panorama)
 {
+
+  cout << file_io.GetIndoorPolygonFinal(suffix) << endl;
+
   // Renderer initialization.
   {
     InitPanoramasPanoramaRenderers();
