@@ -19,7 +19,7 @@ namespace structured_indoor_modeling {
 namespace {
   bool IsOnFloor(const double floor_height, const double margin, const Point& point);
 
-  bool IsOnWall(const std::vector<cv::Point>& contour,
+  bool IsOnWall(const std::vector<cv::Point2f>& contour,
                 const double wall_margin,
                 const Point& point);
   
@@ -133,11 +133,11 @@ void SetRoomOccupancy(const Floorplan& floorplan,
   room_occupancy->resize(grid_size[0] * grid_size[1], kBackground);
 
   // Make room contour polygons for each room.
-  vector<vector<cv::Point> > room_contours(floorplan.GetNumRooms());
+  vector<vector<cv::Point2f> > room_contours(floorplan.GetNumRooms());
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
       const Vector2d local = floorplan.GetRoomVertexLocal(room, vertex);
-      room_contours[room].push_back(cv::Point(local[0], local[1]));
+      room_contours[room].push_back(cv::Point2f(local[0], local[1]));
     }
   }
 
@@ -146,7 +146,7 @@ void SetRoomOccupancy(const Floorplan& floorplan,
   for (int y = 0; y < grid_size[1]; ++y) {
     for (int x = 0; x < grid_size[0]; ++x, ++index) {
       const Vector2d local = floorplan.GridToLocal(Vector2d(x, y));
-      const cv::Point point(local[0], local[1]);
+      const cv::Point2f point(local[0], local[1]);
 
       // Find the room with the closest distance
       const int kInvalid = -1;
@@ -271,19 +271,21 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
 void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
                               const int room,
+                              const double rescale_margin,
                               std::vector<int>* segments) {
-  const double kFloorMarginRatio   = 0.1;
-  const double kCeilingMarginRatio = 0.1;
-  const double kWallMarginRatio    = 0.03;
+  const double kFloorMarginRatio   = 0.1 * rescale_margin;
+  const double kCeilingMarginRatio = 0.1 * rescale_margin;
+  const double kWallMarginRatio    = 0.03 * rescale_margin;
+
   const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
   const double floor_margin   = room_height * kFloorMarginRatio;
   const double wall_margin    = room_height * kWallMarginRatio;
   const double ceiling_margin = room_height * kCeilingMarginRatio;
 
-  vector<cv::Point> contour;
+  vector<cv::Point2f> contour;
   for (int vertex = 0; vertex < floorplan.GetNumRoomVertices(room); ++vertex) {
     const Vector2d local = floorplan.GetRoomVertexLocal(room, vertex);
-    contour.push_back(cv::Point(local[0], local[1]));
+    contour.push_back(cv::Point2f(local[0], local[1]));
   }
   
   segments->clear();
@@ -299,13 +301,13 @@ void IdentifyFloorWallCeiling(const std::vector<Point>& points,
   }
 }
 
-
 void IdentifyDetails(const std::vector<Point>& points,
                      const Floorplan& floorplan,
                      const IndoorPolygon& indoor_polygon,
                      const int room,
+                     const double rescale_margin,
                      std::vector<int>* segments) {
-  const double kDetailMarginRatio   = 0.1;
+  const double kDetailMarginRatio   = 0.1 * rescale_margin;
   const double room_height    = floorplan.GetCeilingHeight(room) - floorplan.GetFloorHeight(room);
   const double detail_margin = room_height * kDetailMarginRatio;
 
@@ -647,18 +649,18 @@ void SetNeighbors(const std::vector<Point>& points,
 namespace {
 
 bool IsOnFloor(const double floor_height, const double margin, const Point& point) {
-  return point.position[2] - floor_height <= margin;
+  return (point.position[2] - floor_height) <= margin;
 }
   
-bool IsOnWall(const std::vector<cv::Point>& contour,
+bool IsOnWall(const std::vector<cv::Point2f>& contour,
               const double wall_margin,
               const Point& point) {
-  const cv::Point local(point.position[0], point.position[1]);
+  const cv::Point2f local(point.position[0], point.position[1]);
   return fabs(cv::pointPolygonTest(contour, local, true)) <= wall_margin;
 }
 
 bool IsOnCeiling(const double ceiling_height, const double margin, const Point& point) {
-  return ceiling_height - point.position[2] <= margin;
+  return (ceiling_height - point.position[2]) <= margin;
 }  
 
 double PointDistance(const Point& lhs, const Point& rhs) {
@@ -1052,7 +1054,7 @@ bool Merge(const std::vector<Point>& points,
     const double distance0  = cluster_pair_to_average_distance[make_pair(p0, p0)];
     const double distance1  = cluster_pair_to_average_distance[make_pair(p1, p1)];
 
-    //?????
+    //???
     //if (distance01 < distance0 * kMergeRatio && distance01 < distance1 * kMergeRatio)
     if (distance01 < average_inter_distance * kMergeRatio) {
       if (merged_clusters.find(item.first.first) != merged_clusters.end() ||
@@ -1060,7 +1062,7 @@ bool Merge(const std::vector<Point>& points,
         continue;
       
       merged.insert(item.first);
-      //?????? only one each.
+      //??? only one each.
       //break;
       if (min(size0, size1) > best_size) {
 	best_size = min(size0, size1);

@@ -14,6 +14,7 @@
 DEFINE_double(point_subsampling_ratio, 1.0, "Make the point set smaller.");
 DEFINE_double(centroid_subsampling_ratio, 0.005, "Ratio of centroids in each segment.");
 DEFINE_double(num_initial_clusters, 100, "Initial cluster.");
+DEFINE_double(rescale_margin, 1.0, "Rescale margins for identification.");
 
 using namespace Eigen;
 using namespace structured_indoor_modeling;
@@ -81,10 +82,10 @@ bool ProcessRoom(const FileIO& file_io,
   // For each point, initial segmentation.
   vector<int> segments;
   cerr << "Checking floor/wall/ceiling..." << flush;
-  IdentifyFloorWallCeiling(points, floorplan, room, &segments);
+  IdentifyFloorWallCeiling(points, floorplan, room, FLAGS_rescale_margin, &segments);
   cerr << "done." << endl
        << "Checking details..." << flush;
-  IdentifyDetails(points, floorplan, indoor_polygon, room, &segments);
+  IdentifyDetails(points, floorplan, indoor_polygon, room, FLAGS_rescale_margin, &segments);
   cerr << "done." << endl;
 
   ReportSegments(segments);

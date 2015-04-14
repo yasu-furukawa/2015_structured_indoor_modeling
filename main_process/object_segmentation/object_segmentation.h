@@ -40,12 +40,14 @@ void CollectPointsInRoom(const std::vector<PointCloud>& point_clouds,
 void IdentifyFloorWallCeiling(const std::vector<Point>& points,
                               const Floorplan& floorplan,
                               const int room,
+                              const double rescale_margin,
                               std::vector<int>* segments);                          
 
 void IdentifyDetails(const std::vector<Point>& points,
                      const Floorplan& floorplan,
                      const IndoorPolygon& indoor_polygon,
                      const int room,
+                     const double rescale_margin,
                      std::vector<int>* segments);                          
  
 void Subsample(const double ratio, std::vector<Point>* points);
