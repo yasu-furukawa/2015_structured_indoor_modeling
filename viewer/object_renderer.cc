@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 #include "navigation.h"
 #include "object_renderer.h"
 #include "view_parameters.h"
@@ -895,6 +896,26 @@ void ObjectRenderer::RenderName(const Detection& detection,
 
   if (detection.names[0] == "unknown")
     return;
+
+  set<string> valid_names;
+  valid_names.insert("chair");
+  valid_names.insert("lamp");
+  valid_names.insert("table");
+  valid_names.insert("sofa");
+  valid_names.insert("bookshelf");
+  // valid_names.insert("refregirator");
+  // valid_names.insert("tvmonitor");
+  // valid_names.insert("toaster");
+  // valid_names.insert("coffee");
+  // valid_names.insert("banana");
+  // valid_names.insert("dishwasher");
+  // valid_names.insert("washer");
+  // valid_names.insert("microwave");
+  // valid_names.insert("bowl");
+  
+
+  if (valid_names.find(detection.names[0]) == valid_names.end())
+    return;
   
   string full_name("");
   for (const auto& word : detection.names) {
@@ -908,8 +929,14 @@ void ObjectRenderer::RenderName(const Detection& detection,
   
   const QFont font("Times", 14);
   const double kCharacterWidth = 7.25;
-  widget->renderText(u - full_name.length() * kCharacterWidth / 2.0,
-                     viewport[3] - v,
+
+  double vertical_offset = 0.0;
+  if (detection.names[0] == "lamp") {
+    vertical_offset = - 3.2 * kCharacterWidth;
+  }
+  
+  widget->renderText(u - (full_name.length() - 1) * kCharacterWidth / 2.0,
+                     viewport[3] - v + vertical_offset,
                      full_name.c_str(),
                      font);
 }
@@ -955,7 +982,7 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
     points.push_back((new_vs[prev] + new_vs[current]) / 2.0);
     points.push_back(new_vs[current] + prev_diff);
     // Corner.
-    const int kNumSamples = 6;
+    const int kNumSamples = 2;
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = M_PI / 2.0 * (s + 0.5) / kNumSamples;
       points.push_back(internal - cos(angle) * next_diff - sin(angle) * prev_diff);
@@ -964,14 +991,19 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
     points.push_back(new_vs[current] + next_diff);
   }
   
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glBegin(GL_TRIANGLE_FAN);
-  glColor4f(color[0], color[1], color[2], 0.5f + 0.5f * animation);
+  // glBegin(GL_TRIANGLE_FAN);
+  glDisable(GL_BLEND);
+  
+  glBegin(GL_POLYGON);
+  const double scale = 0.9f + 0.1f * animation;
+  glColor3f(scale * color[0], scale * color[1], scale * color[2]);
   for (const auto& point : points) {
     glVertex3d(point[0], point[1], point[2]);
   }
   glEnd();
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glLineWidth(1.5f);
   glBegin(GL_LINE_LOOP);
