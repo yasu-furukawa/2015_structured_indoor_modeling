@@ -641,7 +641,7 @@ void MainWidget::RenderAirToFloorplanTransition(const bool flip) {
 
 void MainWidget::RenderTree(const double air_to_tree_progress) {
   const int kInterval = 20 * 1000;
-  const int kNoAnimationPeriod = 1000;
+  const int kNoAnimationPeriod = 2000;
   double animation = (max(0, object_animation_time.elapsed() - tree_entry_time - kNoAnimationPeriod) % kInterval) / static_cast<double>(kInterval);
   if (animation < 0.5)
     animation = animation * air_to_tree_progress;

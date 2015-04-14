@@ -400,6 +400,7 @@ void MainWidget::PaintFloorplan() {
   } else {
     const bool kNoEmphasize = false;
     RenderFloorplan(1.0, kNoEmphasize, 0);
+
     RenderAllRoomNames(1.0, this);
   }    
 }
@@ -815,10 +816,16 @@ void MainWidget::timerEvent(QTimerEvent *) {
   case kAirToFloorplanTransition:
   case kFloorplanToAirTransition:
   case kPanoramaTour:
-  case kTreeTransition:
   case kTreeToAirTransition:
   case kAirToTreeTransition: {
     navigation.Tick();
+    updateGL();
+    break;
+  }
+  case kTreeTransition: {
+    navigation.Tick();
+    if (navigation.GetCameraStatus() != kTreeTransition)
+      object_renderer.Precompute(view_parameters);
     updateGL();
     break;
   }

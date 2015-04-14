@@ -376,6 +376,23 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
   }
 }
 
+bool ReadMesh(const std::string& filename, Mesh* mesh) {
+  ifstream ifstr;
+  ifstr.open(filename.c_str());
+  if (!ifstr.is_open()) {
+    cerr << "File not found: " << filename << endl;
+    return false;
+  }
+
+  string header;
+  ifstr >> header >> header >> header;
+  ifstr.close();
+  if (header == "ascii")
+    return ReadMeshAscii(filename, mesh);
+  else
+    return ReadMeshBinary(filename, mesh);
+}
+  
 bool ReadMeshAscii(const std::string& filename, Mesh* mesh) {
   ifstream ifstr;
   ifstr.open(filename.c_str());

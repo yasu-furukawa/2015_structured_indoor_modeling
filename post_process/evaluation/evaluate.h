@@ -56,6 +56,7 @@ void RasterizeObjectPointClouds(const std::vector<PointCloud>& object_point_clou
                                 const std::vector<Panorama>& panoramas,
                                 std::vector<std::vector<RasterizedGeometry> >* rasterized_geometries);
 
+bool ReadMesh(const std::string& filename, Mesh* mesh);
 bool ReadMeshAscii(const std::string& filename, Mesh* mesh);
 bool ReadMeshBinary(const std::string& filename, Mesh* mesh);
 

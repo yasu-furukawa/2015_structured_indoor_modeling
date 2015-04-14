@@ -527,7 +527,7 @@ void Navigation::Tick() {
   }
 
   case kTreeToAirTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.01;
 
     tree_progress += kStepSize;
     if (tree_progress >= 1.0) {
@@ -537,7 +537,7 @@ void Navigation::Tick() {
     break;
   }
   case kAirToTreeTransition: {
-    const double kStepSize = 0.02;
+    const double kStepSize = 0.01;
 
     tree_progress += kStepSize;
     if (tree_progress >= 1.0) {

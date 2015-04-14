@@ -371,7 +371,7 @@ int main(int argc, char* argv[]) {
       const vector<string> filenames = file_io.GetPoissonMeshes();
       for (int i = 1; i < filenames.size(); ++i) {
 	Mesh poisson_mesh;
-	if (!ReadMeshBinary(filenames[i], &poisson_mesh))
+	if (!ReadMesh(filenames[i], &poisson_mesh))
           continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
@@ -386,7 +386,7 @@ int main(int argc, char* argv[]) {
       const vector<string> filenames = file_io.GetFilteredPoissonMeshes();
       for (int i = 1; i < filenames.size(); ++i) {
 	Mesh poisson_mesh;
-	if (!ReadMeshBinary(filenames[i], &poisson_mesh))
+	if (!ReadMesh(filenames[i], &poisson_mesh))
           continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(poisson_mesh, panoramas, &rasterized_geometries);
@@ -404,7 +404,7 @@ int main(int argc, char* argv[]) {
       const vector<string> filenames = file_io.GetVgcutMeshes();
       for (int i = 0; i < filenames.size(); ++i) {
 	Mesh vgcut_mesh;
-	if (!ReadMeshAscii(filenames[i], &vgcut_mesh))
+	if (!ReadMesh(filenames[i], &vgcut_mesh))
           continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);
@@ -419,7 +419,7 @@ int main(int argc, char* argv[]) {
       const vector<string> filenames = file_io.GetFilteredVgcutMeshes();
       for (int i = 0; i < filenames.size(); ++i) {
 	Mesh vgcut_mesh;
-	if (!ReadMeshAscii(filenames[i], &vgcut_mesh))
+	if (!ReadMesh(filenames[i], &vgcut_mesh))
           continue;
 	Initialize(panoramas, kInitial, &rasterized_geometries);
 	RasterizeMesh(vgcut_mesh, panoramas, &rasterized_geometries);

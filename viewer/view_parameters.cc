@@ -383,6 +383,20 @@ Eigen::Vector3d ViewParameters::TransformRoom(const Vector3d& global,
                                              const double progress,
                                              const double animation,
                                              const Eigen::Vector3d& max_vertical_shift) const {
+  /*
+  double angle;
+  if (progress != 1.0) {
+    angle = 0.0;
+  } else {
+    if (animation < 0.25)
+      angle = 2 * M_PI * animation;
+    else if (0.25 <= animation && animation < 0.75)
+      angle = 2 * M_PI * (0.5 - animation);
+    else
+      angle = 2 * M_PI * animation;
+  } 
+  */
+
   double angle;
   if (animation < 0.25)
     angle = 2 * M_PI * animation;
