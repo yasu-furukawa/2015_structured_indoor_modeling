@@ -45,7 +45,11 @@ ostream& operator <<(ostream& ostr, const Detection& detection) {
        << detection.room << ' ' << detection.object << endl;
   for (int a = 0; a < 3; ++a)
     ostr << detection.ranges[a][0] << ' ' << detection.ranges[a][1] << endl;
-
+  ostr << "POLYGON" <<endl;
+  ostr << detection.elist.size()<<endl;
+  for(const auto&v: detection.elist)
+       ostr<<detection.vlist[v[0]][0]<<' '<<detection.vlist[v[0]][1]<<' '<<
+	    detection.vlist[v[1]][0]<<' '<<detection.vlist[v[1]][1]<<endl;
   return ostr;
 }
 

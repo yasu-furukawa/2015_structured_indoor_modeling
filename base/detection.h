@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 
 namespace structured_indoor_modeling {
 
@@ -32,42 +33,46 @@ namespace structured_indoor_modeling {
 //
 // 
 //
-struct Detection {
-  Detection() {
-    panorama = -1;
-    us[0] = us[1] = 0.0;
-    vs[0] = vs[1] = 0.0;
-    score = 0.0;
+    struct Detection {
+	Detection() {
+	    panorama = -1;
+	    us[0] = us[1] = 0.0;
+	    vs[0] = vs[1] = 0.0;
+	    score = 0.0;
     
-    room = -1;
-    object = -1;
-    for (int a = 0; a < 3; ++a)
-      ranges[a][0] = ranges[a][1] = 0.0;
-  }
+	    room = -1;
+	    object = -1;
+	    for (int a = 0; a < 3; ++a)
+		ranges[a][0] = ranges[a][1] = 0.0;
+	}
 
-  //----------------------------------------------------------------------
-  // Input of the pipeline (or output of the RCNN).
-  //----------------------------------------------------------------------
-  int panorama;
-  // Left and right u values. us[0] could be smaller than us[1].
-  Eigen::Vector2d us;
-  // Top and bottom v values. vs[0] is always saller than vs[1].
-  Eigen::Vector2d vs;
+	//----------------------------------------------------------------------
+	// Input of the pipeline (or output of the RCNN).
+	//----------------------------------------------------------------------
+	int panorama;
+	// Left and right u values. us[0] could be smaller than us[1].
+	Eigen::Vector2d us;
+	// Top and bottom v values. vs[0] is always saller than vs[1].
+	Eigen::Vector2d vs;
 
-  // Output of the object detector. Name and the detection score.
-  std::vector<std::string> names;
-  double score;
+	// Output of the object detector. Name and the detection score.
+	std::vector<std::string> names;
+	double score;
 
-  // Associated icon information.
-  int room;
-  int object;
-  // Bounding box in the floorplan coordinate.
-  Eigen::Vector2d ranges[3];
-};
+	// Associated icon information.
+	int room;
+	int object;
+	// Bounding box in the floorplan coordinate.
+	Eigen::Vector2d ranges[3];
+	
+	//polygon representation
+	std::vector<Eigen::Vector2d> vlist;
+	 std::list<Eigen::Vector2i> elist;
+    };
 
-std::istream& operator >>(std::istream& istr, Detection& detection);
-std::ostream& operator <<(std::ostream& ostr, const Detection& detection);
-std::istream& operator >>(std::istream& istr, std::vector<Detection>& detections);
-std::ostream& operator <<(std::ostream& ostr, const std::vector<Detection>& detections);
+    std::istream& operator >>(std::istream& istr, Detection& detection);
+    std::ostream& operator <<(std::ostream& ostr, const Detection& detection);
+    std::istream& operator >>(std::istream& istr, std::vector<Detection>& detections);
+    std::ostream& operator <<(std::ostream& ostr, const std::vector<Detection>& detections);
 
 }  // namespace structured_indoor_modeling

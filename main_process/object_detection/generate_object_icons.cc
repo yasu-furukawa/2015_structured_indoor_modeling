@@ -237,7 +237,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
   }
 
   //Add non-detected objects
-  const double min_area = 1e6;
+  const double min_area = 1e5;
   for(int roomid=0; roomid<num_room; ++roomid){
       const PointCloud& room_cloud = object_point_clouds[roomid];
       for(int objid=0; objid<room_cloud.GetNumObjects(); ++objid){
@@ -251,11 +251,13 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  detection.names[0] = "unknown";
 
 	  vector<Point>objpt;
+	  vector<Vector3d>manhattanpoints;
 	  room_cloud.GetObjectPoints(objid, objpt);
-
+	  
 	  vector<double> histograms[3];
 	  for (const auto& point : objpt) {
-	      const Vector3d& manhattan = indoor_polygon.GlobalToManhattan(point.position);
+	      Vector3d manhattan = indoor_polygon.GlobalToManhattan(point.position);
+	      manhattanpoints.push_back(manhattan);
 	      for (int a = 0; a < 3; ++a) {
 		  histograms[a].push_back(manhattan[a]);
 	      }
@@ -274,13 +276,135 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  }
 	  
 	  const double area_on_floorplan = (detection.ranges[0][1] - detection.ranges[0][0]) * (detection.ranges[1][1] - detection.ranges[1][0]);
-	  if(area_on_floorplan >= min_area)
+	  if(area_on_floorplan >= min_area){
+	       ComputeObjectPolygon(manhattanpoints, detection);
 	      detections->push_back(detection);
+	  }
 
       }
   }
   
 }
 
+
+    void ComputeObjectPolygon(const vector<Vector3d>& manhattan,
+			      Detection &detection){
+	static const double grid_size = 50.0;
+	static const int min_num = 3;
+	//asslocate grid
+	const int size_x = ceil((detection.ranges[0][1] - detection.ranges[0][0])/grid_size);
+	const int size_y = ceil((detection.ranges[1][1] - detection.ranges[1][0])/grid_size);
+	vector<vector<double> >grid(size_y);
+	for(auto& v:grid){
+	    v.resize(size_x);
+	    for(auto& vv:v)
+		vv = 0.0;
+	}
+	for(const auto&point: manhattan){
+	    const double curx = (point[0] - detection.ranges[0][0]) / grid_size;
+	    const double cury = (point[1] - detection.ranges[1][0]) / grid_size;
+	    if(curx >=0 && floor(curx)<size_x &&
+	       cury >=0 && floor(cury)<size_y){
+		grid[floor(cury)][floor(curx)] += 1.0;
+	    }
+	}
+
+	const double isovalue = 2.0;
+	MarchingCube(grid, detection.vlist, detection.elist, isovalue);
+	for(auto &v :detection.vlist){
+	     v[0] = v[0]*grid_size + detection.ranges[0][0];
+	     v[1] = v[1]*grid_size + detection.ranges[1][0];
+	}
+    }
+
+     void MarchingCube(std::vector<std::vector<double> >&grid,
+		       std::vector<Vector2d>&vlist,
+		       std::list<Vector2i>&elist,
+		       const double isovalue){
+	  if(grid.size() == 0)
+	       return;
+	  const int size_y = grid.size();
+	  const int size_x = grid[0].size();
+	  vector<vector<Vector2i> >ptindex(size_y);
+	  {
+	       for(auto& v:ptindex){
+		    v.resize(size_x);
+		    for(auto&vv: v)
+			 vv = Vector2i(-1,-1);;
+	       }
+	  }
+	  vector<vector<unsigned char> >shapetable(size_y-1);
+	  {
+	       for(auto&v: shapetable){
+		    v.resize(size_x-1);
+		    for(auto&vv:v)
+			 vv = 0;
+	       }
+	  }
+	  for(int y=0;y<size_y; ++y){
+	       for(int x=0;x<size_x;++x){
+		    if(grid[y][x] == isovalue)
+			 grid[y][x] -= 0.01;
+	       }
+	  }
+
+	  //initialize shape table
+	  for(int y=0; y<size_y-1; ++y){
+	       for(int x=0; x<size_x-1; ++x){
+		    unsigned char curshape = 0;
+		    if(grid[y][x] > isovalue)
+			 curshape = curshape | 1;
+		    if(grid[y][x+1] > isovalue)
+			 curshape = curshape | 2;
+		    if(grid[y+1][x+1] > isovalue)
+			 curshape = curshape | 4;
+		    if(grid[y+1][x] > isovalue)
+			 curshape = curshape | 8;
+		    
+		    if(curshape == 8 || curshape == 7){
+			 Vector2d pt1(x+(isovalue-grid[y][x])/(grid[y][x+1]-grid[y][x]),y);
+			 Vector2d pt2(x, y+(isovalue-grid[y][x]) / (grid[y+1][x] - grid[y][x]));
+			 vlist.push_back(pt1);
+			 vlist.push_back(pt2);
+			 elist.push_back(Vector2i(vlist.size()-2, vlist.size()-1));
+			 continue;
+		    }
+		    if(curshape == 9 || curshape == 6){
+			 Vector2d pt1(x+(isovalue-grid[y][x])/(grid[y][x+1]-grid[y][x]),y);
+			 Vector2d pt2(x+(isovalue-grid[y+1][x])/(grid[y+1][x+1]-grid[y+1][x]),y+1);
+			 vlist.push_back(pt1);
+			 vlist.push_back(pt2);
+			 elist.push_back(Vector2i(vlist.size()-2, vlist.size()-1));
+			 continue;
+		    }
+		    if(curshape == 3 || curshape == 12){
+			 Vector2d pt1(x, y+(isovalue-grid[y][x]) / (grid[y+1][x] - grid[y][x]));
+			 Vector2d pt2(x+1, y+(isovalue-grid[y][x+1]) / (grid[y+1][x+1] - grid[y][x+1]));
+			 vlist.push_back(pt1);
+			 vlist.push_back(pt2);
+			 elist.push_back(Vector2i(vlist.size()-2, vlist.size()-1));
+			 continue;
+		    }
+		    if(curshape == 10 || curshape == 5){
+			 Vector2d pt1(x+(isovalue-grid[y][x])/(grid[y][x+1]-grid[y][x]),y);
+			 Vector2d pt2(x+1, y+(isovalue-grid[y][x+1]) / (grid[y+1][x+1] - grid[y][x+1]));
+			 Vector2d pt3(x+(isovalue-grid[y+1][x])/(grid[y+1][x+1]-grid[y+1][x]),y+1);
+			 Vector2d pt4(x, y+(isovalue-grid[y][x]) / (grid[y+1][x] - grid[y][x]));
+			 vlist.push_back(pt1);
+			 vlist.push_back(pt2);
+			 vlist.push_back(pt3);
+			 vlist.push_back(pt4);
+			 if(curshape == 10){
+			      elist.push_back(Vector2i(vlist.size()-4,vlist.size()-1));
+			      elist.push_back(Vector2i(vlist.size()-3,vlist.size()-2));
+			 }
+			 if(curshape == 5){
+			      elist.push_back(Vector2i(vlist.size()-4,vlist.size()-3));
+			      elist.push_back(Vector2i(vlist.size()-1,vlist.size()-2));
+			 }			 
+		    }
+	       }
+	  }
+     }
 }  // namespace structured_indoor_modeling
   

@@ -11,6 +11,7 @@ endif(UNIX)
 
 if(${CMAKE_SYSTEM} MATCHES "Darwin")
    set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
+   include_directories("/usr/local/include/eigen3")			  		     
 endif(${CMAKE_SYSTEM} MATCHES "Darwin")
 
 if(${CMAKE_SYSTEM} MATCHES "Linux")
