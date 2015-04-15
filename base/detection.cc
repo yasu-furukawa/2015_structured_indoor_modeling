@@ -8,7 +8,7 @@ using namespace std;
 namespace structured_indoor_modeling {
 
 istream& operator >>(istream& istr, Detection& detection) {
-  string header;
+    string header,temp;
   istr >> header
        >> detection.panorama
        >> detection.us[0] >> detection.us[1]
@@ -20,7 +20,7 @@ istream& operator >>(istream& istr, Detection& detection) {
     istr >> detection.names[i];
   istr >> detection.score;
 
-  if (header == "DETECTION_WITH_ICON") {
+  if (header == "DETECTION_WITH_ICON" || header == "DETECTION_WITH_ICON_AND_POLYGON") {
     istr >> detection.room >> detection.object;
     for (int a = 0; a < 3; ++a) {
       for (int i = 0; i < 2; ++i) {
@@ -28,12 +28,22 @@ istream& operator >>(istream& istr, Detection& detection) {
       }
     }
   }
-  
+  if(header == "DETECTION_WITH_ICON_AND_POLYGON"){
+      istr >> temp;
+      int v_num, e_num;
+      istr >> v_num >> e_num;
+      detection.vlist.resize(v_num);
+      detection.elist.resize(e_num);
+      for(int vid=0; vid<v_num; ++vid)
+	  istr >> detection.vlist[vid][0] >> detection.vlist[vid][1];
+      for(int eid=0; eid<e_num; ++eid)
+	  istr >> detection.elist[eid][0] >> detection.elist[eid][1];
+  }
   return istr;
 }
 
 ostream& operator <<(ostream& ostr, const Detection& detection) {
-  ostr << "DETECTION_WITH_ICON" << endl
+  ostr << "DETECTION_WITH_ICON_AND_POLYGON" << endl
        << detection.panorama << endl
        << detection.us[0] << ' ' << detection.us[1] << endl
        << detection.vs[0] << ' ' << detection.vs[1] << endl
@@ -46,10 +56,11 @@ ostream& operator <<(ostream& ostr, const Detection& detection) {
   for (int a = 0; a < 3; ++a)
     ostr << detection.ranges[a][0] << ' ' << detection.ranges[a][1] << endl;
   ostr << "POLYGON" <<endl;
-  ostr << detection.elist.size()<<endl;
+  ostr << detection.vlist.size()<<' '<<detection.elist.size()<<endl;
+  for(const auto&v: detection.vlist)
+      ostr << v[0]<<' '<<v[1]<<endl;
   for(const auto&v: detection.elist)
-       ostr<<detection.vlist[v[0]][0]<<' '<<detection.vlist[v[0]][1]<<' '<<
-	    detection.vlist[v[1]][0]<<' '<<detection.vlist[v[1]][1]<<endl;
+      ostr << v[0]<<' '<<v[1]<<endl;
   return ostr;
 }
 

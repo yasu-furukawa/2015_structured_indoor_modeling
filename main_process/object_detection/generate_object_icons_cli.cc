@@ -13,7 +13,7 @@
 #include "../../base/point_cloud.h"
 #include "generate_object_icons.h"
 
-#define __INCOMPLETE__
+//#define __INCOMPLETE__
 
 using namespace Eigen;
 using namespace std;
@@ -85,8 +85,8 @@ int main(int argc, char* argv[]) {
                                  &detections);
 
   ofstream ofstr;
-//  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
-  ofstr.open("temp_detection.txt");
+  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
+//  ofstr.open("temp_detection.txt");
   ofstr << detections;
   ofstr.close();
 

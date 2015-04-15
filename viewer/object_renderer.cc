@@ -945,7 +945,8 @@ void ObjectRenderer::RenderName(const Detection& detection,
 void ObjectRenderer::RenderDefault(const Detection& detection,
                                    const Eigen::Vector3d vs[4],
                                    const double animation) const {
-  RenderRectangle(detection, vs, animation, Vector3f(0.8f, 1.0f, 0.8f));
+    RenderRectangle(detection, vs, animation, Vector3f(0.8f, 1.0f, 0.8f));
+//    RenderObjectPolygon(detection, Vector3f(0.0,0.0,0.0));
 }
 
 void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
@@ -1016,6 +1017,26 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
   glDisable(GL_BLEND);
 }
 
+void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
+					  const Vector3f& color) const{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    glBegin(GL_LINES);
+    glColor3f(color[0], color[1], color[2]);
+    for(const auto&edge: detection.elist){
+	Vector3d v1(detection.vlist[edge[0]][0], detection.vlist[edge[0]][1], average_floor_height);
+	Vector3d v2(detection.vlist[edge[1]][0], detection.vlist[edge[1]][1], average_floor_height);
+	v1 = indoor_polygon.ManhattanToGlobal(v1);
+	v2 = indoor_polygon.ManhattanToGlobal(v2);
+	glVertex3d(v1[0],v1[1],v1[2]);
+	glVertex3d(v2[0],v2[1],v2[2]);
+    }
+    glEnd();
+    glDisable(GL_BLEND);
+}
+
+    
 void ObjectRenderer::RotateToFrontal(const Detection& detection,
                                      Eigen::Vector3d vs[4]) const {
   const Vector3d center = (vs[0] + vs[1] + vs[2] + vs[3]) / 4.0;
@@ -1102,6 +1123,10 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
     } else if (detection.names[0] == "lamp") {
       RenderLamp(detection, vs, animation);
     } else {
+	vector<Vector3d>pvs;
+	for(const auto&v: detection.vlist){
+	    pvs.push_back(Vector3d(v[0],v[1],average_floor_height));
+	}
       RenderDefault(detection, vs, animation);
     }
 

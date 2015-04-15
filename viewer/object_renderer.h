@@ -61,6 +61,8 @@ private:
                        const Eigen::Vector3d bounding_boxes[4],
                        const double animation,
                        const Eigen::Vector3f& color) const;
+  void RenderObjectPolygon(const Detection& detection,
+			   const Eigen::Vector3f& color) const;
   void RenderDesk(const Detection& detection,
                   const Eigen::Vector3d bounding_boxes[4],
                   const double animation) const;
