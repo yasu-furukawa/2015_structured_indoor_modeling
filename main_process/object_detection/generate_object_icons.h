@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <map>
 #include <vector>
+#include <list>
 #include "../../base/detection.h"
 #include "../../base/panorama.h"
 #include "../../base/point_cloud.h"
@@ -29,10 +30,13 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
                                     const std::map<ObjectId, int>& object_to_detection,
                                     std::vector<Detection>* detections);
 
-void ComputeObjectPolygon(const std::vector<Point>& object_points,
+void ComputeObjectPolygon(const std::vector<Eigen::Vector3d>& object_points,
 			  Detection &detection);
 
-void ComputeConvexHull(std::vector<std::pair<double,double> >& ptset,
-		       std::list<Vector2d>& vlist);
+void MarchingCube(std::vector<std::vector<double> >&grid,
+		  std::vector<Eigen::Vector2d>&vlist,
+		  std::list<Eigen::Vector2i>&elist,
+		  const double isovalue);
+
 
 }  // namespace structured_indoor_modeling

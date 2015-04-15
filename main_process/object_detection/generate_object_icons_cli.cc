@@ -13,6 +13,8 @@
 #include "../../base/point_cloud.h"
 #include "generate_object_icons.h"
 
+#define __INCOMPLETE__
+
 using namespace Eigen;
 using namespace std;
 using namespace structured_indoor_modeling;
@@ -21,12 +23,16 @@ DEFINE_double(score_threshold, 0.0, "Ignore detections below this threshold.");
 DEFINE_double(area_threshold, 0.01, "How many pixels in a bounding box must be of the object."); // 0.3
 
 int main(int argc, char* argv[]) {
+#ifdef __INCOMPLETE__
+     cout<<"incomplete code, please wait for further push!"<<endl;
+     return 0;
+#endif
   if (argc < 2) {
     cerr << "Usage: " << argv[0] << " data_directory" << endl;
     return 1;
   }
 #ifdef __APPLE__
-  google::ParseCommandLineFlags(&argc, &argv, true);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
 #else
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
@@ -79,7 +85,8 @@ int main(int argc, char* argv[]) {
                                  &detections);
 
   ofstream ofstr;
-  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
+//  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
+  ofstr.open("temp_detection.txt");
   ofstr << detections;
   ofstr.close();
 
