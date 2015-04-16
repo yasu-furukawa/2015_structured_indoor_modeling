@@ -102,6 +102,7 @@ private:
 
   double average_floor_height;
   double distance_per_pixel;
+  double point_size;
 
   std::vector<std::vector<std::vector<float> > > vertices;
   std::vector<std::vector<std::vector<float> > > colors;
