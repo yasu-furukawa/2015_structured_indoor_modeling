@@ -57,12 +57,16 @@ int main(int argc, char* argv[]) {
     ifstr >> detections;
     ifstr.close();
   }
-  
+
   vector<PointCloud> object_point_clouds;
   {
+       cout<<file_io.GetFloorplan()<<endl<<flush;
     Floorplan floorplan(file_io.GetFloorplan());
+    cout<<"c1 "<<flush;
     ReadRefinedObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
+    cout<<"c2 "<<flush;
   }
+
   
   // Compute an object id map for each panorama.
   vector<vector<ObjectId> > object_id_maps;

@@ -314,6 +314,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	    v[0] = (v[0]-1)*grid_size + detection.ranges[0][0];
 	    v[1] = (v[1]-1)*grid_size + detection.ranges[1][0];
 	}
+	
     }
 
      void MarchingCube(std::vector<std::vector<double> >&grid,
@@ -322,6 +323,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		       const double isovalue){
 	  if(grid.size() == 0)
 	       return;
+	  cout<<"Marching cube..."<<endl<<flush;
 	  const int size_y = grid.size();
 	  const int size_x = grid[0].size();
 	  vector<vector<Vector2i> >ptindex(size_y);
@@ -560,6 +562,60 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		    }
 	       }
 	  }
+	  SortPolygon(elist);
+     }
+
+
+     void SortPolygon(vector<Vector2i>&elist){
+	  cout<<"Sort polygon..."<<endl<<flush;
+	  vector<vector<Vector2i> >esorted;
+	  vector<bool>issorted(elist.size());
+	  for(int i=0; i<elist.size(); ++i)
+	       issorted[i] = false;
+
+	  bool isbreak = false;
+	  while(isbreak){
+	       //find the first unsorted edge
+	       int first;
+	       vector<Vector2i>curelist;
+	       for(first=0; first<elist.size(); ++first){
+		    if(issorted[first] == false)
+			 break;
+	       }
+	       if(first == elist.size())
+		    break;
+	       
+	       issorted[first] = true;
+	       curelist.push_back(elist[first]);
+	       
+	       bool isadded = false;
+	       while(1){
+		    for(int eid=first+1; eid<elist.size(); ++eid){
+			 if(issorted[eid])
+			      continue;
+			 if(elist[eid][0] == elist[first][1]){
+			      isadded = true;
+			      curelist.push_back(elist[eid]);
+			      issorted[eid] = true;
+			 }
+			 if(elist[eid][1] == elist[first][1]){
+			      isadded = true;
+			      curelist.push_back(Vector2i(elist[eid][1],elist[eid][0]));
+			      issorted[eid] = true;
+			 }
+		    }
+		    if(!isadded)
+			 break;
+	       }
+	       if(esorted.size() == 0)
+		    esorted.push_back(curelist);
+	       else{
+		    if(curelist.size() > esorted.back().size())
+			 esorted.push_back(curelist);
+	       }
+	  }
+	  elist.swap(esorted.back());
+	  
      }
 }  // namespace structured_indoor_modeling
   
