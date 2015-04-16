@@ -60,11 +60,8 @@ int main(int argc, char* argv[]) {
 
   vector<PointCloud> object_point_clouds;
   {
-       cout<<file_io.GetFloorplan()<<endl<<flush;
     Floorplan floorplan(file_io.GetFloorplan());
-    cout<<"c1 "<<flush;
     ReadRefinedObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
-    cout<<"c2 "<<flush;
   }
 
   
