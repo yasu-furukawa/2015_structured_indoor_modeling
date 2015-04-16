@@ -67,7 +67,7 @@ namespace structured_indoor_modeling {
 	
 	//polygon representation
 	std::vector<Eigen::Vector2d> vlist;
-	 std::list<Eigen::Vector2i> elist;
+	 std::vector<Eigen::Vector2i> elist;
     };
 
     std::istream& operator >>(std::istream& istr, Detection& detection);

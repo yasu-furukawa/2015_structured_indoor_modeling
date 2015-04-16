@@ -35,8 +35,11 @@ void ComputeObjectPolygon(const std::vector<Eigen::Vector3d>& object_points,
 
 void MarchingCube(std::vector<std::vector<double> >&grid,
 		  std::vector<Eigen::Vector2d>&vlist,
-		  std::list<Eigen::Vector2i>&elist,
+		  std::vector<Eigen::Vector2i>&elist,
 		  const double isovalue);
+
+void SortPolygon(std::vector<Eigen::Vector2i>&elist);
+		 
 
 
 }  // namespace structured_indoor_modeling

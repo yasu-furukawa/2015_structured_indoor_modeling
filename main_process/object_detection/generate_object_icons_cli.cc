@@ -13,7 +13,7 @@
 #include "../../base/point_cloud.h"
 #include "generate_object_icons.h"
 
-#define __INCOMPLETE__
+//#define __INCOMPLETE__
 
 using namespace Eigen;
 using namespace std;
@@ -57,12 +57,13 @@ int main(int argc, char* argv[]) {
     ifstr >> detections;
     ifstr.close();
   }
-  
+
   vector<PointCloud> object_point_clouds;
   {
     Floorplan floorplan(file_io.GetFloorplan());
     ReadRefinedObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
   }
+
   
   // Compute an object id map for each panorama.
   vector<vector<ObjectId> > object_id_maps;
@@ -85,8 +86,8 @@ int main(int argc, char* argv[]) {
                                  &detections);
 
   ofstream ofstr;
-//  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
-  ofstr.open("temp_detection.txt");
+  ofstr.open(file_io.GetObjectDetectionsFinal().c_str());
+//  ofstr.open("temp_detection.txt");
   ofstr << detections;
   ofstr.close();
 
