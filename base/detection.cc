@@ -31,13 +31,10 @@ istream& operator >>(istream& istr, Detection& detection) {
   if(header == "DETECTION_WITH_ICON_AND_POLYGON"){
       istr >> temp;
       int v_num, e_num;
-      istr >> v_num >> e_num;
+      istr >> v_num;
       detection.vlist.resize(v_num);
-      detection.elist.resize(e_num);
       for(int vid=0; vid<v_num; ++vid)
 	  istr >> detection.vlist[vid][0] >> detection.vlist[vid][1];
-      for(int eid=0; eid<e_num; ++eid)
-	  istr >> detection.elist[eid][0] >> detection.elist[eid][1];
   }
   return istr;
 }
@@ -56,10 +53,8 @@ ostream& operator <<(ostream& ostr, const Detection& detection) {
   for (int a = 0; a < 3; ++a)
     ostr << detection.ranges[a][0] << ' ' << detection.ranges[a][1] << endl;
   ostr << "POLYGON" <<endl;
-  ostr << detection.vlist.size()<<' '<<detection.elist.size()<<endl;
+  ostr << detection.vlist.size()<<endl;
   for(const auto&v: detection.vlist)
-      ostr << v[0]<<' '<<v[1]<<endl;
-  for(const auto&v: detection.elist)
       ostr << v[0]<<' '<<v[1]<<endl;
   return ostr;
 }

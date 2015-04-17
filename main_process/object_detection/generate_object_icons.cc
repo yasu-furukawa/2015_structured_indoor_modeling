@@ -212,11 +212,13 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
     isAdded[detection.room][detection.object] = true;
 
     vector<Point> points;
+    vector<Vector3d>manhattanpoints;
     object_point_clouds[detection.room].GetObjectPoints(detection.object, points);
 
     vector<double> histograms[3];
     for (const auto& point : points) {
       const Vector3d& manhattan = indoor_polygon.GlobalToManhattan(point.position);
+      manhattanpoints.push_back(manhattan);
       for (int a = 0; a < 3; ++a) {
         histograms[a].push_back(manhattan[a]);
       }
@@ -234,6 +236,8 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
       nth_element(histograms[a].begin(), upper_ite, histograms[a].end());
       detection.ranges[a][1] = *upper_ite;
     }
+    //compute polygon
+    ComputeObjectPolygon(manhattanpoints, detection);
   }
 
   //Add non-detected objects
@@ -278,7 +282,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  const double area_on_floorplan = (detection.ranges[0][1] - detection.ranges[0][0]) * (detection.ranges[1][1] - detection.ranges[1][0]);
 	  if(area_on_floorplan >= min_area){
 	       ComputeObjectPolygon(manhattanpoints, detection);
-	      detections->push_back(detection);
+	       detections->push_back(detection);
 	  }
 
       }
@@ -289,13 +293,15 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 
     void ComputeObjectPolygon(const vector<Vector3d>& manhattan,
 			      Detection &detection){
-	static const double grid_size = 60.0;
+	static const double grid_size = 40.0;
 	//asslocate grid
 	const int size_x = ceil((detection.ranges[0][1] - detection.ranges[0][0])/grid_size);
 	const int size_y = ceil((detection.ranges[1][1] - detection.ranges[1][0])/grid_size);
-	vector<vector<double> >grid(size_y+10);
+	const int margin_begin = 5;
+	const int margin_end = 5;
+	vector<vector<double> >grid(size_y+margin_end+margin_begin + 5);
 	for(auto& v:grid){
-	    v.resize(size_x+10);
+	    v.resize(size_x+margin_end+margin_begin + 5);
 	    for(auto& vv:v)
 		vv = 0.0;
 	}
@@ -304,15 +310,40 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	    const double cury = (point[1] - detection.ranges[1][0]) / grid_size;
 	    if(curx >=0 && floor(curx)<size_x &&
 	       cury >=0 && floor(cury)<size_y){
-		grid[floor(cury)+1][floor(curx)+1] += 1.0;
+		grid[floor(cury)+margin_begin][floor(curx)+margin_begin] += 1.0;
 	    }
 	}
 
 	const double isovalue = 0.5;
+	const int dialate_iter = 3;
+	//dialate
+	for(int iter=0; iter<dialate_iter; ++iter){
+	     vector<vector<double> >grid_copy = grid;
+	     for(int y=margin_begin; y<size_y+margin_begin; ++y){
+		  for(int x=margin_begin; x<size_x+margin_begin; ++x){
+		       for(int dy=-1; dy<=1; ++dy){
+			    for(int dx=-1; dx<=1; ++dx){
+				 if(dx==0 && dy==0)
+				      continue;
+				 if(grid_copy[y+dy][x+dx] >= isovalue){
+				      grid[y][x] = isovalue + 1.0;
+				      break;
+				 }
+
+			    }
+		       }
+		  }
+	     }
+	}
+
 	MarchingCube(grid, detection.vlist, detection.elist, isovalue);
+	SortPolygon(detection.vlist, detection.elist);
+	Smoothing(detection.vlist, 3);
+	Simplification(detection.vlist);
+
 	for(auto &v :detection.vlist){
-	    v[0] = (v[0]-1)*grid_size + detection.ranges[0][0];
-	    v[1] = (v[1]-1)*grid_size + detection.ranges[1][0];
+	    v[0] = (v[0]-margin_begin)*grid_size + detection.ranges[0][0];
+	    v[1] = (v[1]-margin_begin)*grid_size + detection.ranges[1][0];
 	}
 	
     }
@@ -338,7 +369,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  for(int y=0;y<size_y; ++y){
 	       for(int x=0;x<size_x;++x){
 		    if(grid[y][x] == isovalue)
-			 grid[y][x] -= 0.5;
+			 grid[y][x] -= 0.2;
 	       }
 	  }
 
@@ -562,14 +593,34 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		    }
 	       }
 	  }
-	  SortPolygon(elist);
      }
 
+    bool SanityCheck(const vector<Vector2i>&elist){
+	vector<int> sanity(10000);
+	for(auto &v: sanity)
+	    v = 0;
+	for(const auto& edge: elist){
+	    sanity[edge[0]] += 1;
+	    sanity[edge[1]] += 1;
+	}
+	bool iscorrect = true;
+	for(const auto&v: sanity)
+	    if(v % 2 == 1)
+		iscorrect = false;
+	return iscorrect;
+    }
 
-     void SortPolygon(vector<Vector2i>&elist){
+     void SortPolygon(vector<Vector2d>&vlist, vector<Vector2i>&elist){
 	  if(elist.size() == 0)
 	       return;
-	  cout<<"Sort polygon..."<<endl<<flush;
+	  //sanity check
+	  if(!SanityCheck(elist)){
+//	      cout<<"Fore-check: incomplete loop!"<<endl;
+	      return;
+	  }
+//	  cout<<"Fore-check passed"<<endl;
+
+//	  cout<<"Sort polygon..."<<endl<<flush;
 	  vector<vector<Vector2i> >esorted;
 	  vector<bool>issorted(elist.size());
 	  for(int i=0; i<elist.size(); ++i)
@@ -577,13 +628,13 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  while(1){
 	       //find the first unsorted edge
 	       int first;
-	       vector<Vector2i>curelist;
 	       for(first=0; first<elist.size(); first++){
 		    if(issorted[first] == false)
 			 break;
 	       }
 	       if(first == elist.size())
 		    break;
+	       vector<Vector2i>curelist;
 	       issorted[first] = true;
 	       curelist.push_back(elist[first]);
 	       while(1){
@@ -591,35 +642,77 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		    for(int eid=0; eid<elist.size(); ++eid){
 			 if(issorted[eid])
 			      continue;
-			 if(elist[eid][0] == elist[first][1]){
+			 if(elist[eid][0] == curelist.back()[1]){
 			      isadded = true;
 			      curelist.push_back(elist[eid]);
 			      issorted[eid] = true;
-			      first = eid;
-			      break;
-			 }
-			 if(elist[eid][1] == elist[first][1]){
+			 }else if(elist[eid][1] == curelist.back()[1]){
 			      isadded = true;
 			      curelist.push_back(Vector2i(elist[eid][1],elist[eid][0]));
 			      issorted[eid] = true;
-			      first = eid;
-			      break;
 			 }
 		    }
 		    if(!isadded)
 			 break;
 	       }
-
-	       
 	       if(esorted.size() == 0)
-		    esorted.push_back(curelist);
-	       else{
-		    if(curelist.size() > esorted.back().size())
-			 esorted.push_back(curelist);
-	       }
+		   esorted.push_back(curelist);
+	       else if(curelist.size() > esorted.back().size())
+		   esorted.push_back(curelist);
 	  }
 	  elist.swap(esorted.back());
-	  
+	  if(!SanityCheck(elist)){
+//	      cout<<"Post-check: incomplete loop!"<<endl;
+	      return;
+	  }
+	  vector<Vector2d>reslist;
+	  int lastv = -1;
+	  for(const auto&edge: elist){
+	       if(edge[0] != lastv){
+		    reslist.push_back(vlist[edge[0]]);
+		    lastv = edge[0];
+	       }
+	       if(edge[1] != lastv){
+		    reslist.push_back(vlist[edge[1]]);
+		    lastv = edge[1];
+	       }
+	  }
+	  vlist.swap(reslist);
+     }
+
+     void Smoothing(vector<Vector2d>& vlist, const int iteration, const double lambda){
+	  if(lambda == 0)
+	       return;
+	  for(int iter = 0; iter<iteration * 2; iter++){
+	       double curlambda;
+	       if(iter % 2 == 0)
+		    curlambda = lambda;
+	       else
+		    curlambda = 1 / (0.1 - 1/lambda);
+
+	       vector<Vector2d>ori = vlist;
+	       for(int vid=1; vid<ori.size() - 1; ++vid){
+		    vlist[vid] = curlambda * ori[vid] + (1 - curlambda) * (ori[vid-1]+ori[vid+1])/2;
+	       }
+	       vlist[0] = curlambda * ori[0] + (1-curlambda) * (ori.back() + ori[2]) / 2;
+	       vlist.back() = curlambda * ori.back() + (1-lambda) *(ori[0] + ori[ori.size()-2])/2;
+	       
+	  }
+     }
+
+     void Simplification(vector<Vector2d>&vlist, const double margin){
+	  vector<Vector2d>reslist;
+	  reslist.push_back(vlist[0]);
+	  for(int vid=1; vid<vlist.size()-1; ++vid){
+	       Vector2d line = vlist[vid-1] - vlist[vid+1];
+	       Vector2d n(-1*line[1], line[0]);
+	       n.normalize();
+	       double dis = abs(vlist[vid].dot(n));
+	       if(dis >= margin)
+		    reslist.push_back(vlist[vid]);
+	  }
+	  reslist.push_back(vlist.back());
+	  vlist.swap(reslist);
      }
 }  // namespace structured_indoor_modeling
   

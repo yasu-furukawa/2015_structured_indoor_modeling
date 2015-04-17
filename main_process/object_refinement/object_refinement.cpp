@@ -415,7 +415,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
 
 
 //     if 95% points are too near to a wall, remove
-     const double removeRatio = 0.70;
+     const double removeRatio = 0.75;
      for(int objid=0; objid<objectcloud.GetNumObjects(); objid++){
      	  vector<structured_indoor_modeling::Point> objpt;
      	  objectcloud.GetObjectPoints(objid, objpt);

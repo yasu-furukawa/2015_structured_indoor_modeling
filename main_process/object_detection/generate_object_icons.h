@@ -38,7 +38,12 @@ void MarchingCube(std::vector<std::vector<double> >&grid,
 		  std::vector<Eigen::Vector2i>&elist,
 		  const double isovalue);
 
-void SortPolygon(std::vector<Eigen::Vector2i>&elist);
+void Smoothing(std::vector<Eigen::Vector2d>& vlist, const int iteration = 1, const double lambda = 0.5);
+void Simplification(std::vector<Eigen::Vector2d>& vlist, const double margin = 10.0);
+
+bool SanityCheck(const std::vector<Eigen::Vector2i>&elist);
+
+void SortPolygon(std::vector<Eigen::Vector2d>& vlist,std::vector<Eigen::Vector2i>&elist);
 		 
 
 
