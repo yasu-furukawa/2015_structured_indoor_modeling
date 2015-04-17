@@ -63,6 +63,8 @@ ObjectRenderer::ObjectRenderer(const Floorplan& floorplan,
   const double x_diff = x_range[1] - x_range[0];
   const double y_diff = y_range[1] - y_range[0];
   distance_per_pixel = max(max(x_diff, y_diff) / 1024.0, min(x_diff, y_diff) / 768.0);
+
+  point_size = 0.25;
 }
 
 ObjectRenderer::~ObjectRenderer() {
@@ -215,7 +217,7 @@ void ObjectRenderer::RenderAll(const double position) {
         // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
         glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
       }
-      glPointSize(0.5);
+      glPointSize(point_size);
       
       glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object_id].size()) / 3);
     }
@@ -281,7 +283,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
             // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
             glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
           }
-          glPointSize(0.5);
+          glPointSize(point_size);
           
           glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
         }
@@ -377,7 +379,7 @@ void ObjectRenderer::RenderAll(const ViewParameters& view_parameters,
             // glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
             glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
           }
-          glPointSize(0.5);
+          glPointSize(point_size);
           
           glDrawArrays(GL_POINTS, 0, ((int)vertices[room][object].size()) / 3);
 

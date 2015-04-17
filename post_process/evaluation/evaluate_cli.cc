@@ -127,7 +127,7 @@ void WriteDepthErrormap(const PointCloud& input_point_cloud,
       acos(min(1.0, max(-1.0, rasterized_geometry[index].normal.dot(point.normal)))) * 180.0 / M_PI;
     
     depth_errors[index] = depth_error;
-    normal_errors[index] = normal_error; // min(normal_error, 180.0 - normal_error);
+    normal_errors[index] = normal_error;
   }
 
   const double alpha = 0.0;

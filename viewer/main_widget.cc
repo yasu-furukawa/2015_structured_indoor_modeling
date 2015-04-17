@@ -660,23 +660,33 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
       navigation.MoveBackwardPanorama();
     }
   } else if (e->key() == Qt::Key_Left) {
+    double rotation_angle = kRotationAngle;
+    if(e->modifiers() & Qt::ShiftModifier) {
+      rotation_angle = 10.0 * M_PI / 180.0;
+    }
+       
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.RotatePanorama(kRotationAngle);
+      navigation.RotatePanorama(rotation_angle);
     } else if (navigation.GetCameraStatus() == kAir ||
                navigation.GetCameraStatus() == kTree) {
-      navigation.RotateAir(-kRotationAngle);
+      navigation.RotateAir(-rotation_angle);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
-      navigation.RotateFloorplan(-kRotationAngle);
+      navigation.RotateFloorplan(-rotation_angle);
     }
   }
   else if (e->key() == Qt::Key_Right) {
+    double rotation_angle = kRotationAngle;
+    if(e->modifiers() & Qt::ShiftModifier) {
+      rotation_angle = 10.0 * M_PI / 180.0;
+    }
+    
     if (navigation.GetCameraStatus() == kPanorama) {
-      navigation.RotatePanorama(-kRotationAngle);
+      navigation.RotatePanorama(-rotation_angle);
     } else if (navigation.GetCameraStatus() == kAir ||
                navigation.GetCameraStatus() == kTree) {
-      navigation.RotateAir(kRotationAngle);
+      navigation.RotateAir(rotation_angle);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
-      navigation.RotateFloorplan(kRotationAngle);
+      navigation.RotateFloorplan(rotation_angle);
     }
   }
   //----------------------------------------------------------------------
