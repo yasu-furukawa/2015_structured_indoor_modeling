@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include "../../base/indoor_polygon.h"
+#include "polygon_triangulation2.h"
 #include "generate_object_icons.h"
 
 using namespace Eigen;
@@ -336,11 +337,15 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	     }
 	}
 
-	MarchingCube(grid, detection.vlist, detection.elist, isovalue);
-	SortPolygon(detection.vlist, detection.elist);
-	Smoothing(detection.vlist, 3);
-	Simplification(detection.vlist);
+	vector<Vector2i>linelist;
+	MarchingCube(grid, detection.vlist, linelist, isovalue);
+	SortPolygon(detection.vlist, linelist);
+//	Smoothing(detection.vlist, 1);
+	Simplification(detection.vlist, 0.01);
 
+	//triangulation
+	Cgal::Triangulate(detection.vlist, &detection.elist);
+	
 	for(auto &v :detection.vlist){
 	    v[0] = (v[0]-margin_begin)*grid_size + detection.ranges[0][0];
 	    v[1] = (v[1]-margin_begin)*grid_size + detection.ranges[1][0];
@@ -677,6 +682,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		    lastv = edge[1];
 	       }
 	  }
+	  reslist.pop_back();
 	  vlist.swap(reslist);
      }
 
@@ -691,11 +697,11 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		    curlambda = 1 / (0.1 - 1/lambda);
 
 	       vector<Vector2d>ori = vlist;
+	       vlist[0] = curlambda * ori[0] + (1-curlambda) * (ori.back() + ori[2]) / 2;
 	       for(int vid=1; vid<ori.size() - 1; ++vid){
 		    vlist[vid] = curlambda * ori[vid] + (1 - curlambda) * (ori[vid-1]+ori[vid+1])/2;
 	       }
-	       vlist[0] = curlambda * ori[0] + (1-curlambda) * (ori.back() + ori[2]) / 2;
-	       vlist.back() = curlambda * ori.back() + (1-lambda) *(ori[0] + ori[ori.size()-2])/2;
+//	       vlist.back() = curlambda * ori.back() + (1-lambda) *(ori[0] + ori[ori.size()-2])/2;
 	       
 	  }
      }
@@ -707,7 +713,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	       Vector2d line = vlist[vid-1] - vlist[vid+1];
 	       Vector2d n(-1*line[1], line[0]);
 	       n.normalize();
-	       double dis = abs(vlist[vid].dot(n));
+	       double dis = abs((vlist[vid]-vlist[vid-1]).dot(n));
 	       if(dis >= margin)
 		    reslist.push_back(vlist[vid]);
 	  }

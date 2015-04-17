@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 project(object_detection)
 
 FIND_PACKAGE(OpenCV REQUIRED)
+FIND_PACKAGE(CGAL QUIET COMPONENTS Core)
 
+INCLUDE( ${CGAL_USE_FILE} )
 link_directories(/usr/local/lib)
 
 if(UNIX)
@@ -25,9 +27,10 @@ if (WIN32)
 	link_directories("C:\\gflags-2.1.1\\lib")	
 endif (WIN32)
 
-add_executable( generate_object_icons_cli generate_object_icons_cli.cc generate_object_icons.cc ../../base/detection.cc ../../base/floorplan.cc ../../base/indoor_polygon.cc ../../base/panorama.cc ../../base/point_cloud.cc )
+add_executable( generate_object_icons_cli generate_object_icons_cli.cc generate_object_icons.cc polygon_triangulation2.cc ../../base/detection.cc ../../base/floorplan.cc ../../base/indoor_polygon.cc ../../base/panorama.cc ../../base/point_cloud.cc )
 target_link_libraries( generate_object_icons_cli ${OpenCV_LIBS} )
 target_link_libraries( generate_object_icons_cli gflags )
+target_link_libraries( generate_object_icons_cli ${CGAL_LIBRARIES} ${CGAL_3RDPARTY_LIBRARIES})
 
 if(${CMAKE_SYSTEM} MATCHES "Linux")
   target_link_libraries(generate_object_icons_cli pthread)

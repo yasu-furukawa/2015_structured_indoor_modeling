@@ -1025,24 +1025,33 @@ void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glBegin(GL_POLYGON);
+    glBegin(GL_TRIANGLES);
     glColor4f(color[0], color[1], color[2], 0.5f);
-    for(const auto&pt: detection.vlist){
-	 Vector3d v(pt[0], pt[1], average_floor_height);
-    	v = indoor_polygon.ManhattanToGlobal(v);
-    	glVertex3d(v[0],v[1],v[2]);
+    for(const auto&edge: detection.elist){
+	Vector3d v1(detection.vlist[edge[0]][0], detection.vlist[edge[0]][1], average_floor_height);
+	Vector3d v2(detection.vlist[edge[1]][0], detection.vlist[edge[1]][1], average_floor_height);
+	Vector3d v3(detection.vlist[edge[2]][0], detection.vlist[edge[2]][1], average_floor_height);
+    	v1 = indoor_polygon.ManhattanToGlobal(v1);
+	v2 = indoor_polygon.ManhattanToGlobal(v2);
+	v3 = indoor_polygon.ManhattanToGlobal(v3);
+    	glVertex3d(v1[0],v1[1],v1[2]);
+	glVertex3d(v2[0],v2[1],v2[2]);
+	glVertex3d(v3[0],v3[1],v3[2]);
     }
     glEnd();
 
     glLineWidth(0.5);
     glColor4f(0.0,0.0,0.0,1.0);
-    glBegin(GL_LINES);
+    glBegin(GL_LINE_STRIP);
 
     for(const auto&pt: detection.vlist){
 	 Vector3d v(pt[0], pt[1], average_floor_height);
 	 v = indoor_polygon.ManhattanToGlobal(v);
 	 glVertex3d(v[0],v[1],v[2]);
     }
+    Vector3d v0(detection.vlist[0][0], detection.vlist[0][1], average_floor_height);
+    v0 = indoor_polygon.ManhattanToGlobal(v0);
+    glVertex3d(v0[0], v0[1], v0[2]);
     
     glEnd();
     glDisable(GL_BLEND);
