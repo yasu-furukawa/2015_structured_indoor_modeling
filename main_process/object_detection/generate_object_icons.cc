@@ -340,16 +340,18 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	vector<Vector2i>linelist;
 	MarchingCube(grid, detection.vlist, linelist, isovalue);
 	SortPolygon(detection.vlist, linelist);
-//	Smoothing(detection.vlist, 1);
-	Simplification(detection.vlist, 40, 0.01);
 
-	//triangulation
-	Cgal::Triangulate(detection.vlist, &detection.elist);
-	
+//	Smoothing(detection.vlist, 1);
+	Simplification(detection.vlist, 20, 0.01);
+
 	for(auto &v :detection.vlist){
 	    v[0] = (v[0]-margin_begin)*grid_size + detection.ranges[0][0];
 	    v[1] = (v[1]-margin_begin)*grid_size + detection.ranges[1][0];
 	}
+
+	//triangulation
+	Cgal::Triangulate(detection.vlist, &detection.elist);
+	
 	
     }
 
@@ -359,7 +361,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		       const double isovalue){
 	  if(grid.size() == 0)
 	       return;
-	  cout<<"Marching cube..."<<endl<<flush;
+//	  cout<<"Marching cube..."<<endl<<flush;
 	  const int size_y = grid.size();
 	  const int size_x = grid[0].size();
 	  vector<vector<Vector2i> >ptindex(size_y);
@@ -707,7 +709,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
      }
 
      void Simplification(vector<Vector2d>&vlist, const int target, const double margin){
-	  cout<<"Simplification..."<<endl;
+//	  cout<<"Simplification..."<<endl;
 	  //remove colinear points
 	  vector<Vector2d>reslist;
 	  reslist.push_back(vlist[0]);
@@ -726,42 +728,70 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  
 	  //find the points with smallest qem
 	  while(vlist.size() > target){
-	       int medge;
+	       int medge = -1;
 	       double minqem = 1e100;
 	       Vector2d newpoint;
+
+	       //mark the points that should be preserved
+	       vector<bool> preserved(vlist.size());
+	       vector<double> edgelength;
 	       for(int eid=0; eid<vlist.size()-1; ++eid){
-		    const int ind1 = (eid - 1 + vlist.size()) % (int)vlist.size();
-		    const int ind2 = (eid + 2) % (int)vlist.size();
-		    Vector2d line1 = vlist[eid] - vlist[ind1];
-		    Vector2d line2 = vlist[eid+1] - vlist[eid];
-		    Vector2d line3 = vlist[ind2] - vlist[eid+1];
-		    Vector2d n1(-1*line1[1], line1[0]);
-		    Vector2d n2(-1*line2[1], line2[0]);
-		    Vector2d n3(-1*line3[1], line3[0]);
-		    Matrix2d A;
-		    Vector2d B;
-		    const Vector2d& q1 = vlist[ind1];
-		    const Vector2d& q2 = vlist[eid];
-		    const Vector2d& q3 = vlist[eid+1];
-		    A(0,0) = n1[0]*n1[0] + n2[0]*n2[0] + n3[0]*n3[0];
-		    A(0,1) = n1[0]*n1[1] + n2[0]*n2[1] + n3[0]*n3[1];
-		    A(1,0) = A(0,1);
-		    A(1,1) = n1[1]*n1[1] + n2[1]*n2[1] + n3[1]*n3[1];
-		    B[0] = n1[0]*(n1.dot(q1)) + n2[0]*(n2.dot(q2)) + n3[0]*(n3.dot(q3));
-		    B[1] = n1[1]*(n1.dot(q1)) + n2[1]*(n2.dot(q2)) + n3[1]*(n3.dot(q3));
-		    double c = n1.dot(q1) + n2.dot(q2) + n3.dot(q3);
-		    c = c*c;
-		    
-		    Vector2d X = A.householderQr().solve(B);
-		    double curqem = (X.transpose() * A).dot(X) - 2*X.dot(B) + c;
-		    if(curqem < minqem){
-			 medge = eid;
-			 minqem = curqem;
-			 newpoint = X;
-		    }
+		   edgelength.push_back((vlist[eid] - vlist[eid+1]).norm());
 	       }
-	       vlist[medge] = newpoint;
-	       vlist.erase(vlist.begin() + medge + 1);
+
+	       double mean_length = std::accumulate(edgelength.begin(), edgelength.end(), 0.0) / (double)edgelength.size();
+	       vector<double>diff(edgelength.size());
+	       std::transform(edgelength.begin(), edgelength.end(), diff.begin(), bind2nd(minus<double>(), mean_length));
+	       double std_dev = sqrt(inner_product(diff.begin(), diff.end(), diff.begin(), 0.0) / (double)diff.size());
+
+	       for(int eid=0; eid<vlist.size()-1; ++eid){
+		   preserved[eid] = false;
+		   preserved[eid+1] = false;
+		   if(((vlist[eid][0] - vlist[eid+1][0] == 0.0) || (vlist[eid][1] - vlist[eid+1][1] == 0.0)) && (edgelength[eid] > mean_length)){
+		       preserved[eid] = true;
+		       preserved[eid+1] = true;
+		   }
+	       }
+
+	       for(int eid=0; eid<vlist.size()-1; ++eid){
+		   if(preserved[eid] || preserved[eid+1])
+		       continue;
+		    // const int ind1 = (eid - 1 + vlist.size()) % (int)vlist.size();
+		    // const int ind2 = (eid + 2) % (int)vlist.size();
+		    // Vector2d line1 = vlist[eid] - vlist[ind1];
+		    // Vector2d line2 = vlist[eid+1] - vlist[eid];
+		    // Vector2d line3 = vlist[ind2] - vlist[eid+1];
+		    // Vector2d n1(-1*line1[1], line1[0]);
+		    // Vector2d n2(-1*line2[1], line2[0]);
+		    // Vector2d n3(-1*line3[1], line3[0]);
+		    // Matrix2d A;
+		    // Vector2d B;
+		    // const Vector2d& q1 = vlist[ind1];
+		    // const Vector2d& q2 = vlist[eid];
+		    // const Vector2d& q3 = vlist[eid+1];
+		    // A(0,0) = n1[0]*n1[0] + n2[0]*n2[0] + n3[0]*n3[0];
+		    // A(0,1) = n1[0]*n1[1] + n2[0]*n2[1] + n3[0]*n3[1];
+		    // A(1,0) = A(0,1);
+		    // A(1,1) = n1[1]*n1[1] + n2[1]*n2[1] + n3[1]*n3[1];
+		    // B[0] = n1[0]*(n1.dot(q1)) + n2[0]*(n2.dot(q2)) + n3[0]*(n3.dot(q3));
+		    // B[1] = n1[1]*(n1.dot(q1)) + n2[1]*(n2.dot(q2)) + n3[1]*(n3.dot(q3));
+		    // double c = n1.dot(q1) + n2.dot(q2) + n3.dot(q3);
+		    // c = c*c;
+		    
+		    // Vector2d X = A.householderQr().solve(B);
+		   //  double curqem = (X.transpose() * A).dot(X) - 2*X.dot(B) + c;
+		   double curqem = edgelength[eid];
+		   if(curqem < minqem){
+		       medge = eid;
+		       minqem = curqem;
+//			 newpoint = X;
+		   }
+	       }
+//	       vlist[medge] = newpoint;
+//	       vlist.erase(vlist.begin() + medge + 1);
+	       if(medge == -1)
+		   break;
+	       vlist.erase(vlist.begin() + medge);
 	  }
      }
 }  // namespace structured_indoor_modeling
