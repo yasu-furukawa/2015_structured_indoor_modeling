@@ -181,7 +181,7 @@ void GeneratePinholeImages(const Input& input) {
     Vector3d optical_center = input.panoramas[p].GetCenter();
     Vector3d optical_axis(1, 0, 0);
     Matrix3d rotation;
-    const int kRotationNum = 10;
+    const int kRotationNum = 6;
     const double angle = 2 * M_PI / kRotationNum;
     rotation <<
       cos(angle), -sin(angle), 0,
@@ -198,10 +198,10 @@ void GeneratePinholeImages(const Input& input) {
         
       // const FileIO file_io(argv[1]);
       char buffer[1024];
-      sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.png", input.data_directory.c_str(), p, r);
+      sprintf(buffer, "%s/thumbnail/full_coverage_%03d_%02d.png", input.data_directory.c_str(), p, r);
       cv::imwrite(buffer, thumbnail);
-      sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.obj", input.data_directory.c_str(), p, r);
-      WriteDepthPoints(buffer, input.thumbnail_width, input.thumbnail_height, depth_points);
+      // sprintf(buffer, "%s/panorama/thumbnail_%03d_%02d.obj", input.data_directory.c_str(), p, r);
+      // WriteDepthPoints(buffer, input.thumbnail_width, input.thumbnail_height, depth_points);
     }
   }
 }
@@ -389,15 +389,14 @@ int main(int argc, char* argv[]) {
   
   Init(argv[1], start_panorama, &input);
 
-  /*
+
   if (0) {
     FindPanoramaClosestToTheRoomCenter(input);
   };
-    
+
   if (0) {
     GeneratePinholeImages(input);
   }
-  */
 
   if (1) {
     FindThumbnailPerRoomFromEachPanorama(input);
