@@ -663,8 +663,9 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     double rotation_angle = kRotationAngle;
     if(e->modifiers() & Qt::ShiftModifier) {
       rotation_angle = 10.0 * M_PI / 180.0;
-    }
-       
+    } else if(e->modifiers() & Qt::AltModifier) {
+      rotation_angle = 90.0 * M_PI / 180.0;
+    }       
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(rotation_angle);
     } else if (navigation.GetCameraStatus() == kAir ||
@@ -678,7 +679,9 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     double rotation_angle = kRotationAngle;
     if(e->modifiers() & Qt::ShiftModifier) {
       rotation_angle = 10.0 * M_PI / 180.0;
-    }
+    } else if(e->modifiers() & Qt::AltModifier) {
+      rotation_angle = 90.0 * M_PI / 180.0;
+    }       
     
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(-rotation_angle);

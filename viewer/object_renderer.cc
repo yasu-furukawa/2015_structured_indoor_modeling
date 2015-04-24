@@ -1136,7 +1136,8 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
     }
     
     if (detection.names[0] == "table") {
-      RenderDesk(detection, vs, animation);
+      // RenderDesk(detection, vs, animation);
+      RenderObjectPolygon(detection, Vector3f(244 / 255.0f, 164 / 255.0f, 96 / 255.0f));
     } else if (detection.names[0] == "sofa") {
       RenderSofa(detection, vs, animation);
     } else if (detection.names[0] == "chair") {
@@ -1144,11 +1145,7 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
     } else if (detection.names[0] == "lamp") {
       RenderLamp(detection, vs, animation);
     } else {
-	vector<Vector3d>pvs;
-	for(const auto&v: detection.vlist){
-	    pvs.push_back(Vector3d(v[0],v[1],average_floor_height));
-	}
-      RenderDefault(detection, vs, animation);
+      RenderObjectPolygon(detection, Vector3f(0.5,0.8,0.5));
     }
 
     glColor3f(0.0f, 0.0f, 0.0f);
