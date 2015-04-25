@@ -249,9 +249,12 @@ int main(int argc, char* argv[]) {
 
   FileIO file_io(argv[1]);
   vector<string> indoor_polygon_files;
+
+  indoor_polygon_files.push_back(file_io.GetIndoorPolygonSimple());
   indoor_polygon_files.push_back(file_io.GetIndoorPolygon());
   indoor_polygon_files.push_back(file_io.GetIndoorPolygonWithCeiling());
   vector<string> collada_files;
+  collada_files.push_back(file_io.GetColladaSimple());
   collada_files.push_back(file_io.GetCollada());
   collada_files.push_back(file_io.GetColladaWithCeiling());
 

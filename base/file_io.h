@@ -99,6 +99,10 @@ class FileIO {
     sprintf(buffer, "%s/floorplan/floorplan.svg", data_directory.c_str());
     return buffer;
   }
+  std::string GetIndoorPolygonSimple() const {
+    sprintf(buffer, "%s/input/floorplan_detailed_simple.txt", data_directory.c_str());
+    return buffer;
+  }
   std::string GetIndoorPolygon() const {
     // sprintf(buffer, "%s/indoor_polygon.txt", data_directory.c_str());
     sprintf(buffer, "%s/input/floorplan_detailed.txt", data_directory.c_str());
@@ -223,6 +227,10 @@ class FileIO {
     return filenames;
   }
 
+  std::string GetColladaSimple() const {
+    sprintf(buffer, "%s/evaluation/floorplan_detailed_simple.dae", data_directory.c_str());
+    return buffer;
+  }
   std::string GetCollada() const {
     sprintf(buffer, "%s/evaluation/floorplan_detailed.dae", data_directory.c_str());
     return buffer;
