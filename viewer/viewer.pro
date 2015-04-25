@@ -66,15 +66,16 @@ qtHaveModule(opengl) {
     macx{
         INCLUDEPATH += '/Users/furukawa/Google_Drive/research/code/'
         INCLUDEPATH += '/usr/local/include/'
+        INCLUDEPATH += '/usr/local/include/eigen3/'
 #        INCLUDEPATH += '/opt/X11/include'
 
 
-         LIBS += '-F/Users/furukawa/Qt/5.3/clang_64/lib/QtOpenGL.framework/Versions/5/'
+        LIBS += '-F~/Qt/5.3/clang_64/lib/QtOpenGL.framework/Versions/5/'
 #       LIBS += '-F/usr/local/opt/qt/Frameworks/QtOpenGL.framework/Versions/4/'
         LIBS += '-L/usr/local/lib'
-        LIBS += '-lopencv_core.2.4.9'
-        LIBS += '-lopencv_imgproc.2.4.9'
-        LIBS += '-lopencv_highgui.2.4.9'
+        LIBS += '-lopencv_core'
+        LIBS += '-lopencv_imgproc'
+        LIBS += '-lopencv_highgui'
 #       LIBS += '-L/opt/X11/lib -lGLU -framework OpenGL'
     }
 
