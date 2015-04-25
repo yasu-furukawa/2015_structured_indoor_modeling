@@ -61,7 +61,7 @@ int main(int argc, char **argv){
     const int &endid = GetNumPanoramas(file_io) - 1;
 
     clock_t start,end;
-    start = clock();
+
     //////////////////////////////////////
     //Init Panoramas
     //objectgroup: room->object->points
@@ -81,19 +81,20 @@ int main(int argc, char **argv){
     Floorplan floorplan(file_io.GetFloorplan());
 
 
-    cout<<"Init..."<<endl;
+//    cout<<"Init..."<<endl;
     int imgheight, imgwidth;
     initPanorama(file_io, panorama, labels, FLAGS_label_num, numlabels,depth, imgwidth, imgheight, startid, endid, FLAGS_recompute);
     ReadObjectCloud(file_io, floorplan, objectcloud, objectgroup);
-    
+
+    start = clock();    
 
     for(int roomid=0; roomid<objectcloud.size(); roomid++){
     	 // for(int objid=0; objid<objectgroup[roomid].size(); objid++){
     	 //      sprintf(buffer,"temp/object_room%03d_obj%03d.ply",roomid,objid);
     	 //      objectcloud[roomid].WriteObject(string(buffer), objid);
     	 // }
-    	cout<<"---------------------"<<endl;
-    	cout<<"Room "<<roomid<<endl;
+//    	cout<<"---------------------"<<endl;
+//  	cout<<"Room "<<roomid<<endl;
     	getObjectColor(objectcloud[roomid], panorama, objectgroup[roomid] ,roomid);
 	removeNearWallObjects(indoor_polygon,
 			      floorplan,
@@ -112,17 +113,17 @@ int main(int argc, char **argv){
 	}
 
 	//Smoothing
-	cout<<"Smoothing object... "<<endl<<flush;
+//	cout<<"Smoothing object... "<<endl<<flush;
 	const int kNumNeighbors = 8;
 	vector<vector<int> >neighbors;
-	cout<<"Set neighbors..."<<flush;
+//	cout<<"Set neighbors..."<<flush;
 	SetNeighbors(objectcloud[roomid].GetPointData(), kNumNeighbors, &neighbors);
-	cout<<"done!"<<endl;
-	cout<<"Smoothing..."<<flush;
+//	cout<<"done!"<<endl;
+//	cout<<"Smoothing..."<<flush;
 	for(int t=0;t<FLAGS_nsmooth;t++)
 	    SmoothObjects(neighbors, &objectcloud[roomid].GetPointData());
-	cout<<"done!"<<endl;
-	cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
+//	cout<<"done!"<<endl;
+//	cout<<"Saving "<<file_io.GetRefinedObjectClouds(roomid)<<endl;
 
 	for(int objid=0; objid<objectcloud[roomid].GetNumObjects(); ++objid){
 	    vector<structured_indoor_modeling::Point>objpt;
@@ -208,7 +209,7 @@ int main(int argc, char **argv){
 //     	resultCloud[roomid].Write(savepath);
 //     }
     end = clock();
-    cout<<"Total time usage: "<<(end - start) / 1000000<<"s"<<endl;
+    printf("Running time for object refinement: %f\n",(float)(end-start)/CLOCKS_PER_SEC);
 
     return 0;
 }

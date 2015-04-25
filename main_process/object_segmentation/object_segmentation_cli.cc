@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <time.h>
 
 #include "../../base/file_io.h"
 #include "../../base/floorplan.h"
@@ -45,12 +46,12 @@ void ReportSegments(const std::vector<int>& segments) {
     }
   }
   
-  cerr << "Object " << object
-       << " Initial " << initial
-       << " Floor " << floor
-       << " wall " << wall
-       << " ceiling " << ceiling
-       << " detail " << detail << endl;
+//  cerr << "Object " << object
+//       << " Initial " << initial
+//       << " Floor " << floor
+//       << " wall " << wall
+//       << " ceiling " << ceiling
+//       << " detail " << detail << endl;
 }
     
 bool ProcessRoom(const FileIO& file_io,
@@ -59,58 +60,58 @@ bool ProcessRoom(const FileIO& file_io,
                  const IndoorPolygon& indoor_polygon,
                  const std::vector<PointCloud>& point_clouds,
                  const std::vector<int>& room_occupancy) {
-  cout << "Room: " << room << endl;
+//  cout << "Room: " << room << endl;
   vector<Point> points;
   CollectPointsInRoom(point_clouds, floorplan, room_occupancy, room, &points);
   if (points.empty())
     return false;
-  cout << "Filtering... " << points.size() << " -> " << flush;
+//  cout << "Filtering... " << points.size() << " -> " << flush;
   FilterNoisyPoints(&points);
-  cout << points.size() << " done." << endl;
+//  cout << points.size() << " done." << endl;
   
   if (points.empty())
     return false;
   
   if (FLAGS_point_subsampling_ratio != 1.0) {
-    cout << "Subsampling... " << points.size() << " -> " << flush;
+//    cout << "Subsampling... " << points.size() << " -> " << flush;
     Subsample(FLAGS_point_subsampling_ratio, &points);
-    cout << points.size() << " done." << endl;
+//    cout << points.size() << " done." << endl;
     if (points.empty())
       return false;
   }
   
   // For each point, initial segmentation.
   vector<int> segments;
-  cerr << "Checking floor/wall/ceiling..." << flush;
+//  cerr << "Checking floor/wall/ceiling..." << flush;
   IdentifyFloorWallCeiling(points, floorplan, room, FLAGS_rescale_margin, &segments);
-  cerr << "done." << endl
-       << "Checking details..." << flush;
+//  cerr << "done." << endl
+//       << "Checking details..." << flush;
   IdentifyDetails(points, floorplan, indoor_polygon, room, FLAGS_rescale_margin, &segments);
-  cerr << "done." << endl;
+//  cerr << "done." << endl;
 
-  ReportSegments(segments);
+//  ReportSegments(segments);
   
   // Compute neighbors.
   vector<vector<int> > neighbors;
   const int kNumNeighbors = 8;
-  cout << "SetNeighbors..." << flush;
+//  cout << "SetNeighbors..." << flush;
   SetNeighbors(points, kNumNeighbors, &neighbors);
-  cout << "done." << endl;
+//  cout << "done." << endl;
 
   ReportSegments(segments);
 
-  cout << "SegmentObjects..." << flush;
+//  cout << "SegmentObjects..." << flush;
   SegmentObjects(points, FLAGS_centroid_subsampling_ratio, FLAGS_num_initial_clusters, neighbors,
                  &segments);
-  cout << "done." << endl;
+//  cout << "done." << endl;
   
   ReportSegments(segments);
   
-  cout << "SmoothObjects..." << flush;
+//  cout << "SmoothObjects..." << flush;
   const int kSmoothTime = 0;
   for (int t = 0; t < kSmoothTime; ++t)
     SmoothObjects(neighbors, &points);
-  cout << "done." << endl;
+//  cout << "done." << endl;
 
   ReportSegments(segments);
   
@@ -121,17 +122,17 @@ bool ProcessRoom(const FileIO& file_io,
   char buffer[1024];
   {
     map<int, Vector3i> color_table;
-    printf("%s\n", file_io.GetObjectPointClouds(room).c_str());
+//    printf("%s\n", file_io.GetObjectPointClouds(room).c_str());
     WriteObjectPointsWithColor(points, segments, file_io.GetObjectPointClouds(room),
                                floorplan.GetFloorplanToGlobal(),
                                &color_table);
-    cout << "done." << endl;
+//    cout << "done." << endl;
   }
   {
-    printf("%s\n", file_io.GetFloorWallPointClouds(room).c_str());
+//    printf("%s\n", file_io.GetFloorWallPointClouds(room).c_str());
     WriteOtherPointsWithColor(points, segments, file_io.GetFloorWallPointClouds(room),
                               floorplan.GetFloorplanToGlobal());
-    cout << "done." << endl;
+//    cout << "done." << endl;
   }
   return true;
 }
@@ -170,6 +171,7 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
 
+  clock_t totaltime = 0, start_t, end_t;
   FileIO file_io(argv[1]);
   
   Floorplan floorplan;
@@ -195,12 +197,15 @@ int main(int argc, char* argv[]) {
   
   const int num_panoramas = GetNumPanoramas(file_io);
   vector<PointCloud> point_clouds(num_panoramas);
-  cout << "Reading point clouds..." << flush;
+
+  start_t = clock();
+
+//  cout << "Reading point clouds..." << flush;
   for (int p = 0; p < num_panoramas; ++p) {
-    cout << '.' << flush;
+//    cout << '.' << flush;
     const int index = p;
     if (!point_clouds[index].Init(file_io, p)) {
-      cerr << "Failed in loading the point cloud." << endl;
+//      cerr << "Failed in loading the point cloud." << endl;
       exit (1);
     }
     // Make the 3D coordinates into the floorplan coordinate system.
@@ -215,10 +220,13 @@ int main(int argc, char* argv[]) {
                           global_to_floorplan * global_center,
                           &point_clouds[index]);
   }
-  cout << "done." << endl;
-    
+//  cout << "done." << endl;
+
   // Per room processing.
   for (int room = 0; room < floorplan.GetNumRooms(); ++room) {
     ProcessRoom(file_io, room, floorplan, indoor_polygon, point_clouds, room_occupancy);
   }
+  end_t = clock();
+  totaltime += end_t - start_t;
+  printf("Running time for object segmentation: %f\n", (float)(end_t - start_t) / CLOCKS_PER_SEC);
 }

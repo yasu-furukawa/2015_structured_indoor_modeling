@@ -342,7 +342,7 @@ void IdentifyDetails(const std::vector<Point>& points,
   for (int a = 0; a < 3; ++a) {
     size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
   }
-  cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
+//  cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
   
   vector<bool> occupancy(size[0] * size[1] * size[2], false);
   for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
@@ -793,10 +793,10 @@ void AssignFromCentroids(const std::vector<Point>& points,
 
   vector<map<int, vector<double> > > point_cluster_distances(points.size());
   vector<double> distances;
-  cerr << "Compute distances..." << flush;
+//  cerr << "Compute distances..." << flush;
   for (int p = 0; p < segments->size(); ++p) {
-    if (p % (segments->size() / 10) == 0)
-      cerr << '.' << flush;
+//    if (p % (segments->size() / 10) == 0)
+//      cerr << '.' << flush;
     // Only compute distances to neighbors at the seed points.
     const int cluster = segments->at(p);
     if (cluster < 0)
@@ -809,7 +809,7 @@ void AssignFromCentroids(const std::vector<Point>& points,
       }
     }
   }
-  cerr << "done." << endl;
+//  cerr << "done." << endl;
 
   // For each point, compute the per cluster distance and pick the best.
   for (int p = 0; p < segments->size(); ++p) {
@@ -1028,7 +1028,7 @@ bool Merge(const std::vector<Point>& points,
     }
     average_inter_distance /= max(1, denom);
   }
-  cerr << "Average inter distance: " << average_inter_distance << endl;
+//  cerr << "Average inter distance: " << average_inter_distance << endl;
 
   // Merge test.
   //????
@@ -1082,7 +1082,7 @@ bool Merge(const std::vector<Point>& points,
   }
   if (merged.empty())
     return false;
-  cerr << "merged: " << merged.size() << " pairs." << endl;
+//  cerr << "merged: " << merged.size() << " pairs." << endl;
   
   int max_cluster_id = 0;
   {

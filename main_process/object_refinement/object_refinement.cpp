@@ -20,7 +20,7 @@ using namespace structured_indoor_modeling;
 Vec3b colortable[] = {Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255), Vec3b(255,255,0), Vec3b(255,0,255), Vec3b(0,255,255),Vec3b(255,255,255)};
 
 void initPanorama(const FileIO &file_io, vector<Panorama>&panorama, vector< vector<int> >&labels, const int expected_num, vector<int>&numlabels, vector<DepthFilling>&depth, int &imgwidth, int &imgheight, const int startid, const int endid, const bool recompute){
-    cout<<"Init panorama..."<<endl;
+//    cout<<"Init panorama..."<<endl;
 
     char buffer[100];
     
@@ -199,7 +199,7 @@ void getObjectColor(PointCloud &objectcloud,const vector<Panorama>&panorama,cons
 	    is_used[max_panid] = true;
 	    pan_selected.push_back(max_panid);
 	}//while
-#if 1
+#if 0
 	cout<<"object "<<objid<<",used panorama: ";
 	for(const auto&v: pan_selected)
 	    cout<<v<<' ';
@@ -347,7 +347,7 @@ void removeNearWallObjects(const IndoorPolygon& indoor_polygon,
      for (int a = 0; a < 3; ++a) {
 	  size[a] = max(1, static_cast<int>(round(length[a] / voxel_unit)));
      }
-     cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
+//     cout << size[0] << ' ' << size[1] << ' ' << size[2] << " voxels" << endl;
 
      vector<bool> occupancy(size[0] * size[1] * size[2], false);
      for (int s = 0; s < indoor_polygon.GetNumSegments(); ++s) {
@@ -748,7 +748,7 @@ void ReadObjectCloud(const FileIO &file_io, const Floorplan& plan, vector<PointC
 	fin.close();
 
 	PointCloud curob, curwall;
-	cout<< "Reading " << filename<<endl;
+//	cout<< "Reading " << filename<<endl;
 	curob.Init(filename);
 	// cout<< "Reading " << filename_wall<<endl;
 	// curwall.Init(filename_wall);

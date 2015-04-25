@@ -63,6 +63,12 @@ int main(int argc, char* argv[]) {
     Floorplan floorplan(file_io.GetFloorplan());
     ReadRefinedObjectPointClouds(file_io, floorplan.GetNumRooms(), &object_point_clouds);
   }
+  int total_obj_num = 0;
+  for(auto& roomcloud: object_point_clouds){
+      roomcloud.Update();
+      total_obj_num += roomcloud.GetNumObjects();
+  }
+  cout<<"Total object number: "<<total_obj_num<<endl;
 
   
   // Compute an object id map for each panorama.

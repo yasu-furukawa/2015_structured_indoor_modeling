@@ -3,6 +3,7 @@
 #include "../../base/indoor_polygon.h"
 #include "polygon_triangulation2.h"
 #include "generate_object_icons.h"
+#include <opencv2/opencv.hpp>
 
 using namespace Eigen;
 using namespace std;
@@ -295,29 +296,62 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
     void ComputeObjectPolygon(const vector<Vector3d>& manhattan,
 			      Detection &detection){
 	static const double grid_size = 40.0;
+	vector<double>bbox(4);
+	bbox[0] = 1e100; bbox[1] = -1e100; bbox[2] = 1e100; bbox[3] = -1e100;
+	for(const auto &v:manhattan){
+	    bbox[0] = std::min(bbox[0], v[0]);
+	    bbox[1] = std::max(bbox[1], v[0]);
+	    bbox[2] = std::min(bbox[2], v[1]);
+	    bbox[3] = std::max(bbox[3], v[1]);
+	}
+//	bbox[0] = detection.ranges[0][0]; bbox[1] = detection.ranges[0][1];
+//	bbox[2] = detection.ranges[1][0]; bbox[3] = detection.ranges[1][1];
 	//asslocate grid
-	const int size_x = ceil((detection.ranges[0][1] - detection.ranges[0][0])/grid_size);
-	const int size_y = ceil((detection.ranges[1][1] - detection.ranges[1][0])/grid_size);
+	const int size_x = ceil((bbox[1] - bbox[0])/(grid_size));
+	const int size_y = ceil((bbox[3] - bbox[2])/(grid_size));
 	const int margin_begin = 5;
 	const int margin_end = 5;
-	vector<vector<double> >grid(size_y+margin_end+margin_begin + 5);
+	double maxv = -1;
+	double minv = 99999;
+	vector<vector<double> >grid(size_y+margin_end+margin_begin);
 	for(auto& v:grid){
-	    v.resize(size_x+margin_end+margin_begin + 5);
+	    v.resize(size_x+margin_end+margin_begin);
 	    for(auto& vv:v)
 		vv = 0.0;
 	}
 	for(const auto&point: manhattan){
-	    const double curx = (point[0] - detection.ranges[0][0]) / grid_size;
-	    const double cury = (point[1] - detection.ranges[1][0]) / grid_size;
+	    const double curx = (point[0] - bbox[0]) / grid_size;
+	    const double cury = (point[1] - bbox[2]) / grid_size;
 	    if(curx >=0 && floor(curx)<size_x &&
 	       cury >=0 && floor(cury)<size_y){
-		grid[floor(cury)+margin_begin][floor(curx)+margin_begin] += 1.0;
+		grid[static_cast<int>(cury+margin_begin)][static_cast<int>(curx+margin_begin)] += 1.0;
 	    }
 	}
-
+	
 	const double isovalue = 0.5;
-	const int dialate_iter = 3;
-	//dialate
+	const int dialate_iter = 2;
+	
+	cv::Mat cmap(grid.size(), grid[0].size(), CV_8UC3);
+	cv::Mat binary(grid.size(), grid[0].size(), CV_8UC3);
+	for(int y=0; y<grid.size(); ++y){
+	    for(int x=0; x<grid[0].size(); ++x){
+		uchar curpix = static_cast<uchar>(grid[y][x] * 10);
+		cmap.at<cv::Vec3b>(y,x) = cv::Vec3b(curpix,curpix,curpix);
+		if(grid[y][x] > isovalue)
+		    binary.at<cv::Vec3b>(y,x) = cv::Vec3b(255,255,255);
+		else
+		    binary.at<cv::Vec3b>(y,x) = cv::Vec3b(0,0,0);
+	    }
+	}
+	char buffer[100];
+	sprintf(buffer,"cmap_room%03d_obj%03d.png",detection.room,detection.object);
+	cv::imwrite(buffer, cmap);
+	cv::waitKey(10);
+	sprintf(buffer,"binary_room%03d_obj%03d.png",detection.room,detection.object);
+	cv::imwrite(buffer, binary);
+	cv::waitKey(10);
+
+	//close
 	for(int iter=0; iter<dialate_iter; ++iter){
 	     vector<vector<double> >grid_copy = grid;
 	     for(int y=margin_begin; y<size_y+margin_begin; ++y){
@@ -326,6 +360,9 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 			    for(int dx=-1; dx<=1; ++dx){
 				 if(dx==0 && dy==0)
 				      continue;
+				 // if(y+dy < margin_begin || y+dy>=size_y+margin_begin ||
+				 //    x+dx < margin_begin || x+dx>=size_x+margin_begin)
+				 //     continue;
 				 if(grid_copy[y+dy][x+dx] >= isovalue){
 				      grid[y][x] = isovalue + 1.0;
 				      break;
@@ -335,6 +372,23 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 		       }
 		  }
 	     }
+	     // for(int y=margin_begin; y<size_y+margin_begin; ++y){
+	     // 	 for(int x=margin_begin; x<size_x+margin_begin; ++x){
+	     // 	     for(int dy=-1; dy<=1; ++dy){
+	     // 		 for(int dx=-1; dx<=1; ++dx){
+	     // 		     if(dx==0 && dy==0)
+	     // 			 continue;
+	     // 		     if(y+dy < margin_begin || y+dy>=size_y+margin_begin ||
+	     // 			x+dx < margin_begin || x+dx>=size_x+margin_begin)
+	     // 			 continue;
+	     // 		     if(grid_copy[y+dy][x+dx] < isovalue){
+	     // 			 grid[y][x] = 0;
+	     // 			 break;
+	     // 		     }
+	     // 		 }
+	     // 	     }
+	     // 	 }
+	     // }
 	}
 
 	vector<Vector2i>linelist;
@@ -342,11 +396,23 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	SortPolygon(detection.vlist, linelist);
 
 //	Smoothing(detection.vlist, 1);
-	Simplification(detection.vlist, 20, 0.01);
+	Simplification(detection.vlist, 30, 0.01);
+
+	for(int i=0; i<detection.vlist.size()-1; i++){
+	    cv::line(cmap, cv::Point(detection.vlist[i][0],detection.vlist[i][1]), cv::Point(detection.vlist[i+1][0],detection.vlist[i+1][1]), cv::Scalar(0,255,255));
+	}
+	// for(const auto& line: linelist){
+	//     cv::line(cmap, cv::Point(detection.vlist[line[0]][0], detection.vlist[line[0]][1]),
+	// 	     cv::Point(detection.vlist[line[1]][0],detection.vlist[line[1]][1]), cv::Scalar(0,255,255));
+	// }
+	 sprintf(buffer,"contour_room%03d_obj%03d.png",detection.room,detection.object);
+	cv::imwrite(buffer, cmap);
+	cv::waitKey(10);
+	
 
 	for(auto &v :detection.vlist){
-	    v[0] = (v[0]-margin_begin)*grid_size + detection.ranges[0][0];
-	    v[1] = (v[1]-margin_begin)*grid_size + detection.ranges[1][0];
+	    v[0] = (v[0]-margin_begin)*grid_size + bbox[0];
+	    v[1] = (v[1]-margin_begin)*grid_size + bbox[2];
 	}
 
 	//triangulation
@@ -376,13 +442,13 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  for(int y=0;y<size_y; ++y){
 	       for(int x=0;x<size_x;++x){
 		    if(grid[y][x] == isovalue)
-			 grid[y][x] -= 0.2;
+			 grid[y][x] -= 0.01;
 	       }
 	  }
 
 	  //initialize shape table
-	  for(int y=0; y<size_y-1; ++y){
-	       for(int x=0; x<size_x-1; ++x){
+	  for(int y=0; y<size_y-1; y++){
+	       for(int x=0; x<size_x-1; x++){
 		    unsigned char curshape = 0;
 		    if(grid[y][x] > isovalue)
 			 curshape = curshape | 8;
@@ -392,6 +458,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 			 curshape = curshape | 2;
 		    if(grid[y+1][x] > isovalue)
 			 curshape = curshape | 1;
+		    if(grid[y][x]+grid[y][x+1]+grid[y+1][x+1]+grid[y+1][x]!=0)
 		    if(curshape == 8 || curshape == 7){
 			Vector2i curedge;
 			Vector2d pt1(x+(isovalue-grid[y][x])/(grid[y][x+1]-grid[y][x]),y);
@@ -534,7 +601,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 			 Vector2d pt2(x+1, y+(isovalue-grid[y][x+1]) / (grid[y+1][x+1] - grid[y][x+1]));
 			 Vector2d pt3(x+(isovalue-grid[y+1][x])/(grid[y+1][x+1]-grid[y+1][x]),y+1);
 			 Vector2d pt4(x, y+(isovalue-grid[y][x]) / (grid[y+1][x] - grid[y][x]));
-			 if(curshape == 10){
+			 if(curshape == 5){
 			     if(ptindex[y][x][0] != -1)
 				 curedge1[0] = ptindex[y][x][0];
 			     else
@@ -550,7 +617,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 				 curedge1[1] = vlist.size() - 1;
 				 ptindex[y][x][1] = curedge1[1];
 			     }
-
+			     
 			     if(ptindex[y][x+1][1] != -1)
 				 curedge2[0] = ptindex[y][x+1][1];
 			     else{
@@ -565,9 +632,10 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 				 curedge2[1] = vlist.size() - 1;
 				 ptindex[y+1][x][0] = curedge2[1];
 			     }
+
 			 }
 			 
-			 if(curshape == 5){
+			 if(curshape == 10){
 			     if(ptindex[y][x][0] != -1)
 				 curedge1[0] = ptindex[y][x][0];
 			     else{
@@ -596,7 +664,9 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 				 curedge2[1] = vlist.size() - 1;
 				 ptindex[y+1][x][0] = curedge2[1];
 			     }
-			 }			 
+			 }
+			 elist.push_back(curedge1);
+			 elist.push_back(curedge2);
 		    }
 	       }
 	  }
@@ -622,7 +692,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	       return;
 	  //sanity check
 	  if(!SanityCheck(elist)){
-//	      cout<<"Fore-check: incomplete loop!"<<endl;
+	      cout<<"Fore-check: incomplete loop!"<<endl;
 	      return;
 	  }
 //	  cout<<"Fore-check passed"<<endl;
@@ -669,7 +739,7 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	  }
 	  elist.swap(esorted.back());
 	  if(!SanityCheck(elist)){
-//	      cout<<"Post-check: incomplete loop!"<<endl;
+	      cout<<"Post-check: incomplete loop!"<<endl;
 	      return;
 	  }
 	  vector<Vector2d>reslist;
@@ -792,6 +862,18 @@ void AddIconInformationToDetections(const IndoorPolygon& indoor_polygon,
 	       if(medge == -1)
 		   break;
 	       vlist.erase(vlist.begin() + medge);
+	  }
+
+	  //adjust point position
+	  const double min_length = 2.0;
+	  const double max_margin = 0.3;
+	  for(int i=0; i<vlist.size()-1; i++){
+	      if((vlist[i+1]-vlist[i]).norm() > min_length){
+		  if(abs(vlist[i+1][0]-vlist[i][0]) < max_margin)
+		      vlist[i+1][0] = vlist[i][0];
+		  else if(abs(vlist[i+1][1]-vlist[i][1]) < max_margin)
+		      vlist[i+1][1] = vlist[i][1];
+	      }
 	  }
      }
 }  // namespace structured_indoor_modeling
