@@ -1021,8 +1021,11 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
 
 void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
 					  const Vector3f& color) const{
-    
-    glEnable(GL_BLEND);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_BLEND);
+
+  //glEnable(GL_BLEND);
+
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glBegin(GL_TRIANGLES);
@@ -1115,7 +1118,6 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
                                  const GLdouble modelview[],
                                  const GLdouble projection[],
                                  QGLWidget* widget) {
-  glDisable(GL_CULL_FACE);
   // Depending on detection.name, change.
   for (const auto& detection : detections) {
     if (detection.room == -1)
@@ -1153,7 +1155,6 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
     RenderName(detection, vs, animation, viewport, modelview, projection, widget);
   }
   
-  glEnable(GL_CULL_FACE);
   /*
   glEnable(GL_BLEND);
   
