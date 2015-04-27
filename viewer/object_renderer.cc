@@ -816,10 +816,9 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
     }
     glEnd();
 
-    glBegin(GL_LINE_LOOP);
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBegin(GL_LINE_LOOP);
     
     glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
     for (int s = 0; s < kNumSamples; ++s) {
