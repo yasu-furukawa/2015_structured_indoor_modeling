@@ -782,7 +782,7 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
   // Outer frame.
   glDisable(GL_BLEND);
   glBegin(GL_TRIANGLE_FAN);
-  glColor3f(1.0f, 1.0f, 1.0f, 0.0); // kFillAlpha);
+  glColor3f(1.0f, 1.0f, 1.0f);// 0.0); // kFillAlpha);
   for (int i = 0; i < 4; ++i)
     glVertex3d(vs[i][0], vs[i][1], vs[i][2]);
   glEnd();
@@ -1058,7 +1058,7 @@ void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
 	 v = indoor_polygon.ManhattanToGlobal(v);
 	 glVertex3d(v[0],v[1],v[2]);
     }
-    if (!detection.empty()) {
+    if (!detection.vlist.empty()) {
       Vector3d v0(detection.vlist[0][0], detection.vlist[0][1], average_floor_height);
       v0 = indoor_polygon.ManhattanToGlobal(v0);
       glVertex3d(v0[0], v0[1], v0[2]);
