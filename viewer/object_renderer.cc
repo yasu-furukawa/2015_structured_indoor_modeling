@@ -1022,7 +1022,7 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
 void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
 					  const Vector3f& color) const{
     
-  glDisble(GL_BLEND);
+  glDisable(GL_BLEND);
   //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glBegin(GL_TRIANGLES);
