@@ -1115,6 +1115,7 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
                                  const GLdouble modelview[],
                                  const GLdouble projection[],
                                  QGLWidget* widget) {
+  glDisable(GL_CULL_FACE);
   // Depending on detection.name, change.
   for (const auto& detection : detections) {
     if (detection.room == -1)
@@ -1152,6 +1153,7 @@ void ObjectRenderer::RenderIcons(const double /* alpha */,
     RenderName(detection, vs, animation, viewport, modelview, projection, widget);
   }
   
+  glEnable(GL_CULL_FACE);
   /*
   glEnable(GL_BLEND);
   
