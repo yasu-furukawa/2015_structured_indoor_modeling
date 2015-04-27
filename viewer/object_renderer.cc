@@ -1021,15 +1021,12 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
 
 void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
 					  const Vector3f& color) const{
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_BLEND);
-
-  //glEnable(GL_BLEND);
-
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+  glDisble(GL_BLEND);
+  //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glBegin(GL_TRIANGLES);
-    glColor4f(color[0], color[1], color[2], 0.5f);
+    glColor3f(color[0], color[1], color[2]); // , 0.5f);
     for(const auto&edge: detection.elist){
 	Vector3d v1(detection.vlist[edge[0]][0], detection.vlist[edge[0]][1], average_floor_height);
 	Vector3d v2(detection.vlist[edge[1]][0], detection.vlist[edge[1]][1], average_floor_height);
@@ -1044,8 +1041,10 @@ void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
     glEnd();
 
     glLineWidth(0.5);
-    glColor4f(0.0,0.0,0.0,1.0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_LINE_STRIP);
+    glColor3f(0.0,0.0,0.0); // ,1.0);
 
     for(const auto&pt: detection.vlist){
 	 Vector3d v(pt[0], pt[1], average_floor_height);
