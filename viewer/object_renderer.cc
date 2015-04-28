@@ -670,18 +670,19 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */,
     points_for_polygons.push_back(cushion);
   }
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_BLEND);
   for (int p = 0; p < (int)points_for_polygons.size(); ++p) {
     glBegin(GL_TRIANGLE_FAN);
-    glColor4f(1.0f, 0.8f, 0.8f, 0.5f + 0.5f * animation);
+    glColor3f(1.0f, 0.8f, 0.8f); // , 0.5f + 0.5f * animation);
     for (const auto& uv : points_for_polygons[p]) {
       const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
       glVertex3d(point[0], point[1], point[2]);
     }
     glEnd();
   }
-  
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glLineWidth(1.5f);
   for (int p = 0; p < (int)points_for_lines.size(); ++p) {
     glBegin(GL_LINE_LOOP);
@@ -692,6 +693,7 @@ void ObjectRenderer::RenderSofa(const Detection& /* detection */,
     }
     glEnd();
   }
+  glDisable(GL_BLEND);
 }
 
   // 0  1
@@ -746,11 +748,10 @@ void ObjectRenderer::RenderChair(const Detection& /* detection */,
     points_for_lines.push_back(outer_frame);
   }
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_BLEND);
   for (int p = 0; p < (int)points_for_lines.size(); ++p) {
     glBegin(GL_TRIANGLE_FAN);
-    glColor4f(0.8f, 0.8f, 0.8f, 0.5f + 0.5f * animation);
+    glColor3f(0.8f, 0.8f, 0.8f); // , 0.5f + 0.5f * animation);
     for (const auto& uv : points_for_lines[p]) {
       const Vector3d point = vs[0] + uv[0] * x_diff + uv[1] * y_diff;
       glVertex3d(point[0], point[1], point[2]);
@@ -758,6 +759,8 @@ void ObjectRenderer::RenderChair(const Detection& /* detection */,
     glEnd();
   }
   
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glLineWidth(1.5f);
   for (int p = 0; p < (int)points_for_lines.size(); ++p) {
     glBegin(GL_LINE_LOOP);
@@ -768,6 +771,7 @@ void ObjectRenderer::RenderChair(const Detection& /* detection */,
     }
     glEnd();
   }
+  glDisable(GL_BLEND);
 }
   
 void ObjectRenderer::RenderLamp(const Detection& /* detection */,

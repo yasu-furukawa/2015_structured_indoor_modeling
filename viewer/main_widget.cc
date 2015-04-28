@@ -661,23 +661,34 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     }
   } else if (e->key() == Qt::Key_Left) {
     double rotation_angle = kRotationAngle;
-    if(e->modifiers() & Qt::ShiftModifier) {
+
+    bool slow = false;
+    if(e->modifiers() & Qt::ShiftModifier &&
+       e->modifiers() & Qt::AltModifier) {
+      rotation_angle = 90.0 * M_PI / 180.0;
+      slow = true;
+    } else if(e->modifiers() & Qt::ShiftModifier) {
       rotation_angle = 10.0 * M_PI / 180.0;
     } else if(e->modifiers() & Qt::AltModifier) {
       rotation_angle = 90.0 * M_PI / 180.0;
-    }       
+    }
     if (navigation.GetCameraStatus() == kPanorama) {
       navigation.RotatePanorama(rotation_angle);
     } else if (navigation.GetCameraStatus() == kAir ||
                navigation.GetCameraStatus() == kTree) {
-      navigation.RotateAir(-rotation_angle);
+      navigation.RotateAir(-rotation_angle, slow);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
       navigation.RotateFloorplan(-rotation_angle);
     }
   }
   else if (e->key() == Qt::Key_Right) {
     double rotation_angle = kRotationAngle;
-    if(e->modifiers() & Qt::ShiftModifier) {
+    bool slow = false;
+    if(e->modifiers() & Qt::ShiftModifier &&
+       e->modifiers() & Qt::AltModifier) {
+      rotation_angle = 90.0 * M_PI / 180.0;
+      slow = true;
+    } else if(e->modifiers() & Qt::ShiftModifier) {
       rotation_angle = 10.0 * M_PI / 180.0;
     } else if(e->modifiers() & Qt::AltModifier) {
       rotation_angle = 90.0 * M_PI / 180.0;
@@ -687,7 +698,7 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
       navigation.RotatePanorama(-rotation_angle);
     } else if (navigation.GetCameraStatus() == kAir ||
                navigation.GetCameraStatus() == kTree) {
-      navigation.RotateAir(rotation_angle);
+      navigation.RotateAir(rotation_angle, slow);
     } else if (navigation.GetCameraStatus() == kFloorplan) {
       navigation.RotateFloorplan(rotation_angle);
     }

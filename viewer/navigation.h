@@ -137,7 +137,7 @@ class Navigation {
   void RotatePanorama(const double radian);
   void MoveAir(const Eigen::Vector3d& translation);
   void MoveFloorplan(const Eigen::Vector3d& translation);
-  void RotateAir(const double radian);
+  void RotateAir(const double radian, const bool slow);
   void RotateFloorplan(const double radian);
   void ScaleAirFloorplanFieldOfView(const int wheel);
 
@@ -179,6 +179,8 @@ class Navigation {
   const std::vector<Panorama>& panoramas;
   const std::map<int, int>& panorama_to_room;
   // const std::map<int, int>& room_to_panorama;
+
+  bool transition_slow;
 };
 
 }  // namespace structured_indoor_modeling

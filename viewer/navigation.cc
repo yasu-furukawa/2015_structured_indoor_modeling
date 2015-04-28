@@ -389,7 +389,7 @@ void Navigation::Tick() {
   }
   case kAirTransition:
   case kTreeTransition: {
-    const double kStepSize = 0.04;
+    const double kStepSize = transition_slow? 0.01 : 0.04;
     camera_air.progress += kStepSize;
     if (camera_air.progress >= 1.0) {
       if (camera_status == kAirTransition)
@@ -706,12 +706,14 @@ void Navigation::RotatePanorama(const double radian) {
   RobustifyDirection(camera_panorama.start_direction, &camera_panorama.end_direction);
 }
 
-void Navigation::RotateAir(const double radian) {
+void Navigation::RotateAir(const double radian, const bool slow) {
   Matrix3d rotation;
   rotation << cos(radian), -sin(radian), 0.0,
     sin(radian), cos(radian), 0.0,
     0.0, 0.0, 1.0;
 
+  transition_slow = slow;
+  
   // camera_air.end_direction = rotation * camera_air.start_direction;
   camera_air.end_direction = RotateInFloorplan(rotation, camera_air.start_direction);
   camera_air.progress = 0.0;
