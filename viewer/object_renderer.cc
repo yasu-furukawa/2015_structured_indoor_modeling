@@ -780,16 +780,15 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
   const float kFillAlpha = 0.5f + 0.5f * animation;
   const float kLineAlpha = 1.0f;
   // Outer frame.
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_BLEND);
   glBegin(GL_TRIANGLE_FAN);
-  glColor4f(1.0f, 1.0f, 1.0f, kFillAlpha);
+  glColor3f(1.0f, 1.0f, 1.0f);// 0.0); // kFillAlpha);
   for (int i = 0; i < 4; ++i)
     glVertex3d(vs[i][0], vs[i][1], vs[i][2]);
   glEnd();
 
   glBegin(GL_LINE_LOOP);
-  glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
+  glColor3f(0.0f, 0.0f, 0.0f);// , kLineAlpha);
   for (int i = 0; i < 4; ++i)
     glVertex3d(vs[i][0], vs[i][1], vs[i][2]);
   glEnd();
@@ -809,7 +808,7 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
     const int kNumSamples = 20;
     glBegin(GL_TRIANGLE_FAN);
     // Yellow.
-    glColor4f(1.0f, 1.0f, 0.0f, kFillAlpha);
+    glColor3f(1.0f, 1.0f, 0.0f);//, kFillAlpha);
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = 2.0 * M_PI * s / kNumSamples;
       const Vector3d point = center + kLargeRadius * cos(angle) * x_diff + kLargeRadius * sin(angle) * y_diff;
@@ -817,8 +816,10 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
     }
     glEnd();
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_LINE_LOOP);
-
+    
     glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = 2.0 * M_PI * s / kNumSamples;
@@ -826,13 +827,14 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
       glVertex3d(point[0], point[1], point[2]);
     }
     glEnd();
+    glDisable(GL_BLEND);
   }
 
   {
     const int kNumSamples = 20;
     glBegin(GL_TRIANGLE_FAN);
     // White opaque.
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    glColor3f(1.0f, 1.0f, 1.0f); //, 1.0f);
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = 2.0 * M_PI * s / kNumSamples;
       const Vector3d point = center + kSmallRadius * cos(angle) * x_diff + kSmallRadius * sin(angle) * y_diff;
@@ -840,7 +842,10 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
     }
     glEnd();
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_LINE_LOOP);
+    
     glColor4f(0.0f, 0.0f, 0.0f, kLineAlpha);
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = 2.0 * M_PI * s / kNumSamples;
@@ -848,13 +853,14 @@ void ObjectRenderer::RenderLamp(const Detection& /* detection */,
       glVertex3d(point[0], point[1], point[2]);
     }
     glEnd();
+    glDisable(GL_BLEND);
   }
 
   {
     const int kNumSamples = 20;
     glBegin(GL_TRIANGLE_FAN);
     // White opaque.
-    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+    glColor3f(0.0f, 0.0f, 0.0f); // , 1.0f);
     for (int s = 0; s < kNumSamples; ++s) {
       const double angle = 2.0 * M_PI * s / kNumSamples;
       const Vector3d point = center + kTinyRadius * cos(angle) * x_diff + kTinyRadius * sin(angle) * y_diff;
@@ -1022,11 +1028,11 @@ void ObjectRenderer::RenderRectangle(const Detection& /* detection */,
 void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
 					  const Vector3f& color) const{
     
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_BLEND);
+  //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glBegin(GL_TRIANGLES);
-    glColor4f(color[0], color[1], color[2], 0.5f);
+    glColor3f(color[0], color[1], color[2]); // , 0.5f);
     for(const auto&edge: detection.elist){
 	Vector3d v1(detection.vlist[edge[0]][0], detection.vlist[edge[0]][1], average_floor_height);
 	Vector3d v2(detection.vlist[edge[1]][0], detection.vlist[edge[1]][1], average_floor_height);
@@ -1041,17 +1047,21 @@ void ObjectRenderer::RenderObjectPolygon(const Detection& detection,
     glEnd();
 
     glLineWidth(0.5);
-    glColor4f(0.0,0.0,0.0,1.0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_LINE_STRIP);
+    glColor3f(0.0,0.0,0.0); // ,1.0);
 
     for(const auto&pt: detection.vlist){
 	 Vector3d v(pt[0], pt[1], average_floor_height);
 	 v = indoor_polygon.ManhattanToGlobal(v);
 	 glVertex3d(v[0],v[1],v[2]);
     }
-    Vector3d v0(detection.vlist[0][0], detection.vlist[0][1], average_floor_height);
-    v0 = indoor_polygon.ManhattanToGlobal(v0);
-    glVertex3d(v0[0], v0[1], v0[2]);
+    if (!detection.vlist.empty()) {
+      Vector3d v0(detection.vlist[0][0], detection.vlist[0][1], average_floor_height);
+      v0 = indoor_polygon.ManhattanToGlobal(v0);
+      glVertex3d(v0[0], v0[1], v0[2]);
+    }
     
     glEnd();
     glDisable(GL_BLEND);
