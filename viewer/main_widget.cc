@@ -757,14 +757,14 @@ void MainWidget::keyPressEvent(QKeyEvent* e) {
     cin >> filename;
     
     glReadBuffer(GL_BACK);
-    vector<unsigned char> buffer(width() * height() * 3);
-    glReadPixels(0, 0, width(), height(), GL_RGB, GL_UNSIGNED_BYTE, &buffer[0]);
+    vector<unsigned char> buffer(width() * height() * 4);
+    glReadPixels(0, 0, width(), height(), GL_RGBA, GL_UNSIGNED_BYTE, &buffer[0]);
     cv::Mat image(height(), width(), CV_8UC3);
     for (int y = 0; y < height(); ++y) {
       for (int x = 0; x < width(); ++x) {
-        image.at<cv::Vec3b>(height() - 1 - y, x) = cv::Vec3b(buffer[3 * (y * width() + x) + 2],
-                                                             buffer[3 * (y * width() + x) + 1],
-                                                             buffer[3 * (y * width() + x) + 0]);
+        image.at<cv::Vec3b>(height() - 1 - y, x) = cv::Vec3b(buffer[4 * (y * width() + x) + 2],
+                                                             buffer[4 * (y * width() + x) + 1],
+                                                             buffer[4 * (y * width() + x) + 0]);
       }
     }
     cv::imwrite(filename, image);
