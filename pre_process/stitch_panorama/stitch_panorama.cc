@@ -1,11 +1,14 @@
 #include <fstream>
 #include <list>
 #include <opencv2/highgui/highgui.hpp>
+#include "ceres/ceres.h"
 #include "stitch_panorama.h"
 
 using cv::imread;
 using cv::imshow;
 using cv::Mat;
+using cv::Vec3b;
+using cv::Vec4f;
 using cv::waitKey;
 
 using Eigen::Vector2d;
@@ -24,6 +27,68 @@ using std::string;
 using std::vector;
 
 namespace {
+
+Vector3d Rodrigues(const Eigen::Matrix3d& matrix) {
+  cv::Mat mat;
+  mat.create(3, 3, CV_32F);
+
+  for (int y = 0; y < 3; ++y) {
+    for (int x = 0; x < 3; ++x) {
+      mat.at<float>(y, x) = matrix(y, x);
+    }
+  }
+  
+  cv::Vec3f vec;
+  cv::Rodrigues(mat, vec);
+  return Vector3d(vec(0), vec(1), vec(2));
+}
+
+Matrix3d Rodrigues(const Eigen::Vector3d& vect) {
+  cv::Vec3f vec;
+  for (int i = 0; i < 3; ++i)
+    vec[i] = vect[i];
+
+  cv::Mat mat;
+  mat.create(3, 3, CV_32F);
+  cv::Rodrigues(vec, mat);
+
+  Matrix3d matrix;
+  for (int y = 0; y < 3; ++y) {
+    for (int x = 0; x < 3; ++x) {
+      matrix(y, x) = mat.at<float>(y, x);
+    }
+  }
+  
+  return matrix;
+}
+
+cv::Vec3b Interpolate(const cv::Mat& image, const Eigen::Vector2d& pixel) {
+  int x = (int)floor(pixel[0]);
+  int y = (int)floor(pixel[1]);
+
+  int x0 = cv::borderInterpolate(x,   image.cols, cv::BORDER_REFLECT_101);
+  int x1 = cv::borderInterpolate(x+1, image.cols, cv::BORDER_REFLECT_101);
+  int y0 = cv::borderInterpolate(y,   image.rows, cv::BORDER_REFLECT_101);
+  int y1 = cv::borderInterpolate(y+1, image.rows, cv::BORDER_REFLECT_101);
+
+  float a = pixel[0] - (float)x;
+  float c = pixel[1] - (float)y;
+
+  uchar b = (uchar)cvRound((image.at<Vec3b>(y0, x0)[0] * (1.f - a) +
+                            image.at<Vec3b>(y0, x1)[0] * a) * (1.f - c) +
+                           (image.at<Vec3b>(y1, x0)[0] * (1.f - a) +
+                            image.at<Vec3b>(y1, x1)[0] * a) * c);
+  uchar g = (uchar)cvRound((image.at<Vec3b>(y0, x0)[1] * (1.f - a) +
+                            image.at<Vec3b>(y0, x1)[1] * a) * (1.f - c) +
+                           (image.at<Vec3b>(y1, x0)[1] * (1.f - a) +
+                            image.at<Vec3b>(y1, x1)[1] * a) * c);
+  uchar r = (uchar)cvRound((image.at<Vec3b>(y0, x0)[2] * (1.f - a) +
+                            image.at<Vec3b>(y0, x1)[2] * a) * (1.f - c) +
+                           (image.at<Vec3b>(y1, x0)[2] * (1.f - a) +
+                            image.at<Vec3b>(y1, x1)[2] * a) * c);
+  
+  return Vec3b(b, g, r);
+}
 
 Eigen::Matrix3d RotationX(const double radian) {
   Matrix3d rotation;
@@ -101,7 +166,8 @@ bool StitchPanorama::Init() {
   }  
 
   images.resize(num_cameras);
-  for (int c = 0; c < num_cameras; ++c) {
+  // for (int c = 0; c < num_cameras; ++c) {
+  for (int c = 0; c < num_cameras; c += subsample) {  
     char buffer[1024];
     sprintf(buffer, "%s/images/%04d.jpg", directory.c_str(), c);
     images[c] = imread(buffer, CV_LOAD_IMAGE_COLOR);
@@ -113,8 +179,10 @@ bool StitchPanorama::Init() {
 }
   
 bool StitchPanorama::SetMasks() {
+  masks.clear();
   masks.resize(num_cameras);
-  for (int c = 0; c < num_cameras; ++c) {
+  // for (int c = 0; c < num_cameras; ++c) {
+  for (int c = 0; c < num_cameras; c += subsample) {
     masks[c].create(out_height, out_width, CV_8UC(1));
     for (int y = 0; y < out_height; ++y) {
       for (int x = 0; x < out_width; ++x) {
@@ -126,6 +194,7 @@ bool StitchPanorama::SetMasks() {
       for (int x = 0; x < out_width; ++x) {
         const Vector3d ray = ScreenToRay(Vector2d(x, y));
         const Vector3d pixel = Project(c, ray);
+        
         if (pixel[2] <= 0.0)
           continue;
 
@@ -226,14 +295,145 @@ bool StitchPanorama::SetMasks() {
           masks[c].at<unsigned char>(y, x) = 0;
         else if (distance.at<short>(y, x) == -1)
           masks[c].at<unsigned char>(y, x) = 255;
-        else
-          masks[c].at<unsigned char>(y, x) = distance.at<short>(y, x) * 255 / margin;
+        else {
+          masks[c].at<unsigned char>(y, x) = distance.at<short>(y, x) * (int)255 / margin;
+        }
       }
     }
-    
-    imshow("A", masks[c]);
-    waitKey(0);
+
+    // imshow("Mask", masks[c]);
+    // waitKey(0);
   }
+
+  return true;
+}
+
+bool StitchPanorama::RefineCameras() {
+  // Sample patches in the screen and a set of related image indexes.
+  SamplePatches();
+
+
+  // pyramids.
+
+
+  
+  vector<double> params;
+  for (int c = 0; c < num_cameras; c += subsample) {
+    const auto& param = Rodrigues(rotations[c]);
+    for (int i = 0; i < 3; ++i)
+      params.push_back(param[i]);
+  }
+  ceres::Problem problem;
+  
+
+  
+
+
+
+  ceres::Solver::Options options;
+  options.max_num_iterations = 100;
+  options.num_threads = 4;
+  options.minimizer_progress_to_stdout = true;
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+
+  // Update rotations and projections.
+  {
+    int index = 0;
+    for (int c = 0; c < num_cameras; c += subsample) {
+      const Vector3d vtmp(params[index], params[index + 1], params[index + 2]);
+      index += 3;
+      rotations[c] = Rodrigues(vtmp);
+      projections[c] = intrinsics * rotations[c];
+    }
+  }
+
+  return true;
+}
+
+void StitchPanorama::SamplePatches() {
+  patches.clear();
+  const int step = out_width / 100;
+  const int size = 9;
+  for (int y = step + size; y < out_height - step - size; ++y) {
+    for (int x = 0; x < out_width; ++x) {
+      Patch patch;
+      patch.x = x;
+      patch.y = y;
+      vector<int> valid_count_camera(num_cameras, 0);
+      for (int j = 0; j < size; ++j) {
+        const int ytmp = y + j;
+        for (int i = 0; i < size; ++i) {
+          const int xtmp = (x + i) % out_width;
+          for (int c = 0; c < num_cameras; c += subsample) {
+            if (masks[c].at<unsigned char>(ytmp, xtmp) == 255)
+              ++valid_count_camera[c];
+          }
+        }
+      }
+      for (int c = 0; c < num_cameras; c += subsample) {
+        if (valid_count_camera[c] == size * size)
+          patch.indexes.insert(c);
+      }
+
+      if (patch.indexes.size() >= 2)
+        patches.push_back(patch);
+    }
+  }
+
+  cerr << patches.size() << " patches sampled." << endl;
+}
+  
+bool StitchPanorama::Blend() {
+  cv::Mat output;
+  output.create(out_height, out_width, CV_32FC4);
+
+  for (int y = 0; y < out_height; ++y) {
+    for (int x = 0; x < out_width; ++x) {
+      output.at<cv::Vec4f>(y, x) = cv::Vec4f(0, 0, 0, 0);
+    }
+  }
+
+  // Accumulate.
+  for (int c = 0; c < num_cameras; c += subsample) {
+    for (int y = 0; y < out_height; ++y) {
+      for (int x = 0; x < out_width; ++x) {
+        const float alpha = masks[c].at<unsigned char>(y, x) / 255.0;
+        if (alpha == 0.0)
+          continue;
+        
+        const Vector3d pixel = Project(c, ScreenToRay(Vector2d(x, y)));
+        const auto& rgb = Interpolate(images[c], Vector2d(pixel[0], pixel[1]));
+        for (int i = 0; i < 3; ++i)
+          output.at<Vec4f>(y, x)[i] += rgb[i] * alpha;
+        output.at<Vec4f>(y, x)[3] += alpha;
+      }
+    }
+  }
+
+  for (int y = 0; y < out_height; ++y) {
+    for (int x = 0; x < out_width; ++x) {
+      if (output.at<Vec4f>(y, x)[3] == 0.0)
+        continue;
+      output.at<Vec4f>(y, x) /= output.at<Vec4f>(y, x)[3];
+    }
+  }
+
+  stitched_image.create(out_height, out_width, CV_8UC3);
+  for (int y = 0; y < out_height; ++y) {
+    for (int x = 0; x < out_width; ++x) {
+      for (int c = 0; c < 3; ++c) {
+        stitched_image.at<Vec3b>(y, x) = Vec3b(min(255, (int)round(output.at<Vec4f>(y, x)[0])),
+                                               min(255, (int)round(output.at<Vec4f>(y, x)[1])),
+                                               min(255, (int)round(output.at<Vec4f>(y, x)[2])));
+      }
+    }
+  }
+
+  imwrite("output.png", stitched_image);
+
+  imshow("Output", stitched_image);
+  waitKey(0);
 
   return true;
 }
@@ -305,6 +505,7 @@ bool StitchPanorama::Stitch(const Input& input) {
   out_width  = input.out_width;
   out_height = input.out_height;
   margin     = input.margin;
+  subsample  = input.subsample;
   if (!Init())
     return false;
 
@@ -345,15 +546,19 @@ bool StitchPanorama::Stitch(const Input& input) {
       const auto pixel = RayToScreen(ray);
       cerr << (pixel - Vector2d(x, y)).norm() << ' ' << flush;
     }
-  }
-*/
+    }
+  */
 
   if (!SetMasks())
     return false;
 
+  if (!RefineCameras())
+    return false;
   
+  if (!Blend())
+    return false;
 
-  return false;
+  return true;
 }
 
 }  // namespace pre_process

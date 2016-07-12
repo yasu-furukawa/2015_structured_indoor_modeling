@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <numeric>
+#include <set>
 
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
@@ -19,6 +20,16 @@ struct Input {
   int out_height;
 
   int margin;
+  int subsample;
+};
+
+struct Patch {
+  // Top left corner.
+  int x;
+  int y;
+  int size;
+
+  std::set<int> indexes;
 };
 
 class StitchPanorama {
@@ -31,6 +42,10 @@ class StitchPanorama {
   bool Init();
   bool SetMasks();
 
+  bool RefineCameras();
+  void SamplePatches();
+  bool Blend();
+
   Eigen::Vector3d ScreenToRay(const Eigen::Vector2d& screen) const;
   Eigen::Vector2d RayToScreen(const Eigen::Vector3d& ray) const;
   // Return (x, y, depth).
@@ -41,6 +56,7 @@ class StitchPanorama {
   int out_width;
   int out_height;
   int margin;
+  int subsample;
 
   int num_cameras;
   Eigen::Matrix3d intrinsics;
@@ -50,6 +66,7 @@ class StitchPanorama {
 
   // Intermediate data.
   std::vector<cv::Mat> masks;
+  std::vector<Patch> patches;
   
   // Output.
   std::vector<Eigen::Matrix3d> refined_intrinsics;
