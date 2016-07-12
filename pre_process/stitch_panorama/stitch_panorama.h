@@ -17,6 +17,8 @@ struct Input {
   // Pixel resolution.
   int out_width;
   int out_height;
+
+  int margin;
 };
 
 class StitchPanorama {
@@ -38,6 +40,7 @@ class StitchPanorama {
   std::string directory;
   int out_width;
   int out_height;
+  int margin;
 
   int num_cameras;
   Eigen::Matrix3d intrinsics;

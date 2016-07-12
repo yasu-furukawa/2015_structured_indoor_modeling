@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
   input.directory = argv[1];
   input.out_width = atoi(argv[2]);
   input.out_height = atoi(argv[3]);
+  input.margin = (int)round(0.05 * input.out_height);
   
   if (!stitch_panorama.Stitch(input)) {
     cerr << "Failed." << endl;
