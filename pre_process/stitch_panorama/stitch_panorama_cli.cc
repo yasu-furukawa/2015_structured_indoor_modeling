@@ -20,8 +20,7 @@ int main(int argc, char* argv[]) {
   input.out_height = atoi(argv[3]);
   // Critical parameters.
   input.margin = (int)round(0.05 * input.out_height);
-  //???
-  input.subsample = 40; // 5;
+  input.subsample = 5;
   
   if (!stitch_panorama.Stitch(input)) {
     cerr << "Failed." << endl;
