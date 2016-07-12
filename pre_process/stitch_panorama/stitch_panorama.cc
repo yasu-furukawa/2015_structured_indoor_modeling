@@ -164,8 +164,26 @@ bool StitchPanorama::SetMasks() {
     }
     while (!front.empty()) {
       const Vector2i pixel = front.front();
+      front.pop_front();
       const int x = pixel[0];
       const int y = pixel[1];
+      const int current_distance = distance.at<short>(y, x);
+      if (current_distance >= margin)
+        continue;
+
+      for (int j = -1; j <= 1; ++j) {
+        const int new_y = y + j;
+        if (new_y < 0 || out_height <= new_y)
+          continue;
+        for (int i = -1; i <= 1; ++i) {
+          const int new_x = (x + i + out_width) % out_width;
+          if (distance.at<short>(new_y, new_x) == -1) {
+            distance.at<short>(new_y, new_x) = current_distance + 1;
+            front.push_back(Vector2i(new_x, new_y));
+          }
+        }
+      }
+      /*
       const int px = (x - 1 + out_width) % out_width;
       const int nx = (x + 1) % out_width;
       const int py = max(0, y - 1);
@@ -200,6 +218,7 @@ bool StitchPanorama::SetMasks() {
           front.push_back(Vector2i(x, ny));
         }
       }
+      */
     }
     for (int y = 0; y < out_height; ++y) {
       for (int x = 0; x < out_width; ++x) {
