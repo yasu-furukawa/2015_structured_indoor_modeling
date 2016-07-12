@@ -946,7 +946,7 @@ void ObjectRenderer::RenderName(const Detection& detection,
   if (detection.names[0] == "lamp") {
     vertical_offset = - 3.2 * kCharacterWidth;
   }
-  
+
   widget->renderText(u - (full_name.length() - 1) * kCharacterWidth / 2.0,
                      viewport[3] - v + vertical_offset,
                      full_name.c_str(),

@@ -1,0 +1,6 @@
+#ifndef STITCH_PANORAMA_H_
+#define STITCH_PANORAMA_H_
+
+
+
+#endif  // STITCH_PANORAMA_H_

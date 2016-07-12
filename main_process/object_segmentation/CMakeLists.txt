@@ -4,14 +4,15 @@ find_package( OpenCV REQUIRED )
 #find_package( PCl 1.7 REQUIRED COMPONENTS common io)
 #find_package( PCl 1.7 REQUIRED COMPONENTS common)
 
+
 # FIND_PACKAGE( Ceres REQUIRED )
 # INCLUDE_DIRECTORIES( ${CERES_INCLUDE_DIRS} )
 
 #include_directories(${PCL_INCLUDE_DIRS})
-
+include_directories("/usr/local/include")
 
 #link_directories(${PCL_LIBRARY_DIRS})
-LINK_DIRECTORIES( /usr/local/lib )
+LINK_DIRECTORIES("/usr/local/lib")
 
 #add_definitions(${PCL_DEFINITIONS})
 
