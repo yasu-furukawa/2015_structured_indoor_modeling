@@ -221,6 +221,10 @@ template<typename T>
     return false;
 
   residual[0] = InverseNcc(patch0, patch1);
+
+  cerr << residual[0] << "  --  "
+       << param0[0] << ' ' << param0[1] << ' ' << param0[2] << ' '
+       << param1[0] << ' ' << param1[1] << ' ' << param1[2] << endl;
   return true;
 }
 
@@ -435,8 +439,8 @@ bool StitchPanorama::SetMasks() {
       }
     }
 
-    imshow("Mask", masks[c]);
-    waitKey(0);
+    // imshow("Mask", masks[c]);
+    // waitKey(0);
   }
 
   return true;
