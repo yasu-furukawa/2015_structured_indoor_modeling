@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 
   Input input;
   input.directory = argv[1];
-  input.subsample = 5;
+  input.subsample = 1;
 
   vector<Eigen::Matrix3d> previous_rotations;
   for (int level = num_levels - 1; level >= 0; --level) {

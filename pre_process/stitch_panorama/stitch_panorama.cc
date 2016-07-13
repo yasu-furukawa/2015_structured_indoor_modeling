@@ -91,6 +91,38 @@ cv::Vec3b Interpolate(const cv::Mat& image, const Eigen::Vector2d& pixel) {
   return Vec3b(b, g, r);
 }
 
+Eigen::Vector3f InterpolateF(const cv::Mat& image, const Eigen::Vector2d& pixel) {
+  int x = (int)floor(pixel[0]);
+  int y = (int)floor(pixel[1]);
+
+  int x0 = cv::borderInterpolate(x,   image.cols, cv::BORDER_REFLECT_101);
+  int x1 = cv::borderInterpolate(x+1, image.cols, cv::BORDER_REFLECT_101);
+  int y0 = cv::borderInterpolate(y,   image.rows, cv::BORDER_REFLECT_101);
+  int y1 = cv::borderInterpolate(y+1, image.rows, cv::BORDER_REFLECT_101);
+
+  float a = pixel[0] - (float)x;
+  float c = pixel[1] - (float)y;
+
+  Vector3f bgr;
+  bgr[0] =
+    (image.at<Vec3b>(y0, x0)[0] * (1.f - a) +
+     image.at<Vec3b>(y0, x1)[0] * a) * (1.f - c) +
+    (image.at<Vec3b>(y1, x0)[0] * (1.f - a) +
+     image.at<Vec3b>(y1, x1)[0] * a) * c;
+  bgr[1] =
+    (image.at<Vec3b>(y0, x0)[1] * (1.f - a) +
+     image.at<Vec3b>(y0, x1)[1] * a) * (1.f - c) +
+    (image.at<Vec3b>(y1, x0)[1] * (1.f - a) +
+     image.at<Vec3b>(y1, x1)[1] * a) * c;
+  bgr[2] =
+    (image.at<Vec3b>(y0, x0)[2] * (1.f - a) +
+     image.at<Vec3b>(y0, x1)[2] * a) * (1.f - c) +
+    (image.at<Vec3b>(y1, x0)[2] * (1.f - a) +
+     image.at<Vec3b>(y1, x1)[2] * a) * c;
+  
+  return bgr;
+}
+
 Eigen::Matrix3d RotationX(const double radian) {
   Matrix3d rotation;
   rotation <<
@@ -205,8 +237,7 @@ template<typename T>
          pixel[0] /= pixel[2];
          pixel[1] /= pixel[2];
        }
-       const auto& color = Interpolate(stitch_panorama_.images[index], Vector2d(pixel[0], pixel[1]));
-       patch.push_back(Vector3f(color[0], color[1], color[2]));
+       patch.push_back(InterpolateF(stitch_panorama_.images[index], Vector2d(pixel[0], pixel[1])));
      }
    }
 
@@ -404,8 +435,8 @@ bool StitchPanorama::SetMasks() {
       }
     }
 
-    // imshow("Mask", masks[c]);
-    // waitKey(0);
+    imshow("Mask", masks[c]);
+    waitKey(0);
   }
 
   return true;
@@ -447,9 +478,14 @@ bool StitchPanorama::RefineCameras() {
         problem.AddResidualBlock(cost_function, new ceres::HuberLoss(kHuberParameter),
                                  &params[kNumOfParamsPerIndex * sampled_index0],
                                  &params[kNumOfParamsPerIndex * sampled_index1]);
+
+        //????
+        break;
       }
     }
-  }
+    //????
+    break;
+ }
   
   ceres::Solver::Options options;
   options.max_num_iterations = 100;
@@ -478,8 +514,8 @@ void StitchPanorama::SamplePatches() {
   patches.clear();
   const int step = out_width / 100;
   const int size = 9;
-  for (int y = step + size; y < out_height - step - size; ++y) {
-    for (int x = 0; x < out_width; ++x) {
+  for (int y = step + size; y < out_height - step - size; y += step) {
+    for (int x = 0; x < out_width; x += step) {
       Patch patch;
       patch.x = x;
       patch.y = y;
@@ -499,8 +535,9 @@ void StitchPanorama::SamplePatches() {
           patch.indexes.push_back(c);
       }
 
-      if (patch.indexes.size() >= 2)
+      if (patch.indexes.size() >= 2) {
         patches.push_back(patch);
+      }
     }
   }
 
@@ -526,7 +563,7 @@ bool StitchPanorama::Blend(const std::string& filename) {
           continue;
         
         const Vector3d pixel = Project(c, ScreenToRay(Vector2d(x, y)));
-        const auto& rgb = Interpolate(images[c], Vector2d(pixel[0], pixel[1]));
+        const auto& rgb = InterpolateF(images[c], Vector2d(pixel[0], pixel[1]));
         for (int i = 0; i < 3; ++i)
           output.at<Vec4f>(y, x)[i] += rgb[i] * alpha;
         output.at<Vec4f>(y, x)[3] += alpha;
