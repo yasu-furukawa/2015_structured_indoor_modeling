@@ -41,24 +41,26 @@ int main(int argc, char* argv[]) {
       return 1;
     }
     previous_rotations = stitch_panorama.GetRefinedRotations();
-  }
 
-  ofstream ofstr;
-  ofstr.open((input.directory + "/IMU_rotation_new.txt").c_str());
-  if (ofstr.is_open()) {
-    cerr << "No IMU_rotation file." << endl;
-    return 1;
-  }
-  ofstr << previous_rotations.size() << endl;
-  for (const auto& mat : previous_rotations) {
-    for (int y = 0; y < 3; ++y) {
-      for (int x = 0; x < 3; ++x) {
-        ofstr << mat(x, y) << ' ';
-      }
+    char buffer[1024];
+    sprintf(buffer, "%s/IMU_rotation_new_%d.txt", input.directory.c_str(), level);
+    ofstream ofstr;
+    ofstr.open(buffer);
+    if (ofstr.is_open()) {
+      cerr << "No IMU_rotation file." << endl;
+      return 1;
     }
-    ofstr << endl;
+    ofstr << previous_rotations.size() << endl;
+    for (const auto& mat : previous_rotations) {
+      for (int y = 0; y < 3; ++y) {
+        for (int x = 0; x < 3; ++x) {
+          ofstr << mat(x, y) << ' ';
+        }
+      }
+      ofstr << endl;
+    }
+    ofstr.close();
   }
-  ofstr.close();
   
   return 0;
 }

@@ -10,8 +10,8 @@ LINK_DIRECTORIES(/usr/local/lib)
 set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare" )
 #set( CMAKE_CXX_FLAGS "-Wno-c++11-extensions -Wno-gnu-static-float-init -Wno-sign-compare -fopenmp" )
 
-#set(CMAKE_C_COMPILER clang-omp CACHE STRING "C compiler" FORCE)
-#set(CMAKE_CXX_COMPILER clang-omp++ CACHE STRING "C++ compiler" FORCE)
+set(CMAKE_C_COMPILER clang-omp CACHE STRING "C compiler" FORCE)
+set(CMAKE_CXX_COMPILER clang-omp++ CACHE STRING "C++ compiler" FORCE)
 
 #find_package(OpenMP REQUIRED)
 
