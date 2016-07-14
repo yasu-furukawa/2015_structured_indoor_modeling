@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     sprintf(buffer, "%s/IMU_rotation_new_%d.txt", input.directory.c_str(), level);
     ofstream ofstr;
     ofstr.open(buffer);
-    if (ofstr.is_open()) {
+    if (!ofstr.is_open()) {
       cerr << "No IMU_rotation file." << endl;
       return 1;
     }

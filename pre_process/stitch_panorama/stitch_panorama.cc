@@ -512,7 +512,7 @@ bool StitchPanorama::RefineCameras() {
   }
   
   ceres::Solver::Options options;
-  options.max_num_iterations = 100;
+  options.max_num_iterations = 25; // 50;
   options.num_threads = 4;
   options.minimizer_progress_to_stdout = true;
   ceres::Solver::Summary summary;
@@ -531,14 +531,17 @@ bool StitchPanorama::RefineCameras() {
     }
   }
 
+  refined_rotations = rotations;
+  
   return true;
 }
 
 void StitchPanorama::SamplePatches() {
   patches.clear();
   const int step = out_width / 200;
-  const int kSize = 7;
-  for (int y = step + kSize; y < out_height - step - kSize; y += step) {
+  const int kSize = 9;
+  // for (int y = step + kSize; y < out_height - step - kSize; y += step) {
+  for (int y = 3 * out_height / 7; y < out_height - step - kSize; y += step) {
     for (int x = 0; x < out_width; x += step) {
       Patch patch;
       patch.x = x;
