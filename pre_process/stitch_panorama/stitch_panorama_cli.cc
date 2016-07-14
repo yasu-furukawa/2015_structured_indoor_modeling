@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include "stitch_panorama.h"
@@ -6,6 +7,7 @@
 
 using std::cerr;
 using std::endl;
+using std::ofstream;
 using std::vector;
 using pre_process::Input;
 using pre_process::StitchPanorama;
@@ -22,7 +24,7 @@ int main(int argc, char* argv[]) {
 
   Input input;
   input.directory = argv[1];
-  input.subsample = 1;
+  input.subsample = 2;
 
   vector<Eigen::Matrix3d> previous_rotations;
   for (int level = num_levels - 1; level >= 0; --level) {
@@ -39,10 +41,24 @@ int main(int argc, char* argv[]) {
       return 1;
     }
     previous_rotations = stitch_panorama.GetRefinedRotations();
-
-    //????
-    break;
   }
+
+  ofstream ofstr;
+  ofstr.open((input.directory + "/IMU_rotation_new.txt").c_str());
+  if (ofstr.is_open()) {
+    cerr << "No IMU_rotation file." << endl;
+    return 1;
+  }
+  ofstr << previous_rotations.size() << endl;
+  for (const auto& mat : previous_rotations) {
+    for (int y = 0; y < 3; ++y) {
+      for (int x = 0; x < 3; ++x) {
+        ofstr << mat(x, y) << ' ';
+      }
+    }
+    ofstr << endl;
+  }
+  ofstr.close();
   
   return 0;
 }

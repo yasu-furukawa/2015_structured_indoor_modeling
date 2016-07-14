@@ -178,15 +178,27 @@ double InverseNcc(std::vector<Vector3f>& patch0, std::vector<Vector3f>& patch1) 
   }
 
   const int kNumChannels = 3;
-  var0 /= kNumChannels * patch0.size();
   var0 = sqrt(var0);
-  var1 /= kNumChannels * patch1.size();
   var1 = sqrt(var1);
 
   ncc /= max(0.01, var0 * var1);
+  return min(1.0 - ncc, 0.7);
+}
 
-  return 1.0 - ncc;
-} 
+class RegularizationResidual {
+ public:
+  RegularizationResidual() {}
+
+  template <typename T> bool operator()(const T* params, T* residual) const {
+    const double kScale = 100.0;
+    const auto& mat = Rodrigues(Vector3d(params[0], params[1], params[2]));
+    // const Vector3d kExpectedYAxis(0, 0, 1);
+    const Vector3d kExpectedYAxis(-0.07361, -0.03432, -0.9967);
+    residual[0] = kScale * (1.0 - std::fabs(kExpectedYAxis.dot(mat.row(1))));
+    return true;
+  }
+};
+ 
 }  // namespace
 
 namespace pre_process {
@@ -221,10 +233,12 @@ template<typename T>
     return false;
 
   residual[0] = InverseNcc(patch0, patch1);
-
+  
+  /*
   cerr << residual[0] << "  --  "
        << param0[0] << ' ' << param0[1] << ' ' << param0[2] << ' '
        << param1[0] << ' ' << param1[1] << ' ' << param1[2] << endl;
+  */
   return true;
 }
 
@@ -466,6 +480,8 @@ bool StitchPanorama::RefineCameras() {
         to_sampled_index.push_back(-1);
     }
   }
+
+  cerr << "Param size: " << params.size() << endl;
   
   ceres::Problem problem;
   const double kHuberParameter = 0.3;
@@ -482,14 +498,18 @@ bool StitchPanorama::RefineCameras() {
         problem.AddResidualBlock(cost_function, new ceres::HuberLoss(kHuberParameter),
                                  &params[kNumOfParamsPerIndex * sampled_index0],
                                  &params[kNumOfParamsPerIndex * sampled_index1]);
-
-        //????
-        break;
       }
     }
-    //????
-    break;
- }
+  }
+
+  for (int c = 0; c < num_cameras; c+= subsample) {
+    const int sampled_index = to_sampled_index[c];
+    ceres::CostFunction* cost_function =
+      new ceres::NumericDiffCostFunction
+      <RegularizationResidual, ceres::CENTRAL, 1, 3>(new RegularizationResidual());
+    problem.AddResidualBlock(cost_function, new ceres::TrivialLoss(),
+                             &params[kNumOfParamsPerIndex * sampled_index]);
+  }
   
   ceres::Solver::Options options;
   options.max_num_iterations = 100;
@@ -516,17 +536,18 @@ bool StitchPanorama::RefineCameras() {
 
 void StitchPanorama::SamplePatches() {
   patches.clear();
-  const int step = out_width / 100;
-  const int size = 9;
-  for (int y = step + size; y < out_height - step - size; y += step) {
+  const int step = out_width / 200;
+  const int kSize = 7;
+  for (int y = step + kSize; y < out_height - step - kSize; y += step) {
     for (int x = 0; x < out_width; x += step) {
       Patch patch;
       patch.x = x;
       patch.y = y;
+      patch.size = kSize;
       vector<int> valid_count_camera(num_cameras, 0);
-      for (int j = 0; j < size; ++j) {
+      for (int j = 0; j < kSize; ++j) {
         const int ytmp = y + j;
-        for (int i = 0; i < size; ++i) {
+        for (int i = 0; i < kSize; ++i) {
           const int xtmp = (x + i) % out_width;
           for (int c = 0; c < num_cameras; c += subsample) {
             if (masks[c].at<unsigned char>(ytmp, xtmp) == 255)
@@ -535,7 +556,7 @@ void StitchPanorama::SamplePatches() {
         }
       }
       for (int c = 0; c < num_cameras; c += subsample) {
-        if (valid_count_camera[c] == size * size)
+        if (valid_count_camera[c] == kSize * kSize)
           patch.indexes.push_back(c);
       }
 
@@ -587,9 +608,10 @@ bool StitchPanorama::Blend(const std::string& filename) {
   for (int y = 0; y < out_height; ++y) {
     for (int x = 0; x < out_width; ++x) {
       for (int c = 0; c < 3; ++c) {
-        stitched_image.at<Vec3b>(y, x) = Vec3b(min(255, (int)round(output.at<Vec4f>(y, x)[0])),
-                                               min(255, (int)round(output.at<Vec4f>(y, x)[1])),
-                                               min(255, (int)round(output.at<Vec4f>(y, x)[2])));
+        stitched_image.at<Vec3b>(out_height - 1 - y, x) =
+          Vec3b(min(255, (int)round(output.at<Vec4f>(y, x)[0])),
+                min(255, (int)round(output.at<Vec4f>(y, x)[1])),
+                min(255, (int)round(output.at<Vec4f>(y, x)[2])));
       }
     }
   }
