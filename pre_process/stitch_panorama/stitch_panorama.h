@@ -14,6 +14,7 @@
 namespace pre_process {
 
 class PatchCorrelationResidual;
+class ManualSpecification;
 
 struct Input {
   std::string directory;
@@ -82,6 +83,7 @@ class StitchPanorama {
   cv::Mat stitched_image;
 
   friend class PatchCorrelationResidual;
+  friend class ManualSpecification;
 };
 
 class PatchCorrelationResidual {

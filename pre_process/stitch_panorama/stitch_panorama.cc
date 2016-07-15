@@ -22,8 +22,10 @@ using std::endl;
 using std::flush;
 using std::ifstream;
 using std::list;
+using std::make_pair;
 using std::max;
 using std::min;
+using std::pair;
 using std::string;
 using std::vector;
 
@@ -198,11 +200,44 @@ class RegularizationResidual {
     return true;
   }
 };
-
+  
 }  // namespace
 
 namespace pre_process {
 
+class ManualSpecification {
+ public:
+  ManualSpecification(const pre_process::StitchPanorama& stitch_panorama,
+                      const Eigen::Vector2d& lhs,
+                      const Eigen::Vector2d& rhs) : stitch_panorama_(stitch_panorama), lhs_(lhs), rhs_(rhs) {
+  }
+
+  template<typename T>
+  bool operator()(const T* const param0,
+                  const T* const param1,
+                  T* residual) const {
+    const auto rot0 = Rodrigues(Vector3d(param0[0], param0[1], param0[2]));
+    const auto rot1 = Rodrigues(Vector3d(param1[0], param1[1], param1[2]));
+    const auto proj0 = stitch_panorama_.intrinsics * rot0;
+    const auto proj1 = stitch_panorama_.intrinsics * rot1;
+
+    const auto& coord = proj0.inverse() * Vector3d(lhs_[0], lhs_[1], 1);
+    Vector3d pixel = proj1 * coord;
+    if (pixel[2] != 0.0) {
+      pixel[0] /= pixel[2];
+      pixel[1] /= pixel[2];
+    }
+
+    residual[0] = (Vector2d(pixel[0], pixel[1]) - rhs_).norm();    
+    return true;      
+  }
+
+ private:
+  const pre_process::StitchPanorama stitch_panorama_;
+  const Eigen::Vector2d& lhs_;
+  const Eigen::Vector2d& rhs_;
+};
+  
 PatchCorrelationResidual::PatchCorrelationResidual(const pre_process::StitchPanorama& stitch_panorama,
                                                    const int x,
                                                    const int y,
@@ -275,7 +310,7 @@ bool StitchPanorama::Init(const std::vector<Eigen::Matrix3d>& initial_rotations)
         ifstr >> intrinsics(y, x);
       }
     }
-    double scale = 1.0 / (1 << level);
+    const double scale = 1.0 / (1 << level);
     for (int x = 0; x < 3; ++x) {
       intrinsics(0, x) *= scale;
       intrinsics(1, x) *= scale;
@@ -511,6 +546,67 @@ bool StitchPanorama::RefineCameras() {
                              &params[kNumOfParamsPerIndex * sampled_index]);
   }
 
+  //----------------------------------------------------------------------
+  // Manual clicks.
+  //----------------------------------------------------------------------
+  {
+    vector<pair<int, int> > image_pairs;
+    vector<pair<Vector2d, Vector2d> > pixel_pairs;
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+
+    image_pairs.push_back(make_pair<int, int>( , ));
+    pixel_pairs.push_back(make_pair( , ));
+    
+    
+    
+
+    const double scale = 1.0 / (1 << level);
+    for (auto& pixel_pair : pixel_pairs) {
+      pixel_pair.first  *= scale;
+      pixel_pair.second *= scale;
+    }
+
+    for (int i = 0; i < image_pairs.size(); ++i) {
+      ceres::CostFunction* cost_function =
+        new ceres::NumericDiffCostFunction<ManualSpecification, ceres::CENTRAL, 1, 3, 3>(new ManualSpecification(*this, pixel_pairs[i].first, pixel_pairs[i].second));
+      const int sampled_index0 = to_sampled_index[image_pairs[i].first];
+      const int sampled_index1 = to_sampled_index[image_pairs[i].second];
+
+      problem.AddResidualBlock(cost_function, new ceres::TrivialLoss(),
+                               &params[kNumOfParamsPerIndex * sampled_index0],
+                               &params[kNumOfParamsPerIndex * sampled_index1]);
+    }      
+  }
+  
   ceres::Solver::Options options;
   options.max_num_iterations = 25; // 50;
   options.num_threads = 4;
@@ -538,8 +634,8 @@ bool StitchPanorama::RefineCameras() {
 
 void StitchPanorama::SamplePatches() {
   patches.clear();
-  const int step = out_width / 200;
-  const int kSize = 9;
+  const int step = out_width / 100;
+  const int kSize = 7;
   for (int y = step + kSize; y < out_height - step - kSize; y += step) {
   // for (int y = 3 * out_height / 7; y < out_height - step - kSize; y += step) {
     for (int x = 0; x < out_width; x += step) {
@@ -620,7 +716,6 @@ bool StitchPanorama::Blend(const std::string& filename) {
   }
 
   imwrite(filename.c_str(), stitched_image);
-
   imshow(filename.c_str(), stitched_image);
   // waitKey(0);
 

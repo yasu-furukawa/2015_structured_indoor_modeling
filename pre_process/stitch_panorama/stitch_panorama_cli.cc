@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     input.out_width = width / (1 << level);
     input.out_height = height / (1 << level);
     // Critical parameters.
-    input.margin = (int)round(0.05 * input.out_height);
+    input.margin = (int)round(0.02 * input.out_height);
     input.initial_rotations = previous_rotations;
 
     if (!stitch_panorama.Stitch(input)) {
