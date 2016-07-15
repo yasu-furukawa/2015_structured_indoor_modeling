@@ -28,7 +28,7 @@ using std::string;
 using std::vector;
 
 namespace {
-          
+
 Vector3d Rodrigues(const Eigen::Matrix3d& matrix) {
   cv::Mat mat;
   mat.create(3, 3, CV_32F);
@@ -38,7 +38,7 @@ Vector3d Rodrigues(const Eigen::Matrix3d& matrix) {
       mat.at<float>(y, x) = matrix(y, x);
     }
   }
-  
+
   cv::Vec3f vec;
   cv::Rodrigues(mat, vec);
   return Vector3d(vec(0), vec(1), vec(2));
@@ -59,7 +59,7 @@ Matrix3d Rodrigues(const Eigen::Vector3d& vect) {
       matrix(y, x) = mat.at<float>(y, x);
     }
   }
-  
+
   return matrix;
 }
 
@@ -87,7 +87,7 @@ cv::Vec3b Interpolate(const cv::Mat& image, const Eigen::Vector2d& pixel) {
                             image.at<Vec3b>(y0, x1)[2] * a) * (1.f - c) +
                            (image.at<Vec3b>(y1, x0)[2] * (1.f - a) +
                             image.at<Vec3b>(y1, x1)[2] * a) * c);
-  
+
   return Vec3b(b, g, r);
 }
 
@@ -119,7 +119,7 @@ Eigen::Vector3f InterpolateF(const cv::Mat& image, const Eigen::Vector2d& pixel)
      image.at<Vec3b>(y0, x1)[2] * a) * (1.f - c) +
     (image.at<Vec3b>(y1, x0)[2] * (1.f - a) +
      image.at<Vec3b>(y1, x1)[2] * a) * c;
-  
+
   return bgr;
 }
 
@@ -161,12 +161,12 @@ double InverseNcc(std::vector<Vector3f>& patch0, std::vector<Vector3f>& patch1) 
   Vector3f ave1(0, 0, 0);
   for (const auto& p : patch1)
     ave1 += p;
-  
+
   ave0 /= patch0.size();
   ave1 /= patch1.size();
 
   double ncc = 0.0;
-  
+
   double var0 = 0.0;
   double var1 = 0.0;
   for (int i = 0; i < patch0.size(); ++i) {
@@ -198,7 +198,7 @@ class RegularizationResidual {
     return true;
   }
 };
- 
+
 }  // namespace
 
 namespace pre_process {
@@ -225,7 +225,7 @@ template<typename T>
   const auto rot1 = Rodrigues(Vector3d(param1[0], param1[1], param1[2]));
   const auto proj0 = stitch_panorama_.intrinsics * rot0;
   const auto proj1 = stitch_panorama_.intrinsics * rot1;
-  
+
   vector<Vector3f> patch0, patch1;
   if (!GrabPatch(index0_, proj0, patch0))
     return false;
@@ -233,7 +233,7 @@ template<typename T>
     return false;
 
   residual[0] = InverseNcc(patch0, patch1);
-  
+
   /*
   cerr << residual[0] << "  --  "
        << param0[0] << ' ' << param0[1] << ' ' << param0[2] << ' '
@@ -260,8 +260,8 @@ template<typename T>
    }
 
    return true;
- } 
-       
+ }
+
 bool StitchPanorama::Init(const std::vector<Eigen::Matrix3d>& initial_rotations) {
   {
     ifstream ifstr;
@@ -280,7 +280,7 @@ bool StitchPanorama::Init(const std::vector<Eigen::Matrix3d>& initial_rotations)
       intrinsics(0, x) *= scale;
       intrinsics(1, x) *= scale;
     }
-    
+
     ifstr.close();
   }
 
@@ -308,11 +308,11 @@ bool StitchPanorama::Init(const std::vector<Eigen::Matrix3d>& initial_rotations)
   projections.resize(num_cameras);
   for (int c = 0; c < num_cameras; ++c) {
     projections[c] = intrinsics * rotations[c];
-  }  
+  }
 
   images.resize(num_cameras);
   // for (int c = 0; c < num_cameras; ++c) {
-  for (int c = 0; c < num_cameras; c += subsample) {  
+  for (int c = 0; c < num_cameras; c += subsample) {
     char buffer[1024];
     sprintf(buffer, "%s/images/%04d.jpg", directory.c_str(), c);
     images[c] = imread(buffer, CV_LOAD_IMAGE_COLOR);
@@ -322,14 +322,14 @@ bool StitchPanorama::Init(const std::vector<Eigen::Matrix3d>& initial_rotations)
       cv::pyrDown(images[c], mtmp);
       images[c] = mtmp;
     }
-    
+
     // imshow("Input Image", images[c]);
     // waitKey(0);
-  }  
+  }
 
   return true;
 }
-  
+
 bool StitchPanorama::SetMasks() {
   masks.clear();
   masks.resize(num_cameras);
@@ -346,7 +346,7 @@ bool StitchPanorama::SetMasks() {
       for (int x = 0; x < out_width; ++x) {
         const Vector3d ray = ScreenToRay(Vector2d(x, y));
         const Vector3d pixel = Project(c, ray);
-        
+
         if (pixel[2] <= 0.0)
           continue;
 
@@ -414,7 +414,7 @@ bool StitchPanorama::SetMasks() {
       const int current_distance = distance.at<short>(y, x);
       if (current_distance >= margin)
         continue;
-      
+
       {
         if (distance.at<short>(y, px) == -1) {
           distance.at<short>(y, px) = current_distance + 1;
@@ -482,7 +482,7 @@ bool StitchPanorama::RefineCameras() {
   }
 
   cerr << "Param size: " << params.size() << endl;
-  
+
   ceres::Problem problem;
   const double kHuberParameter = 0.3;
   const int kNumOfParamsPerIndex = 3;
@@ -510,7 +510,7 @@ bool StitchPanorama::RefineCameras() {
     problem.AddResidualBlock(cost_function, new ceres::TrivialLoss(),
                              &params[kNumOfParamsPerIndex * sampled_index]);
   }
-  
+
   ceres::Solver::Options options;
   options.max_num_iterations = 25; // 50;
   options.num_threads = 4;
@@ -532,7 +532,7 @@ bool StitchPanorama::RefineCameras() {
   }
 
   refined_rotations = rotations;
-  
+
   return true;
 }
 
@@ -540,8 +540,8 @@ void StitchPanorama::SamplePatches() {
   patches.clear();
   const int step = out_width / 200;
   const int kSize = 9;
-  // for (int y = step + kSize; y < out_height - step - kSize; y += step) {
-  for (int y = 3 * out_height / 7; y < out_height - step - kSize; y += step) {
+  for (int y = step + kSize; y < out_height - step - kSize; y += step) {
+  // for (int y = 3 * out_height / 7; y < out_height - step - kSize; y += step) {
     for (int x = 0; x < out_width; x += step) {
       Patch patch;
       patch.x = x;
@@ -571,7 +571,7 @@ void StitchPanorama::SamplePatches() {
 
   cerr << patches.size() << " patches sampled." << endl;
 }
-  
+
 bool StitchPanorama::Blend(const std::string& filename) {
   cv::Mat output;
   output.create(out_height, out_width, CV_32FC4);
@@ -589,7 +589,7 @@ bool StitchPanorama::Blend(const std::string& filename) {
         const float alpha = masks[c].at<unsigned char>(y, x) / 255.0;
         if (alpha == 0.0)
           continue;
-        
+
         const Vector3d pixel = Project(c, ScreenToRay(Vector2d(x, y)));
         const auto& rgb = InterpolateF(images[c], Vector2d(pixel[0], pixel[1]));
         for (int i = 0; i < 3; ++i)
@@ -634,7 +634,7 @@ Eigen::Vector3d StitchPanorama::ScreenToRay(const Eigen::Vector2d& screen) const
   const Matrix3d rotation = RotationZ(longitude) * RotationX(latitude);
   return rotation * Vector3d(0, 1, 0);
 }
-  
+
 Eigen::Vector2d StitchPanorama::RayToScreen(const Eigen::Vector3d& ray) const {
   // cos -sin 0     1 0 0             0
   // sin cos  0     0 cosa -sina      1
@@ -655,7 +655,7 @@ Eigen::Vector2d StitchPanorama::RayToScreen(const Eigen::Vector3d& ray) const {
   const double x = min((double)out_width, longitude / (2 * M_PI) * out_width);
   const double y = max(0.0, min((double)out_height, (latitude + M_PI / 2.0) / M_PI * out_height));
 
-  return Vector2d(x, y);  
+  return Vector2d(x, y);
 
   /*
   // cos 0 sin      1 0 0             0
@@ -688,7 +688,7 @@ Eigen::Vector3d StitchPanorama::Project(const int camera, const Eigen::Vector3d&
   }
   return pixel;
 }
-  
+
 bool StitchPanorama::Stitch(const Input& input) {
   directory  = input.directory;
   out_width  = input.out_width;

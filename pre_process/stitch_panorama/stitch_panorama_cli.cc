@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 
   Input input;
   input.directory = argv[1];
-  input.subsample = 2;
+  input.subsample = 1;
 
   vector<Eigen::Matrix3d> previous_rotations;
   for (int level = num_levels - 1; level >= 0; --level) {
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     // Critical parameters.
     input.margin = (int)round(0.05 * input.out_height);
     input.initial_rotations = previous_rotations;
-  
+
     if (!stitch_panorama.Stitch(input)) {
       cerr << "Failed." << endl;
       return 1;
@@ -61,6 +61,6 @@ int main(int argc, char* argv[]) {
     }
     ofstr.close();
   }
-  
+
   return 0;
 }
