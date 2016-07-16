@@ -13,8 +13,8 @@ using pre_process::Input;
 using pre_process::StitchPanorama;
 
 int main(int argc, char* argv[]) {
-  if (argc < 5) {
-    cerr << argv[0] << " directory width height num_levels" << endl;
+  if (argc < 6) {
+    cerr << argv[0] << " directory width height num_levels subsample" << endl;
     return 1;
   }
 
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 
   Input input;
   input.directory = argv[1];
-  input.subsample = 1;
+  input.subsample = atoi(argv[5]);
 
   vector<Eigen::Matrix3d> previous_rotations;
   for (int level = num_levels - 1; level >= 0; --level) {

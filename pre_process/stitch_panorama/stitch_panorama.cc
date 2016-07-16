@@ -186,24 +186,31 @@ double InverseNcc(std::vector<Vector3f>& patch0, std::vector<Vector3f>& patch1) 
   ncc /= max(0.01, var0 * var1);
   return min(1.0 - ncc, 0.7);
 }
-
-class RegularizationResidual {
- public:
-  RegularizationResidual() {}
-
-  template <typename T> bool operator()(const T* params, T* residual) const {
-    const double kScale = 100.0;
-    const auto& mat = Rodrigues(Vector3d(params[0], params[1], params[2]));
-    // const Vector3d kExpectedYAxis(0, 0, 1);
-    const Vector3d kExpectedYAxis(-0.07361, -0.03432, -0.9967);
-    residual[0] = kScale * (1.0 - std::fabs(kExpectedYAxis.dot(mat.row(1))));
-    return true;
-  }
-};
   
 }  // namespace
 
 namespace pre_process {
+
+  class RegularizationResidual {
+ public:
+  RegularizationResidual(const pre_process::StitchPanorama& stitch_panorama, const int camera_index) {
+    rotation_org_ = stitch_panorama.rotations[camera_index];
+  }
+
+  template <typename T> bool operator()(const T* params, T* residual) const {
+    const double kScale = 500.0;
+    const auto& mat = Rodrigues(Vector3d(params[0], params[1], params[2]));
+    // const Vector3d kExpectedYAxis(0, 0, 1);
+    // const Vector3d kExpectedYAxis(-0.07361, -0.03432, -0.9967);
+    // residual[0] = kScale * (1.0 - std::fabs(kExpectedYAxis.dot(mat.row(1))));
+
+    residual[0] = kScale * (1.0 - (mat.row(1)).dot(rotation_org_.row(1)));
+    return true;
+  }
+
+ private:
+    Eigen::Matrix3d rotation_org_;
+};
 
 class ManualSpecification {
  public:
@@ -233,9 +240,9 @@ class ManualSpecification {
   }
 
  private:
-  const pre_process::StitchPanorama stitch_panorama_;
-  const Eigen::Vector2d& lhs_;
-  const Eigen::Vector2d& rhs_;
+  const pre_process::StitchPanorama& stitch_panorama_;
+  const Eigen::Vector2d lhs_;
+  const Eigen::Vector2d rhs_;
 };
   
 PatchCorrelationResidual::PatchCorrelationResidual(const pre_process::StitchPanorama& stitch_panorama,
@@ -541,7 +548,7 @@ bool StitchPanorama::RefineCameras() {
     const int sampled_index = to_sampled_index[c];
     ceres::CostFunction* cost_function =
       new ceres::NumericDiffCostFunction
-      <RegularizationResidual, ceres::CENTRAL, 1, 3>(new RegularizationResidual());
+      <RegularizationResidual, ceres::CENTRAL, 1, 3>(new RegularizationResidual(*this, c));
     problem.AddResidualBlock(cost_function, new ceres::TrivialLoss(),
                              &params[kNumOfParamsPerIndex * sampled_index]);
   }
@@ -549,46 +556,151 @@ bool StitchPanorama::RefineCameras() {
   //----------------------------------------------------------------------
   // Manual clicks.
   //----------------------------------------------------------------------
+  // Lopata.
   {
     vector<pair<int, int> > image_pairs;
     vector<pair<Vector2d, Vector2d> > pixel_pairs;
+    {
+      const int kNumData = 7;
+      const int image_list[kNumData] = { 30, 31, 32, 33, 34, 35, 36 };
+      const Vector2d pixel_list[kNumData] = { Vector2d(626, 319),
+                                              Vector2d(512, 310),
+                                              Vector2d(413, 300),
+                                              Vector2d(341, 309),
+                                              Vector2d(244, 307),
+                                              Vector2d(139, 311),
+                                              Vector2d(47, 304) };
 
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
+      for (int i = 0; i < kNumData; ++i) {
+        if (image_list[i] % subsample != 0)
+          continue;
+        for (int j = i+1; j < kNumData; ++j) {
+          if (image_list[j] % subsample != 0)
+            continue;
+          image_pairs.push_back(make_pair<int, int>(image_list[i], image_list[j]));
+          pixel_pairs.push_back(make_pair(pixel_list[i], pixel_list[j]));
+        }
+      }
+    }    
 
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
+    {
+      const int kNumData = 7;
+      const int image_list[kNumData] = { 34, 35, 36, 37, 38, 39, 40 };
+      const Vector2d pixel_list[kNumData] = { Vector2d(663, 312),
+                                              Vector2d(539, 322),
+                                              Vector2d(436, 324),
+                                              Vector2d(334, 322),
+                                              Vector2d(232, 343),
+                                              Vector2d(133, 343),
+                                              Vector2d(36, 329) };
+      for (int i = 0; i < kNumData; ++i) {
+        if (image_list[i] % subsample != 0)
+          continue;
+        for (int j = i+1; j < kNumData; ++j) {
+          if (image_list[j] % subsample != 0)
+            continue;
+          image_pairs.push_back(make_pair<int, int>(image_list[i], image_list[j]));
+          pixel_pairs.push_back(make_pair(pixel_list[i], pixel_list[j]));
+        }
+      }
+    }    
 
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
+    {
+      const int kNumData = 9;
+      const int image_list[kNumData] = { 20, 21, 22, 23, 24, 25, 26, 27, 28 };
+      const Vector2d pixel_list[kNumData] = { Vector2d(663, 709),
+                                              Vector2d(619, 707),
+                                              Vector2d(567, 697),
+                                              Vector2d(510, 710),
+                                              Vector2d(429, 716),
+                                              Vector2d(323, 713),
+                                              Vector2d(236, 711),
+                                              Vector2d(122, 698),
+                                              Vector2d(40, 699) };
+      for (int i = 0; i < kNumData; ++i) {
+        if (image_list[i] % subsample != 0)
+          continue;
+        for (int j = i+1; j < kNumData; ++j) {
+          if (image_list[j] % subsample != 0)
+            continue;
+          image_pairs.push_back(make_pair<int, int>(image_list[i], image_list[j]));
+          pixel_pairs.push_back(make_pair(pixel_list[i], pixel_list[j]));
+        }
+      }
+    }    
 
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
+    {
+      const int kNumData = 7;
+      const int image_list[kNumData] = { 25, 26, 27, 28, 29, 30, 31 };
+      const Vector2d pixel_list[kNumData] = { Vector2d(649, 715),
+                                              Vector2d(556, 714),
+                                              Vector2d(445, 696),
+                                              Vector2d(371, 690),
+                                              Vector2d(287, 690),
+                                              Vector2d(195, 686),
+                                              Vector2d(87, 681) };
 
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
-
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
-
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
-
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
-
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
-
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
-
-    image_pairs.push_back(make_pair<int, int>( , ));
-    pixel_pairs.push_back(make_pair( , ));
+      for (int i = 0; i < kNumData; ++i) {
+        if (image_list[i] % subsample != 0)
+          continue;
+        for (int j = i+1; j < kNumData; ++j) {
+          if (image_list[j] % subsample != 0)
+            continue;
+          image_pairs.push_back(make_pair<int, int>(image_list[i], image_list[j]));
+          pixel_pairs.push_back(make_pair(pixel_list[i], pixel_list[j]));
+        }
+      }
+    }    
     
-    
-    
+    {
+      const int kNumData = 10;
+      const int image_list[kNumData] = { 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 };
+      const Vector2d pixel_list[kNumData] = { Vector2d(657, 512),
+                                              Vector2d(586, 510),
+                                              Vector2d(517, 518),
+                                              Vector2d(435, 511),
+                                              Vector2d(357, 511),
+                                              Vector2d(279, 509),
+                                              Vector2d(207, 503),
+                                              Vector2d(162, 500),
+                                              Vector2d(109, 492),
+                                              Vector2d(55, 501) };
 
+      for (int i = 0; i < kNumData; ++i) {
+        if (image_list[i] % subsample != 0)
+          continue;
+        for (int j = i+1; j < kNumData; ++j) {
+          if (image_list[j] % subsample != 0)
+            continue;
+          image_pairs.push_back(make_pair<int, int>(image_list[i], image_list[j]));
+          pixel_pairs.push_back(make_pair(pixel_list[i], pixel_list[j]));
+        }
+      }
+    }    
+
+    {
+      const int kNumData = 7;
+      const int image_list[kNumData] = { 36, 37, 38, 39, 40, 41, 42 };
+      const Vector2d pixel_list[kNumData] = { Vector2d(665, 486),
+                                              Vector2d(568, 486),
+                                              Vector2d(475, 502),
+                                              Vector2d(380, 507),
+                                              Vector2d(296, 500),
+                                              Vector2d(200, 492),
+                                              Vector2d(100, 484) };
+
+      for (int i = 0; i < kNumData; ++i) {
+        if (image_list[i] % subsample != 0)
+          continue;
+        for (int j = i+1; j < kNumData; ++j) {
+          if (image_list[j] % subsample != 0)
+            continue;
+          image_pairs.push_back(make_pair<int, int>(image_list[i], image_list[j]));
+          pixel_pairs.push_back(make_pair(pixel_list[i], pixel_list[j]));
+        }
+      }
+    }    
+    
     const double scale = 1.0 / (1 << level);
     for (auto& pixel_pair : pixel_pairs) {
       pixel_pair.first  *= scale;
@@ -601,10 +713,16 @@ bool StitchPanorama::RefineCameras() {
       const int sampled_index0 = to_sampled_index[image_pairs[i].first];
       const int sampled_index1 = to_sampled_index[image_pairs[i].second];
 
+      if (sampled_index0 == -1 || sampled_index1 == -1 || sampled_index0 == sampled_index1) {
+        cerr << " NONO " << image_pairs[i].first << ' ' << image_pairs[i].second << endl
+             << sampled_index0 << ' ' << sampled_index1 << endl;
+        exit (1);
+      }
+      
       problem.AddResidualBlock(cost_function, new ceres::TrivialLoss(),
                                &params[kNumOfParamsPerIndex * sampled_index0],
                                &params[kNumOfParamsPerIndex * sampled_index1]);
-    }      
+    }
   }
   
   ceres::Solver::Options options;
