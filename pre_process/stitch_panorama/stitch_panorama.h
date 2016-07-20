@@ -15,6 +15,7 @@ namespace pre_process {
 
 class PatchCorrelationResidual;
 class RegularizationResidual;
+class RegularizationResidual2;
 class ManualSpecification;
 
 struct Input {
@@ -85,6 +86,7 @@ class StitchPanorama {
 
   friend class PatchCorrelationResidual;
   friend class RegularizationResidual;
+  friend class RegularizationResidual2;
   friend class ManualSpecification;
 };
 
